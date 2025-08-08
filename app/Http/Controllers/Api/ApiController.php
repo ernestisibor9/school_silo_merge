@@ -119,7 +119,7 @@ class ApiController extends Controller
 {
 
     //--Schools
-    
+
      /**
      * @OA\Post(
      *     path="/api/registerSchool",
@@ -173,7 +173,7 @@ class ApiController extends Controller
                 "count"=> strval($count),
                 "s_web"=> '0',
                 "s_info"=> '0',
-                
+
                 "cssn"=> '0',
                 "ctrm"=> '0',
                 "ctrmn"=> '0',
@@ -199,7 +199,7 @@ class ApiController extends Controller
                 // Log the email error, but don't stop the process
                 Log::error('Failed to send email: ' . $e->getMessage());
             }
-            
+
 
             $token = JWTAuth::attempt([
                 "email"=> $request->email,
@@ -363,22 +363,22 @@ class ApiController extends Controller
                 'body' => 'Please use the link below to verify your email. If the link isnt clickable, please copy the link to your browser. If this arrived in spam folder, please mark as Not Spam. '.$lnk,
                 'link'=>$lnk,
             ];
-        
+
             Mail::to($eml)->send(new SSSMails($data));
         } catch (\Exception $e) {
             // Log the email error, but don't stop the process
             Log::error('Failed to send email: ' . $e->getMessage());
         }
-        
-        
+
+
         return response()->json([
             "status"=> true,
             "message"=> "Link sent to mail",
-        ]);   
+        ]);
         return response()->json([
             "status"=> false,
             "message"=> "Must Login User First",
-        ],400);  
+        ],400);
     }
 
     /**
@@ -444,7 +444,7 @@ class ApiController extends Controller
             return response()->json([
                 "status"=> false,
                 "message"=> "User not found",
-            ],400);   
+            ],400);
         }
         return response()->json([
             "status"=> false,
@@ -494,21 +494,21 @@ class ApiController extends Controller
                     'body' => 'Please go to this link to reset your password. It will expire in 1 hour. . If the link isnt clickable, please copy the link to your browser. If this arrived in spam folder, please mark as Not Spam.',
                     'link'=>env('PORTAL_URL').'/resetPassword'.'/'.$request->typ.'/'.$token.'/'.$schid,
                 ];
-            
+
                 Mail::to($eml)->send(new SSSMails($data));
             } catch (\Exception $e) {
                 // Log the email error, but don't stop the process
                 Log::error('Failed to send email: ' . $e->getMessage());
             }
-            
-            
+
+
             return response()->json([
                 "status"=> true,
                 "message"=> "Password reset link sent to mail",
-            ]);   
+            ]);
         }
-        
-        
+
+
         // Respond
         return response()->json([
             "status"=> false,
@@ -557,7 +557,7 @@ class ApiController extends Controller
             return response()->json([
                 "status"=> false,
                 "message"=> "User not found",
-            ],400);   
+            ],400);
         }
         return response()->json([
             "status"=> false,
@@ -565,7 +565,7 @@ class ApiController extends Controller
         ],400);
     }
 
-    
+
 
     /**
      * @OA\Post(
@@ -1213,7 +1213,7 @@ class ApiController extends Controller
             "message"=> "Partner not found"
         ],400);
     }
-    
+
 
     /**
      * @OA\Get(
@@ -1321,7 +1321,7 @@ class ApiController extends Controller
             "status"=> true,
             "message"=> "Success",
             "pld"=> $pld,
-        ]); 
+        ]);
     }
 
     /**
@@ -1403,7 +1403,7 @@ class ApiController extends Controller
             "message"=> "School Not Found"
         ],400);
     }
-    
+
 
     /**
      * @OA\Post(
@@ -1508,7 +1508,7 @@ class ApiController extends Controller
      *     tags={"Api"},
      *     summary="Get All Class Arms for a particular school",
      *     description="Use this endpoint to get a list of classes",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -1535,7 +1535,7 @@ class ApiController extends Controller
      *     tags={"Api"},
      *     summary="Get Classes for a particular school",
      *     description="Use this endpoint to get a list of classes",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -1589,7 +1589,7 @@ class ApiController extends Controller
      *     tags={"Api"},
      *     summary="Get total no for Classes for a particular school",
      *     description="Use this endpoint to get a total no of classes",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -1705,7 +1705,7 @@ class ApiController extends Controller
      *     tags={"Api"},
      *     summary="Get All Classes for a particular school",
      *     description="Use this endpoint to get a list of classes",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -1951,7 +1951,7 @@ class ApiController extends Controller
                 // Log the email error, but don't stop the process
                 Log::error('Failed to send email: ' . $e->getMessage());
             }
-            
+
             // Respond
             $token = JWTAuth::attempt([
                 "email"=> $request->email,
@@ -2136,7 +2136,7 @@ class ApiController extends Controller
                 // Log the email error, but don't stop the process
                 Log::error('Failed to send email: ' . $e->getMessage());
             }
-            
+
             return response()->json([
                 "status"=> true,
                 "message"=> "Success",
@@ -2501,8 +2501,8 @@ class ApiController extends Controller
     //         "message"=> "Success",
     //     ]);
     // }
-    
-    
+
+
     public function setStudentBasicInfo(Request $request){
     // Data validation
     $request->validate([
@@ -2553,7 +2553,7 @@ class ApiController extends Controller
     ]);
 }
 
-    
+
 
 
     /**
@@ -2627,7 +2627,7 @@ class ApiController extends Controller
     //         "message"=> "Success",
     //     ]);
     // }
-    
+
 // public function setStudentSubject(Request $request){
 //     // Data validation
 //     $request->validate([
@@ -2650,7 +2650,7 @@ class ApiController extends Controller
 //             "message" => "Subject already exist",
 //         ]);
 //     }
-    
+
 //     student_subj::create([
 //         "uid"   => $request->uid,
 //         "stid"  => $request->stid,
@@ -2750,7 +2750,7 @@ public function setStudentSubject(Request $request)
 //             "message" => "Subject Already Exist",
 //         ]);
 //     }
-    
+
 //     student_subj::create([
 //         "uid"   => $request->uid,
 //         "stid"  => $request->stid,
@@ -2816,8 +2816,8 @@ public function setStudentSubject(Request $request)
         ]);
     }
 
-    
-    
+
+
 
 
 /**
@@ -3012,7 +3012,7 @@ public function deleteStudentSubject($uid, $sbj)
             "pld"=> $pld,
         ]);
     }
-    
+
 
 
     /**
@@ -3229,7 +3229,7 @@ public function deleteStudentSubject($uid, $sbj)
      *     tags={"Api"},
      *     summary="Delete a class subject",
      *     description="Use this endpoint to delete a class subject",
-     *     
+     *
      *     @OA\Parameter(
      *         name="uid",
      *         in="path",
@@ -3491,7 +3491,7 @@ public function deleteStudentSubject($uid, $sbj)
     //         "pld"=> $pld,
     //     ]);
     // }
-    
+
     public function getArmResultConf($schid, $clsid, $sbid, $ssn, $trm, $arm)
 {
     $pld = arm_result_conf::join('student', 'arm_result_conf.schid', '=', 'student.schid')
@@ -3517,7 +3517,7 @@ public function deleteStudentSubject($uid, $sbj)
      * @OA\Get(
      *     path="/api/getStudentResultsByArm/{schid}/{clsid}/{ssn}/{trm}/{arm}",
      *     tags={"Api"},
-     * 
+     *
      *     summary="Get students result",
      *     description="Use this endpoint to get students result.",
      *     @OA\Parameter(
@@ -3577,7 +3577,7 @@ public function deleteStudentSubject($uid, $sbj)
 //         $relevantClassSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
 //             ->where('class_subj.schid', $schid)
 //             ->where('class_subj.clsid', $clsid)
-//             ->pluck('sbj');        
+//             ->pluck('sbj');
 //         //BUG Fix End on 19/03/2025
 
 //         foreach ($members as $member) {
@@ -3638,7 +3638,7 @@ public function deleteStudentSubject($uid, $sbj)
 //                     ['clsm', $clsid],
 //                     ['stid', $user_id]
 //                 ])->exists();
-            
+
 //                 $resexist = student_res::where([
 //                     ['schid', $schid],
 //                     ['ssn', $ssn],
@@ -3688,7 +3688,7 @@ public function deleteStudentSubject($uid, $sbj)
 //         ->where('old_student.status', "active")
 //         ->where('old_student.clsa', $arm)
 //         ->get();
-    
+
 //     $totalStd = count($members);
 //     $cstds = [];
 //     $relevantSubjects = [];
@@ -3811,14 +3811,14 @@ public function deleteStudentSubject($uid, $sbj)
 //             ];
 //         }
 //     }
-    
+
 //     // Get the number of fails (nof) from the result_meta table
 //     $nof = result_meta::where([
 //         ['schid', $schid],
 //         ['ssn', $ssn],
 //         ['trm', $trm],
 //     ])->value('num_of_days') ?? 0;
-    
+
 //     $presentCountQuery = \DB::table('attendances')
 //     ->where('schid', $schid)
 //     ->where('ssn', $ssn)
@@ -3829,7 +3829,7 @@ public function deleteStudentSubject($uid, $sbj)
 
 //     // Check if any attendance exists for this student
 //     $attendanceExists = $presentCountQuery->exists();
-    
+
 //     if ($attendanceExists) {
 //         $presentCount = $presentCountQuery->where('status', 1)->count();
 //         $absentCount = max(0, $nof - $presentCount);
@@ -4425,7 +4425,7 @@ public function getStudentResultsByArm($schid, $clsid, $ssn, $trm, $arm)
      * @OA\Get(
      *     path="/api/getStudent",
      *     tags={"Api"},
-     *     
+     *
      *     summary="Get a student",
      *     description="Use this endpoint to get a student.",
      *     @OA\Parameter(
@@ -4505,7 +4505,7 @@ public function getStudentResultsByArm($schid, $clsid, $ssn, $trm, $arm)
             "pld"=> $pld,
         ]);
     }
-    
+
      /**
      * @OA\Post(
      *     path="/api/setStudentMedicalInfo",
@@ -4699,7 +4699,7 @@ public function getStudentResultsByArm($schid, $clsid, $ssn, $trm, $arm)
         ]);
     }
 
-    
+
     /**
      * @OA\Post(
      *     path="/api/setStudentAcademicInfo",
@@ -4902,12 +4902,12 @@ public function getStudentResultsByArm($schid, $clsid, $ssn, $trm, $arm)
     //         "pld"=> $pld,
     //     ]);
     // }
-    
-    
-    
 
-    
-    
+
+
+
+
+
         /**
      * @OA\Get(
      *     path="/api/getOldStudents/{schid}/{ssn}/{clsm}/{clsa}",
@@ -4961,10 +4961,10 @@ public function getStudentResultsByArm($schid, $clsid, $ssn, $trm, $arm)
         ]);
     }
 
-    
-    
-    
-    
+
+
+
+
 
     /**
      * @OA\Get(
@@ -5277,12 +5277,12 @@ public function getStudentResultsByArm($schid, $clsid, $ssn, $trm, $arm)
 
 
 
-    
-    
+
+
  //////////////////////////////////////////////////////////////////////////////////////////////////
- 
- 
- 
+
+
+
     /**
      * @OA\Post(
      *     path="/api/setStudentRes",
@@ -5348,7 +5348,7 @@ public function getStudentResultsByArm($schid, $clsid, $ssn, $trm, $arm)
     //         "message"=> "Info Updated"
     //     ]);
     // }
- 
+
 
 
 public function setStudentRes(Request $request)
@@ -5451,7 +5451,7 @@ student_res::updateOrCreate(
 }
 
 
-    
+
 
     /**
      * @OA\Get(
@@ -5944,7 +5944,7 @@ student_res::updateOrCreate(
                 // Log the email error, but don't stop the process
                 Log::error('Failed to send email: ' . $e->getMessage());
             }
-            
+
             return response()->json([
                 "status"=> true,
                 "message"=> "Success",
@@ -5955,7 +5955,7 @@ student_res::updateOrCreate(
             "message"=> "Student Not Found",
         ],400);
     }
-    
+
     /**
      * @OA\Post(
      *     path="/api/setStaffBasicInfo",
@@ -6180,7 +6180,7 @@ student_res::updateOrCreate(
             "message"=> "Success",
         ]);
     }
-    
+
     /**
      * @OA\Get(
      *     path="/api/getOldStudentsAndSubject/{schid}/{ssn}/{trm}/{clsm}/{clsa}/{stf}",
@@ -6234,11 +6234,11 @@ student_res::updateOrCreate(
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    
+
     // public function getOldStudentsAndSubject($schid, $ssn, $trm, $clsm, $clsa, $stf)
     // {
     //     $ostd = [];
-    
+
     //     if ($clsa == '-1') {
     //         $ostd = old_student::where("schid", $schid)
     //             ->where("status", "active")
@@ -6253,7 +6253,7 @@ student_res::updateOrCreate(
     //             ->where("clsa", $clsa)
     //             ->get();
     //     }
-    
+
     //     $relevantSubjects = [];
     //     if ($stf == "-1" || $stf == "-2") {
     //         $relevantSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
@@ -6267,21 +6267,21 @@ student_res::updateOrCreate(
     //             ->where('staff_subj.stid', $stf)
     //             ->pluck('sbj');
     //     }
-    
+
     //     $stdPld = [];
-    
+
     //     foreach ($ostd as $std) {
     //         $user_id = $std->sid;
     //         $studentSubjects = student_subj::where('stid', $user_id)
     //             ->whereIn('sbj', $relevantSubjects)
     //             ->get();
-    
+
     //         $mySbjs = [];
     //         $scores = [];
-    
+
     //         foreach ($studentSubjects as $sbj) {
     //             $sbid = $sbj->sbj;
-    
+
     //             // Fetch scores for this subject
     //             $subjectScores = std_score::where('stid', $user_id)
     //                 ->where('sbj', $sbid)
@@ -6290,7 +6290,7 @@ student_res::updateOrCreate(
     //                 ->where('trm', $trm)
     //                 ->where('clsid', $clsm)
     //                 ->get();
-    
+
     //             if ($subjectScores->isEmpty()) {
     //                 // Subject was offered, but no score entered â€” use 0
     //                 $subjectScores = collect([
@@ -6302,7 +6302,7 @@ student_res::updateOrCreate(
     //                     ]
     //                 ]);
     //             }
-                
+
     //             $mySbjs[] = $sbid;
     //             $scores[] = [
     //                 'sbid' => $sbid,
@@ -6310,11 +6310,11 @@ student_res::updateOrCreate(
     //             ];
 
     //         }
-    
+
     //         $psy = false;
     //         $res = "0";
     //         $rinfo = [];
-    
+
     //         if ($stf == "-2") {
     //             $psy = student_psy::where("schid", $schid)
     //                 ->where("ssn", $ssn)
@@ -6322,19 +6322,19 @@ student_res::updateOrCreate(
     //                 ->where("clsm", $clsm)
     //                 ->where("stid", $user_id)
     //                 ->exists();
-    
+
     //             $rinfo = student_res::where("schid", $schid)
     //                 ->where("ssn", $ssn)
     //                 ->where("trm", $trm)
     //                 ->where("clsm", $clsm)
     //                 ->where("stid", $user_id)
     //                 ->first();
-    
+
     //             if ($rinfo) {
     //                 $res = $rinfo->stat;
     //             }
     //         }
-    
+
     //         $stdPld[] = [
     //             'std' => $std,
     //             'sbj' => $mySbjs,
@@ -6344,11 +6344,11 @@ student_res::updateOrCreate(
     //             'rinfo' => $rinfo,
     //         ];
     //     }
-    
+
     //     // Get unique class subjects that are actually used
     //     $clsSbj = [];
     //     $temKeep = [];
-    
+
     //     foreach ($relevantSubjects as $sbid) {
     //         if (!in_array($sbid, $temKeep)) {
     //             $temKeep[] = $sbid;
@@ -6358,12 +6358,12 @@ student_res::updateOrCreate(
     //             }
     //         }
     //     }
-    
+
     //     $pld = [
     //         'std-pld' => $stdPld,
     //         'cls-sbj' => $clsSbj // Optional, keep if needed
     //     ];
-    
+
     //     return response()->json([
     //         "status" => true,
     //         "message" => "Success",
@@ -6371,9 +6371,9 @@ student_res::updateOrCreate(
     //     ]);
     // }
 
-    
+
     ////////////////////////////////////////////////////////////////////////////////
-    
+
 //     public function getOldStudentsAndSubject($schid, $ssn, $trm, $clsm, $clsa, $stf)
 // {
 //     $ostd = [];
@@ -6678,10 +6678,10 @@ private function gradeFromAvg2($avg)
 
 
 
-    
-    
+
+
 //////////////////////////////////////////////////////////////////////////////////////
-    
+
     public function getOldStudentsAndSubjectScoreSheet($schid, $ssn,$trm, $clsm, $clsa,$stf){
         $ostd = [];
         if($clsa=='-1'){
@@ -6765,13 +6765,13 @@ private function gradeFromAvg2($avg)
             "message"=> "Success",
             "pld"=> $pld,
         ]);
-    }    
-    
-    
-    
-    
-    
-    
+    }
+
+
+
+
+
+
 // public function getOldStudentsAndSubject($schid, $ssn, $trm, $clsm, $clsa, $stf)
 // {
 //     $ostd = [];
@@ -6906,7 +6906,7 @@ private function gradeFromAvg2($avg)
 //             }
 //         }
 //     }
-    
+
 //     // Get the number of days (nof) from the result_meta table
 //     $nof = result_meta::where([
 //         ['schid', $schid],
@@ -6928,10 +6928,10 @@ private function gradeFromAvg2($avg)
 //     ]);
 // }
 
-    
 
-    
-    
+
+
+
 // public function getOldStudentsAndSubject($schid, $ssn, $trm, $clsm, $clsa, $stf)
 // {
 //     $ostd = [];
@@ -7320,7 +7320,7 @@ private function gradeFromAvg2($avg)
 // }
 
 
-    
+
 // public function getOldStudentsAndSubject($schid, $ssn, $trm, $clsm, $clsa, $stf)
 // {
 //     $ostd = [];
@@ -7435,7 +7435,7 @@ private function gradeFromAvg2($avg)
 //             $clsSbj[] = $schSbj;
 //         }
 //     }
-    
+
 //     // Get the number of fails (nof) from the result_meta table
 //     $nof = result_meta::where([
 //         ['schid', $schid],
@@ -7519,7 +7519,7 @@ private function gradeFromAvg2($avg)
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    
+
     // public function getOldStudentsAndSubjectHistory($schid, $ssn,$trm, $clsm, $clsa,$stf){
     // $ostd = [];
     // if($clsa=='-1'){
@@ -7600,8 +7600,8 @@ private function gradeFromAvg2($avg)
     //     "pld"=> $pld,
     // ]);
     // }
-    
-    
+
+
     public function getOldStudentsAndSubjectHistory($schid, $ssn, $trm, $clsm, $clsa, $stf)
 {
     $ostd = [];
@@ -7618,7 +7618,7 @@ private function gradeFromAvg2($avg)
     foreach ($ostd as $std) {
         $user_id = $std->sid;
         $mySbjs = [];
-        
+
         // Get all scores where score is greater than 0
         $allScores = std_score::where('stid', $user_id)
             ->where("schid", $schid)
@@ -7628,7 +7628,7 @@ private function gradeFromAvg2($avg)
             ->whereNotNull('scr') // Exclude null scores
             ->where('scr', '>', 0) // Exclude zero scores
             ->get();
-        
+
         // Collect subjects and their corresponding scores
         foreach ($allScores as $scr) {
             $sbid = $scr->sbj;
@@ -7910,14 +7910,14 @@ private function gradeFromAvg2($avg)
     //         ['clsm', $clsm],
     //         ['stid', $user_id]
     //     ])->exists();
-        
+
     //     $rinfo = student_res::where("schid", $schid)
     //     ->where("ssn", $ssn)
     //     ->where("trm", $trm)
     //     ->where("clsm", $clsm)
     //     ->where("stid", $user_id)
     //     ->first();
-    
+
     //     $res = student_res::where([
     //         ['schid', $schid],
     //         ['ssn', $ssn],
@@ -7941,8 +7941,8 @@ private function gradeFromAvg2($avg)
     //         "pld"=> $pld,
     //     ]);
     // }
-    
-    
+
+
 // public function getStudentResult($schid, $ssn, $trm, $clsm, $clsa, $stid)
 // {
 //     $totalStd = student::join('old_student', 'student.sid', '=', 'old_student.sid')
@@ -8073,7 +8073,7 @@ private function gradeFromAvg2($avg)
 //     ]);
 // }
 
-    
+
 public function getStudentResult($schid, $ssn, $trm, $clsm, $clsa, $stid)
 {
     $totalStd = student::join('old_student', 'student.sid', '=', 'old_student.sid')
@@ -8190,26 +8190,26 @@ public function getStudentResult($schid, $ssn, $trm, $clsm, $clsa, $stid)
         ['clsm', $clsm],
         ['stid', $user_id]
     ])->value('stat') ?? "0";
-    
-    
+
+
         // Get the number of fails (nof) from the result_meta table
     $nof = result_meta::where([
         ['schid', $schid],
         ['ssn', $ssn],
         ['trm', $trm],
     ])->value('num_of_days') ?? 0;
-    
+
     $presentCountQuery = \DB::table('attendances')
     ->where('schid', $schid)
     ->where('ssn', $ssn)
     ->where('trm', $trm)
     ->where('sid', $std->sid);
-    
+
 
 
     // Check if any attendance exists for this student
     $attendanceExists = $presentCountQuery->exists();
-    
+
     if ($attendanceExists) {
         Log::info('Success:' .$attendanceExists. 'yes it is');
         $presentCount = $presentCountQuery->where('status', 1)->count();
@@ -8244,7 +8244,7 @@ public function getStudentResult($schid, $ssn, $trm, $clsm, $clsa, $stid)
 
 /////////////////////////////////////
 
-    
+
 
     /**
      * @OA\Get(
@@ -8299,7 +8299,7 @@ public function getStudentResult($schid, $ssn, $trm, $clsm, $clsa, $stid)
      *     tags={"Api"},
      *     summary="Delete a staff subject",
      *     description="Use this endpoint to delete a staff subject",
-     *     
+     *
      *     @OA\Parameter(
      *         name="uid",
      *         in="path",
@@ -8445,7 +8445,7 @@ public function getStudentResult($schid, $ssn, $trm, $clsm, $clsa, $stid)
      *     tags={"Api"},
      *     summary="Delete a staff class",
      *     description="Use this endpoint to delete a staff class",
-     *     
+     *
      *     @OA\Parameter(
      *         name="uid",
      *         in="path",
@@ -8668,7 +8668,7 @@ public function getStudentResult($schid, $ssn, $trm, $clsm, $clsa, $stid)
      *     tags={"Api"},
      *     summary="Delete a staff class arm",
      *     description="Use this endpoint to delete a staff class arm",
-     *     
+     *
      *     @OA\Parameter(
      *         name="uid",
      *         in="path",
@@ -8977,7 +8977,7 @@ public function getStudentResult($schid, $ssn, $trm, $clsm, $clsa, $stid)
         ]);
     }
 
-    
+
 
     //---messaging
 
@@ -9014,14 +9014,14 @@ public function getStudentResult($schid, $ssn, $trm, $clsm, $clsa, $stid)
                 "status"=> true,
                 "message"=> "Success",
                 "pld"=> $pld
-            ]); 
+            ]);
         }
         return response()->json([
             "status"=> false,
             "message"=> "The Search param is required"
         ]);
     }
-    
+
 
 
      /**
@@ -9262,13 +9262,13 @@ public function getStudentResult($schid, $ssn, $trm, $clsm, $clsa, $stid)
                         'body' => $request->body,
                         'link'=>$request->art!='_'?env('API_URL').'/getFile/msg/'.$request->art:env('PORTAL_URL')
                     ];
-                
+
                     Mail::to($request->mail)->send(new SSSMails($data));
                 } catch (\Exception $e) {
                     // Log the email error, but don't stop the process
                     Log::error('Failed to send email: ' . $e->getMessage());
                 }
-                
+
                 return response()->json([
                     "status"=> true,
                     "message"=> "Success (User was also mailed)",
@@ -9363,8 +9363,8 @@ public function getStudentResult($schid, $ssn, $trm, $clsm, $clsa, $stid)
     //         ]);
     //     }
     // }
-    
-    
+
+
 
         public function uploadFile(Request $request){
         $request->validate([
@@ -9516,7 +9516,7 @@ public function getStudentResult($schid, $ssn, $trm, $clsm, $clsa, $stid)
             ]);
         }
     }
-    
+
 
 
 
@@ -9557,7 +9557,7 @@ public function getStudentResult($schid, $ssn, $trm, $clsm, $clsa, $stid)
             'account_number' => $anum,
             'bank_code' => $bnk,
         ]);
-        
+
         if ($response->successful()) {
             $data = $response->json();
             // Output or use the resolved data
@@ -9801,7 +9801,7 @@ public function getStudentResult($schid, $ssn, $trm, $clsm, $clsa, $stid)
      *     tags={"Api"},
      *     summary="Get how many payments are available",
      *     description="Use this endpoint to get ow many payments are available",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -9830,7 +9830,7 @@ public function getStudentResult($schid, $ssn, $trm, $clsm, $clsa, $stid)
      *         description="Term ID",
      *         @OA\Schema(type="string")
      *     ),
-     * 
+     *
      *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
@@ -9872,7 +9872,7 @@ public function getStudentResult($schid, $ssn, $trm, $clsm, $clsa, $stid)
      *     security={{"bearerAuth": {}}},
      *     summary="Get Payments by School",
      *     description="Use this endpoint to get Payments by School",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -9954,7 +9954,7 @@ public function getStudentResult($schid, $ssn, $trm, $clsm, $clsa, $stid)
     //         "pld" => $pld,
     //     ]);
     // }
-    
+
 
 // public function getPayments($schid, $clsid, $ssnid, $trmid)
 // {
@@ -10192,7 +10192,7 @@ public function getPayments($schid, $clsid, $ssnid, $trmid)
      *     security={{"bearerAuth": {}}},
      *     summary="Returns null if no payment",
      *     description="Use this endpoint to confirm payment",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -10241,7 +10241,7 @@ public function getPayments($schid, $clsid, $ssnid, $trmid)
     //         "pld"=> $pld,
     //     ]);
     // }
-    
+
      public function confirmPayment($schid, $clsid, $ssnid, $trmid, $stid)
         {
             $pld = payments::where('schid', $schid)
@@ -10251,15 +10251,15 @@ public function getPayments($schid, $clsid, $ssnid, $trmid)
                 ->where('stid', $stid)
                 ->orderBy('created_at', 'desc') // ðŸ”¥ get the latest by creation time
                 ->first();
-        
+
             return response()->json([
                 "status" => true,
                 "message" => "Success",
                 "pld" => $pld,
             ]);
         }
-    
-    
+
+
 //     public function confirmPayment($schid, $clsid, $ssnid, $trmid, $stid)
 // {
 //     // Get all payments for the student in that term
@@ -10290,8 +10290,8 @@ public function getPayments($schid, $clsid, $ssnid, $trmid)
 //     ]);
 // }
 
-    
-    
+
+
     // public function confirmPayment($schid, $clsid, $ssnid, $trmid, $stid)
     //   {
     //     $pld = payments::where('schid', $schid)
@@ -10301,7 +10301,7 @@ public function getPayments($schid, $clsid, $ssnid, $trmid)
     //         ->where('stid', $stid)
     //         ->with('payhead:id,schid,name,comp') // Join payhead table
     //         ->first();
-    
+
     //     return response()->json([
     //         "status" => true,
     //         "message" => "Success",
@@ -10309,7 +10309,7 @@ public function getPayments($schid, $clsid, $ssnid, $trmid)
     //         "phid" => $pld?->payhead?->id // Extract payhead ID (phid)
     //     ]);
     //   }
-  
+
 
     /**
      * @OA\Get(
@@ -10317,7 +10317,7 @@ public function getPayments($schid, $clsid, $ssnid, $trmid)
      *     tags={"Payments"},
      *     summary="Returns null if no payment",
      *     description="Use this endpoint to confirm payment of acceptance fee",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -10352,7 +10352,7 @@ public function getPayments($schid, $clsid, $ssnid, $trmid)
             "pld"=> $pld,
         ]);
     }
-    
+
     /**
      * @OA\Post(
      *     path="/api/setAFeeRecord",
@@ -10421,7 +10421,7 @@ public function getPayments($schid, $clsid, $ssnid, $trmid)
      *     tags={"Api"},
      *     summary="Get how many acceptance fee payments are available",
      *     description="Use this endpoint to get how many aFee payments are available",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -10459,7 +10459,7 @@ public function getPayments($schid, $clsid, $ssnid, $trmid)
      *     tags={"Payments"},
      *     summary="Get Acceptance Fee Payments by School",
      *     description="Use this endpoint to get Payments by School",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -10514,7 +10514,7 @@ public function getPayments($schid, $clsid, $ssnid, $trmid)
      *     tags={"Api"},
      *     summary="Get how many reg fee payments are available",
      *     description="Use this endpoint to get how many rFee payments are available",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -10654,7 +10654,7 @@ public function getPayments($schid, $clsid, $ssnid, $trmid)
      *     tags={"Api"},
      *     summary="Get preference for acct number",
      *     description="Use this endpoint to get pref",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -10686,7 +10686,7 @@ public function getPayments($schid, $clsid, $ssnid, $trmid)
  *     operationId="setAccount",
  *     security={{"bearerAuth": {}}},
  *     tags={"Accounts"},
- * 
+ *
  *     @OA\RequestBody(
  *         required=true,
  *         @OA\JsonContent(
@@ -10699,7 +10699,7 @@ public function getPayments($schid, $clsid, $ssnid, $trmid)
  *             @OA\Property(property="id", type="integer", example=5, description="(Optional) ID for updating an existing account")
  *         )
  *     ),
- * 
+ *
  *     @OA\Response(
  *         response=200,
  *         description="Success Response",
@@ -10712,7 +10712,7 @@ public function getPayments($schid, $clsid, $ssnid, $trmid)
  *                 @OA\Schema(
  *                     @OA\Property(property="status", type="boolean", example=true),
  *                     @OA\Property(property="message", type="string", example="Account and Paystack Subaccount Created Successfully"),
- *                     @OA\Property(property="paystack_data", type="object", 
+ *                     @OA\Property(property="paystack_data", type="object",
  *                         @OA\Property(property="subaccount_code", type="string", example="SUB_ACCT_ABC123"),
  *                         @OA\Property(property="business_name", type="string", example="Business_65f9b0d4"),
  *                         @OA\Property(property="settlement_bank", type="string", example="058"),
@@ -10722,7 +10722,7 @@ public function getPayments($schid, $clsid, $ssnid, $trmid)
  *             }
  *         )
  *     ),
- * 
+ *
  *     @OA\Response(
  *         response=400,
  *         description="Failed to Create Paystack Subaccount",
@@ -10732,7 +10732,7 @@ public function getPayments($schid, $clsid, $ssnid, $trmid)
  *             @OA\Property(property="error", type="object", example={"status": false, "message": "Invalid Bank Code", "type": "validation_error"})
  *         )
  *     ),
- * 
+ *
  *     @OA\Response(
  *         response=404,
  *         description="Account Not Found (When updating an account with an invalid ID)",
@@ -10741,14 +10741,14 @@ public function getPayments($schid, $clsid, $ssnid, $trmid)
  *             @OA\Property(property="message", type="string", example="Account Not Found")
  *         )
  *     ),
- * 
+ *
  *     @OA\Response(
  *         response=422,
  *         description="Validation Error",
  *         @OA\JsonContent(
  *             @OA\Property(property="status", type="boolean", example=false),
  *             @OA\Property(property="message", type="string", example="Validation Error"),
- *             @OA\Property(property="errors", type="object", 
+ *             @OA\Property(property="errors", type="object",
  *                 @OA\Property(property="anum", type="array", @OA\Items(type="string", example="The account number field is required.")),
  *                 @OA\Property(property="bnk", type="array", @OA\Items(type="string", example="The bank code field is required."))
  *             )
@@ -11009,7 +11009,7 @@ public function initializePayment(Request $request)
 {
     $request->validate([
         'email' => 'required|email',
-        'amount' => 'required|numeric|min:100', 
+        'amount' => 'required|numeric|min:100',
         'schid' => 'required',
         'clsid' => 'required',
         'subaccount_code' => 'required', // The subaccount receiving the money
@@ -11027,10 +11027,10 @@ public function initializePayment(Request $request)
             'class_id' => $request->clsid,
         ],
         'subaccount' => $request->subaccount_code,  // paystack will send money to this subaccount
-        'bearer' => 'account',  // 
+        'bearer' => 'account',  //
         'currency' => 'NGN',
         'channels' => ['card', 'bank', 'ussd'],
-        'transaction_charge' => $request->transaction_charge, 
+        'transaction_charge' => $request->transaction_charge,
     ];
 
     $response = Http::withHeaders([
@@ -11066,7 +11066,7 @@ public function initializePayment(Request $request)
      *     tags={"Api"},
      *     summary="Get how many accounts are available",
      *     description="Use this endpoint to get how many accounts are available",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -11096,7 +11096,7 @@ public function initializePayment(Request $request)
      *     security={{"bearerAuth": {}}},
      *     summary="Get all Accounts by School",
      *     description="Use this endpoint to get all Accounts by School",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -11137,20 +11137,20 @@ public function initializePayment(Request $request)
     //         "pld"=> $pld,
     //     ]);
     // }
-    
-    
-    
+
+
+
         public function getAccountsBySchool($schid){
         $start = request()->input('start', 0);
         $count = request()->input('count', 20);
-    
+
         // Retrieve accounts with subaccount details
         $pld = accts::where('schid', $schid)
                     ->with('subAccounts') // Load subAccounts relationship
                     ->skip($start)
                     ->take($count)
                     ->get();
-    
+
         return response()->json([
             "status"  => true,
             "message" => "Success",
@@ -11158,8 +11158,8 @@ public function initializePayment(Request $request)
         ]);
     }
 
-    
-    
+
+
 
 
     /**
@@ -11168,7 +11168,7 @@ public function initializePayment(Request $request)
      *     tags={"Payments"},
      *     summary="Get Accounts by School And Class",
      *     description="Use this endpoint to get Accounts records by School And Class",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -11223,7 +11223,7 @@ public function initializePayment(Request $request)
      *     tags={"Payments"},
      *     summary="Delete an Account",
      *     description="Use this endpoint to delete an Account",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -11257,7 +11257,7 @@ public function initializePayment(Request $request)
      *     path="/api/setAFee",
      *     tags={"Payments"},
      *     summary="Create/Update acceptance Fee",
-     *     
+     *
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -11324,7 +11324,7 @@ public function initializePayment(Request $request)
      *     tags={"Api"},
      *     summary="Get how many accpt. Fee are available",
      *     description="Use this endpoint to get how many accpt. fee are available",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -11353,7 +11353,7 @@ public function initializePayment(Request $request)
      *     tags={"Payments"},
      *     summary="Get all accpt. Fee by School",
      *     description="Use this endpoint to get all accpt. Fee by School",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -11401,7 +11401,7 @@ public function initializePayment(Request $request)
      *     tags={"Payments"},
      *     summary="Get all accpt. Fee for a class",
      *     description="Use this endpoint to get accpt. Fee",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -11436,7 +11436,7 @@ public function initializePayment(Request $request)
      *     tags={"Payments"},
      *     summary="Delete an Accpt. Fee",
      *     description="Use this endpoint to delete an Accpt. Fee",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -11471,7 +11471,7 @@ public function initializePayment(Request $request)
      *     path="/api/setPayHead",
      *     tags={"Payments"},
      *     summary="Create/Update payment heading",
-     *     
+     *
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -11538,7 +11538,7 @@ public function initializePayment(Request $request)
      *     tags={"Api"},
      *     summary="Get how many pay heads are available",
      *     description="Use this endpoint to get how many pay heads are available",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -11567,7 +11567,7 @@ public function initializePayment(Request $request)
      *     tags={"Payments"},
      *     summary="Get all pay heads by School",
      *     description="Use this endpoint to get all pay heads by School",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -11615,7 +11615,7 @@ public function initializePayment(Request $request)
      *     tags={"Payments"},
      *     summary="Delete a payment heading",
      *     description="Use this endpoint to delete a pay head",
-     *     
+     *
      *     @OA\Parameter(
      *         name="uid",
      *         in="path",
@@ -11642,7 +11642,7 @@ public function initializePayment(Request $request)
      *     path="/api/setClassPay",
      *     tags={"Payments"},
      *     summary="Link a pay heading to a class",
-     *     
+     *
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -11718,7 +11718,7 @@ public function initializePayment(Request $request)
      *     tags={"Payments"},
      *     summary="Get payments by School And Class",
      *     description="Use this endpoint to get payments heads by School And Class",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -11788,7 +11788,7 @@ public function initializePayment(Request $request)
      *     tags={"Payments"},
      *     summary="Delete a class payment",
      *     description="Use this endpoint to delete a class pay head",
-     *     
+     *
      *     @OA\Parameter(
      *         name="uid",
      *         in="path",
@@ -11863,7 +11863,7 @@ public function initializePayment(Request $request)
  */
 
     //Paystack Webhook (POST, formdata)
-    // public function paystackConf(Request $request){ 
+    // public function paystackConf(Request $request){
     //     Log::info('------------ARRIVED-----------');
     //     $payload = json_decode($request->input('payload'), true);
     //     if($payload['event'] == "charge.success"){
@@ -11932,7 +11932,7 @@ public function initializePayment(Request $request)
     //                 // Log the email error, but don't stop the process
     //                 Log::error('Failed to send email: ' . $e->getMessage());
     //             }
-                
+
     //             payment_refs::create([
     //                 "ref"=> $ref,
     //                 "amt"=> $amt,
@@ -11947,11 +11947,11 @@ public function initializePayment(Request $request)
     //     }
     //     return response()->json(['status' => 'success'], 200);
     // }
-    
-    
+
+
 
  //Paystack Webhook (POST, formdata)
-    public function paystackConf(Request $request){ 
+    public function paystackConf(Request $request){
         Log::info('------------ARRIVED-----------');
         $payload = json_decode($request->input('payload'), true);
         if($payload['event'] == "charge.success"){
@@ -12019,7 +12019,7 @@ public function initializePayment(Request $request)
                     // Log the email error, but don't stop the process
                     Log::error('Failed to send email: ' . $e->getMessage());
                 }
-                
+
                 payment_refs::create([
                     "ref"=> $ref,
                     "amt"=> $amt,
@@ -12042,7 +12042,7 @@ public function initializePayment(Request $request)
      *     path="/api/setVendor",
      *     tags={"Accounting"},
      *     summary="Create/Update vendor details",
-     *     
+     *
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -12124,7 +12124,7 @@ public function initializePayment(Request $request)
      *     tags={"Accounting"},
      *     summary="Get how many vendors are available",
      *     description="Use this endpoint to get how many vendors are available",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -12153,7 +12153,7 @@ public function initializePayment(Request $request)
      *     tags={"Accounting"},
      *     summary="Get all Vendors by School",
      *     description="Use this endpoint to get all Vendors by School",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -12201,7 +12201,7 @@ public function initializePayment(Request $request)
      *     tags={"Accounting"},
      *     summary="Delete a Vendor",
      *     description="Use this endpoint to delete a vendor",
-     *     
+     *
      *     @OA\Parameter(
      *         name="vid",
      *         in="path",
@@ -12229,7 +12229,7 @@ public function initializePayment(Request $request)
      *     tags={"Accounting"},
      *     summary="Get a Vendor",
      *     description="Use this endpoint to get a vendor",
-     *     
+     *
      *     @OA\Parameter(
      *         name="vid",
      *         in="path",
@@ -12256,7 +12256,7 @@ public function initializePayment(Request $request)
      *     path="/api/setExpense",
      *     tags={"Accounting"},
      *     summary="Create/Update expense details",
-     *     
+     *
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -12323,7 +12323,7 @@ public function initializePayment(Request $request)
      *     tags={"Accounting"},
      *     summary="Get how many expenses are available",
      *     description="Use this endpoint to get how many expense are available",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -12352,7 +12352,7 @@ public function initializePayment(Request $request)
      *     tags={"Accounting"},
      *     summary="Get all expenses by School",
      *     description="Use this endpoint to get all expenses by School",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -12400,7 +12400,7 @@ public function initializePayment(Request $request)
      *     tags={"Accounting"},
      *     summary="Delete an Expense",
      *     description="Use this endpoint to delete a expense",
-     *     
+     *
      *     @OA\Parameter(
      *         name="eid",
      *         in="path",
@@ -12428,7 +12428,7 @@ public function initializePayment(Request $request)
      *     tags={"Accounting"},
      *     summary="Get an expense",
      *     description="Use this endpoint to get an expense",
-     *     
+     *
      *     @OA\Parameter(
      *         name="eid",
      *         in="path",
@@ -12455,7 +12455,7 @@ public function initializePayment(Request $request)
      *     path="/api/setExternalExpenditure",
      *     tags={"Accounting"},
      *     summary="Create/Update expenditure details",
-     *     
+     *
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -12552,7 +12552,7 @@ public function initializePayment(Request $request)
      *     tags={"Accounting"},
      *     summary="Get how many expenditure are available",
      *     description="Use this endpoint to get how many expenditure are available",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -12603,7 +12603,7 @@ public function initializePayment(Request $request)
      *     tags={"Accounting"},
      *     summary="Get all expenditures by School, Session and Term",
      *     description="Use this endpoint to get all expenditures by School",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -12673,7 +12673,7 @@ public function initializePayment(Request $request)
      *     tags={"Accounting"},
      *     summary="Delete an expenditure",
      *     description="Use this endpoint to delete an expenditure",
-     *     
+     *
      *     @OA\Parameter(
      *         name="eid",
      *         in="path",
@@ -12701,7 +12701,7 @@ public function initializePayment(Request $request)
      *     tags={"Accounting"},
      *     summary="Get an expenditure",
      *     description="Use this endpoint to get an expenditure",
-     *     
+     *
      *     @OA\Parameter(
      *         name="eid",
      *         in="path",
@@ -12729,7 +12729,7 @@ public function initializePayment(Request $request)
      *     tags={"Accounting"},
      *     summary="Get all expenditures by School, Session and Term",
      *     description="Use this endpoint to get all expenditures by School",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -12872,7 +12872,7 @@ public function initializePayment(Request $request)
      *     path="/api/setInternalExpenditure",
      *     tags={"Accounting"},
      *     summary="Create/Update expenditure details",
-     *     
+     *
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -12955,7 +12955,7 @@ public function initializePayment(Request $request)
      *     tags={"Accounting"},
      *     summary="Get how many expenditure are available",
      *     description="Use this endpoint to get how many expenditure are available",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -13005,7 +13005,7 @@ public function initializePayment(Request $request)
      *     tags={"Accounting"},
      *     summary="Get all expenditures by School, Session and Term",
      *     description="Use this endpoint to get all expenditures by School",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -13074,7 +13074,7 @@ public function initializePayment(Request $request)
      *     tags={"Accounting"},
      *     summary="Delete an expenditure",
      *     description="Use this endpoint to delete an expenditure",
-     *     
+     *
      *     @OA\Parameter(
      *         name="eid",
      *         in="path",
@@ -13102,7 +13102,7 @@ public function initializePayment(Request $request)
      *     tags={"Accounting"},
      *     summary="Get an expenditure",
      *     description="Use this endpoint to get an expenditure",
-     *     
+     *
      *     @OA\Parameter(
      *         name="eid",
      *         in="path",
@@ -13130,7 +13130,7 @@ public function initializePayment(Request $request)
      *     tags={"Accounting"},
      *     summary="Get all expenditures by School, Session and Term",
      *     description="Use this endpoint to get all expenditures by School",
-     *     
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
@@ -13304,7 +13304,7 @@ public function initializePayment(Request $request)
 
         $declinedStaff = staff::where('schid',$schid)->where('stat','2')->count();
         $deletedStaff = staff::where('schid',$schid)->where('stat','3')->count();
-        
+
         $totalStudentPaidRegFee = student::where('schid',$schid)->where('rfee',"1")->count();
         $totalStudentNotPaidRegFee = student::where('schid',$schid)->where('rfee','!=',"1")->count();
 
@@ -13379,13 +13379,13 @@ public function initializePayment(Request $request)
                 "approvedStudentsFemale"=>$approvedStudentsFemale,
                 "declinedStudents"=>$declinedStudents,
                 "deletedStudents"=>$deletedStudents,
-                
+
                 "pendingStaff"=>$pendingStaff,
                 "approvedStaffMale"=>$approvedStaffMale,
                 "approvedStaffFemale"=>$approvedStaffFemale,
                 "declinedStaff"=>$declinedStaff,
                 "deletedStaff"=>$deletedStaff,
-                
+
                 "totalStudentPaidRegFee"=>$totalStudentPaidRegFee,
                 "totalStudentNotPaidRegFee"=>$totalStudentNotPaidRegFee,
                 "totalRevenueOthers"=>$totalRevenueOthers,
@@ -13432,7 +13432,7 @@ public function initializePayment(Request $request)
         return response()->json([
             "status"=> false,
             "message"=> "User not found",
-        ],400);   
+        ],400);
     }
 
     /**
@@ -13751,7 +13751,7 @@ public function initializePayment(Request $request)
                 "status"=> true,
                 "message"=> "Success",
                 "pld"=> $pld
-            ]); 
+            ]);
         }
         return response()->json([
             "status"=> false,
@@ -13927,7 +13927,7 @@ public function initializePayment(Request $request)
                 "status"=> true,
                 "message"=> "Success",
                 "pld"=> $pld
-            ]); 
+            ]);
         }
         return response()->json([
             "status"=> false,
@@ -14261,7 +14261,7 @@ public function initializePayment(Request $request)
                 "status"=> true,
                 "message"=> "Success",
                 "pld"=> $pld
-            ]); 
+            ]);
         }
         return response()->json([
             "status"=> false,
@@ -14590,7 +14590,7 @@ public function initializePayment(Request $request)
                 "status"=> true,
                 "message"=> "Success",
                 "pld"=> $pld
-            ]); 
+            ]);
         }
         return response()->json([
             "status"=> false,
@@ -14637,7 +14637,7 @@ public function initializePayment(Request $request)
                 "status"=> true,
                 "message"=> "Success",
                 "pld"=> $pld
-            ]); 
+            ]);
         }
         return response()->json([
             "status"=> false,
@@ -14702,7 +14702,7 @@ public function initializePayment(Request $request)
             "pld"=> $pld,
         ]);
     }
-   
+
     /**
      * @OA\Get(
      *     path="/api/getSchoolsByStat/{stat}",
@@ -14909,13 +14909,13 @@ public function initializePayment(Request $request)
     //         "pld"=> $pld,
     //     ]);
     // }
-    
-    
-    
+
+
+
     public function getStudentsBySchool($schid, $stat, $cls = 'zzz') {
     $start = 0;
     $count = 20;
-    
+
     if (request()->has('start') && request()->has('count')) {
         $start = request()->input('start');
         $count = request()->input('count');
@@ -14946,7 +14946,7 @@ public function initializePayment(Request $request)
         $user_id = $member->sid;
         $academicData = student_academic_data::where('user_id', $user_id)->first();
         $basicData = student_basic_data::where('user_id', $user_id)->first();
-        
+
         $pld[] = [
             's' => $member,
             'b' => $basicData,
@@ -14962,8 +14962,8 @@ public function initializePayment(Request $request)
     ]);
 }
 
-    
-    
+
+
 
     /**
      * @OA\Get(
@@ -15047,7 +15047,7 @@ public function initializePayment(Request $request)
                 "status"=> true,
                 "message"=> "Success",
                 "pld"=> $pld
-            ]); 
+            ]);
         }
         return response()->json([
             "status"=> false,
@@ -15134,7 +15134,7 @@ public function initializePayment(Request $request)
                 "status"=> true,
                 "message"=> "Success",
                 "pld"=> $pld
-            ]); 
+            ]);
         }
         return response()->json([
             "status"=> false,
@@ -15243,7 +15243,7 @@ public function initializePayment(Request $request)
      * @OA\Get(
      *     path="/api/getStaff",
      *     tags={"Admin"},
-     *     
+     *
      *     summary="Get a staff",
      *     description="Use this endpoint to get a staff.",
      *     @OA\Parameter(
@@ -15515,7 +15515,7 @@ public function initializePayment(Request $request)
                 "status"=> true,
                 "message"=> "Success",
                 "pld"=> $pld
-            ]); 
+            ]);
         }
         return response()->json([
             "status"=> false,
@@ -15564,7 +15564,7 @@ public function initializePayment(Request $request)
         ]);
     }
 
-    
+
 
     /**
      * @OA\Post(
@@ -15640,16 +15640,16 @@ public function initializePayment(Request $request)
             'body' => $request->body,
             'link' => $request->link,
         ];
-    
+
         Mail::to($request->email)->send(new SSSMails($data));
-        
+
         return response()->json([
             "status"=> true,
             "message"=> "Mailed Successfully",
-        ]);   
+        ]);
     }
 
-    
+
 
     //-- General
 
@@ -15730,9 +15730,9 @@ public function initializePayment(Request $request)
             "pld"=> $pld,
         ]);
     }
-    
+
 ////////////////////////////////////////////////////////////
-    
+
 /**
  * @OA\Post(
  *     path="/api/setAcceptanceAcct",
@@ -15743,7 +15743,7 @@ public function initializePayment(Request $request)
  *         @OA\JsonContent(
  *             required={"schid", "anum", "bnk", "aname"},
  *             @OA\Property(property="schid", type="string", example="12345", description="School ID"),
- *             
+ *
  *             @OA\Property(property="anum", type="string", example="0123456789", description="Account Number"),
  *             @OA\Property(property="bnk", type="string", example="044", description="Bank Code"),
  *             @OA\Property(property="aname", type="string", example="John Doe", description="Account Name"),
@@ -15876,7 +15876,7 @@ public function initializePayment(Request $request)
 
 
 
-    
+
 /**
  * @OA\Post(
  *     path="/api/setApplicationAcct",
@@ -15887,7 +15887,7 @@ public function initializePayment(Request $request)
  *         @OA\JsonContent(
  *             required={"schid", "anum", "bnk", "aname"},
  *             @OA\Property(property="schid", type="string", example="12345", description="School ID"),
- *            
+ *
  *             @OA\Property(property="anum", type="string", example="0123456789", description="Account Number"),
  *             @OA\Property(property="bnk", type="string", example="044", description="Bank Code"),
  *             @OA\Property(property="aname", type="string", example="John Doe", description="Account Name"),
@@ -16016,9 +16016,9 @@ public function initializePayment(Request $request)
         }
     }
     }
-    
-    
-    
+
+
+
 /**
  * @OA\Get(
  *     path="/api/getAcctApp/{schid}",
@@ -16026,7 +16026,7 @@ public function initializePayment(Request $request)
  *     security={{"bearerAuth": {}}},
  *     summary="Get all Accounts by School",
  *     description="Use this endpoint to get all Accounts by School",
- *     
+ *
  *     @OA\Parameter(
  *         name="schid",
  *         in="path",
@@ -16048,7 +16048,7 @@ public function initializePayment(Request $request)
  *         description="Number of records to retrieve",
  *         @OA\Schema(type="integer")
  *     ),
- *     
+ *
  *     @OA\Response(
  *         response=200,
  *         description="Success",
@@ -16073,7 +16073,7 @@ public function initializePayment(Request $request)
  *             )
  *         )
  *     ),
- *     
+ *
  *     @OA\Response(response="401", description="Unauthorized"),
  *     @OA\Response(
  *         response=404,
@@ -16092,21 +16092,21 @@ public function getAcctApp($schid){
     $start = request()->input('start', 0);
     $count = request()->input('count', 20);
     // Check if the given schid exists in the database
-    
+
      $pld = application_acct::where('schid', $schid)
             ->with('subAccounts') // Load subAccounts relationship
             ->skip($start)
             ->take($count)
             ->get();
-    
+
     if (!$pld) {
         return response()->json([
             "status" => false,
             "message" => "Account not found",
-             "pld" => $pld, 
+             "pld" => $pld,
         ], 404);
     }
-    
+
     return response()->json([
         "status"=> true,
         "message"=> "Success",
@@ -16125,7 +16125,7 @@ public function getAcctApp($schid){
  *     security={{"bearerAuth": {}}},
  *     summary="Get all Accounts by School",
  *     description="Use this endpoint to get all Accounts by School",
- *     
+ *
  *     @OA\Parameter(
  *         name="schid",
  *         in="path",
@@ -16147,7 +16147,7 @@ public function getAcctApp($schid){
  *         description="Number of records to retrieve",
  *         @OA\Schema(type="integer")
  *     ),
- *     
+ *
  *     @OA\Response(
  *         response=200,
  *         description="Success",
@@ -16172,7 +16172,7 @@ public function getAcctApp($schid){
  *             )
  *         )
  *     ),
- *     
+ *
  *     @OA\Response(response="401", description="Unauthorized"),
  *     @OA\Response(
  *         response=404,
@@ -16189,31 +16189,31 @@ public function getAcctApp($schid){
         $start = request()->input('start', 0);
         $count = request()->input('count', 20);
         // Check if the given schid exists in the database
-        
+
          $pld = acceptance_acct::where('schid', $schid)
                 ->with('subAccounts') // Load subAccounts relationship
                 ->skip($start)
                 ->take($count)
                 ->get();
-        
+
         if (!$pld) {
             return response()->json([
                 "status" => false,
                 "message" => "Account not found",
-                 "pld" => $pld, 
+                 "pld" => $pld,
             ], 404);
         }
-        
+
         return response()->json([
             "status"=> true,
             "message"=> "Success",
             "pld"=> $pld,
         ]);
     }
-    
-    
- 
- 
+
+
+
+
  /**
  * @OA\Post(
  *     path="/api/setChangePassword",
@@ -16359,7 +16359,7 @@ public function setChangePassword(Request $request)
  * )
  */
 
-public function exitStudent(Request $request, $schid, $stid) 
+public function exitStudent(Request $request, $schid, $stid)
 {
     $request->validate([
         'reason_for_exit' => 'required|string|max:555',
@@ -16390,7 +16390,7 @@ public function exitStudent(Request $request, $schid, $stid)
     }
 
     // Generate the `suid`
-    $ssn = $student->year; 
+    $ssn = $student->year;
     $term = $student->term;
     $count = $student->count;
     $suid = $student->sch3 . '/' . $ssn . '/' . $term . '/' . strval($count);
@@ -16407,7 +16407,7 @@ public function exitStudent(Request $request, $schid, $stid)
     $exitClass = $classDetails ? $classDetails->cls_id : null;
     $exitClassArm = $classDetails ? $classDetails->name : null;
 
-    $className = cls::where('id', $exitClass)->value('name'); 
+    $className = cls::where('id', $exitClass)->value('name');
 
     // Fetch session and term names
     $sessionOfEntry = sesn::where('year', $student->year)->value('name'); // Get session name
@@ -16436,8 +16436,8 @@ public function exitStudent(Request $request, $schid, $stid)
                 'stid' => $student->sid,
                 'schid' => $student->schid,
                 'suid' => $suid,
-                'lname' => $student->lname, 
-                'fname' => $student->fname, 
+                'lname' => $student->lname,
+                'fname' => $student->fname,
                 'mname' => $student->mname,
                 'sch3' => $student->sch3,
                 'count' => strval($count),
@@ -16448,7 +16448,7 @@ public function exitStudent(Request $request, $schid, $stid)
                 'term_of_exit' => $termOfExit, // Actual term name
                 'date_of_exit' => now()->toDateString(),
                 'reason_for_exit' => $request->input('reason_for_exit'),
-                'exit_class' => $className, 
+                'exit_class' => $className,
                 'exit_class_arm' => $exitClassArm,
             ]);
         }
@@ -16539,7 +16539,7 @@ public function exitStudent(Request $request, $schid, $stid)
 
 
 
-public function exitStaff(Request $request, $schid, $stid) 
+public function exitStaff(Request $request, $schid, $stid)
 {
     // Validate the request
     $request->validate([
@@ -16569,7 +16569,7 @@ public function exitStaff(Request $request, $schid, $stid)
     $sessionOfEntry = $oldStaff ? $oldStaff->ssn : ($staff->created_at ? $staff->created_at->year : null);
 
     // Generate the `suid`
-    $count = $staff->count; 
+    $count = $staff->count;
     $suid = $staff->sch3 . '/STAFF/' . strval($count);
 
     // Start Transaction
@@ -16599,8 +16599,8 @@ public function exitStaff(Request $request, $schid, $stid)
                 'stid' => $staff->sid,
                 'schid' => $staff->schid,
                 'suid' => $suid,
-                'lname' => $staff->lname, 
-                'fname' => $staff->fname, 
+                'lname' => $staff->lname,
+                'fname' => $staff->fname,
                 'mname' => $staff->mname,
                 'sch3' => $staff->sch3,
                 'count' => strval($count),
@@ -16642,7 +16642,7 @@ public function exitStaff(Request $request, $schid, $stid)
  *     security={{"bearerAuth": {}}},
  *     summary="Get all Alumni by School",
  *     description="Retrieve a list of alumni for a given school with optional filtering by exit class and exit class arm.",
- *     
+ *
  *     @OA\Parameter(
  *         name="schid",
  *         in="path",
@@ -16678,7 +16678,7 @@ public function exitStaff(Request $request, $schid, $stid)
  *         description="Exit class arm of the alumni (e.g., A, B, C)",
  *         @OA\Schema(type="string", example="A")
  *     ),
- *     
+ *
  *     @OA\Response(
  *         response=200,
  *         description="Success",
@@ -16698,7 +16698,7 @@ public function exitStaff(Request $request, $schid, $stid)
  *             )
  *         )
  *     ),
- *     
+ *
  *     @OA\Response(response="401", description="Unauthorized"),
  *     @OA\Response(
  *         response=404,
@@ -16765,7 +16765,7 @@ public function getAlumni($schid)
  *     security={{"bearerAuth": {}}},
  *     summary="Get all ex-staff by school",
  *     description="Use this endpoint to retrieve all ex-staff members from a specific school, with optional pagination.",
- *     
+ *
  *     @OA\Parameter(
  *         name="schid",
  *         in="path",
@@ -16787,7 +16787,7 @@ public function getAlumni($schid)
  *         description="Number of records to retrieve",
  *         @OA\Schema(type="integer", default=20)
  *     ),
- *     
+ *
  *     @OA\Response(
  *         response=200,
  *         description="Success",
@@ -16807,7 +16807,7 @@ public function getAlumni($schid)
  *             )
  *         )
  *     ),
- *     
+ *
  *     @OA\Response(response="401", description="Unauthorized"),
  *     @OA\Response(
  *         response=404,
@@ -16861,7 +16861,7 @@ public function getExStaff($schid) {
  *     security={{"bearerAuth": {}}},
  *     summary="Get all ex-staff by School",
  *     description="Use this endpoint to get all ex-staff by School",
- *     
+ *
  *     @OA\Parameter(
  *         name="schid",
  *         in="path",
@@ -16883,7 +16883,7 @@ public function getExStaff($schid) {
  *         description="Number of records to retrieve",
  *         @OA\Schema(type="integer", default=20)
  *     ),
- *     
+ *
  *     @OA\Response(
  *         response=200,
  *         description="Success",
@@ -16904,7 +16904,7 @@ public function getExStaff($schid) {
  *             )
  *         )
  *     ),
- *     
+ *
  *     @OA\Response(response="401", description="Unauthorized"),
  *     @OA\Response(
  *         response=404,
@@ -17115,7 +17115,7 @@ public function restoreStudent($schid, $stid)
     {
         // Start transaction for atomic operations
         DB::beginTransaction();
-    
+
         try {
             // Find inactive staff in old_staff table
             $pld = DB::table('old_staff')
@@ -17123,7 +17123,7 @@ public function restoreStudent($schid, $stid)
                 ->where('sid', $stid)
                 ->where('status', 'inactive')
                 ->first();
-    
+
             if (!$pld) {
                 DB::rollBack(); // Rollback transaction if staff is not found
                 return response()->json([
@@ -17131,7 +17131,7 @@ public function restoreStudent($schid, $stid)
                     'message' => 'Staff not found or already active in old_staff.',
                 ], 404);
             }
-    
+
             // Restore staff in old_staff table
             DB::table('old_staff')
                 ->where('schid', $schid)
@@ -17139,13 +17139,13 @@ public function restoreStudent($schid, $stid)
                 ->update([
                     'status' => 'active'
                 ]);
-    
+
             // Restore staff in staff table (if exists)
             $staffExists = DB::table('staff')
                 ->where('schid', $schid)
                 ->where('sid', $stid)
                 ->exists();
-    
+
             if ($staffExists) {
                 DB::table('staff')
                     ->where('schid', $schid)
@@ -17155,13 +17155,13 @@ public function restoreStudent($schid, $stid)
                         'exit_status' => NULL // Set exit_status to NULL
                     ]);
             }
-    
+
             // Remove the staff from the ex_staff table
             ex_staff::where('schid', $schid)->where('stid', $stid)->delete();
-    
+
             // Commit transaction
             DB::commit();
-    
+
             return response()->json([
                 'status' => true,
                 'message' => 'Staff restored successfully in old_staff and removed from ex_staff.',
@@ -17169,7 +17169,7 @@ public function restoreStudent($schid, $stid)
         } catch (\Exception $e) {
             // Rollback changes if anything fails
             DB::rollBack();
-    
+
             return response()->json([
                 'status' => false,
                 'message' => 'Failed to restore staff. Please try again.',
@@ -17262,9 +17262,9 @@ public function restoreStudent($schid, $stid)
             "message"=> "Payment Instruction Updated"
         ]);
     }
-    
-    
-    
+
+
+
     /**
  * @OA\Get(
  *     path="/api/getPaymentInstruction/{schid}/{clsid}/{sesid}/{trmid}",
@@ -17272,7 +17272,7 @@ public function restoreStudent($schid, $stid)
  *     security={{"bearerAuth": {}}},
  *     summary="Get Payment Instruction",
  *     description="Retrieve the payment instruction for a specific class, term, session, and school.",
- *     
+ *
  *     @OA\Parameter(
  *         name="schid",
  *         in="path",
@@ -17301,7 +17301,7 @@ public function restoreStudent($schid, $stid)
  *         description="Term ID",
  *         @OA\Schema(type="integer")
  *     ),
- *     
+ *
  *     @OA\Response(
  *         response=200,
  *         description="Success",
@@ -17311,7 +17311,7 @@ public function restoreStudent($schid, $stid)
  *             @OA\Property(property="payment_ins", type="string", example="Payment should be made before 10th of the month")
  *         )
  *     ),
- *     
+ *
  *     @OA\Response(
  *         response=404,
  *         description="No payment instruction available",
@@ -17320,12 +17320,12 @@ public function restoreStudent($schid, $stid)
  *             @OA\Property(property="message", type="string", example="No payment instruction available")
  *         )
  *     ),
- *     
+ *
  *     @OA\Response(response="401", description="Unauthorized")
  * )
  */
 
-    
+
 public function getPaymentInstruction($schid, $clsid, $sesid, $trmid) {
     $query = payment_instruction::query();
 
@@ -17384,7 +17384,7 @@ public function getPaymentInstruction($schid, $clsid, $sesid, $trmid) {
  *     operationId="deletePaymentInstruction",
  *     tags={"Api"},
  *      security={{"bearerAuth": {}}},
- * 
+ *
  *     @OA\Parameter(
  *         name="schid",
  *         in="path",
@@ -17413,7 +17413,7 @@ public function getPaymentInstruction($schid, $clsid, $sesid, $trmid) {
  *         description="Term ID",
  *         @OA\Schema(type="string")
  *     ),
- * 
+ *
  *     @OA\Response(
  *         response=200,
  *         description="Payment instruction(s) deleted successfully",
@@ -17713,7 +17713,7 @@ public function submitAttendance(Request $request)
 
         // Allow Form Teachers, Admin to submit attendance
         $allowedRoles = ['Form Teacher', 'Admin'];
-        
+
         if (empty(array_intersect($allowedRoles, $roleNames))) {
             return response()->json([
                 "status" => "error",
@@ -17800,7 +17800,7 @@ private function saveAttendanceSubmission($validated)
  *     operationId="getAttendance",
  *     tags={"Api"},
  *     security={{"bearerAuth": {}}},
- *     
+ *
  *     @OA\Parameter(
  *         name="week",
  *         in="path",
@@ -17843,7 +17843,7 @@ private function saveAttendanceSubmission($validated)
  *         description="Class Arm (e.g., A, B, C)",
  *         @OA\Schema(type="string", example="A")
  *     ),
- *     
+ *
  *     @OA\Response(
  *         response=200,
  *         description="Attendance records retrieved successfully",
@@ -17863,7 +17863,7 @@ private function saveAttendanceSubmission($validated)
  *             )
  *         )
  *     ),
- *     
+ *
  *     @OA\Response(
  *         response=404,
  *         description="No attendance records found",
@@ -17965,7 +17965,7 @@ public function getAttendance($week, $schid, $trm, $ssn, $clsm, $clsa)
  *         @OA\JsonContent(
  *             @OA\Property(property="status", type="integer", example=1),
  *             @OA\Property(property="attendance_counts", type="object", additionalProperties={
- *                 @OA\Property(type="object", 
+ *                 @OA\Property(type="object",
  *                               @OA\Property(property="days_present", type="integer", example=10),
  *                               @OA\Property(property="days_absent", type="integer", example=2)
  *                 )
@@ -18139,7 +18139,7 @@ public function getAttendanceByWeek($week, $schid)
  *     description="Retrieve weekly and overall attendance summary based on specified school, session, term, and class filters.",
  *     tags={"Api"},
  *     security={{"bearerAuth": {}}},
- *     
+ *
  *     @OA\Parameter(
  *         name="schid",
  *         in="path",
@@ -18175,7 +18175,7 @@ public function getAttendanceByWeek($week, $schid)
  *         @OA\Schema(type="string", example="A"),
  *         description="Class Arm (e.g., A, B, C)"
  *     ),
- * 
+ *
  *     @OA\Response(
  *         response=200,
  *         description="Attendance summary retrieved successfully",
@@ -18202,7 +18202,7 @@ public function getAttendanceByWeek($week, $schid)
  *             )
  *         )
  *     ),
- * 
+ *
  *     @OA\Response(
  *         response=404,
  *         description="No attendance records found",
@@ -18283,8 +18283,8 @@ public function getFilteredAttendanceSummary($schid, $ssn, $trm, $clsm, $clsa)
  *         required=true,
  *         @OA\JsonContent(
  *             required={
- *                 "schid", "clsm", "date", "ssn", "trm", "sbj", 
- *                 "no_of_class", "average_age", "topic", 
+ *                 "schid", "clsm", "date", "ssn", "trm", "sbj",
+ *                 "no_of_class", "average_age", "topic",
  *                 "time_from", "time_to", "duration"
  *             },
  *             @OA\Property(property="schid", type="string", example="SCH001"),
@@ -18297,7 +18297,7 @@ public function getFilteredAttendanceSummary($schid, $ssn, $trm, $clsm, $clsa)
  *             @OA\Property(property="average_age", type="number", format="float", example=10.5),
  *             @OA\Property(property="topic", type="string", example="Addition and Subtraction"),
  *             @OA\Property(
- *                 property="sub_topic", 
+ *                 property="sub_topic",
  *                 type="array",
  *                 @OA\Items(type="string", example="Two-digit addition")
  *             ),
@@ -18305,12 +18305,12 @@ public function getFilteredAttendanceSummary($schid, $ssn, $trm, $clsm, $clsa)
  *             @OA\Property(property="time_to", type="string", format="time", example="10:00"),
  *             @OA\Property(property="duration", type="string", example="1 hour"),
  *             @OA\Property(
- *                 property="learning_materials", 
+ *                 property="learning_materials",
  *                 type="array",
  *                 @OA\Items(type="string", example="Flashcards")
  *             ),
  *  *             @OA\Property(
- *                 property="lesson_objectives", 
+ *                 property="lesson_objectives",
  *                 type="array",
  *                 @OA\Items(type="string", example="At the end of the lesson, students should be able to count numbers")
  *             ),
@@ -18594,14 +18594,14 @@ public function getLessonPlan($schid,$ssn,$trm,$clsm){
     if(request()->has('start') && request()->has('count')) {
         $start = request()->input('start');
         $count = request()->input('count');
-    }  
-    
+    }
+
     $lessonPlan = lesson_plan::where('schid',$schid)
         ->where("clsm", $clsm)
         ->where("ssn", $ssn)
         ->where("trm", $trm)
         ->take($count)->skip($start)->get();
-        
+
     return response()->json([
         "status"=> true,
         "message"=> "Success",
@@ -18694,15 +18694,15 @@ public function getLessonPlanBySubject($schid,$ssn,$trm,$clsm,$sbj){
     if(request()->has('start') && request()->has('count')) {
         $start = request()->input('start');
         $count = request()->input('count');
-    }  
-    
+    }
+
     $lessonPlan = lesson_plan::where('schid',$schid)
         ->where("clsm", $clsm)
         ->where("ssn", $ssn)
         ->where("trm", $trm)
         ->where("sbj", $sbj)
         ->take($count)->skip($start)->get();
-        
+
     return response()->json([
         "status"=> true,
         "message"=> "Success",
@@ -18877,7 +18877,7 @@ public function setCurriculum(Request $request)
     $data = $request->only([
         "schid", "clsm", "week", "topic", "ssn", "trm", "sbj", "group", "url_link"
     ]);
-    
+
     $data['description'] = $request->description;
     $data['teaching_aids'] = $request->teaching_aids;
 
@@ -18912,7 +18912,7 @@ public function setCurriculum(Request $request)
  *     security={{"bearerAuth": {}}},
  *     summary="Get Curriculum records",
  *     description="Use this endpoint to fetch curriculum records for a specific school, class, session, term, and subject.",
- *     
+ *
  *     @OA\Parameter(
  *         name="schid",
  *         in="path",
@@ -18975,14 +18975,14 @@ public function getCurriculum($schid,$ssn,$trm,$clsm){
     if(request()->has('start') && request()->has('count')) {
         $start = request()->input('start');
         $count = request()->input('count');
-    }  
-    
+    }
+
     $curriculum = curriculum::where('schid',$schid)
         ->where("clsm", $clsm)
         ->where("ssn", $ssn)
         ->where("trm", $trm)
         ->take($count)->skip($start)->get();
-        
+
     return response()->json([
         "status"=> true,
         "message"=> "Success",
@@ -19000,7 +19000,7 @@ public function getCurriculum($schid,$ssn,$trm,$clsm){
  *     security={{"bearerAuth": {}}},
  *     summary="Get Curriculum records",
  *     description="Use this endpoint to fetch curriculum records for a specific school, class, session, term, and subject.",
- *     
+ *
  *     @OA\Parameter(
  *         name="schid",
  *         in="path",
@@ -19070,15 +19070,15 @@ public function getCurriculumBySubject($schid,$ssn,$trm,$clsm,$sbj){
     if(request()->has('start') && request()->has('count')) {
         $start = request()->input('start');
         $count = request()->input('count');
-    }  
-    
+    }
+
     $curriculum = curriculum::where('schid',$schid)
         ->where("clsm", $clsm)
         ->where("ssn", $ssn)
         ->where("trm", $trm)
         ->where("sbj", $sbj)
         ->take($count)->skip($start)->get();
-        
+
     return response()->json([
         "status"=> true,
         "message"=> "Success",
@@ -19097,7 +19097,7 @@ public function getCurriculumBySubject($schid,$ssn,$trm,$clsm,$sbj){
  *     security={{"bearerAuth": {}}},
  *     summary="Get Curriculum for a specific student",
  *     description="Fetch curriculum details for a given student based on school ID, session, term, class, subject, and student ID.",
- *     
+ *
  *     @OA\Parameter(
  *         name="schid",
  *         in="path",
@@ -19192,14 +19192,14 @@ $pld = curriculum::from('curricula as c')
     ->where('student.sid', $sid)
     ->skip($start)->take($count)->get();
 
-    
+
     if(!$pld){
         return response()->json([
         "status"=> false,
         "message"=> "Curriculum not found",
         ]);
     }
-    
+
     return response()->json([
         "status"=> true,
         "message"=> "Success",
@@ -19326,7 +19326,7 @@ public function updateCurriculum(Request $request)
  *     security={{"bearerAuth": {}}},
  *     summary="Get all subject positions for students in a specific school/class/session/term",
  *     description="Returns a list of students with subject positions filtered by school, class, session, and term.",
- *     
+ *
  *     @OA\Parameter(
  *         name="schid",
  *         in="path",
@@ -19421,7 +19421,7 @@ public function getAllSubjectPositions($schid, $ssn, $trm, $clsm, $clsa)
  *     security={{"bearerAuth": {}}},
  *     summary="Get subject positions for a student",
  *     description="Retrieve all subject positions for a given student filtered by school, session, term, class, and arm.",
- *     
+ *
  *     @OA\Parameter(name="schid", in="path", required=true, @OA\Schema(type="integer"), description="School ID"),
  *     @OA\Parameter(name="ssn", in="path", required=true, @OA\Schema(type="string"), description="Session (e.g. 2024/2025)"),
  *     @OA\Parameter(name="trm", in="path", required=true, @OA\Schema(type="string"), description="Term"),
@@ -19637,7 +19637,7 @@ return response()->json([
  *     summary="Retrieve lesson notes based on school, session, term, and class",
  *     description="Returns a list of lesson notes along with their topics and sub-topics.",
  *     tags={"Api"},
- *     security={{"bearerAuth": {}}},     
+ *     security={{"bearerAuth": {}}},
  *     @OA\Parameter(
  *         name="sch_id",
  *         in="path",
@@ -19687,7 +19687,7 @@ return response()->json([
  *         description="Number of records to retrieve",
  *         @OA\Schema(type="integer", default=20)
  *     ),
- *     
+ *
  *     @OA\Response(
  *         response=200,
  *         description="Lesson notes retrieved successfully",
@@ -19731,7 +19731,7 @@ return response()->json([
  *             )
  *         )
  *     ),
- *     
+ *
  *     @OA\Response(
  *         response=400,
  *         description="Bad request or validation error"
@@ -19774,8 +19774,8 @@ public function getLessonNote($sch_id, $session, $term, $clsm, $week)
  *     path="/api/getLessonNoteBySubject/{sch_id}/{session}/{term}/{clsm}/{subject}/{week}",
  *     summary="Get lesson notes by subject",
  *     description="Retrieve lesson notes filtered by school ID, session, term, class, and subject. Supports pagination via 'start' and 'count' query parameters.",
- *     tags={"Api"}, 
- *      security={{"bearerAuth": {}}},  
+ *     tags={"Api"},
+ *      security={{"bearerAuth": {}}},
  *
  *     @OA\Parameter(
  *         name="sch_id",
@@ -19928,8 +19928,8 @@ public function getLessonNoteBySubject($sch_id, $session, $term, $clsm, $subject
  *     path="/api/updateLessonNote",
  *     summary="Update an existing lesson note",
  *     description="Updates a lesson note's week and topics if they exist. Deletes existing topics and sub-topics before creating new ones.",
- *     tags={"Api"}, 
- *     security={{"bearerAuth": {}}},  
+ *     tags={"Api"},
+ *     security={{"bearerAuth": {}}},
  *     @OA\RequestBody(
  *         required=true,
  *         @OA\JsonContent(
@@ -20839,7 +20839,7 @@ public function getAllSubjectsPerformance($schid, $ssn, $trm, $clsm)
     // Process stats
     foreach ($subjectStats as $subjectCode => &$stats) {
         $stats['total_students'] = array_sum($stats['grades']);
-        
+
         // Define what counts as a "pass" (customize this logic if needed)
         $credits = ['A', 'B', 'C']; // Change based on your grading labels
         foreach ($credits as $credit) {
@@ -20885,7 +20885,7 @@ public function getAllSubjectsPerformance($schid, $ssn, $trm, $clsm)
  *     operationId="getCumulativeResult",
  *     tags={"Api"},
  *     security={{"bearerAuth": {}}},
- * 
+ *
  *     @OA\Parameter(
  *         name="schid",
  *         in="query",
@@ -20907,7 +20907,7 @@ public function getAllSubjectsPerformance($schid, $ssn, $trm, $clsm)
  *         description="Student ID",
  *         @OA\Schema(type="string", example="565")
  *     ),
- * 
+ *
  *     @OA\Response(
  *         response=200,
  *         description="Successful cumulative result retrieved",
@@ -20940,7 +20940,7 @@ public function getAllSubjectsPerformance($schid, $ssn, $trm, $clsm)
  *             )
  *         )
  *     ),
- * 
+ *
  *     @OA\Response(
  *         response=404,
  *         description="Student not found or no scores available",
@@ -20948,7 +20948,7 @@ public function getAllSubjectsPerformance($schid, $ssn, $trm, $clsm)
  *             @OA\Property(property="message", type="string", example="Student not found in specified class/arm")
  *         )
  *     ),
- * 
+ *
  *     @OA\Response(
  *         response=422,
  *         description="Validation error",
@@ -21695,12 +21695,12 @@ public function getCumulativeResult(Request $request)
 //                 'grade' => $grade,
 //                 'position' => $subjectAverages[$subjectId][$stid] ?? null
 //             ];
-            
+
 //                 // Get student record from the `student` table to generate suid
 //                 $stuRecord = student::where('schid', $schid)
 //                     ->where('sid', $stid)
 //                     ->first();
-            
+
 //                 $suid = null;
 //                 if ($stuRecord) {
 //                     $ssn_real = $stuRecord->year;
@@ -21898,7 +21898,7 @@ public function getCumulativeResult(Request $request)
 
 //         $finalAverage = $subjectCount > 0 ? number_format($totalAverage / $subjectCount, 2, '.', '') : number_format(0, 2, '.', '');
 //         $finalGrade = $assignGrade($finalAverage);
-        
+
 //         // Sort by final average descending (top-performing students first)
 //         usort($response, function ($a, $b) {
 //             return $b['final_average'] <=> $a['final_average'];
@@ -21927,7 +21927,7 @@ public function getCumulativeResult(Request $request)
 //         'count' => $count,
 //         'pld' => $response
 //     ]);
-// } 
+// }
 
 
 
@@ -22371,7 +22371,7 @@ public function getAllStudentCumulativeResult(Request $request)
     //     }
     //     return 'N/A';
     // };
-    
+
     $assignGrade = function ($average) use ($grades) {
     $check = floor($average); // round down to whole number
     foreach ($grades as $grade => [$min, $max]) {
@@ -22678,7 +22678,7 @@ public function getAllStudentCumulativeResult(Request $request)
 //             ? round($totals[$field] / $counts[$field])
 //             : null;
 //     }
-    
+
 //     $student = student::where('sid', $validated['stid'])
 //         ->where('schid', $validated['schid'])
 //         ->first();
@@ -23012,7 +23012,7 @@ public function getAllStudentsYearlyAssessmentAverages(Request $request)
                 ? round($totals[$field] / $counts[$field])
                 : null;
         }
-        
+
         // Generate suid
         $suid = null;
         if ($student) {
@@ -23316,7 +23316,7 @@ public function getCummulativeBroadsheet($schid, $ssn, $clsm, $clsa)
         ->where('ssn', $ssn)
         ->where('clsm', $clsm)
         ->pluck('sid');
-    
+
     // $allClassStudentIds = old_student::where('schid', $schid)
     // ->where('ssn', $ssn)
     // ->where('clsm', $clsm)
@@ -23514,7 +23514,7 @@ public function getCummulativeBroadsheet($schid, $ssn, $clsm, $clsa)
  *     operationId="getStudentComments",
  *     tags={"Api"},
  *     security={{"bearerAuth":{}}},
- *     
+ *
  *     @OA\Parameter(
  *         name="stid",
  *         in="path",
@@ -24376,7 +24376,7 @@ private function gradeFromAvg($avg, $schid, $clsm, $ssn, $trm)
         }
     }
 
-    return 'N/A'; // If no grade matched
+    return 'N/A'; // If no grade matched..
 }
 
 
@@ -24390,7 +24390,7 @@ private function gradeFromAvg($avg, $schid, $clsm, $ssn, $trm)
  *     operationId="getSubjectsByClass",
  *     tags={"Api"},
  *     security={{"bearerAuth":{}}},
- * 
+ *
  *     @OA\Parameter(
  *         name="classId",
  *         in="path",
@@ -24398,7 +24398,7 @@ private function gradeFromAvg($avg, $schid, $clsm, $ssn, $trm)
  *         description="ID of the class",
  *         @OA\Schema(type="integer")
  *     ),
- * 
+ *
  *     @OA\Response(
  *         response=200,
  *         description="Successful response",
@@ -24415,7 +24415,7 @@ private function gradeFromAvg($avg, $schid, $clsm, $ssn, $trm)
  *             )
  *         )
  *     ),
- * 
+ *
  *     @OA\Response(
  *         response=404,
  *         description="Class not found"
