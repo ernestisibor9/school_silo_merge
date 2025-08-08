@@ -1,6 +1,6 @@
 /.phpunit.cache
 /node_modules
-
+/public/index.php
 /public/build
 /public/hot
 /public/uploads

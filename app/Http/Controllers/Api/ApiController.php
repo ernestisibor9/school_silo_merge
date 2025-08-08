@@ -24859,21 +24859,4 @@ class ApiController extends Controller
         ]);
     }
 
-
-
-    /**
-     * @OA\Get(
-     *     path="/api/test",
-     *     tags={"Test"},
-     *     summary="Test endpoint",
-     *     @OA\Response(
-     *         response=200,
-     *         description="Success"
-     *     )
-     * )
-     */
-    public function test()
-    {
-        return response()->json(['message' => 'Swagger test passed']);
-    }
 }
