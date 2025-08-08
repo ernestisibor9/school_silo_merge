@@ -35,6 +35,8 @@ Route::post('setClass', [ApiController::class,'setCls']);
 Route::post('setAdminStaffRole', [ApiController::class,'setAdminStaffRole']);
 Route::post('setSchoolStaffRole', [ApiController::class,'setSchoolStaffRole']);
 
+ Route::post('promoteStudent', [ApiController::class,'promoteStudent']);
+
 
 
 Route::get('verifyEmail/{typ}/{code}/{schid}', [ApiController::class,'verifyEmail']);
@@ -73,7 +75,7 @@ Route::get('getEveryStudentCumulativeResult', [ApiController::class, 'getEverySt
 
 Route::get('getCumulativeResult', [ApiController::class, 'getCumulativeResult']);
 Route::get('getAllStudentCumulativeResult', [ApiController::class, 'getAllStudentCumulativeResult']);
- 
+
 Route::get('getYearlyAssessmentAverage', [ApiController::class, 'getYearlyAssessmentAverage']);
 Route::get('getAllStudentsYearlyAssessmentAverages', [ApiController::class, 'getAllStudentsYearlyAssessmentAverages']);
 
@@ -156,7 +158,7 @@ Route::group([
     Route::post('exitStaff/{schid}/{stid}', [ApiController::class,'exitStaff']);
     Route::post('restoreStudent/{schid}/{stid}', [ApiController::class,'restoreStudent']);
     Route::post('restoreStaff/{schid}/{stid}', [ApiController::class,'restoreStaff']);
-    
+
     Route::post('setAttendanceMark', [ApiController::class, 'setAttendanceMark']);
     Route::post('submitAttendance', [ApiController::class, 'submitAttendance']);
     Route::post('setCurriculum', [ApiController::class, 'setCurriculum']);
@@ -168,7 +170,7 @@ Route::group([
     Route::post('/storeComment', [ApiController::class, 'storeComment']);
     Route::post('/autoCommentTemplate', [ApiController::class, 'autoCommentTemplate']);
     Route::post('/allStudentResultsComment', [ApiController::class, 'allStudentResultsComment']);
-    
+
 
 
 
@@ -284,42 +286,42 @@ Route::group([
     Route::get('getExStaff/{schid}', [ApiController::class,'getExStaff']);
     Route::get('getPaymentInstruction/{schid}/{clsid}/{sesid}/{trmid}', [ApiController::class,'getPaymentInstruction']);
     Route::delete('deletePaymentInstruction/{schid}/{clsid}/{sesid}/{trmid}', [ApiController::class,'deletePaymentInstruction']);
-    
+
     Route::get('getAttendance/{week}/{schid}/{trm}/{ssn}/{clsm}/{clsa}', [ApiController::class, 'getAttendance']);
     Route::get('getAttendanceByWeek/{week}/{schid}', [ApiController::class, 'getAttendanceByWeek']);
-    
+
     Route::get('calculateAttendanceForClass/{schid}/{ssn}/{clsm}/{clsa}', [ApiController::class, 'calculateAttendanceForClass']);
     Route::get('getFilteredAttendanceSummary/{schid}/{ssn}/{trm}/{clsm}/{clsa}', [ApiController::class, 'getFilteredAttendanceSummary']);
-    
+
     Route::get('getCurriculum/{schid}/{ssn}/{trm}/{clsm}', [ApiController::class, 'getCurriculum']);
     Route::get('getcurriculumByStudent/{schid}/{ssn}/{trm}/{clsm}/{sbj}/{sid}', [ApiController::class, 'getcurriculumByStudent']);
     Route::get('getCurriculumBySubject/{schid}/{ssn}/{trm}/{clsm}/{sbj}', [ApiController::class, 'getCurriculumBySubject']);
-    
+
     Route::get('getLessonPlan/{schid}/{ssn}/{trm}/{clsm}', [ApiController::class, 'getLessonPlan']);
     Route::get('getLessonPlanBySubject/{schid}/{ssn}/{trm}/{clsm}/{sbj}', [ApiController::class, 'getLessonPlanBySubject']);
-    
+
     Route::get('getAllSubjectPositions/{schid}/{ssn}/{trm}/{clsm}/{clsa}', [ApiController::class, 'getAllSubjectPositions']);
     Route::get('getStudentSubjectPositions/{schid}/{ssn}/{trm}/{clsm}/{clsa}/{stid}', [ApiController::class, 'getStudentSubjectPositions']);
-    
+
     Route::get('getSingleLessonPlan/{schid}/{ssn}/{trm}/{clsm}/{sbj}/{id}', [ApiController::class, 'getSingleLessonPlan']);
-    
+
     Route::get('getLessonNote/{sch_id}/{session}/{term}/{class}/{week}', [ApiController::class, 'getLessonNote']);
     Route::get('getSingleLessonNote/{sch_id}/{session}/{term}/{class}/{week}/{lessonNoteId}', [ApiController::class, 'getSingleLessonNote']);
     Route::get('getLessonNoteBySubject/{sch_id}/{session}/{term}/{class}/{subject}/{week}', [ApiController::class, 'getLessonNoteBySubject']);
-    
+
     Route::get('getOverallBestStudents/{schid}/{ssn}/{trm}/{clsm}', [ApiController::class, 'getOverallBestStudents']);
     Route::get('getBestStudentsInSubject/{schid}/{ssn}/{trm}/{clsm}/{sbj}', [ApiController::class, 'getBestStudentsInSubject']);
     Route::get('getAllSubjectsPerformance/{schid}/{ssn}/{trm}/{clsm}', [ApiController::class, 'getAllSubjectsPerformance']);
-    
+
    Route::get('/getStudentScoreSummary', [ApiController::class, 'getStudentScoreSummary']);
    Route::get('/filterCommentByRole', [ApiController::class, 'filterCommentByRole']);
-    
+
     Route::get('getSubjectsByClass/{classId}', [ApiController::class, 'getSubjectsByClass']);
 
 
 
-    
-    
+
+
 
 
     //--ADMIN
@@ -345,13 +347,13 @@ Route::group([
     //--PAYMENT
     Route::post('setPayRecord', [ApiController::class,'setPayRecord']);
     Route::post('setAFeeRecord', [ApiController::class,'setAFeeRecord']);
-    
+
 
     Route::get('getPaysByReceiver/{rid}', [ApiController::class,'getPaysByReceiver']);
     Route::get('getPaysBySender/{sid}', [ApiController::class,'getPaysBySender']);
     Route::get('getPaysBySenderAndReceiver/{sid}/{rid}', [ApiController::class,'getPaysBySenderAndReceiver']);
     Route::get('resolveAccountNumber/{anum}/{bnk}', [ApiController::class,'resolveAccountNumber']);
-    
+
 
     //--MSG
     Route::post('createMsgThread', [ApiController::class,'createMsgThread']);
@@ -374,6 +376,6 @@ Route::group([
 
     Route::get('logout', [ApiController::class,'logout']);
     Route::get('checkTokenValidity', [ApiController::class,'checkTokenValidity']);
-    
-    
+
+
 });

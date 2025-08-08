@@ -18806,7 +18806,7 @@
                                             "properties": {
                                                 "punc": {
                                                     "type": "number",
-                                                    "example": 3.6699999999999999289457264239899814128875732421875
+                                                    "example": 3.67
                                                 },
                                                 "hon": {
                                                     "type": "number",
@@ -19352,7 +19352,7 @@
                                                     "final_average": {
                                                         "type": "number",
                                                         "format": "float",
-                                                        "example": 85.599999999999994315658113919198513031005859375
+                                                        "example": 85.6
                                                     },
                                                     "overall_position": {
                                                         "type": "integer",
@@ -20470,6 +20470,135 @@
                         "bearerAuth": []
                     }
                 ]
+            }
+        },
+        "/api/promoteStudent": {
+            "post": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Promote a student to a new class and archive their previous data",
+                "description": "Promotes a student to another class. Archives current session/class/term data to old_student table. Updates old_student if UID is provided, otherwise creates a new one.",
+                "operationId": "af8f37852ad34be212875885f0a267f1",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "sid",
+                                    "schid",
+                                    "sesn",
+                                    "trm",
+                                    "clsm",
+                                    "clsa"
+                                ],
+                                "properties": {
+                                    "sid": {
+                                        "type": "string",
+                                        "example": "123456"
+                                    },
+                                    "schid": {
+                                        "type": "string",
+                                        "example": "SCH01"
+                                    },
+                                    "sesn": {
+                                        "description": "Session (year)",
+                                        "type": "string",
+                                        "example": "2025"
+                                    },
+                                    "trm": {
+                                        "description": "Term",
+                                        "type": "string",
+                                        "example": "1"
+                                    },
+                                    "clsm": {
+                                        "description": "New Class",
+                                        "type": "string",
+                                        "example": "2"
+                                    },
+                                    "clsa": {
+                                        "description": "New Class Arm",
+                                        "type": "string",
+                                        "example": "1"
+                                    },
+                                    "uid": {
+                                        "description": "Existing UID in old_student (optional)",
+                                        "type": "string",
+                                        "example": "c57a43d8-62b4-4b5c-a8ff-9e3e4b2903e4",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Student promoted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Student promoted successfully."
+                                        },
+                                        "pld": {
+                                            "description": "Promoted student object",
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Student not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Student not found."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/test": {
+            "get": {
+                "tags": [
+                    "Test"
+                ],
+                "summary": "Test endpoint",
+                "operationId": "3fa7f80935ba3873772761ce8530c54b",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                }
             }
         }
     },
