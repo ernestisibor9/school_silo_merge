@@ -4530,38 +4530,37 @@ class ApiController extends Controller
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    public function getStudent()
-    {
+    public function getStudent(){
         $combined = false;
-        if (request()->has('combined')) {
+        if(request()->has('combined')) {
             $combined = request()->input('combined');
         }
         $uid = '';
-        if (request()->has('uid')) {
+        if(request()->has('uid')) {
             $uid = request()->input('uid');
         }
         $schid = '';
-        if (request()->has('schid')) {
+        if(request()->has('schid')) {
             $schid = request()->input('schid');
         }
-        if ($uid == '' || $schid == '') {
+        if($uid=='' || $schid==''){
             return response()->json([
-                "status" => false,
-                "message" => "No UID/School ID provided",
-            ], 400);
+                "status"=> false,
+                "message"=> "No UID/School ID provided",
+            ],400);
         }
         $pld = [];
-        if ($combined) {
+        if($combined){
             $members = [];
             $compo = explode("/", $uid);
-            if (count($compo) == 4) {
+            if(count($compo) == 4){
                 $sch3 = $compo[0];
                 $year = $compo[1];
                 $term = $compo[2];
                 $count = $compo[3];
                 $members = student::where("schid", $schid)->where("stat", "1")->where("sch3", $sch3)->where("year", $year)->where("term", $term)
-                    ->where("count", $count)->get();
-            } else {
+                ->where("count", $count)->get();
+            }else{
                 $members = student::where("schid", $schid)->where("stat", "1")->where("cuid", $uid)->get();
             }
             foreach ($members as $member) {
@@ -4569,18 +4568,18 @@ class ApiController extends Controller
                 $academicData = student_academic_data::where('user_id', $user_id)->first();
                 $basicData = student_basic_data::where('user_id', $user_id)->first();
                 $pld[] = [
-                    's' => $member,
-                    'b' => $basicData,
-                    'a' => $academicData,
+                    's'=> $member,
+                    'b'=> $basicData,
+                    'a'=> $academicData,
                 ];
             }
-        } else {
+        }else{
             $pld = student::where("schid", $schid)->where("stat", "1")->where("sid", $uid)->first();
         }
         return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $pld,
+            "status"=> true,
+            "message"=> "Success",
+            "pld"=> $pld,
         ]);
     }
 
@@ -16640,178 +16639,6 @@ class ApiController extends Controller
     }
 
 
-    // Exit a student
-
-    /**
-     * @OA\Post(
-     *     path="/api/exitStudent/{schid}/{stid}",
-     *     summary="Exit a student and move them to alumni",
-     *     description="Marks a student as inactive and moves them to the alumni database if they are not already present.",
-     *     operationId="exitStudent",
-     *     tags={"Api"},
-     *      security={{"bearerAuth": {}}},
-     *     @OA\Parameter(
-     *         name="schid",
-     *         in="path",
-     *         required=true,
-     *         description="The school ID",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Parameter(
-     *         name="stid",
-     *         in="path",
-     *         required=true,
-     *         description="The student ID",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"reason_for_exit"},
-     *             @OA\Property(property="reason_for_exit", type="string", example="Graduated")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Student successfully exited and moved to alumni",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Student has been exited successfully and moved to alumni.")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=400,
-     *         description="Student has already been moved to alumni",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Student has already been moved to alumni.")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Student not found",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Student not found.")
-     *         )
-     *     )
-     * )
-     */
-
-    public function exitStudent(Request $request, $schid, $stid)
-    {
-        $request->validate([
-            'reason_for_exit' => 'required|string|max:555',
-        ]);
-
-        $student = student::where('schid', $schid)->where('sid', $stid)->first();
-
-        if (!$student) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Student not found.',
-            ], 404);
-        }
-
-        if (alumni::where('stid', $stid)->where('schid', $schid)->exists()) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Student has already been moved to alumni.',
-            ], 400);
-        }
-
-        // Retrieve term_of_entry from school table
-        $school = school::where('sid', $schid)->first();
-        $termOfEntry = null;
-
-        if ($school) {
-            $termOfEntry = trm::where('no', $school->ctrm)->value('name'); // Get term name
-        }
-
-        // Generate the `suid`
-        $ssn = $student->year;
-        $term = $student->term;
-        $count = $student->count;
-        $suid = $student->sch3 . '/' . $ssn . '/' . $term . '/' . strval($count);
-
-        // Fetch class details
-        $oldStudent = old_student::where('schid', $schid)->where('sid', $stid)->first();
-        $exitClassId = $oldStudent ? $oldStudent->clsm : null;
-        $exitClassArmId = $oldStudent ? $oldStudent->clsa : null;
-
-        $classDetails = sch_cls::where('cls_id', $exitClassId)
-            ->where('schid', $schid)
-            ->first();
-
-        $exitClass = $classDetails ? $classDetails->cls_id : null;
-        $exitClassArm = $classDetails ? $classDetails->name : null;
-
-        $className = cls::where('id', $exitClass)->value('name');
-
-        // Fetch session and term names
-        $sessionOfEntry = sesn::where('year', $student->year)->value('name'); // Get session name
-        $sessionOfExit = sesn::where('year', now()->year)->value('name'); // Get current session name
-        $termOfExit = trm::where('no', $student->term)->value('name'); // Same term as entry
-
-        DB::beginTransaction();
-
-        try {
-            $student->update([
-                'status' => 'inactive',
-                'exit_status' => 'exited'
-            ]);
-
-            if (DB::table('old_student')->where('schid', $schid)->where('sid', $stid)->exists()) {
-                DB::table('old_student')
-                    ->where('schid', $schid)
-                    ->where('sid', $stid)
-                    ->update(['status' => 'inactive']);
-            }
-
-            $student->refresh();
-
-            if ($student->status === 'inactive') {
-                alumni::create([
-                    'stid' => $student->sid,
-                    'schid' => $student->schid,
-                    'suid' => $suid,
-                    'lname' => $student->lname,
-                    'fname' => $student->fname,
-                    'mname' => $student->mname,
-                    'sch3' => $student->sch3,
-                    'count' => strval($count),
-                    'session_of_entry' => $sessionOfEntry, // Actual session name
-                    'term_of_entry' => $termOfEntry, // Fetched from school table
-                    'date_of_entry' => $student->created_at->toDateString(),
-                    'session_of_exit' => $sessionOfExit, // Actual session name
-                    'term_of_exit' => $termOfExit, // Actual term name
-                    'date_of_exit' => now()->toDateString(),
-                    'reason_for_exit' => $request->input('reason_for_exit'),
-                    'exit_class' => $className,
-                    'exit_class_arm' => $exitClassArm,
-                ]);
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Student has been exited successfully and moved to alumni.',
-            ], 200);
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            return response()->json([
-                'status' => false,
-                'message' => 'Failed to exit student. Please try again.',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-
-
-
     /**
      * @OA\Post(
      *     path="/api/exitStaff/{schid}/{stid}",
@@ -24941,4 +24768,280 @@ class ApiController extends Controller
             ]
         ]);
     }
+
+
+
+/**
+ * @OA\Post(
+ *     path="/api/exitStudent/{schid}/{stid}",
+ *     summary="Exit a student and move them to alumni",
+ *     description="Marks a student as inactive and moves them to the alumni database if they are not already present.",
+ *     operationId="exitStudent",
+ *     tags={"Api"},
+ *      security={{"bearerAuth": {}}},
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="path",
+ *         required=true,
+ *         description="The school ID",
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Parameter(
+ *         name="stid",
+ *         in="path",
+ *         required=true,
+ *         description="The student ID",
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             required={"reason_for_exit"},
+ *             @OA\Property(property="reason_for_exit", type="string", example="Graduated")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Student successfully exited and moved to alumni",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Student has been exited successfully and moved to alumni.")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=400,
+ *         description="Student has already been moved to alumni",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="Student has already been moved to alumni.")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="Student not found",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="Student not found.")
+ *         )
+ *     )
+ * )
+ */
+
+public function exitStudent(Request $request, $schid, $stid)
+{
+    $request->validate([
+        'reason_for_exit' => 'required|string|max:555',
+    ]);
+
+    $student = student::where('schid', $schid)->where('sid', $stid)->first();
+
+    if (!$student) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Student not found.',
+        ], 404);
+    }
+
+    if (alumni::where('stid', $stid)->where('schid', $schid)->exists()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Student has already been moved to alumni.',
+        ], 400);
+    }
+
+    // Retrieve term_of_entry from school table
+    $school = school::where('sid', $schid)->first();
+    $termOfEntry = null;
+
+    if ($school) {
+        $termOfEntry = trm::where('no', $school->ctrm)->value('name'); // Get term name
+    }
+
+    // Generate the `suid`
+    $ssn = $student->year;
+    $term = $student->term;
+    $count = $student->count;
+    $suid = $student->sch3 . '/' . $ssn . '/' . $term . '/' . strval($count);
+
+    // Fetch class details
+    $oldStudent = old_student::where('schid', $schid)->where('sid', $stid)->first();
+    $exitClassId = $oldStudent ? $oldStudent->clsm : null;
+    $exitClassArmId = $oldStudent ? $oldStudent->clsa : null;
+
+    $classDetails = sch_cls::where('cls_id', $exitClassId)
+                           ->where('schid', $schid)
+                           ->first();
+
+    $exitClass = $classDetails ? $classDetails->cls_id : null;
+    $exitClassArm = $classDetails ? $classDetails->name : null;
+
+    $className = cls::where('id', $exitClass)->value('name');
+
+    // Fetch session and term names
+    $sessionOfEntry = sesn::where('year', $student->year)->value('name'); // Get session name
+    $sessionOfExit = sesn::where('year', now()->year)->value('name'); // Get current session name
+    $termOfExit = trm::where('no', $student->term)->value('name'); // Same term as entry
+
+    DB::beginTransaction();
+
+    try {
+        $student->update([
+            'status' => 'inactive',
+            'exit_status' => 'exited'
+        ]);
+
+        if (DB::table('old_student')->where('schid', $schid)->where('sid', $stid)->exists()) {
+            DB::table('old_student')
+                ->where('schid', $schid)
+                ->where('sid', $stid)
+                ->update(['status' => 'inactive']);
+        }
+
+        $student->refresh();
+
+        if ($student->status === 'inactive') {
+            alumni::create([
+                'stid' => $student->sid,
+                'schid' => $student->schid,
+                'suid' => $suid,
+                'lname' => $student->lname,
+                'fname' => $student->fname,
+                'mname' => $student->mname,
+                'sch3' => $student->sch3,
+                'count' => strval($count),
+                'session_of_entry' => $sessionOfEntry, // Actual session name
+                'term_of_entry' => $termOfEntry, // Fetched from school table
+                'date_of_entry' => $student->created_at->toDateString(),
+                'session_of_exit' => $sessionOfExit, // Actual session name
+                'term_of_exit' => $termOfExit, // Actual term name
+                'date_of_exit' => now()->toDateString(),
+                'reason_for_exit' => $request->input('reason_for_exit'),
+                'exit_class' => $className,
+                'exit_class_arm' => $exitClassArm,
+            ]);
+        }
+
+        DB::commit();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Student has been exited successfully and moved to alumni.',
+        ], 200);
+    } catch (\Exception $e) {
+        DB::rollBack();
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Failed to exit student. Please try again.',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+
+
+    /**
+     * @OA\Post(
+     *     path="/api/repeatStudent",
+     *     summary="Repeat a student in the same class for a new session and term",
+     *     operationId="repeatStudent",
+     *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"sid", "schid", "sesn", "trm"},
+     *             @OA\Property(property="sid", type="string", example="ST12345", description="Student ID"),
+     *             @OA\Property(property="schid", type="string", example="SCH001", description="School ID"),
+     *             @OA\Property(property="sesn", type="string", example="2024/2025", description="Academic session/year"),
+     *             @OA\Property(property="trm", type="string", example="1", description="Term"),
+     *             @OA\Property(property="uid", type="string", example="UID123456", description="Optional unique identifier for the archive")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Student repeated successfully.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Student repeated successfully."),
+     *             @OA\Property(property="pld", type="object",
+     *                 @OA\Property(property="sid", type="string", example="ST12345"),
+     *                 @OA\Property(property="schid", type="string", example="SCH001"),
+     *                 @OA\Property(property="year", type="string", example="2024/2025"),
+     *                 @OA\Property(property="term", type="string", example="1st Term")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Student not found.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Student not found.")
+     *         )
+     *     )
+     * )
+     */
+
+    public function repeatStudent(Request $request)
+    {
+        $request->validate([
+            'sid'   => 'required',
+            'schid' => 'required',
+            'sesn'  => 'required', // session/year
+            'trm'   => 'required', // term
+            'uid'   => 'nullable|string' // may not be present
+        ]);
+
+        $sid    = $request->sid;
+        $schid  = $request->schid;
+        $year   = $request->sesn;
+        $term   = $request->trm;
+        $uid    = $request->uid;
+
+        // Find student
+        $student = student::where('sid', $sid)
+            ->where('schid', $schid)
+            ->first();
+
+        if (!$student) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Student not found.'
+            ], 404);
+        }
+
+            // Generate the `suid`
+        $ssn = $student->year;
+        $term = $student->term;
+        $count = $student->count;
+        $suid = $student->sch3 . '/' . $ssn . '/' . $term . '/' . strval($count);
+
+        // Archive student to old_student table
+        old_student::updateOrCreate(
+            ['uid' => $uid],
+            [
+                'sid'   => $student->sid,
+                'schid' => $student->schid,
+                'fname' => $student->fname,
+                'mname' => $student->mname,
+                'lname' => $student->lname,
+                'suid'  => $suid,
+                'ssn'   => $year,
+                'trm'   => $term,
+            ]
+        );
+
+        // Promote student to new class
+        $student->year        = $year;
+        $student->term        = $term;
+        $student->save();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Student repeated successfully.',
+            'pld' => $student
+        ]);
+    }
+
+
 }
