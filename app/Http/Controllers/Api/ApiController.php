@@ -1914,6 +1914,7 @@ class ApiController extends Controller
      * )
      */
 
+
     public function registerStudent(Request $request)
     {
         //Data validation
@@ -2018,7 +2019,6 @@ class ApiController extends Controller
             "message" => "Account already exists",
         ], 400);
     }
-
     /**
      * @OA\Post(
      *     path="/api/studentLoginByEmail",
@@ -15074,111 +15074,125 @@ class ApiController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/getStudentsBySchool/{schid}/{stat}/{cls?}",
+     *     path="/api/getStudentsBySchool/{schid}/{stat}",
+     *     summary="Get students by school ID and status with optional filters",
      *     tags={"Admin"},
-     *     summary="ADMIN: Get Students by school id",
-     *     description="Use this endpoint to get Students by school",
      *     security={{"bearerAuth": {}}},
+     *     description="Retrieve a paginated list of students filtered by school ID, status, class, term, and year.",
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
-     *         required=true,
      *         description="School ID",
-     *         @OA\Schema(type="string")
+     *         required=true,
+     *         @OA\Schema(type="integer", example=12)
      *     ),
      *     @OA\Parameter(
      *         name="stat",
      *         in="path",
+     *         description="Status of the student (e.g., active=1)",
      *         required=true,
-     *         description="Status of the student",
-     *         @OA\Schema(type="string")
+     *         @OA\Schema(type="integer", example=1)
      *     ),
      *     @OA\Parameter(
      *         name="start",
      *         in="query",
+     *         description="Pagination start index",
      *         required=false,
-     *         description="Index to start at",
-     *         @OA\Schema(type="integer")
+     *         @OA\Schema(type="integer", default=0)
      *     ),
      *     @OA\Parameter(
      *         name="count",
      *         in="query",
+     *         description="Number of records to return",
      *         required=false,
-     *         description="No of records to retrieve",
-     *         @OA\Schema(type="integer")
+     *         @OA\Schema(type="integer", default=20)
      *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
+     *     @OA\Parameter(
+     *         name="cls",
+     *         in="query",
+     *         description="Filter by class (from student_academic_data)",
+     *         required=false,
+     *         @OA\Schema(type="string", example="11")
+     *     ),
+     *     @OA\Parameter(
+     *         name="term",
+     *         in="query",
+     *         description="Filter by term (from student table)",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=3)
+     *     ),
+     *     @OA\Parameter(
+     *         name="year",
+     *         in="query",
+     *         description="Filter by year (from student table)",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=2025)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful response with list of students",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="s", type="object", description="Student data"),
+     *                     @OA\Property(property="b", type="object", description="Student basic data"),
+     *                     @OA\Property(property="a", type="object", description="Student academic data")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Bad request"
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Not found"
+     *     )
      * )
      */
-    // public function getStudentsBySchool($schid,$stat,$cls='zzz'){
-    //     $start = 0;
-    //     $count = 20;
-    //     if(request()->has('start') && request()->has('count')) {
-    //         $start = request()->input('start');
-    //         $count = request()->input('count');
-    //     }
-    //     $members = [];
-    //     if($cls !== 'zzz'){
-    //         $members = student::join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
-    //         ->where('student.schid', $schid)
-    //         ->where('student.stat', $stat)
-    //         ->where('student_academic_data.new_class_main', $cls)
-    //         ->orderBy('student.sid', 'desc')
-    //         ->skip($start)->take($count)->get();
-    //     }else{
-    //         $members = student::where('schid',$schid)->where('stat',$stat)->orderBy('sid', 'desc')->skip($start)->take($count)->get();
-    //     }
-    //     $pld = [];
-    //     foreach ($members as $member) {
-    //         $user_id = $member->sid;
-    //         $academicData = student_academic_data::where('user_id', $user_id)->first();
-    //         $basicData = student_basic_data::where('user_id', $user_id)->first();
-    //         $pld[] = [
-    //             's'=> $member,
-    //             'b'=> $basicData,
-    //             'a'=> $academicData,
-    //         ];
-    //     }
-    //     // Respond
-    //     return response()->json([
-    //         "status"=> true,
-    //         "message"=> "Success",
-    //         "pld"=> $pld,
-    //     ]);
-    // }
 
 
-
-    public function getStudentsBySchool($schid, $stat, $cls = 'zzz')
+    public function getStudentsBySchool($schid, $stat, $cls = null)
     {
-        $start = 0;
-        $count = 20;
+        $start = request()->input('start', 0);
+        $count = request()->input('count', 20);
+        $term = request()->input('term');
+        $year = request()->input('year');
 
-        if (request()->has('start') && request()->has('count')) {
-            $start = request()->input('start');
-            $count = request()->input('count');
+
+        $query = student::query()
+            ->where('student.schid', $schid)
+            ->where('student.stat', $stat)
+            ->where('student.status', 'active')
+            ->where(function ($q) {
+                $q->whereNull('student.exit_status')
+                    ->orWhere('student.exit_status', '!=', 'exited');
+            });
+
+        if (!empty($term)) {
+            $query->where('student.term', $term);
         }
 
-        $members = [];
+        if (!empty($year)) {
+            $query->where('student.year', $year);
+        }
 
-        if ($cls !== 'zzz') {
-            $members = student::join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
-                ->where('student.schid', $schid)
-                ->where('student.stat', $stat)
+        if (!empty($cls)) {
+            $query->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
                 ->where('student_academic_data.new_class_main', $cls)
-                ->orderBy('student.lname', 'asc') // Sort by lname alphabetically
-                ->skip($start)
-                ->take($count)
-                ->get();
-        } else {
-            $members = student::where('schid', $schid)
-                ->where('stat', $stat)
-                ->orderBy('lname', 'asc') // Sort by lname alphabetically
-                ->skip($start)
-                ->take($count)
-                ->get();
+                ->select('student.*');
         }
+
+        $query->orderBy('student.lname', 'asc');
+
+        $members = $query->skip($start)->take($count)->get();
 
         $pld = [];
         foreach ($members as $member) {
@@ -15193,11 +15207,10 @@ class ApiController extends Controller
             ];
         }
 
-        // Respond
         return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $pld,
+            'status' => true,
+            'message' => 'Success',
+            'pld' => $pld,
         ]);
     }
 
@@ -15385,41 +15398,110 @@ class ApiController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/getStudentsStatBySchool/{schid}/{stat}/{cls?}",
+     *     path="/api/getStudentsStatBySchool",
+     *     operationId="getStudentsStatBySchool",
      *     tags={"Admin"},
-     *     summary="ADMIN: Get how many Students by school id",
-     *     description="Use this endpoint to get how many Students by school",
      *     security={{"bearerAuth": {}}},
+     *     summary="Get total students by school, status, class, session (year), and term",
+     *     description="Returns total number of students filtered by school ID, student status, class (optional), session (year), and term",
+     *
      *     @OA\Parameter(
      *         name="schid",
-     *         in="path",
+     *         in="query",
      *         required=true,
      *         description="School ID",
-     *         @OA\Schema(type="string")
+     *         @OA\Schema(type="integer")
      *     ),
      *     @OA\Parameter(
      *         name="stat",
-     *         in="path",
+     *         in="query",
      *         required=true,
-     *         description="Status of the student",
+     *         description="Student status (e.g., active, inactive)",
      *         @OA\Schema(type="string")
      *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
+     *     @OA\Parameter(
+     *         name="cls",
+     *         in="query",
+     *         required=false,
+     *         description="Class (optional, defaults to all classes)",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="sesn",
+     *         in="query",
+     *         required=false,
+     *         description="Academic session (year)",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="query",
+     *         required=false,
+     *         description="Academic term (e.g., 1st Term, 2nd Term)",
+     *         @OA\Schema(type="string")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful response",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 @OA\Property(property="total", type="integer", example=87)
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Invalid parameters"
+     *     )
      * )
      */
-    public function getStudentsStatBySchool($schid, $stat, $cls = 'zzz')
+
+
+    public function getStudentsStatBySchool(Request $request)
     {
+        $schid = $request->query('schid');
+        $stat = $request->query('stat');
+        $cls = $request->query('cls', 'zzz'); // default to 'zzz'
+        $year = $request->query('sesn');      // mapped from sesn to year
+        $term = $request->query('trm');       // mapped from trm to term
+
         $total = 0;
+
         if ($cls !== 'zzz') {
-            $total = student::join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
+            $query = student::join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
                 ->where('student.schid', $schid)
                 ->where('student.stat', $stat)
-                ->where('student_academic_data.new_class_main', $cls)
-                ->count();
+                ->where('student_academic_data.new_class_main', $cls);
+
+            if (!is_null($year)) {
+                $query->where('student.year', $year);
+            }
+
+            if (!is_null($term)) {
+                $query->where('student.term', $term);
+            }
+
+            $total = $query->count();
         } else {
-            $total = student::where('schid', $schid)->where('stat', $stat)->count();
+            $query = student::where('schid', $schid)
+                ->where('stat', $stat);
+
+            if (!is_null($year)) {
+                $query->where('year', $year);
+            }
+
+            if (!is_null($term)) {
+                $query->where('term', $term);
+            }
+
+            $total = $query->count();
         }
+
         return response()->json([
             "status" => true,
             "message" => "Success",
@@ -15428,6 +15510,7 @@ class ApiController extends Controller
             ],
         ]);
     }
+
 
     /**
      * @OA\Get(
@@ -24858,5 +24941,4 @@ class ApiController extends Controller
             ]
         ]);
     }
-
 }
