@@ -3889,14 +3889,14 @@
                 ]
             }
         },
-        "/api/getOldStudents/{schid}/{ssn}/{clsm}/{clsa}": {
+        "/api/getOldStudents/{schid}/{ssn}/{trm}/{clsm}/{clsa}": {
             "get": {
                 "tags": [
                     "Api"
                 ],
                 "summary": "Get an old student's Basic Info",
                 "description": "Use this endpoint to get basic information about an old student.",
-                "operationId": "7681dd0aeca82341d05f1cf187d07ad4",
+                "operationId": "cbaefb0f6d3604a52bd6d507a0bdaccd",
                 "parameters": [
                     {
                         "name": "schid",
@@ -3911,6 +3911,15 @@
                         "name": "ssn",
                         "in": "path",
                         "description": "Id of the session",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "path",
+                        "description": "Term of the session",
                         "required": true,
                         "schema": {
                             "type": "string"
@@ -12001,14 +12010,14 @@
                 ]
             }
         },
-        "/api/getStudentsBySchool/{schid}/{stat}/{cls?}": {
+        "/api/getStudentsBySchool/{schid}/{stat}": {
             "get": {
                 "tags": [
-                    "Admin"
+                    "Students"
                 ],
-                "summary": "ADMIN: Get Students by school id",
-                "description": "Use this endpoint to get Students by school",
-                "operationId": "f8408a89903aecaaabc37d6a32166068",
+                "summary": "Get students by school ID and status",
+                "description": "Fetch a paginated list of active students filtered by school, status, class, term, and year.",
+                "operationId": "getStudentsBySchool",
                 "parameters": [
                     {
                         "name": "schid",
@@ -12016,55 +12025,128 @@
                         "description": "School ID",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "integer",
+                            "example": 12
                         }
                     },
                     {
                         "name": "stat",
                         "in": "path",
-                        "description": "Status of the student",
+                        "description": "Student status (numeric or code)",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "example": "1"
                         }
                     },
                     {
                         "name": "start",
                         "in": "query",
-                        "description": "Index to start at",
+                        "description": "Offset for pagination",
                         "required": false,
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "example": 0
                         }
                     },
                     {
                         "name": "count",
                         "in": "query",
-                        "description": "No of records to retrieve",
+                        "description": "Number of records to return",
                         "required": false,
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "example": 20
+                        }
+                    },
+                    {
+                        "name": "cls",
+                        "in": "query",
+                        "description": "Class ID filter; use 'zzz' to fetch all classes",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "13"
+                        }
+                    },
+                    {
+                        "name": "term",
+                        "in": "query",
+                        "description": "Term filter (from student table)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 3
+                        }
+                    },
+                    {
+                        "name": "year",
+                        "in": "query",
+                        "description": "Year filter (from student table)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 2024
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Success",
+                        "description": "Successful operation",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "sid": {
+                                                        "type": "integer",
+                                                        "example": 101
+                                                    },
+                                                    "lname": {
+                                                        "type": "string",
+                                                        "example": "Doe"
+                                                    },
+                                                    "fname": {
+                                                        "type": "string",
+                                                        "example": "John"
+                                                    },
+                                                    "term": {
+                                                        "type": "integer",
+                                                        "example": 3
+                                                    },
+                                                    "year": {
+                                                        "type": "integer",
+                                                        "example": 2024
+                                                    },
+                                                    "new_class_main": {
+                                                        "type": "string",
+                                                        "example": "13"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
-                    "401": {
-                        "description": "Unauthorized"
+                    "400": {
+                        "description": "Invalid request"
                     }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/searchStudents": {
@@ -12208,29 +12290,56 @@
                 ]
             }
         },
-        "/api/getStudentsStatBySchool/{schid}/{stat}/{cls?}": {
+        "/api/getStudentsStatBySchool": {
             "get": {
                 "tags": [
                     "Admin"
                 ],
-                "summary": "ADMIN: Get how many Students by school id",
-                "description": "Use this endpoint to get how many Students by school",
-                "operationId": "859ce86be6126fcba17600660087310d",
+                "summary": "Get total students by school, status, class, session (year), and term",
+                "description": "Returns total number of students filtered by school ID, student status, class (optional), session (year), and term",
+                "operationId": "getStudentsStatBySchool",
                 "parameters": [
                     {
                         "name": "schid",
-                        "in": "path",
+                        "in": "query",
                         "description": "School ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "stat",
+                        "in": "query",
+                        "description": "Student status (e.g., active, inactive)",
                         "required": true,
                         "schema": {
                             "type": "string"
                         }
                     },
                     {
-                        "name": "stat",
-                        "in": "path",
-                        "description": "Status of the student",
-                        "required": true,
+                        "name": "cls",
+                        "in": "query",
+                        "description": "Class (optional, defaults to all classes)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "sesn",
+                        "in": "query",
+                        "description": "Academic session (year)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "query",
+                        "description": "Academic term (e.g., 1st Term, 2nd Term)",
+                        "required": false,
                         "schema": {
                             "type": "string"
                         }
@@ -12238,15 +12347,36 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Success",
+                        "description": "Successful response",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "total": {
+                                                    "type": "integer",
+                                                    "example": 87
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
-                    "401": {
-                        "description": "Unauthorized"
+                    "400": {
+                        "description": "Invalid parameters"
                     }
                 },
                 "security": [
@@ -13371,122 +13501,6 @@
                                         "message": {
                                             "type": "string",
                                             "example": "Unauthorized"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/api/exitStudent/{schid}/{stid}": {
-            "post": {
-                "tags": [
-                    "Api"
-                ],
-                "summary": "Exit a student and move them to alumni",
-                "description": "Marks a student as inactive and moves them to the alumni database if they are not already present.",
-                "operationId": "exitStudent",
-                "parameters": [
-                    {
-                        "name": "schid",
-                        "in": "path",
-                        "description": "The school ID",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "stid",
-                        "in": "path",
-                        "description": "The student ID",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "reason_for_exit"
-                                ],
-                                "properties": {
-                                    "reason_for_exit": {
-                                        "type": "string",
-                                        "example": "Graduated"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Student successfully exited and moved to alumni",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Student has been exited successfully and moved to alumni."
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Student has already been moved to alumni",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Student has already been moved to alumni."
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Student not found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Student not found."
                                         }
                                     },
                                     "type": "object"
@@ -20587,18 +20601,240 @@
                 ]
             }
         },
-        "/api/test": {
-            "get": {
+        "/api/exitStudent/{schid}/{stid}": {
+            "post": {
                 "tags": [
-                    "Test"
+                    "Api"
                 ],
-                "summary": "Test endpoint",
-                "operationId": "3fa7f80935ba3873772761ce8530c54b",
+                "summary": "Exit a student and move them to alumni",
+                "description": "Marks a student as inactive and moves them to the alumni database if they are not already present.",
+                "operationId": "exitStudent",
+                "parameters": [
+                    {
+                        "name": "schid",
+                        "in": "path",
+                        "description": "The school ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "stid",
+                        "in": "path",
+                        "description": "The student ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "reason_for_exit"
+                                ],
+                                "properties": {
+                                    "reason_for_exit": {
+                                        "type": "string",
+                                        "example": "Graduated"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
-                        "description": "Success"
+                        "description": "Student successfully exited and moved to alumni",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Student has been exited successfully and moved to alumni."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Student has already been moved to alumni",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Student has already been moved to alumni."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Student not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Student not found."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/repeatStudent": {
+            "post": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Repeat a student in the same class for a new session and term",
+                "operationId": "repeatStudent",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "sid",
+                                    "schid",
+                                    "sesn",
+                                    "trm"
+                                ],
+                                "properties": {
+                                    "sid": {
+                                        "description": "Student ID",
+                                        "type": "string",
+                                        "example": "ST12345"
+                                    },
+                                    "schid": {
+                                        "description": "School ID",
+                                        "type": "string",
+                                        "example": "SCH001"
+                                    },
+                                    "sesn": {
+                                        "description": "Academic session/year",
+                                        "type": "string",
+                                        "example": "2024/2025"
+                                    },
+                                    "trm": {
+                                        "description": "Term",
+                                        "type": "string",
+                                        "example": "1"
+                                    },
+                                    "uid": {
+                                        "description": "Optional unique identifier for the archive",
+                                        "type": "string",
+                                        "example": "UID123456"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Student repeated successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Student repeated successfully."
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "sid": {
+                                                    "type": "string",
+                                                    "example": "ST12345"
+                                                },
+                                                "schid": {
+                                                    "type": "string",
+                                                    "example": "SCH001"
+                                                },
+                                                "year": {
+                                                    "type": "string",
+                                                    "example": "2024/2025"
+                                                },
+                                                "term": {
+                                                    "type": "string",
+                                                    "example": "1st Term"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Student not found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Student not found."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         }
     },

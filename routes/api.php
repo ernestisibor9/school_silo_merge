@@ -66,7 +66,6 @@ Route::get('getStudentResult/{schid}/{ssn}/{trm}/{clsm}/{clsa}/{stid}', [ApiCont
 Route::get('getClassSubject/{schid}/{clsid}/{sbid}', [ApiController::class, 'getClassSubject']);
 Route::get('getStudentResultsByArm/{schid}/{clsid}/{ssn}/{trm}/{arm}', [ApiController::class, 'getStudentResultsByArm']);
 Route::get('getResultMeta/{schid}/{ssn}/{trm}', [ApiController::class, 'getResultMeta']);
-Route::get('getOldStudent/{schid}/{ssn}/{stid}', [ApiController::class, 'getOldStudent']);
 Route::get('getClassSubjectsByStaff/{schid}/{clsid}/{stid}', [ApiController::class, 'getClassSubjectsByStaff']);
 Route::get('getClassSubjects/{schid}/{clsid}', [ApiController::class, 'getClassSubjects']);
 Route::get('getASchoolClassArm/{cid}', [ApiController::class, 'getASchoolClassArm']);
@@ -269,7 +268,8 @@ Route::group([
     Route::get('getInternalExpenditure/{eid}', [ApiController::class, 'getInternalExpenditure']);
     Route::get('getOldStudentInfo/{uid}', [ApiController::class, 'getOldStudentInfo']);
     Route::get('getOldStudentsStat/{schid}/{ssn}/{clsm}/{clsa}', [ApiController::class, 'getOldStudentsStat']);
-    Route::get('getOldStudents/{schid}/{ssn}/{clsm}/{clsa}', [ApiController::class, 'getOldStudents']);
+    Route::get('getOldStudent/{schid}/{ssn}/{stid}', [ApiController::class,'getOldStudent']);
+    Route::get('getOldStudents/{schid}/{ssn}/{trm}/{clsm}/{clsa}', [ApiController::class,'getOldStudents']);
     Route::get('getOldStaffInfo/{uid}', [ApiController::class, 'getOldStaffInfo']);
     Route::get('getOldStaffStat/{schid}/{ssn}/{clsm}/{role}', [ApiController::class, 'getOldStaffStat']);
     Route::get('getOldStaff/{schid}/{ssn}/{clsm}/{role}', [ApiController::class, 'getOldStaff']);
@@ -338,7 +338,7 @@ Route::group([
     Route::get('getSchoolsByStat/{stat}', [ApiController::class, 'getSchoolsByStat']);
     Route::get('getSchools', [ApiController::class, 'getSchools']);
     Route::get('getSchoolsStat', [ApiController::class, 'getSchoolsStat']);
-    Route::get('getStudentsBySchool/{schid}/{stat}/{cls?}', [ApiController::class, 'getStudentsBySchool']);
+    Route::get('getStudentsBySchool/{schid}/{stat}', [ApiController::class, 'getStudentsBySchool']);
     Route::get('getStudentsStatBySchool', [ApiController::class, 'getStudentsStatBySchool']);
     Route::get('getStaffBySchool/{schid}/{stat}/{cls?}', [ApiController::class, 'getStaffBySchool']);
     Route::get('getStaffStatBySchool/{schid}/{stat}/{cls?}', [ApiController::class, 'getStaffStatBySchool']);
