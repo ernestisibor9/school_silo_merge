@@ -3964,14 +3964,14 @@
                 ]
             }
         },
-        "/api/getOldStudent/{schid}/{ssn}/{clsm}/{clsa}/{stid}": {
+        "/api/getOldStudent/{schid}/{ssn}/{stid}": {
             "get": {
                 "tags": [
                     "Api"
                 ],
                 "summary": "Get an old student's Basic Info",
                 "description": "Use this endpoint to get basic information about an old student.",
-                "operationId": "81a8f71b3e5533c5c713c0c05fa71de1",
+                "operationId": "073e905e16edf703d31b9e171cddd245",
                 "parameters": [
                     {
                         "name": "schid",
@@ -20491,9 +20491,9 @@
                 "tags": [
                     "Api"
                 ],
-                "summary": "Promote a student to a new class and archive their previous data",
-                "description": "Promotes a student to another class. Archives current session/class/term data to old_student table. Updates old_student if UID is provided, otherwise creates a new one.",
-                "operationId": "af8f37852ad34be212875885f0a267f1",
+                "summary": "Promote a student to the next class",
+                "description": "Creates a new promotion record for the student. Previous records remain unchanged.",
+                "operationId": "promoteStudent",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -20509,38 +20509,39 @@
                                 ],
                                 "properties": {
                                     "sid": {
-                                        "type": "string",
-                                        "example": "123456"
+                                        "description": "Student ID",
+                                        "type": "integer",
+                                        "example": 1000
                                     },
                                     "schid": {
-                                        "type": "string",
-                                        "example": "SCH01"
+                                        "description": "School ID",
+                                        "type": "integer",
+                                        "example": 13
                                     },
                                     "sesn": {
-                                        "description": "Session (year)",
+                                        "description": "Academic session",
                                         "type": "string",
                                         "example": "2025"
                                     },
                                     "trm": {
-                                        "description": "Term",
-                                        "type": "string",
-                                        "example": "1"
+                                        "description": "Term number",
+                                        "type": "integer",
+                                        "example": 1
                                     },
                                     "clsm": {
-                                        "description": "New Class",
-                                        "type": "string",
-                                        "example": "2"
+                                        "description": "Main class ID",
+                                        "type": "integer",
+                                        "example": 12
                                     },
                                     "clsa": {
-                                        "description": "New Class Arm",
+                                        "description": "Class arm/section",
                                         "type": "string",
                                         "example": "1"
                                     },
-                                    "uid": {
-                                        "description": "Existing UID in old_student (optional)",
+                                    "suid": {
+                                        "description": "Student unique ID",
                                         "type": "string",
-                                        "example": "c57a43d8-62b4-4b5c-a8ff-9e3e4b2903e4",
-                                        "nullable": true
+                                        "example": "HRS/2025/1/68"
                                     }
                                 },
                                 "type": "object"
@@ -20561,11 +20562,7 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "Student promoted successfully."
-                                        },
-                                        "pld": {
-                                            "description": "Promoted student object",
-                                            "type": "object"
+                                            "example": "Student promoted successfully"
                                         }
                                     },
                                     "type": "object"
@@ -20573,19 +20570,18 @@
                             }
                         }
                     },
-                    "404": {
-                        "description": "Student not found",
+                    "422": {
+                        "description": "Validation error",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
                                         "message": {
                                             "type": "string",
-                                            "example": "Student not found."
+                                            "example": "The sid field is required."
+                                        },
+                                        "errors": {
+                                            "type": "object"
                                         }
                                     },
                                     "type": "object"
@@ -20722,7 +20718,8 @@
                 "tags": [
                     "Api"
                 ],
-                "summary": "Repeat a student in the same class for a new session and term",
+                "summary": "Mark a student to repeat the same class",
+                "description": "Creates a new record for a student to repeat their current class/arm in a new session/term. Previous records remain unchanged.",
                 "operationId": "repeatStudent",
                 "requestBody": {
                     "required": true,
@@ -20733,33 +20730,46 @@
                                     "sid",
                                     "schid",
                                     "sesn",
-                                    "trm"
+                                    "trm",
+                                    "clsm",
+                                    "clsa",
+                                    "suid"
                                 ],
                                 "properties": {
                                     "sid": {
                                         "description": "Student ID",
-                                        "type": "string",
-                                        "example": "ST12345"
+                                        "type": "integer",
+                                        "example": 1000
                                     },
                                     "schid": {
                                         "description": "School ID",
-                                        "type": "string",
-                                        "example": "SCH001"
+                                        "type": "integer",
+                                        "example": 13
                                     },
                                     "sesn": {
-                                        "description": "Academic session/year",
+                                        "description": "Academic session",
                                         "type": "string",
-                                        "example": "2024/2025"
+                                        "example": "2025"
                                     },
                                     "trm": {
-                                        "description": "Term",
+                                        "description": "Term number",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "clsm": {
+                                        "description": "Main class ID",
+                                        "type": "integer",
+                                        "example": 12
+                                    },
+                                    "clsa": {
+                                        "description": "Class arm/section",
                                         "type": "string",
                                         "example": "1"
                                     },
-                                    "uid": {
-                                        "description": "Optional unique identifier for the archive",
+                                    "suid": {
+                                        "description": "Student unique ID",
                                         "type": "string",
-                                        "example": "UID123456"
+                                        "example": "HRS/2025/1/68"
                                     }
                                 },
                                 "type": "object"
@@ -20769,7 +20779,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Student repeated successfully.",
+                        "description": "Student marked to repeat successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -20780,28 +20790,7 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "Student repeated successfully."
-                                        },
-                                        "pld": {
-                                            "properties": {
-                                                "sid": {
-                                                    "type": "string",
-                                                    "example": "ST12345"
-                                                },
-                                                "schid": {
-                                                    "type": "string",
-                                                    "example": "SCH001"
-                                                },
-                                                "year": {
-                                                    "type": "string",
-                                                    "example": "2024/2025"
-                                                },
-                                                "term": {
-                                                    "type": "string",
-                                                    "example": "1st Term"
-                                                }
-                                            },
-                                            "type": "object"
+                                            "example": "Student marked to repeat successfully"
                                         }
                                     },
                                     "type": "object"
@@ -20809,19 +20798,18 @@
                             }
                         }
                     },
-                    "404": {
-                        "description": "Student not found.",
+                    "422": {
+                        "description": "Validation error",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
                                         "message": {
                                             "type": "string",
-                                            "example": "Student not found."
+                                            "example": "The sid field is required."
+                                        },
+                                        "errors": {
+                                            "type": "object"
                                         }
                                     },
                                     "type": "object"

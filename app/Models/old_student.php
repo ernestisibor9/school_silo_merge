@@ -10,12 +10,12 @@ class old_student extends Model
     protected $primaryKey = 'uid';
     public $incrementing = false;
     protected $fillable = [
-        'uid','sid', 'schid', 'fname','mname','lname','suid','ssn','clsm', 'clsa', 'more'
+        'uid','sid', 'schid', 'fname','mname','lname','suid','ssn','trm','clsm', 'clsa', 'more'
     ];
     /*protected $hidden = [
         'password',
     ];*/
-    
+
     public function student()
     {
         return $this->belongsTo(student::class, 'sid', 'sid');
