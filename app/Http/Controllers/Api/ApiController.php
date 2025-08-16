@@ -15087,7 +15087,8 @@ class ApiController extends Controller
      *     summary="Get students by school ID and status",
      *     description="Fetch a paginated list of active students filtered by school, status, class, term, and year.",
      *     operationId="getStudentsBySchool",
-     *     tags={"Students"},
+     *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
      *
      *     @OA\Parameter(
      *         name="schid",
@@ -15393,7 +15394,7 @@ class ApiController extends Controller
      * @OA\Get(
      *     path="/api/getStudentsStatBySchool",
      *     operationId="getStudentsStatBySchool",
-     *     tags={"Admin"},
+     *     tags={"Api"},
      *     security={{"bearerAuth": {}}},
      *     summary="Get total students by school, status, class, session (year), and term",
      *     description="Returns total number of students filtered by school ID, student status, class (optional), session (year), and term",
