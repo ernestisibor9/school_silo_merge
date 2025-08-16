@@ -12013,7 +12013,7 @@
         "/api/getStudentsBySchool/{schid}/{stat}": {
             "get": {
                 "tags": [
-                    "Students"
+                    "Api"
                 ],
                 "summary": "Get students by school ID and status",
                 "description": "Fetch a paginated list of active students filtered by school, status, class, term, and year.",
@@ -12146,7 +12146,12 @@
                     "400": {
                         "description": "Invalid request"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/searchStudents": {
@@ -12293,7 +12298,7 @@
         "/api/getStudentsStatBySchool": {
             "get": {
                 "tags": [
-                    "Admin"
+                    "Api"
                 ],
                 "summary": "Get total students by school, status, class, session (year), and term",
                 "description": "Returns total number of students filtered by school ID, student status, class (optional), session (year), and term",
