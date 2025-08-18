@@ -2991,6 +2991,7 @@ class ApiController extends Controller
      *             @OA\Property(property="ntrd", type="string"),
      *             @OA\Property(property="sdob", type="string"),
      *             @OA\Property(property="spos", type="string"),
+     *             @OA\Property(property="subj_pos", type="string"),
      *             @OA\Property(property="num_of_days", type="string"),
      *         )
      *     ),
@@ -2998,38 +2999,37 @@ class ApiController extends Controller
      *     @OA\Response(response="400", description="Validation error"),
      * )
      */
-    public function setResultMeta(Request $request)
-    {
+    public function setResultMeta(Request $request){
         //Data validation
         $request->validate([
-            "uid" => "required",
-            "schid" => "required",
-            "ssn" => "required",
-            "trm" => "required",
-            "ntrd" => "required",
-            "sdob" => "required",
-            "spos" => "required",
+            "uid"=>"required",
+            "schid"=> "required",
+            "ssn"=> "required",
+            "trm"=> "required",
+            "ntrd"=> "required",
+            "sdob"=> "required",
+            "spos"=> "required",
+            "subj_pos" => "nullable",
             "num_of_days" => "nullable",
         ]);
 
         result_meta::updateOrCreate(
-            ["uid" => $request->uid,],
+            ["uid"=> $request->uid,],
             [
-                "schid" => $request->schid,
-                "ssn" => $request->ssn,
-                "trm" => $request->trm,
-                "ntrd" => $request->ntrd,
-                "sdob" => $request->sdob,
-                "spos" => $request->spos,
-                "num_of_days" => $request->num_of_days,
-            ]
-        );
+            "schid"=> $request->schid,
+            "ssn"=> $request->ssn,
+            "trm"=> $request->trm,
+            "ntrd"=> $request->ntrd,
+            "sdob"=> $request->sdob,
+            "spos"=> $request->spos,
+            "subj_pos" => $request->subj_pos ?? 'y',
+            "num_of_days" => $request->num_of_days,
+        ]);
         return response()->json([
-            "status" => true,
-            "message" => "Success",
+            "status"=> true,
+            "message"=> "Success",
         ]);
     }
-
 
 
 

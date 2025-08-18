@@ -2502,6 +2502,9 @@
                                     "spos": {
                                         "type": "string"
                                     },
+                                    "subj_pos": {
+                                        "type": "string"
+                                    },
                                     "num_of_days": {
                                         "type": "string"
                                     }
