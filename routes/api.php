@@ -267,7 +267,7 @@ Route::group([
     Route::get('deleteInternalExpenditure/{eid}', [ApiController::class, 'deleteInternalExpenditure']);
     Route::get('getInternalExpenditure/{eid}', [ApiController::class, 'getInternalExpenditure']);
     Route::get('getOldStudentInfo/{uid}', [ApiController::class, 'getOldStudentInfo']);
-    Route::get('getOldStudentsStat/{schid}/{ssn}/{clsm}/{clsa}', [ApiController::class, 'getOldStudentsStat']);
+    Route::get('getOldStudentsStat/{schid}/{ssn}/{trm}/{clsm}/{clsa}', [ApiController::class, 'getOldStudentsStat']);
     Route::get('getOldStudent/{schid}/{ssn}/{stid}', [ApiController::class,'getOldStudent']);
     Route::get('getOldStudents/{schid}/{ssn}/{trm}/{clsm}/{clsa}', [ApiController::class,'getOldStudents']);
     Route::get('getOldStaffInfo/{uid}', [ApiController::class, 'getOldStaffInfo']);

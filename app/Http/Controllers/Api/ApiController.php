@@ -5111,7 +5111,7 @@ class ApiController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/getOldStudentsStat/{schid}/{ssn}/{clsm}/{clsa}",
+     *     path="/api/getOldStudentsStat/{schid}/{ssn}/{trm}/{clsm}/{clsa}",
      *     tags={"Api"},
      *     security={{"bearerAuth": {}}},
      *     summary="Get an old student's stats",
@@ -5131,6 +5131,13 @@ class ApiController extends Controller
      *         @OA\Schema(type="string")
      *     ),
      *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Academic term",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Parameter(
      *         name="clsm",
      *         in="path",
      *         required=true,
@@ -5148,53 +5155,114 @@ class ApiController extends Controller
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    public function getOldStudentsStat($schid, $ssn, $clsm, $clsa)
-    {
-        $male = 0;
-        $female = 0;
-        if ($clsa == '-1') {
-            $male = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-                ->where('old_student.schid', $schid)
-                ->where('old_student.ssn', $ssn)
-                ->where('status', 'active')
-                ->where('old_student.clsm', $clsm)
-                ->where('student_basic_data.sex', 'M')
-                ->count();
-            $female = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-                ->where('old_student.schid', $schid)
-                ->where('old_student.ssn', $ssn)
-                ->where('status', 'active')
-                ->where('old_student.clsm', $clsm)
-                ->where('student_basic_data.sex', 'F')
-                ->count();
-        } else {
-            $male = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-                ->where('old_student.schid', $schid)
-                ->where('old_student.ssn', $ssn)
-                ->where('old_student.clsm', $clsm)
-                ->where('status', 'active')
-                ->where('old_student.clsa', $clsa)
-                ->where('student_basic_data.sex', 'M')
-                ->count();
-            $female = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-                ->where('old_student.schid', $schid)
-                ->where('old_student.ssn', $ssn)
-                ->where('old_student.clsm', $clsm)
-                ->where('status', 'active')
-                ->where('old_student.clsa', $clsa)
-                ->where('student_basic_data.sex', 'F')
-                ->count();
-        }
 
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => [
-                "male" => $male,
-                "female" => $female,
-            ]
-        ]);
+public function getOldStudentsStat($schid, $ssn, $clsm, $clsa, $trm)
+{
+    $male = 0;
+    $female = 0;
+
+    if ($clsa == '-1') {
+        $male = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
+            ->where('old_student.schid', $schid)
+            ->where('old_student.ssn', $ssn)
+            ->where('old_student.trm', $trm)   // ✅ Added term filter
+            ->where('status', 'active')
+            ->where('old_student.clsm', $clsm)
+            ->where('student_basic_data.sex', 'M')
+            ->count();
+
+        $female = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
+            ->where('old_student.schid', $schid)
+            ->where('old_student.ssn', $ssn)
+            ->where('old_student.trm', $trm)   // ✅ Added term filter
+            ->where('status', 'active')
+            ->where('old_student.clsm', $clsm)
+            ->where('student_basic_data.sex', 'F')
+            ->count();
+    } else {
+        $male = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
+            ->where('old_student.schid', $schid)
+            ->where('old_student.ssn', $ssn)
+            ->where('old_student.trm', $trm)   // ✅ Added term filter
+            ->where('old_student.clsm', $clsm)
+            ->where('status', 'active')
+            ->where('old_student.clsa', $clsa)
+            ->where('student_basic_data.sex', 'M')
+            ->count();
+
+        $female = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
+            ->where('old_student.schid', $schid)
+            ->where('old_student.ssn', $ssn)
+            ->where('old_student.trm', $trm)   // ✅ Added term filter
+            ->where('old_student.clsm', $clsm)
+            ->where('status', 'active')
+            ->where('old_student.clsa', $clsa)
+            ->where('student_basic_data.sex', 'F')
+            ->count();
     }
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => [
+            "male" => $male,
+            "female" => $female,
+        ]
+    ]);
+}
+
+
+
+    // public function getOldStudentsStat($schid, $ssn, $clsm, $clsa)
+    // {
+    //     $male = 0;
+    //     $female = 0;
+    //     if ($clsa == '-1') {
+    //         $male = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
+    //             ->where('old_student.schid', $schid)
+    //             ->where('old_student.ssn', $ssn)
+    //             ->where('status', 'active')
+    //             ->where('old_student.clsm', $clsm)
+    //             ->where('student_basic_data.sex', 'M')
+    //             ->count();
+    //         $female = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
+    //             ->where('old_student.schid', $schid)
+    //             ->where('old_student.ssn', $ssn)
+    //             ->where('status', 'active')
+    //             ->where('old_student.clsm', $clsm)
+    //             ->where('student_basic_data.sex', 'F')
+    //             ->count();
+    //     } else {
+    //         $male = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
+    //             ->where('old_student.schid', $schid)
+    //             ->where('old_student.ssn', $ssn)
+    //             ->where('old_student.clsm', $clsm)
+    //             ->where('status', 'active')
+    //             ->where('old_student.clsa', $clsa)
+    //             ->where('student_basic_data.sex', 'M')
+    //             ->count();
+    //         $female = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
+    //             ->where('old_student.schid', $schid)
+    //             ->where('old_student.ssn', $ssn)
+    //             ->where('old_student.clsm', $clsm)
+    //             ->where('status', 'active')
+    //             ->where('old_student.clsa', $clsa)
+    //             ->where('student_basic_data.sex', 'F')
+    //             ->count();
+    //     }
+
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => [
+    //             "male" => $male,
+    //             "female" => $female,
+    //         ]
+    //     ]);
+    // }
+
+
+
 
     /**
      * @OA\Get(
