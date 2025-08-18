@@ -15166,7 +15166,7 @@ class ApiController extends Controller
      *     )
      * )
      */
-    public function getStudentsBySchool(Request $request, $schid, $stat)
+    public function getStudentsBySchool(Request $request, $schid, $stat, $cls = 'zzz')
     {
         $start = $request->query('start', 0);
         $count = $request->query('count', 20);
@@ -15174,24 +15174,22 @@ class ApiController extends Controller
         $term  = $request->query('term', null);
         $year  = $request->query('year', null);
 
-        $query = Student::join(
-            'student_academic_data',
-            'student.sid',
-            '=',
-            'student_academic_data.user_id'
-        )
-            ->where('student.schid', $schid)
-            ->where('student.stat', $stat)
-            ->where('student.status', 'active');
-
         if ($cls !== 'zzz') {
-            $query->where('student_academic_data.new_class_main', $cls);
+            $query = Student::join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
+                ->where('student.schid', $schid)
+                ->where('student.stat', $stat)
+                ->where('student_academic_data.new_class_main', $cls);
+        } else {
+            $query = Student::where('schid', $schid)
+                ->where('stat', $stat);
         }
 
+        // Apply term filter if provided
         if (!empty($term)) {
             $query->where('student.term', $term);
         }
 
+        // Apply year filter if provided
         if (!empty($year)) {
             $query->where('student.year', $year);
         }
@@ -15201,10 +15199,24 @@ class ApiController extends Controller
             ->take($count)
             ->get();
 
+        $pld = [];
+        foreach ($members as $member) {
+            $user_id = $member->sid;
+
+            $academicData = student_academic_data::where('user_id', $user_id)->first();
+            $basicData    = student_basic_data::where('user_id', $user_id)->first();
+
+            $pld[] = [
+                's' => $member,
+                'b' => $basicData,
+                'a' => $academicData,
+            ];
+        }
+
         return response()->json([
-            'status'  => true,
-            'message' => 'Success',
-            'pld'     => $members
+            "status"  => true,
+            "message" => "Success",
+            "pld"     => $pld,
         ]);
     }
 
