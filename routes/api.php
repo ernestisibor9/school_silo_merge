@@ -67,7 +67,7 @@ Route::get('getClassSubject/{schid}/{clsid}/{sbid}', [ApiController::class, 'get
 Route::get('getStudentResultsByArm/{schid}/{clsid}/{ssn}/{trm}/{arm}', [ApiController::class, 'getStudentResultsByArm']);
 Route::get('getResultMeta/{schid}/{ssn}/{trm}', [ApiController::class, 'getResultMeta']);
 Route::get('getClassSubjectsByStaff/{schid}/{clsid}/{stid}', [ApiController::class, 'getClassSubjectsByStaff']);
-Route::get('getClassSubjects/{schid}/{clsid}', [ApiController::class, 'getClassSubjects']);
+Route::get('getClassSubjects/{schid}/{clsid}/{sesn}/{trm}', [ApiController::class, 'getClassSubjects']);
 Route::get('getASchoolClassArm/{cid}', [ApiController::class, 'getASchoolClassArm']);
 Route::get('getStudentSubjPos/{schid}/{ssn}/{trm}/{clsm}/{clsa}/{stid}', [ApiController::class, 'getStudentSubjPos']);
 

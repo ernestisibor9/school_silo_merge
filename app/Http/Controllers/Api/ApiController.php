@@ -2999,35 +2999,37 @@ class ApiController extends Controller
      *     @OA\Response(response="400", description="Validation error"),
      * )
      */
-    public function setResultMeta(Request $request){
+    public function setResultMeta(Request $request)
+    {
         //Data validation
         $request->validate([
-            "uid"=>"required",
-            "schid"=> "required",
-            "ssn"=> "required",
-            "trm"=> "required",
-            "ntrd"=> "required",
-            "sdob"=> "required",
-            "spos"=> "required",
+            "uid" => "required",
+            "schid" => "required",
+            "ssn" => "required",
+            "trm" => "required",
+            "ntrd" => "required",
+            "sdob" => "required",
+            "spos" => "required",
             "subj_pos" => "nullable",
             "num_of_days" => "nullable",
         ]);
 
         result_meta::updateOrCreate(
-            ["uid"=> $request->uid,],
+            ["uid" => $request->uid,],
             [
-            "schid"=> $request->schid,
-            "ssn"=> $request->ssn,
-            "trm"=> $request->trm,
-            "ntrd"=> $request->ntrd,
-            "sdob"=> $request->sdob,
-            "spos"=> $request->spos,
-            "subj_pos" => $request->subj_pos ?? 'y',
-            "num_of_days" => $request->num_of_days,
-        ]);
+                "schid" => $request->schid,
+                "ssn" => $request->ssn,
+                "trm" => $request->trm,
+                "ntrd" => $request->ntrd,
+                "sdob" => $request->sdob,
+                "spos" => $request->spos,
+                "subj_pos" => $request->subj_pos ?? 'y',
+                "num_of_days" => $request->num_of_days,
+            ]
+        );
         return response()->json([
-            "status"=> true,
-            "message"=> "Success",
+            "status" => true,
+            "message" => "Success",
         ]);
     }
 
@@ -3149,6 +3151,20 @@ class ApiController extends Controller
      *         description="Class Id",
      *         @OA\Schema(type="string")
      *     ),
+     *       @OA\Parameter(
+     *         name="sesn",
+     *         in="path",
+     *         description="Academic session",
+     *         required=true,
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         description="Academic term",
+     *         required=true,
+     *         @OA\Schema(type="string")
+     *     ),
      *      @OA\Parameter(
      *         name="start",
      *         in="query",
@@ -3167,7 +3183,7 @@ class ApiController extends Controller
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    public function getClassSubjects($schid, $clsid)
+    public function getClassSubjects($schid, $clsid, $sesn, $trm)
     {
         $start = 0;
         $count = 20;
@@ -3175,7 +3191,7 @@ class ApiController extends Controller
             $start = request()->input('start');
             $count = request()->input('count');
         }
-        $pld = class_subj::where("schid", $schid)->where("clsid", $clsid)->skip($start)->take($count)->get();
+        $pld = class_subj::where("schid", $schid)->where("clsid", $clsid)->where("sesn", $sesn)->where("trm", $trm)->skip($start)->take($count)->get();
         return response()->json([
             "status" => true,
             "message" => "Success",
@@ -5156,60 +5172,60 @@ class ApiController extends Controller
      * )
      */
 
-public function getOldStudentsStat($schid, $ssn, $clsm, $clsa, $trm)
-{
-    $male = 0;
-    $female = 0;
+    public function getOldStudentsStat($schid, $ssn, $clsm, $clsa, $trm)
+    {
+        $male = 0;
+        $female = 0;
 
-    if ($clsa == '-1') {
-        $male = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-            ->where('old_student.schid', $schid)
-            ->where('old_student.ssn', $ssn)
-            ->where('old_student.trm', $trm)   // ✅ Added term filter
-            ->where('status', 'active')
-            ->where('old_student.clsm', $clsm)
-            ->where('student_basic_data.sex', 'M')
-            ->count();
+        if ($clsa == '-1') {
+            $male = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
+                ->where('old_student.schid', $schid)
+                ->where('old_student.ssn', $ssn)
+                ->where('old_student.trm', $trm)   // ✅ Added term filter
+                ->where('status', 'active')
+                ->where('old_student.clsm', $clsm)
+                ->where('student_basic_data.sex', 'M')
+                ->count();
 
-        $female = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-            ->where('old_student.schid', $schid)
-            ->where('old_student.ssn', $ssn)
-            ->where('old_student.trm', $trm)   // ✅ Added term filter
-            ->where('status', 'active')
-            ->where('old_student.clsm', $clsm)
-            ->where('student_basic_data.sex', 'F')
-            ->count();
-    } else {
-        $male = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-            ->where('old_student.schid', $schid)
-            ->where('old_student.ssn', $ssn)
-            ->where('old_student.trm', $trm)   // ✅ Added term filter
-            ->where('old_student.clsm', $clsm)
-            ->where('status', 'active')
-            ->where('old_student.clsa', $clsa)
-            ->where('student_basic_data.sex', 'M')
-            ->count();
+            $female = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
+                ->where('old_student.schid', $schid)
+                ->where('old_student.ssn', $ssn)
+                ->where('old_student.trm', $trm)   // ✅ Added term filter
+                ->where('status', 'active')
+                ->where('old_student.clsm', $clsm)
+                ->where('student_basic_data.sex', 'F')
+                ->count();
+        } else {
+            $male = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
+                ->where('old_student.schid', $schid)
+                ->where('old_student.ssn', $ssn)
+                ->where('old_student.trm', $trm)   // ✅ Added term filter
+                ->where('old_student.clsm', $clsm)
+                ->where('status', 'active')
+                ->where('old_student.clsa', $clsa)
+                ->where('student_basic_data.sex', 'M')
+                ->count();
 
-        $female = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-            ->where('old_student.schid', $schid)
-            ->where('old_student.ssn', $ssn)
-            ->where('old_student.trm', $trm)   // ✅ Added term filter
-            ->where('old_student.clsm', $clsm)
-            ->where('status', 'active')
-            ->where('old_student.clsa', $clsa)
-            ->where('student_basic_data.sex', 'F')
-            ->count();
+            $female = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
+                ->where('old_student.schid', $schid)
+                ->where('old_student.ssn', $ssn)
+                ->where('old_student.trm', $trm)   // ✅ Added term filter
+                ->where('old_student.clsm', $clsm)
+                ->where('status', 'active')
+                ->where('old_student.clsa', $clsa)
+                ->where('student_basic_data.sex', 'F')
+                ->count();
+        }
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => [
+                "male" => $male,
+                "female" => $female,
+            ]
+        ]);
     }
-
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => [
-            "male" => $male,
-            "female" => $female,
-        ]
-    ]);
-}
 
 
 
@@ -24776,6 +24792,48 @@ public function getOldStudentsStat($schid, $ssn, $clsm, $clsa, $trm)
      *     )
      * )
      */
+    // public function promoteStudent(Request $request)
+    // {
+    //     $request->validate([
+    //         'sid'   => 'required',
+    //         'schid' => 'required',
+    //         'sesn'  => 'required',
+    //         'trm'   => 'required',
+    //         'clsm'  => 'required', // main class
+    //         'clsa'  => 'required', // class arm
+    //         'suid'  => 'required',
+    //     ]);
+
+    //     // Find the student
+    //     $student = student::where('sid', $request->sid)->firstOrFail();
+
+    //     // Generate a unique promotion ID (could be session+term+student ID)
+    //     $uid = $request->sesn . $request->trm . $request->sid;
+
+    //     // Always create a new row in old_student (no update)
+    //     old_student::create([
+    //         'uid'    => $uid,
+    //         'sid'    => $request->sid,
+    //         'schid'  => $request->schid,
+    //         'fname'  => $student->fname,
+    //         'mname'  => $student->mname,
+    //         'lname'  => $student->lname,
+    //         'status' => 'active',
+    //         'suid'   => $request->suid,
+    //         'ssn'    => $request->sesn,
+    //         'trm'    => $request->trm,
+    //         'clsm'   => $request->clsm, // main class
+    //         'clsa'   => $request->clsa, // arm
+    //         'more'   => '',
+    //     ]);
+
+    //     return response()->json([
+    //         'status'  => true,
+    //         'message' => 'Student promoted successfully',
+    //     ]);
+    // }
+
+
     public function promoteStudent(Request $request)
     {
         $request->validate([
@@ -24791,10 +24849,23 @@ public function getOldStudentsStat($schid, $ssn, $clsm, $clsa, $trm)
         // Find the student
         $student = student::where('sid', $request->sid)->firstOrFail();
 
-        // Generate a unique promotion ID (could be session+term+student ID)
+        // Check if student has already been promoted for this session and term
+        $existingPromotion = old_student::where('sid', $request->sid)
+            ->where('ssn', $request->sesn)
+            ->where('trm', $request->trm)
+            ->first();
+
+        if ($existingPromotion) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Student has already been promoted for this session and term',
+            ], 409); // 409 Conflict
+        }
+
+        // Generate a unique promotion ID
         $uid = $request->sesn . $request->trm . $request->sid;
 
-        // Always create a new row in old_student (no update)
+        // Create a new promotion record
         old_student::create([
             'uid'    => $uid,
             'sid'    => $request->sid,
@@ -24816,6 +24887,7 @@ public function getOldStudentsStat($schid, $ssn, $clsm, $clsa, $trm)
             'message' => 'Student promoted successfully',
         ]);
     }
+
 
 
 
@@ -25028,6 +25100,47 @@ public function getOldStudentsStat($schid, $ssn, $clsm, $clsa, $trm)
      * )
      */
 
+    // public function repeatStudent(Request $request)
+    // {
+    //     $request->validate([
+    //         'sid'   => 'required',
+    //         'schid' => 'required',
+    //         'sesn'  => 'required',
+    //         'trm'   => 'required',
+    //         'clsm'  => 'required', // main class
+    //         'clsa'  => 'required', // class arm
+    //         'suid'  => 'required|string'
+    //     ]);
+
+    //     // Find the student
+    //     $student = student::where('sid', $request->sid)->firstOrFail();
+
+    //     // Generate a unique ID for the repeat record
+    //     $uid = $request->sesn . $request->trm . $request->sid;
+
+    //     // Create a new old_student record for repeating
+    //     old_student::create([
+    //         'uid'    => $uid,
+    //         'sid'    => $request->sid,
+    //         'schid'  => $request->schid,
+    //         'fname'  => $student->fname,
+    //         'mname'  => $student->mname,
+    //         'lname'  => $student->lname,
+    //         'status' => 'active',
+    //         'suid'   => $request->suid,
+    //         'ssn'    => $request->sesn,
+    //         'trm'    => $request->trm,
+    //         'clsm'   => $request->clsm, // same class
+    //         'clsa'   => $request->clsa, // same arm
+    //         'more'   => '',       // mark as repeat
+    //     ]);
+
+    //     return response()->json([
+    //         'status'  => true,
+    //         'message' => 'Student marked to repeat successfully',
+    //     ]);
+    // }
+
     public function repeatStudent(Request $request)
     {
         $request->validate([
@@ -25042,6 +25155,21 @@ public function getOldStudentsStat($schid, $ssn, $clsm, $clsa, $trm)
 
         // Find the student
         $student = student::where('sid', $request->sid)->firstOrFail();
+
+        // Check if student is already marked to repeat for the same session, term, and class/arm
+        $existingRepeat = old_student::where('sid', $request->sid)
+            ->where('ssn', $request->sesn)
+            ->where('trm', $request->trm)
+            ->where('clsm', $request->clsm)
+            ->where('clsa', $request->clsa)
+            ->first();
+
+        if ($existingRepeat) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Student is already marked to repeat for this session and term',
+            ], 409); // 409 Conflict
+        }
 
         // Generate a unique ID for the repeat record
         $uid = $request->sesn . $request->trm . $request->sid;
@@ -25058,9 +25186,9 @@ public function getOldStudentsStat($schid, $ssn, $clsm, $clsa, $trm)
             'suid'   => $request->suid,
             'ssn'    => $request->sesn,
             'trm'    => $request->trm,
-            'clsm'   => $request->clsm, // same class
-            'clsa'   => $request->clsa, // same arm
-            'more'   => '',       // mark as repeat
+            'clsm'   => $request->clsm,
+            'clsa'   => $request->clsa,
+            'more'   => '', // mark as repeat
         ]);
 
         return response()->json([
