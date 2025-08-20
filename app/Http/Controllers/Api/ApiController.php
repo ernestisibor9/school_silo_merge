@@ -2645,18 +2645,18 @@ class ApiController extends Controller
     /**
      * @OA\Post(
      *     path="/api/setStudentSubject",
-     *     summary="Assign subjects to a student",
-     *     description="This endpoint assigns one or multiple subjects to a single student. If a student-subject combination already exists, it will be skipped.",
+     *     summary="Assign a subject to a student",
+     *     description="This endpoint assigns a single subject to a single student. If the student-subject combination already exists, it will be skipped.",
      *     tags={"Api"},
      *     security={{"bearerAuth": {}}},
-
+     *
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
      *             required={"uid","stid","sbj","comp","schid"},
      *             @OA\Property(property="uid", type="integer", example=1, description="User ID of the admin/teacher assigning the subject"),
      *             @OA\Property(property="stid", type="integer", example=101, description="Single student ID"),
-     *             @OA\Property(property="sbj", type="array", @OA\Items(type="integer"), example={201,202}, description="One or multiple subject IDs"),
+     *             @OA\Property(property="sbj", type="integer", example=201, description="Single subject ID"),
      *             @OA\Property(property="comp", type="string", example="1", description="Compulsory or elective flag"),
      *             @OA\Property(property="schid", type="integer", example=12, description="School ID"),
      *             @OA\Property(property="clsid", type="integer", nullable=true, example=11, description="Class ID (optional)"),
@@ -2664,10 +2664,10 @@ class ApiController extends Controller
      *             @OA\Property(property="ssn", type="string", nullable=true, example="2025", description="Session (optional)")
      *         )
      *     ),
-
+     *
      *     @OA\Response(
      *         response=200,
-     *         description="Subjects assigned successfully",
+     *         description="Subject assigned successfully",
      *         @OA\JsonContent(
      *             @OA\Property(property="status", type="boolean", example=true),
      *             @OA\Property(property="message", type="string", example="Subjects assignment completed."),
@@ -2689,7 +2689,7 @@ class ApiController extends Controller
      *             )
      *         )
      *     ),
-
+     *
      *     @OA\Response(
      *         response=422,
      *         description="Validation error",
@@ -2700,6 +2700,7 @@ class ApiController extends Controller
      *     )
      * )
      */
+
 
 
 

@@ -2267,8 +2267,8 @@
                 "tags": [
                     "Api"
                 ],
-                "summary": "Assign subjects to a student",
-                "description": "This endpoint assigns one or multiple subjects to a single student. If a student-subject combination already exists, it will be skipped.",
+                "summary": "Assign a subject to a student",
+                "description": "This endpoint assigns a single subject to a single student. If the student-subject combination already exists, it will be skipped.",
                 "operationId": "0bc77c112562020549fbf075fbe1851f",
                 "requestBody": {
                     "required": true,
@@ -2294,15 +2294,9 @@
                                         "example": 101
                                     },
                                     "sbj": {
-                                        "description": "One or multiple subject IDs",
-                                        "type": "array",
-                                        "items": {
-                                            "type": "integer"
-                                        },
-                                        "example": [
-                                            201,
-                                            202
-                                        ]
+                                        "description": "Single subject ID",
+                                        "type": "integer",
+                                        "example": 201
                                     },
                                     "comp": {
                                         "description": "Compulsory or elective flag",
@@ -2340,7 +2334,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Subjects assigned successfully",
+                        "description": "Subject assigned successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
