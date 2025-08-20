@@ -7958,9 +7958,9 @@ class ApiController extends Controller
     {
         $ostd = [];
         if ($clsa == '-1') {
-            $ostd = old_student::where("schid", $schid)->where("ssn", $ssn)->where("clsm", $clsm)->get();
+            $ostd = old_student::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where("clsm", $clsm)->get();
         } else {
-            $ostd = old_student::where("schid", $schid)->where("ssn", $ssn)->where("clsm", $clsm)->where("clsa", $clsa)->get();
+            $ostd = old_student::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where("clsm", $clsm)->where("clsa", $clsa)->get();
         }
         $stdPld = [];
         $relevantSubjects = [];
