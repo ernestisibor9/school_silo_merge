@@ -3073,6 +3073,8 @@ class ApiController extends Controller
      *             @OA\Property(property="name", type="string"),
      *             @OA\Property(property="comp", type="string"),
      *             @OA\Property(property="clsid", type="string"),
+     *             @OA\Property(property="sesn", type="string"),
+     *             @OA\Property(property="trm", type="string"),
      *         )
      *     ),
      *     @OA\Response(response="200", description="class data set successfully"),
@@ -3089,6 +3091,8 @@ class ApiController extends Controller
             "name" => "required",
             "comp" => "required",
             "clsid" => "required",
+            "sesn" => "required",
+            "trm" => "required",
         ]);
         class_subj::updateOrCreate(
             ["uid" => $request->uid,],
@@ -3098,6 +3102,8 @@ class ApiController extends Controller
                 "name" => $request->name,
                 "comp" => $request->comp,
                 "clsid" => $request->clsid,
+                "sesn" => $request->sesn,
+                "trm" => $request->trm,
             ]
         );
         return response()->json([
