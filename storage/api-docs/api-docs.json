@@ -2267,31 +2267,70 @@
                 "tags": [
                     "Api"
                 ],
-                "summary": "Set student compulsory and elective subjects",
+                "summary": "Assign subjects to a student",
+                "description": "This endpoint assigns one or multiple subjects to a single student. If a student-subject combination already exists, it will be skipped.",
                 "operationId": "0bc77c112562020549fbf075fbe1851f",
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
+                                "required": [
+                                    "uid",
+                                    "stid",
+                                    "sbj",
+                                    "comp",
+                                    "schid"
+                                ],
                                 "properties": {
                                     "uid": {
-                                        "type": "string"
+                                        "description": "User ID of the admin/teacher assigning the subject",
+                                        "type": "integer",
+                                        "example": 1
                                     },
                                     "stid": {
-                                        "type": "string"
+                                        "description": "Single student ID",
+                                        "type": "integer",
+                                        "example": 101
                                     },
                                     "sbj": {
-                                        "type": "string"
+                                        "description": "One or multiple subject IDs",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        },
+                                        "example": [
+                                            201,
+                                            202
+                                        ]
                                     },
                                     "comp": {
-                                        "type": "string"
+                                        "description": "Compulsory or elective flag",
+                                        "type": "string",
+                                        "example": "1"
                                     },
                                     "schid": {
-                                        "type": "string"
+                                        "description": "School ID",
+                                        "type": "integer",
+                                        "example": 12
                                     },
-                                    "term": {
-                                        "type": "string"
+                                    "clsid": {
+                                        "description": "Class ID (optional)",
+                                        "type": "integer",
+                                        "example": 11,
+                                        "nullable": true
+                                    },
+                                    "trm": {
+                                        "description": "Term (optional)",
+                                        "type": "string",
+                                        "example": "2",
+                                        "nullable": true
+                                    },
+                                    "ssn": {
+                                        "description": "Session (optional)",
+                                        "type": "string",
+                                        "example": "2025",
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -2301,10 +2340,75 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Student data set successfully"
+                        "description": "Subjects assigned successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Subjects assignment completed."
+                                        },
+                                        "assigned": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "stid": {
+                                                        "type": "integer",
+                                                        "example": 101
+                                                    },
+                                                    "sbj": {
+                                                        "type": "integer",
+                                                        "example": 201
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "skipped": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "stid": {
+                                                        "type": "integer",
+                                                        "example": 101
+                                                    },
+                                                    "sbj": {
+                                                        "type": "integer",
+                                                        "example": 202
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
-                    "400": {
-                        "description": "Validation error"
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [

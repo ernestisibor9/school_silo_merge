@@ -2645,87 +2645,63 @@ class ApiController extends Controller
     /**
      * @OA\Post(
      *     path="/api/setStudentSubject",
+     *     summary="Assign subjects to a student",
+     *     description="This endpoint assigns one or multiple subjects to a single student. If a student-subject combination already exists, it will be skipped.",
      *     tags={"Api"},
      *     security={{"bearerAuth": {}}},
-     *     summary="Set student compulsory and elective subjects",
+
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="uid", type="string"),
-     *             @OA\Property(property="stid", type="string"),
-     *             @OA\Property(property="sbj", type="string"),
-     *             @OA\Property(property="comp", type="string"),
-     *             @OA\Property(property="schid", type="string"),
-     *             @OA\Property(property="term", type="string"),
+     *             required={"uid","stid","sbj","comp","schid"},
+     *             @OA\Property(property="uid", type="integer", example=1, description="User ID of the admin/teacher assigning the subject"),
+     *             @OA\Property(property="stid", type="integer", example=101, description="Single student ID"),
+     *             @OA\Property(property="sbj", type="array", @OA\Items(type="integer"), example={201,202}, description="One or multiple subject IDs"),
+     *             @OA\Property(property="comp", type="string", example="1", description="Compulsory or elective flag"),
+     *             @OA\Property(property="schid", type="integer", example=12, description="School ID"),
+     *             @OA\Property(property="clsid", type="integer", nullable=true, example=11, description="Class ID (optional)"),
+     *             @OA\Property(property="trm", type="string", nullable=true, example="2", description="Term (optional)"),
+     *             @OA\Property(property="ssn", type="string", nullable=true, example="2025", description="Session (optional)")
      *         )
      *     ),
-     *     @OA\Response(response="200", description="Student data set successfully"),
-     *     @OA\Response(response="400", description="Validation error"),
+
+     *     @OA\Response(
+     *         response=200,
+     *         description="Subjects assigned successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Subjects assignment completed."),
+     *             @OA\Property(
+     *                 property="assigned",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="stid", type="integer", example=101),
+     *                     @OA\Property(property="sbj", type="integer", example=201)
+     *                 )
+     *             ),
+     *             @OA\Property(
+     *                 property="skipped",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="stid", type="integer", example=101),
+     *                     @OA\Property(property="sbj", type="integer", example=202)
+     *                 )
+     *             )
+     *         )
+     *     ),
+
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     )
      * )
      */
-    // public function setStudentSubject(Request $request){
-    //     //Data validation
-    //     $request->validate([
-    //         "uid"=>"required",
-    //         "stid"=> "required",
-    //         "sbj"=> "required",
-    //         "comp"=> "required",
-    //         "schid"=> "required",
-    //     ]);
-    //     student_subj::updateOrCreate(
-    //         ["uid"=> $request->uid,],
-    //         [
-    //         "stid"=> $request->stid,
-    //         "sbj"=> $request->sbj,
-    //         "comp"=> $request->comp,
-    //         "schid"=> $request->schid,
-    //     ]);
-    //     return response()->json([
-    //         "status"=> true,
-    //         "message"=> "Success",
-    //     ]);
-    // }
 
-    // public function setStudentSubject(Request $request){
-    //     // Data validation
-    //     $request->validate([
-    //         "uid"   => "required",
-    //         "stid"  => "required",
-    //         "sbj"   => "required",
-    //         "comp"  => "required",
-    //         "schid" => "required",
-    //         "clsid" => "nullable",
-    //         "trm" => "nullable",
-    //         "ssn" => "nullable"
-    //     ]);
-    //     $count = student_subj::where('stid',$request->stid)
-    //                     ->where('sbj',$request->sbj)
-    //                     ->where('schid', $request->schid)
-    //                     ->count(); // need to map term session and clsid if once pass from request
-    //     if($count>0){
-    //         return response()->json([
-    //             "status"  => false,
-    //             "message" => "Subject already exist",
-    //         ]);
-    //     }
 
-    //     student_subj::create([
-    //         "uid"   => $request->uid,
-    //         "stid"  => $request->stid,
-    //         "sbj"   => $request->sbj,
-    //         "comp"  => $request->comp,
-    //         "schid" => $request->schid,
-    //         "clsid" => $request->clsid,
-    //         "trm" => $request->trm,
-    //         "ssn" => $request->ssn
-    //     ]);
-
-    //     return response()->json([
-    //         "status"  => true,
-    //         "message" => "Inserted Successfully",
-    //     ]);
-    // }
 
     //////////////////////////////////////
     public function setStudentSubject(Request $request)
@@ -5165,49 +5141,50 @@ class ApiController extends Controller
      * )
      */
 
-    public function getOldStudentsStat($schid, $ssn, $clsm, $clsa){
+    public function getOldStudentsStat($schid, $ssn, $clsm, $clsa)
+    {
         $male = 0;
         $female = 0;
-        if($clsa=='-1'){
+        if ($clsa == '-1') {
             $male = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-            ->where('old_student.schid', $schid)
-            ->where('old_student.ssn', $ssn)
-            ->where('status', 'active')
-            ->where('old_student.clsm', $clsm)
-            ->where('student_basic_data.sex', 'M')
-            ->count();
+                ->where('old_student.schid', $schid)
+                ->where('old_student.ssn', $ssn)
+                ->where('status', 'active')
+                ->where('old_student.clsm', $clsm)
+                ->where('student_basic_data.sex', 'M')
+                ->count();
             $female = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-            ->where('old_student.schid', $schid)
-            ->where('old_student.ssn', $ssn)
-            ->where('status', 'active')
-            ->where('old_student.clsm', $clsm)
-            ->where('student_basic_data.sex', 'F')
-            ->count();
-        }else{
+                ->where('old_student.schid', $schid)
+                ->where('old_student.ssn', $ssn)
+                ->where('status', 'active')
+                ->where('old_student.clsm', $clsm)
+                ->where('student_basic_data.sex', 'F')
+                ->count();
+        } else {
             $male = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-            ->where('old_student.schid', $schid)
-            ->where('old_student.ssn', $ssn)
-            ->where('old_student.clsm', $clsm)
-            ->where('status', 'active')
-            ->where('old_student.clsa', $clsa)
-            ->where('student_basic_data.sex', 'M')
-            ->count();
+                ->where('old_student.schid', $schid)
+                ->where('old_student.ssn', $ssn)
+                ->where('old_student.clsm', $clsm)
+                ->where('status', 'active')
+                ->where('old_student.clsa', $clsa)
+                ->where('student_basic_data.sex', 'M')
+                ->count();
             $female = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-            ->where('old_student.schid', $schid)
-            ->where('old_student.ssn', $ssn)
-            ->where('old_student.clsm', $clsm)
-            ->where('status', 'active')
-            ->where('old_student.clsa', $clsa)
-            ->where('student_basic_data.sex', 'F')
-            ->count();
+                ->where('old_student.schid', $schid)
+                ->where('old_student.ssn', $ssn)
+                ->where('old_student.clsm', $clsm)
+                ->where('status', 'active')
+                ->where('old_student.clsa', $clsa)
+                ->where('student_basic_data.sex', 'F')
+                ->count();
         }
 
         return response()->json([
-            "status"=> true,
-            "message"=> "Success",
-            "pld"=> [
-                "male"=>$male,
-                "female"=>$female,
+            "status" => true,
+            "message" => "Success",
+            "pld" => [
+                "male" => $male,
+                "female" => $female,
             ]
         ]);
     }
