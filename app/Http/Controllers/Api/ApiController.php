@@ -3109,7 +3109,7 @@ class ApiController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/getClassSubjects/{schid}/{clsid}",
+     *     path="/api/getClassSubjects/{schid}/{clsid}/{sesn}/{trm}",
      *     tags={"Api"},
      *     security={{"bearerAuth": {}}},
      *     summary="Get a class's subjects",

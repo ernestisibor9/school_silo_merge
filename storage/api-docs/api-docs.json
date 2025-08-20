@@ -2736,14 +2736,14 @@
                 ]
             }
         },
-        "/api/getClassSubjects/{schid}/{clsid}": {
+        "/api/getClassSubjects/{schid}/{clsid}/{sesn}/{trm}": {
             "get": {
                 "tags": [
                     "Api"
                 ],
                 "summary": "Get a class's subjects",
                 "description": "Use this endpoint to get subjects of a class.",
-                "operationId": "2f4e274f73d606bd61479e503a8d4c2f",
+                "operationId": "7b27e733a096ccad0a1d26e69c70165b",
                 "parameters": [
                     {
                         "name": "schid",
