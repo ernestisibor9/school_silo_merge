@@ -2714,6 +2714,12 @@
                                     },
                                     "clsid": {
                                         "type": "string"
+                                    },
+                                    "sesn": {
+                                        "type": "string"
+                                    },
+                                    "trm": {
+                                        "type": "string"
                                     }
                                 },
                                 "type": "object"
