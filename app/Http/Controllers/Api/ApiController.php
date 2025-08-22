@@ -7967,77 +7967,158 @@ public function getOldStudentsAndSubject($schid, $ssn, $trm, $clsm, $clsa, $stf)
     //     ]);
     // }
 
-    public function getOldStudentsAndSubjectWithoutScore($schid, $ssn, $trm, $clsm, $clsa, $stf)
-    {
-        // Get old students
-        if ($clsa == '-1') {
-            $ostd = old_student::where("schid", $schid)
-                ->where("ssn", $ssn)
-                ->where("trm", $trm)
-                ->where("clsm", $clsm)
-                ->get();
-        } else {
-            $ostd = old_student::where("schid", $schid)
-                ->where("ssn", $ssn)
-                ->where("trm", $trm)
-                ->where("clsm", $clsm)
-                ->where("clsa", $clsa)
-                ->get();
-        }
+    // public function getOldStudentsAndSubjectWithoutScore($schid, $ssn, $trm, $clsm, $clsa, $stf)
+    // {
+    //     // Get old students
+    //     if ($clsa == '-1') {
+    //         $ostd = old_student::where("schid", $schid)
+    //             ->where("ssn", $ssn)
+    //             ->where("trm", $trm)
+    //             ->where("clsm", $clsm)
+    //             ->get();
+    //     } else {
+    //         $ostd = old_student::where("schid", $schid)
+    //             ->where("ssn", $ssn)
+    //             ->where("trm", $trm)
+    //             ->where("clsm", $clsm)
+    //             ->where("clsa", $clsa)
+    //             ->get();
+    //     }
 
-        $stdPld = [];
+    //     $stdPld = [];
 
-        // Get all subjects for this class (for cls-sbj)
-        $clsSbj = class_subj::where("schid", $schid)
-            ->where("clsid", $clsm)
-            ->where("sesn", $ssn)
+    //     // Get all subjects for this class (for cls-sbj)
+    //     $clsSbj = class_subj::where("schid", $schid)
+    //         ->where("clsid", $clsm)
+    //         ->where("sesn", $ssn)
+    //         ->where("trm", $trm)
+    //         ->get();
+
+    //     foreach ($ostd as $std) {
+    //         $user_id = $std->sid;
+    //         $mySbjs = [];
+
+    //         // Get all scores for student
+    //         $allScores = std_score::where('stid', $user_id)
+    //             ->where("schid", $schid)
+    //             ->where("ssn", $ssn)
+    //             ->where("trm", $trm)
+    //             ->where("clsid", $clsm)
+    //             ->pluck('sbj');
+
+    //         if ($allScores->isNotEmpty()) {
+    //             // If student already has scores, use those subjects
+    //             $mySbjs = $allScores->toArray();
+    //         } else {
+    //             // Otherwise, use subjects assigned in student_subj
+    //             $studentSubjects = student_subj::where('stid', $user_id)
+    //                 ->where("schid", $schid)
+    //                 ->where("ssn", $ssn)
+    //                 ->where("trm", $trm)
+    //                 ->where("clsid", $clsm)
+    //                 ->pluck('sbj');
+
+    //             $mySbjs = $studentSubjects->toArray();
+    //         }
+
+    //         $stdPld[] = [
+    //             'std' => $std,
+    //             'sbj' => $mySbjs,
+    //         ];
+    //     }
+
+    //     $pld = [
+    //         'std-pld' => $stdPld,
+    //         'cls-sbj' => $clsSbj,
+    //     ];
+
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => $pld,
+    //     ]);
+    // }
+
+
+public function getOldStudentsAndSubjectWithoutScore($schid, $ssn, $trm, $clsm, $clsa, $stf)
+{
+    // Get old students
+    if ($clsa == '-1') {
+        $ostd = old_student::where("schid", $schid)
+            ->where("ssn", $ssn)
             ->where("trm", $trm)
+            ->where("clsm", $clsm)
             ->get();
+    } else {
+        $ostd = old_student::where("schid", $schid)
+            ->where("ssn", $ssn)
+            ->where("trm", $trm)
+            ->where("clsm", $clsm)
+            ->where("clsa", $clsa)
+            ->get();
+    }
 
-        foreach ($ostd as $std) {
-            $user_id = $std->sid;
-            $mySbjs = [];
+    $stdPld = [];
 
-            // Get all scores for student
-            $allScores = std_score::where('stid', $user_id)
+    // Get all subjects for this class (for cls-sbj) and rename subj_id to id
+    $clsSbj = class_subj::where("schid", $schid)
+        ->where("clsid", $clsm)
+        ->where("sesn", $ssn)
+        ->where("trm", $trm)
+        ->get()
+        ->map(function ($item) {
+            return [
+                'id' => $item->subj_id,  // changed from subj_id to id
+                'name' => $item->name,
+                'comp' => $item->comp
+            ];
+        });
+
+    foreach ($ostd as $std) {
+        $user_id = $std->sid;
+        $mySbjs = [];
+
+        // Get all scores for student
+        $allScores = std_score::where('stid', $user_id)
+            ->where("schid", $schid)
+            ->where("ssn", $ssn)
+            ->where("trm", $trm)
+            ->where("clsid", $clsm)
+            ->pluck('sbj');
+
+        if ($allScores->isNotEmpty()) {
+            // If student already has scores, use those subjects
+            $mySbjs = $allScores->toArray();
+        } else {
+            // Otherwise, use subjects assigned in student_subj
+            $studentSubjects = student_subj::where('stid', $user_id)
                 ->where("schid", $schid)
                 ->where("ssn", $ssn)
                 ->where("trm", $trm)
                 ->where("clsid", $clsm)
                 ->pluck('sbj');
 
-            if ($allScores->isNotEmpty()) {
-                // If student already has scores, use those subjects
-                $mySbjs = $allScores->toArray();
-            } else {
-                // Otherwise, use subjects assigned in student_subj
-                $studentSubjects = student_subj::where('stid', $user_id)
-                    ->where("schid", $schid)
-                    ->where("ssn", $ssn)
-                    ->where("trm", $trm)
-                    ->where("clsid", $clsm)
-                    ->pluck('sbj');
-
-                $mySbjs = $studentSubjects->toArray();
-            }
-
-            $stdPld[] = [
-                'std' => $std,
-                'sbj' => $mySbjs,
-            ];
+            $mySbjs = $studentSubjects->toArray();
         }
 
-        $pld = [
-            'std-pld' => $stdPld,
-            'cls-sbj' => $clsSbj,
+        $stdPld[] = [
+            'std' => $std,
+            'sbj' => $mySbjs,
         ];
-
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $pld,
-        ]);
     }
+
+    $pld = [
+        'std-pld' => $stdPld,
+        'cls-sbj' => $clsSbj,
+    ];
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => $pld,
+    ]);
+}
+
 
 
     /**
