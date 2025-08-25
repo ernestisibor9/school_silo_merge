@@ -5045,21 +5045,46 @@ class ApiController extends Controller
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
+    // public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
+    // {
+    //     $pld = [];
+    //     if ($clsa == '-1') {
+    //         $pld = old_student::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where("clsm", $clsm)->where("status", "active")->get();
+    //     } else {
+    //         $pld = old_student::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where("clsm", $clsm)->where("status", "active")->where("clsa", $clsa)->get();
+    //     }
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => $pld,
+    //     ]);
+    // }
+
     public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
     {
-        $pld = [];
-        if ($clsa == '-1') {
-            $pld = old_student::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where("clsm", $clsm)->where("status", "active")->get();
-        } else {
-            $pld = old_student::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where("clsm", $clsm)->where("status", "active")->where("clsa", $clsa)->get();
+        $query = old_student::leftJoin('student_academic_data', 'old_student.sid', '=', 'student_academic_data.user_id')
+            ->where("old_student.schid", $schid)
+            ->where("old_student.ssn", $ssn)
+            ->where("old_student.trm", $trm)
+            ->where("old_student.clsm", $clsm)
+            ->where("old_student.status", "active");
+
+        if ($clsa != '-1') {
+            $query->where("old_student.clsa", $clsa);
         }
+
+        $pld = $query->select(
+            'old_student.*',
+            'student_academic_data.last_class'
+        )
+            ->get();
+
         return response()->json([
             "status" => true,
             "message" => "Success",
             "pld" => $pld,
         ]);
     }
-
 
 
 
@@ -6681,150 +6706,150 @@ class ApiController extends Controller
 
 
 
-public function getOldStudentsAndSubject($schid, $ssn, $trm, $clsm, $clsa, $stf)
-{
-    // Fetch students based on class and arm
-    if ($clsa == '-1') {
-        $ostd = old_student::where("schid", $schid)
-            ->where("status", "active")
-            ->where("ssn", $ssn)
-            ->where("clsm", $clsm)
-            ->get();
-    } else {
-        $ostd = old_student::where("schid", $schid)
-            ->where("status", "active")
-            ->where("ssn", $ssn)
-            ->where("clsm", $clsm)
-            ->where("clsa", $clsa)
-            ->get();
-    }
-
-    $stdPld = [];
-
-    foreach ($ostd as $std) {
-        $user_id = $std->sid;
-
-        // Get all subjects assigned to the student
-        $studentSubjects = student_subj::where('stid', $user_id)->get();
-
-        $mySbjs = [];
-        $scores = [];
-        $totalScore = 0;
-        $scoreCount = 0;
-
-        foreach ($studentSubjects as $sbj) {
-            // Fetch subject details
-            $subject = subj::find($sbj->sbj);
-            if ($subject) {
-                $mySbjs[] = $subject;
-            }
-
-            // Fetch scores for this subject
-            $subjectScores = std_score::where('stid', $user_id)
-                ->where('sbj', $sbj->sbj)
-                ->where('schid', $schid)
-                ->where('ssn', $ssn)
-                ->where('trm', $trm)
-                ->where('clsid', $clsm)
+    public function getOldStudentsAndSubject($schid, $ssn, $trm, $clsm, $clsa, $stf)
+    {
+        // Fetch students based on class and arm
+        if ($clsa == '-1') {
+            $ostd = old_student::where("schid", $schid)
+                ->where("status", "active")
+                ->where("ssn", $ssn)
+                ->where("clsm", $clsm)
                 ->get();
-
-            foreach ($subjectScores as $s) {
-                if (!empty($s->scr) && is_numeric($s->scr)) {
-                    $totalScore += $s->scr;
-                    $scoreCount++;
-                }
-            }
-
-            $scores[] = [
-                'sbid' => $sbj->sbj,
-                'scores' => $subjectScores
-            ];
+        } else {
+            $ostd = old_student::where("schid", $schid)
+                ->where("status", "active")
+                ->where("ssn", $ssn)
+                ->where("clsm", $clsm)
+                ->where("clsa", $clsa)
+                ->get();
         }
 
-        $avgScore = $scoreCount > 0 ? round($totalScore / $scoreCount, 2) : 0;
-        $grade = $this->gradeFromAvg2($avgScore);
+        $stdPld = [];
 
-        // Check for psychological evaluation if needed
-        $psy = false;
-        if ($stf == "-2") {
-            $psy = student_psy::where("schid", $schid)
+        foreach ($ostd as $std) {
+            $user_id = $std->sid;
+
+            // Get all subjects assigned to the student
+            $studentSubjects = student_subj::where('stid', $user_id)->get();
+
+            $mySbjs = [];
+            $scores = [];
+            $totalScore = 0;
+            $scoreCount = 0;
+
+            foreach ($studentSubjects as $sbj) {
+                // Fetch subject details
+                $subject = subj::find($sbj->sbj);
+                if ($subject) {
+                    $mySbjs[] = $subject;
+                }
+
+                // Fetch scores for this subject
+                $subjectScores = std_score::where('stid', $user_id)
+                    ->where('sbj', $sbj->sbj)
+                    ->where('schid', $schid)
+                    ->where('ssn', $ssn)
+                    ->where('trm', $trm)
+                    ->where('clsid', $clsm)
+                    ->get();
+
+                foreach ($subjectScores as $s) {
+                    if (!empty($s->scr) && is_numeric($s->scr)) {
+                        $totalScore += $s->scr;
+                        $scoreCount++;
+                    }
+                }
+
+                $scores[] = [
+                    'sbid' => $sbj->sbj,
+                    'scores' => $subjectScores
+                ];
+            }
+
+            $avgScore = $scoreCount > 0 ? round($totalScore / $scoreCount, 2) : 0;
+            $grade = $this->gradeFromAvg2($avgScore);
+
+            // Check for psychological evaluation if needed
+            $psy = false;
+            if ($stf == "-2") {
+                $psy = student_psy::where("schid", $schid)
+                    ->where("ssn", $ssn)
+                    ->where("trm", $trm)
+                    ->where("clsm", $clsm)
+                    ->where("stid", $user_id)
+                    ->exists();
+            }
+
+            // Fetch student result info
+            $res = "0";
+            $rinfo = student_res::where("schid", $schid)
                 ->where("ssn", $ssn)
                 ->where("trm", $trm)
                 ->where("clsm", $clsm)
+                ->where("clsa", $clsa)
                 ->where("stid", $user_id)
-                ->exists();
-        }
+                ->first();
 
-        // Fetch student result info
-        $res = "0";
-        $rinfo = student_res::where("schid", $schid)
-            ->where("ssn", $ssn)
-            ->where("trm", $trm)
-            ->where("clsm", $clsm)
-            ->where("clsa", $clsa)
-            ->where("stid", $user_id)
-            ->first();
+            if ($rinfo) {
+                $res = $rinfo->stat;
+                $rinfo = [
+                    'uid' => $rinfo->uid,
+                    'stat' => $rinfo->stat,
+                    'com' => $rinfo->com,
+                    'stid' => $rinfo->stid,
+                    'schid' => $rinfo->schid,
+                    'ssn' => $rinfo->ssn,
+                    'trm' => $rinfo->trm,
+                    'clsm' => $rinfo->clsm,
+                    'clsa' => $rinfo->clsa,
+                    'pos' => $rinfo->pos,
+                    'avg' => $rinfo->avg,
+                    'cavg' => $rinfo->cavg,
+                    'created_at' => $rinfo->created_at,
+                    'updated_at' => $rinfo->updated_at,
+                    'grade' => isset($rinfo->avg) ? $this->gradeFromAvg2($rinfo->avg) : null,
+                ];
+            } else {
+                $rinfo = [];
+            }
 
-        if ($rinfo) {
-            $res = $rinfo->stat;
-            $rinfo = [
-                'uid' => $rinfo->uid,
-                'stat' => $rinfo->stat,
-                'com' => $rinfo->com,
-                'stid' => $rinfo->stid,
-                'schid' => $rinfo->schid,
-                'ssn' => $rinfo->ssn,
-                'trm' => $rinfo->trm,
-                'clsm' => $rinfo->clsm,
-                'clsa' => $rinfo->clsa,
-                'pos' => $rinfo->pos,
-                'avg' => $rinfo->avg,
-                'cavg' => $rinfo->cavg,
-                'created_at' => $rinfo->created_at,
-                'updated_at' => $rinfo->updated_at,
-                'grade' => isset($rinfo->avg) ? $this->gradeFromAvg2($rinfo->avg) : null,
+            // Build student payload
+            $stdPld[] = [
+                'std' => $std,
+                'sbj' => $mySbjs,
+                'scr' => $scores,
+                'avg_score' => $avgScore,
+                'grade' => $grade,
+                'psy' => $psy,
+                'res' => $res,
+                'rinfo' => $rinfo,
             ];
-        } else {
-            $rinfo = [];
         }
 
-        // Build student payload
-        $stdPld[] = [
-            'std' => $std,
-            'sbj' => $mySbjs,
-            'scr' => $scores,
-            'avg_score' => $avgScore,
-            'grade' => $grade,
-            'psy' => $psy,
-            'res' => $res,
-            'rinfo' => $rinfo,
-        ];
-    }
-
-    // Prepare class subjects list
-    $clsSbj = [];
-    $temKeep = [];
-    foreach ($studentSubjects as $sbj) {
-        if (!in_array($sbj->sbj, $temKeep)) {
-            $temKeep[] = $sbj->sbj;
-            $schSbj = subj::find($sbj->sbj);
-            if ($schSbj) {
-                $clsSbj[] = $schSbj;
+        // Prepare class subjects list
+        $clsSbj = [];
+        $temKeep = [];
+        foreach ($studentSubjects as $sbj) {
+            if (!in_array($sbj->sbj, $temKeep)) {
+                $temKeep[] = $sbj->sbj;
+                $schSbj = subj::find($sbj->sbj);
+                if ($schSbj) {
+                    $clsSbj[] = $schSbj;
+                }
             }
         }
+
+        $pld = [
+            'std-pld' => $stdPld,
+            'cls-sbj' => $clsSbj
+        ];
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld,
+        ]);
     }
-
-    $pld = [
-        'std-pld' => $stdPld,
-        'cls-sbj' => $clsSbj
-    ];
-
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => $pld,
-    ]);
-}
 
 
     private function gradeFromAvg2($avg)
@@ -8040,84 +8065,84 @@ public function getOldStudentsAndSubject($schid, $ssn, $trm, $clsm, $clsa, $stf)
     // }
 
 
-public function getOldStudentsAndSubjectWithoutScore($schid, $ssn, $trm, $clsm, $clsa, $stf)
-{
-    // Get old students
-    if ($clsa == '-1') {
-        $ostd = old_student::where("schid", $schid)
-            ->where("ssn", $ssn)
-            ->where("trm", $trm)
-            ->where("clsm", $clsm)
-            ->get();
-    } else {
-        $ostd = old_student::where("schid", $schid)
-            ->where("ssn", $ssn)
-            ->where("trm", $trm)
-            ->where("clsm", $clsm)
-            ->where("clsa", $clsa)
-            ->get();
-    }
-
-    $stdPld = [];
-
-    // Get all subjects for this class (for cls-sbj) and rename subj_id to id
-    $clsSbj = class_subj::where("schid", $schid)
-        ->where("clsid", $clsm)
-        ->where("sesn", $ssn)
-        ->where("trm", $trm)
-        ->get()
-        ->map(function ($item) {
-            return [
-                'id' => $item->subj_id,  // changed from subj_id to id
-                'name' => $item->name,
-                'comp' => $item->comp
-            ];
-        });
-
-    foreach ($ostd as $std) {
-        $user_id = $std->sid;
-        $mySbjs = [];
-
-        // Get all scores for student
-        $allScores = std_score::where('stid', $user_id)
-            ->where("schid", $schid)
-            ->where("ssn", $ssn)
-            ->where("trm", $trm)
-            ->where("clsid", $clsm)
-            ->pluck('sbj');
-
-        if ($allScores->isNotEmpty()) {
-            // If student already has scores, use those subjects
-            $mySbjs = $allScores->toArray();
+    public function getOldStudentsAndSubjectWithoutScore($schid, $ssn, $trm, $clsm, $clsa, $stf)
+    {
+        // Get old students
+        if ($clsa == '-1') {
+            $ostd = old_student::where("schid", $schid)
+                ->where("ssn", $ssn)
+                ->where("trm", $trm)
+                ->where("clsm", $clsm)
+                ->get();
         } else {
-            // Otherwise, use subjects assigned in student_subj
-            $studentSubjects = student_subj::where('stid', $user_id)
+            $ostd = old_student::where("schid", $schid)
+                ->where("ssn", $ssn)
+                ->where("trm", $trm)
+                ->where("clsm", $clsm)
+                ->where("clsa", $clsa)
+                ->get();
+        }
+
+        $stdPld = [];
+
+        // Get all subjects for this class (for cls-sbj) and rename subj_id to id
+        $clsSbj = class_subj::where("schid", $schid)
+            ->where("clsid", $clsm)
+            ->where("sesn", $ssn)
+            ->where("trm", $trm)
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'id' => $item->subj_id,  // changed from subj_id to id
+                    'name' => $item->name,
+                    'comp' => $item->comp
+                ];
+            });
+
+        foreach ($ostd as $std) {
+            $user_id = $std->sid;
+            $mySbjs = [];
+
+            // Get all scores for student
+            $allScores = std_score::where('stid', $user_id)
                 ->where("schid", $schid)
                 ->where("ssn", $ssn)
                 ->where("trm", $trm)
                 ->where("clsid", $clsm)
                 ->pluck('sbj');
 
-            $mySbjs = $studentSubjects->toArray();
+            if ($allScores->isNotEmpty()) {
+                // If student already has scores, use those subjects
+                $mySbjs = $allScores->toArray();
+            } else {
+                // Otherwise, use subjects assigned in student_subj
+                $studentSubjects = student_subj::where('stid', $user_id)
+                    ->where("schid", $schid)
+                    ->where("ssn", $ssn)
+                    ->where("trm", $trm)
+                    ->where("clsid", $clsm)
+                    ->pluck('sbj');
+
+                $mySbjs = $studentSubjects->toArray();
+            }
+
+            $stdPld[] = [
+                'std' => $std,
+                'sbj' => $mySbjs,
+            ];
         }
 
-        $stdPld[] = [
-            'std' => $std,
-            'sbj' => $mySbjs,
+        $pld = [
+            'std-pld' => $stdPld,
+            'cls-sbj' => $clsSbj,
         ];
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld,
+        ]);
     }
-
-    $pld = [
-        'std-pld' => $stdPld,
-        'cls-sbj' => $clsSbj,
-    ];
-
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => $pld,
-    ]);
-}
 
 
 
