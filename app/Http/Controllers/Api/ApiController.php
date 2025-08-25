@@ -5060,31 +5060,34 @@ class ApiController extends Controller
     //     ]);
     // }
 
-    public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
-    {
-        $query = old_student::leftJoin('student_academic_data', 'old_student.sid', '=', 'student_academic_data.user_id')
-            ->where("old_student.schid", $schid)
-            ->where("old_student.ssn", $ssn)
-            ->where("old_student.trm", $trm)
-            ->where("old_student.clsm", $clsm)
-            ->where("old_student.status", "active");
+public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
+{
+    $query = old_student::leftJoin('student_academic_data', 'old_student.sid', '=', 'student_academic_data.user_id')
+        ->where("old_student.schid", $schid)
+        ->where("old_student.ssn", $ssn)
+        ->where("old_student.trm", $trm)
+        ->where("old_student.clsm", $clsm)
+        ->where("old_student.status", "active");
 
-        if ($clsa != '-1') {
-            $query->where("old_student.clsa", $clsa);
-        }
-
-        $pld = $query->select(
-            'old_student.*',
-            'student_academic_data.last_class'
-        )
-            ->get();
-
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $pld,
-        ]);
+    if ($clsa != '-1') {
+        $query->where("old_student.clsa", $clsa);
     }
+
+    $pld = $query->select(
+        'old_student.*',
+        'student_academic_data.last_school',
+        'student_academic_data.last_class',
+        'student_academic_data.new_class',
+        'student_academic_data.new_class_main'
+    )->get();
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => $pld,
+    ]);
+}
+
 
 
 
