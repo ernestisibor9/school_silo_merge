@@ -7094,123 +7094,100 @@ class ApiController extends Controller
 
     public function getOldStudentsAndSubjectScoreSheet($schid, $ssn, $trm, $clsm, $clsa, $stf)
     {
-        // Fetch active students
-        if ($clsa == '-1') {
-            $ostd = old_student::where("schid", $schid)
-                ->where("status", "active")
-                ->where("ssn", $ssn)
-                ->where("clsm", $clsm)
-                ->get();
-        } else {
-            $ostd = old_student::where("schid", $schid)
-                ->where("status", "active")
-                ->where("ssn", $ssn)
-                ->where("clsm", $clsm)
-                ->where("clsa", $clsa)
-                ->get();
+        $student = old_student::where("schid", $schid)
+            ->where("ssn", $ssn)
+            ->where("trm", $trm)
+            ->where("clsm", $clsm)
+            ->where("clsa", $clsa)
+            ->first();
+
+        if (!$student) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'No record found',
+                'pld'     => null
+            ], 404);
         }
 
-        // Fetch relevant subjects (with distinct to avoid duplicates)
+        // Get subjects for this class (and staff filter if provided)
         if ($stf == "-1" || $stf == "-2") {
-            $relevantSubjects = class_subj::where('class_subj.schid', $schid)
-                ->where('class_subj.clsid', $clsm)
-                ->distinct()
-                ->pluck('subj_id');
+            $relevantSubjects = class_subj::where('schid', $schid)
+                ->where('clsid', $clsm)
+                ->pluck('subj_id')
+                ->unique();
         } else {
             $relevantSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
                 ->where('class_subj.schid', $schid)
                 ->where('class_subj.clsid', $clsm)
                 ->where('staff_subj.stid', $stf)
-                ->distinct()
-                ->pluck('sbj');
+                ->pluck('sbj')
+                ->unique();
         }
 
-        $stdPld = [];
+        // Student subjects
+        $studentSubjects = student_subj::where('stid', $student->sid)
+            ->whereIn('sbj', $relevantSubjects)
+            ->pluck('sbj');
 
-        foreach ($ostd as $std) {
-            $user_id = $std->sid;
-
-            // Ensure distinct subjects for each student
-            $studentSubjects = student_subj::where('stid', $user_id)
-                ->whereIn('sbj', $relevantSubjects)
-                ->distinct('sbj')
+        $scores = [];
+        foreach ($studentSubjects as $sbid) {
+            $subjectScores = std_score::where('stid', $student->sid)
+                ->where('sbj', $sbid)
+                ->where("schid", $schid)
+                ->where("ssn", $ssn)
+                ->where("trm", $trm)
+                ->where("clsid", $clsm)
                 ->get();
 
-            $mySbjs = [];
-            $scores = [];
-
-            foreach ($studentSubjects as $sbj) {
-                $sbid = $sbj->sbj;
-                $mySbjs[] = $sbid;
-
-                // If you expect only one score per subject, use ->first()
-                $subjectScores = std_score::where('stid', $user_id)
-                    ->where('sbj', $sbid)
-                    ->where("schid", $schid)
-                    ->where("ssn", $ssn)
-                    ->where("trm", $trm)
-                    ->where("clsid", $clsm)
-                    ->get();
-
-                $scores[] = [
-                    'sbid' => $sbid,
-                    'scores' => $subjectScores
-                ];
-            }
-
-            $psy = false;
-            $res = "0";
-            $rinfo = [];
-
-            // Extra info for staff = -2
-            if ($stf == "-2") {
-                $psy = student_psy::where("schid", $schid)
-                    ->where("ssn", $ssn)
-                    ->where("trm", $trm)
-                    ->where("clsm", $clsm)
-                    ->where("stid", $user_id)
-                    ->exists();
-
-                $rinfo = student_res::where("schid", $schid)
-                    ->where("ssn", $ssn)
-                    ->where("trm", $trm)
-                    ->where("clsm", $clsm)
-                    ->where("stid", $user_id)
-                    ->first();
-
-                if ($rinfo) {
-                    $res = $rinfo->stat;
-                }
-            }
-
-            $stdPld[] = [
-                'std'   => $std,
-                'sbj'   => $mySbjs,
-                'scr'   => $scores,
-                'psy'   => $psy,
-                'res'   => $res,
-                'rinfo' => $rinfo,
+            $scores[] = [
+                'sbid'   => (string)$sbid,
+                'scores' => $subjectScores
             ];
         }
 
-        // Build unique class subjects
-        $clsSbj = [];
-        foreach ($relevantSubjects->unique() as $sbid) {
-            $schSbj = subj::find($sbid);
-            if ($schSbj) {
-                $clsSbj[] = $schSbj;
+        // Psychomotor + result
+        $psy = false;
+        $res = "0";
+        $rinfo = [];
+
+        if ($stf == "-2") {
+            $psy = student_psy::where("schid", $schid)
+                ->where("ssn", $ssn)
+                ->where("trm", $trm)
+                ->where("clsm", $clsm)
+                ->where("stid", $student->sid)
+                ->exists();
+
+            $rinfo = student_res::where("schid", $schid)
+                ->where("ssn", $ssn)
+                ->where("trm", $trm)
+                ->where("clsm", $clsm)
+                ->where("stid", $student->sid)
+                ->first();
+
+            if ($rinfo) {
+                $res = $rinfo->stat;
             }
         }
 
-        $pld = [
-            'std-pld' => $stdPld,
-            'cls-sbj' => $clsSbj
+        // Final payload
+        $payload = [
+            'std-pld' => [
+                [
+                    'std'   => $student,
+                    'sbj'   => $studentSubjects,
+                    'scr'   => $scores,
+                    'psy'   => $psy,
+                    'res'   => $res,
+                    'rinfo' => $rinfo ?? []
+                ]
+            ]
         ];
 
         return response()->json([
-            "status"  => true,
-            "message" => "Success",
-            "pld"     => $pld,
+            'status'  => true,
+            'message' => 'Success',
+            'pld'     => $payload
         ]);
     }
 
