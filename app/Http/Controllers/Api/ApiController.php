@@ -5300,7 +5300,7 @@ class ApiController extends Controller
             $male = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
                 ->where('old_student.schid', $schid)
                 ->where('old_student.ssn', $ssn)
-                 ->where('old_student.trm', $trm)
+                ->where('old_student.trm', $trm)
                 ->where('status', 'active')
                 ->where('old_student.clsm', $clsm)
                 ->where('student_basic_data.sex', 'M')
@@ -5326,7 +5326,7 @@ class ApiController extends Controller
             $female = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
                 ->where('old_student.schid', $schid)
                 ->where('old_student.ssn', $ssn)
-                 ->where('old_student.trm', $trm)
+                ->where('old_student.trm', $trm)
                 ->where('old_student.clsm', $clsm)
                 ->where('status', 'active')
                 ->where('old_student.clsa', $clsa)
@@ -7094,44 +7094,75 @@ class ApiController extends Controller
 
     public function getOldStudentsAndSubjectScoreSheet($schid, $ssn, $trm, $clsm, $clsa, $stf)
     {
-        $ostd = [];
+        // Fetch active students
         if ($clsa == '-1') {
-            $ostd = old_student::where("schid", $schid)->where("status", "active")->where("ssn", $ssn)->where("clsm", $clsm)->get();
+            $ostd = old_student::where("schid", $schid)
+                ->where("status", "active")
+                ->where("ssn", $ssn)
+                ->where("clsm", $clsm)
+                ->get();
         } else {
-            $ostd = old_student::where("schid", $schid)->where("status", "active")->where("ssn", $ssn)->where("clsm", $clsm)->where("clsa", $clsa)->get();
+            $ostd = old_student::where("schid", $schid)
+                ->where("status", "active")
+                ->where("ssn", $ssn)
+                ->where("clsm", $clsm)
+                ->where("clsa", $clsa)
+                ->get();
         }
-        $relevantSubjects = [];
+
+        // Fetch relevant subjects (with distinct to avoid duplicates)
         if ($stf == "-1" || $stf == "-2") {
-            $relevantSubjects = class_subj:: //join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
-                where('class_subj.schid', $schid)
+            $relevantSubjects = class_subj::where('class_subj.schid', $schid)
                 ->where('class_subj.clsid', $clsm)
+                ->distinct()
                 ->pluck('subj_id');
         } else {
             $relevantSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
                 ->where('class_subj.schid', $schid)
                 ->where('class_subj.clsid', $clsm)
                 ->where('staff_subj.stid', $stf)
+                ->distinct()
                 ->pluck('sbj');
         }
+
         $stdPld = [];
+
         foreach ($ostd as $std) {
             $user_id = $std->sid;
-            $studentSubjects = student_subj::where('stid', $user_id)->whereIn('sbj', $relevantSubjects)->get();
+
+            // Ensure distinct subjects for each student
+            $studentSubjects = student_subj::where('stid', $user_id)
+                ->whereIn('sbj', $relevantSubjects)
+                ->distinct('sbj')
+                ->get();
+
             $mySbjs = [];
             $scores = [];
+
             foreach ($studentSubjects as $sbj) {
                 $sbid = $sbj->sbj;
                 $mySbjs[] = $sbid;
-                $subjectScores = std_score::where('stid', $user_id)->where('sbj', $sbid)
-                    ->where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where("clsid", $clsm)->get();
+
+                // If you expect only one score per subject, use ->first()
+                $subjectScores = std_score::where('stid', $user_id)
+                    ->where('sbj', $sbid)
+                    ->where("schid", $schid)
+                    ->where("ssn", $ssn)
+                    ->where("trm", $trm)
+                    ->where("clsid", $clsm)
+                    ->get();
+
                 $scores[] = [
                     'sbid' => $sbid,
                     'scores' => $subjectScores
                 ];
             }
+
             $psy = false;
             $res = "0";
             $rinfo = [];
+
+            // Extra info for staff = -2
             if ($stf == "-2") {
                 $psy = student_psy::where("schid", $schid)
                     ->where("ssn", $ssn)
@@ -7139,42 +7170,47 @@ class ApiController extends Controller
                     ->where("clsm", $clsm)
                     ->where("stid", $user_id)
                     ->exists();
+
                 $rinfo = student_res::where("schid", $schid)
                     ->where("ssn", $ssn)
                     ->where("trm", $trm)
                     ->where("clsm", $clsm)
                     ->where("stid", $user_id)
                     ->first();
+
                 if ($rinfo) {
                     $res = $rinfo->stat;
                 }
             }
+
             $stdPld[] = [
-                'std' => $std,
-                'sbj' => $mySbjs,
-                'scr' => $scores,
-                'psy' => $psy,
-                'res' => $res,
+                'std'   => $std,
+                'sbj'   => $mySbjs,
+                'scr'   => $scores,
+                'psy'   => $psy,
+                'res'   => $res,
                 'rinfo' => $rinfo,
             ];
         }
+
+        // Build unique class subjects
         $clsSbj = [];
-        $temKeep = [];
-        foreach ($relevantSubjects as $sbid) {
-            if (!in_array($sbid, $temKeep)) {
-                $temKeep[] = $sbid;
-                $schSbj = subj::where('id', $sbid)->first();
+        foreach ($relevantSubjects->unique() as $sbid) {
+            $schSbj = subj::find($sbid);
+            if ($schSbj) {
                 $clsSbj[] = $schSbj;
             }
         }
+
         $pld = [
             'std-pld' => $stdPld,
-            'cls-sbj' => $clsSbj //Not necessary, maybe remove later????
+            'cls-sbj' => $clsSbj
         ];
+
         return response()->json([
-            "status" => true,
+            "status"  => true,
             "message" => "Success",
-            "pld" => $pld,
+            "pld"     => $pld,
         ]);
     }
 
