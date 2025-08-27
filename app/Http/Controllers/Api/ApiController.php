@@ -7094,7 +7094,7 @@ class ApiController extends Controller
 
     public function getOldStudentsAndSubjectScoreSheet($schid, $ssn, $trm, $clsm, $clsa, $stf)
     {
-        // Fetch active students for this class + arm
+        // 1. Fetch only students that match EXACTLY the session, term, class, and arm
         $ostd = old_student::where("schid", $schid)
             ->where("status", "active")
             ->where("ssn", $ssn)
@@ -7103,49 +7103,43 @@ class ApiController extends Controller
             ->when($clsa != "-1", function ($q) use ($clsa) {
                 $q->where("clsa", $clsa);
             })
-            ->get()
-            ->unique("sid"); // ✅ remove duplicate promotions of same student
+            ->distinct("sid") // prevent duplicate rows for same student
+            ->get();
 
-        if ($ostd->isEmpty()) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'No record found',
-                'pld'     => null
-            ], 404);
-        }
-
-        // Fetch relevant subjects
+        // 2. Fetch relevant subjects
         if ($stf == "-1" || $stf == "-2") {
             $relevantSubjects = class_subj::where('class_subj.schid', $schid)
                 ->where('class_subj.clsid', $clsm)
-                ->pluck('subj_id')
-                ->unique();
+                ->distinct()
+                ->pluck('subj_id');
         } else {
             $relevantSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
                 ->where('class_subj.schid', $schid)
                 ->where('class_subj.clsid', $clsm)
                 ->where('staff_subj.stid', $stf)
-                ->pluck('sbj')
-                ->unique();
+                ->distinct()
+                ->pluck('sbj');
         }
 
-        // Prepare student payload
         $stdPld = [];
+
         foreach ($ostd as $std) {
             $user_id = $std->sid;
 
-            // Distinct student subjects
+            // 3. Fetch unique subjects for the student
             $studentSubjects = student_subj::where('stid', $user_id)
                 ->whereIn('sbj', $relevantSubjects)
-                ->pluck('sbj')
-                ->unique();
+                ->distinct('sbj')
+                ->get();
 
             $mySbjs = [];
             $scores = [];
 
-            foreach ($studentSubjects as $sbid) {
-                $mySbjs[] = (string)$sbid;
+            foreach ($studentSubjects as $sbj) {
+                $sbid = (string)$sbj->sbj;
+                $mySbjs[] = $sbid;
 
+                // 4. Fetch scores (filtered by session, term, class)
                 $subjectScores = std_score::where('stid', $user_id)
                     ->where('sbj', $sbid)
                     ->where("schid", $schid)
@@ -7155,16 +7149,16 @@ class ApiController extends Controller
                     ->get();
 
                 $scores[] = [
-                    'sbid'   => (string)$sbid,
+                    'sbid'   => $sbid,
                     'scores' => $subjectScores
                 ];
             }
 
+            // 5. Extra info for staff = -2
             $psy = false;
             $res = "0";
             $rinfo = [];
 
-            // Extra info for staff = -2
             if ($stf == "-2") {
                 $psy = student_psy::where("schid", $schid)
                     ->where("ssn", $ssn)
@@ -7185,33 +7179,29 @@ class ApiController extends Controller
                 }
             }
 
+            // 6. Push result (no duplicate sbj/scr)
             $stdPld[] = [
                 'std'   => $std,
-                'sbj'   => $mySbjs,
-                'scr'   => $scores,
+                'sbj'   => array_values(array_unique($mySbjs)),
+                'scr'   => collect($scores)->unique('sbid')->values(),
                 'psy'   => $psy,
                 'res'   => $res,
-                'rinfo' => $rinfo ?? []
+                'rinfo' => $rinfo ?: []
             ];
         }
 
-        // Get class subjects list for frontend
-        $clsSubjects = class_subj::join('subjects', 'class_subj.subj_id', '=', 'subjects.id')
-            ->where('class_subj.schid', $schid)
-            ->where('class_subj.clsid', $clsm)
-            ->select('subjects.id', 'subjects.name', 'subjects.created_at', 'subjects.updated_at')
-            ->get();
+        // 7. Build unique class subjects using subj model
+        $clsSbj = subj::whereIn('id', $relevantSubjects)->get();
 
         return response()->json([
-            'status'  => true,
-            'message' => 'Success',
-            'pld'     => [
-                'std-pld'  => $stdPld,
-                'cls-sbj'  => $clsSubjects
-            ]
+            "status"  => true,
+            "message" => "Success",
+            "pld"     => [
+                'std-pld' => $stdPld,
+                'cls-sbj' => $clsSbj
+            ],
         ]);
     }
-
 
 
 
