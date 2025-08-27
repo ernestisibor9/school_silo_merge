@@ -2705,6 +2705,63 @@ class ApiController extends Controller
 
 
     //////////////////////////////////////
+    // public function setStudentSubject(Request $request)
+    // {
+    //     // Validate request
+    //     $request->validate([
+    //         "uid"   => "required",
+    //         "stid"  => "required", // single or array of student IDs
+    //         "sbj"   => "required", // single or array of subject IDs
+    //         "comp"  => "required",
+    //         "schid" => "required",
+    //         "clsid" => "nullable",
+    //         "trm"   => "nullable",
+    //         "ssn"   => "nullable"
+    //     ]);
+
+    //     $students = is_array($request->stid) ? $request->stid : [$request->stid];
+    //     $subjects = is_array($request->sbj)  ? $request->sbj  : [$request->sbj];
+
+    //     $assigned = [];
+    //     $skipped = [];
+
+    //     foreach ($students as $stid) {
+    //         foreach ($subjects as $sbj) {
+    //             $exists = student_subj::where('stid', $stid)
+    //                 ->where('sbj', $sbj)
+    //                 ->where('schid', $request->schid)
+    //                 ->when($request->clsid, fn($q) => $q->where('clsid', $request->clsid))
+    //                 ->when($request->trm, fn($q) => $q->where('trm', $request->trm))
+    //                 ->when($request->ssn, fn($q) => $q->where('ssn', $request->ssn))
+    //                 ->exists();
+
+    //             if (!$exists) {
+    //                 student_subj::create([
+    //                     "uid"   => $request->uid,
+    //                     "stid"  => $stid,
+    //                     "sbj"   => $sbj,
+    //                     "comp"  => $request->comp,
+    //                     "schid" => $request->schid,
+    //                     "clsid" => $request->clsid,
+    //                     "trm"   => $request->trm,
+    //                     "ssn"   => $request->ssn
+    //                 ]);
+    //                 $assigned[] = ["stid" => $stid, "sbj" => $sbj];
+    //             } else {
+    //                 $skipped[] = ["stid" => $stid, "sbj" => $sbj];
+    //             }
+    //         }
+    //     }
+
+    //     return response()->json([
+    //         "status"  => true,
+    //         "message" => "Subjects assignment completed.",
+    //         "assigned" => $assigned,
+    //         "skipped"  => $skipped,
+    //     ]);
+    // }
+
+
     public function setStudentSubject(Request $request)
     {
         // Validate request
@@ -2727,6 +2784,9 @@ class ApiController extends Controller
 
         foreach ($students as $stid) {
             foreach ($subjects as $sbj) {
+                // -----------------------------------
+                // 1. Handle student_subj
+                // -----------------------------------
                 $exists = student_subj::where('stid', $stid)
                     ->where('sbj', $sbj)
                     ->where('schid', $request->schid)
@@ -2750,16 +2810,36 @@ class ApiController extends Controller
                 } else {
                     $skipped[] = ["stid" => $stid, "sbj" => $sbj];
                 }
+
+                // -----------------------------------
+                // 2. Handle class_subj
+                // -----------------------------------
+                class_subj::updateOrCreate(
+                    [
+                        "subj_id" => $sbj,
+                        "schid"   => $request->schid,
+                        "clsid"   => $request->clsid,
+                        "sesn"    => $request->ssn,
+                        "trm"     => $request->trm,
+                    ],
+                    [
+                        "uid"   => $request->uid,
+                        "comp"  => $request->comp,
+                        "name"  => subj::find($sbj)?->name, // assuming Subject model exists
+                    ]
+                );
             }
         }
 
         return response()->json([
-            "status"  => true,
-            "message" => "Subjects assignment completed.",
+            "status"   => true,
+            "message"  => "Subjects assignment completed.",
             "assigned" => $assigned,
             "skipped"  => $skipped,
         ]);
     }
+
+
 
 
 
@@ -5060,33 +5140,33 @@ class ApiController extends Controller
     //     ]);
     // }
 
-public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
-{
-    $query = old_student::leftJoin('student_academic_data', 'old_student.sid', '=', 'student_academic_data.user_id')
-        ->where("old_student.schid", $schid)
-        ->where("old_student.ssn", $ssn)
-        ->where("old_student.trm", $trm)
-        ->where("old_student.clsm", $clsm)
-        ->where("old_student.status", "active");
+    public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
+    {
+        $query = old_student::leftJoin('student_academic_data', 'old_student.sid', '=', 'student_academic_data.user_id')
+            ->where("old_student.schid", $schid)
+            ->where("old_student.ssn", $ssn)
+            ->where("old_student.trm", $trm)
+            ->where("old_student.clsm", $clsm)
+            ->where("old_student.status", "active");
 
-    if ($clsa != '-1') {
-        $query->where("old_student.clsa", $clsa);
+        if ($clsa != '-1') {
+            $query->where("old_student.clsa", $clsa);
+        }
+
+        $pld = $query->select(
+            'old_student.*',
+            'student_academic_data.last_school',
+            'student_academic_data.last_class',
+            'student_academic_data.new_class',
+            'student_academic_data.new_class_main'
+        )->get();
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld,
+        ]);
     }
-
-    $pld = $query->select(
-        'old_student.*',
-        'student_academic_data.last_school',
-        'student_academic_data.last_class',
-        'student_academic_data.new_class',
-        'student_academic_data.new_class_main'
-    )->get();
-
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => $pld,
-    ]);
-}
 
 
 
