@@ -5272,7 +5272,7 @@ class ApiController extends Controller
      *         description="Id of the trm",
      *         @OA\Schema(type="string")
      *     ),
-     * 
+     *
      *     @OA\Parameter(
      *         name="clsm",
      *         in="path",
@@ -5292,7 +5292,7 @@ class ApiController extends Controller
      * )
      */
 
-    public function getOldStudentsStat($schid, $ssn, $trm $clsm, $clsa)
+    public function getOldStudentsStat($schid, $ssn, $trm, $clsm, $clsa)
     {
         $male = 0;
         $female = 0;
