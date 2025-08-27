@@ -5246,7 +5246,7 @@ class ApiController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/getOldStudentsStat/{schid}/{ssn}/{clsm}/{clsa}",
+     *     path="/api/getOldStudentsStat/{schid}/{ssn}/{trm}/{clsm}/{clsa}",
      *     tags={"Api"},
      *     security={{"bearerAuth": {}}},
      *     summary="Get an old student's stats",
@@ -5266,6 +5266,14 @@ class ApiController extends Controller
      *         @OA\Schema(type="string")
      *     ),
      *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Id of the trm",
+     *         @OA\Schema(type="string")
+     *     ),
+     * 
+     *     @OA\Parameter(
      *         name="clsm",
      *         in="path",
      *         required=true,
@@ -5284,7 +5292,7 @@ class ApiController extends Controller
      * )
      */
 
-    public function getOldStudentsStat($schid, $ssn, $clsm, $clsa)
+    public function getOldStudentsStat($schid, $ssn, $trm $clsm, $clsa)
     {
         $male = 0;
         $female = 0;
@@ -5292,6 +5300,7 @@ class ApiController extends Controller
             $male = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
                 ->where('old_student.schid', $schid)
                 ->where('old_student.ssn', $ssn)
+                 ->where('old_student.trm', $trm)
                 ->where('status', 'active')
                 ->where('old_student.clsm', $clsm)
                 ->where('student_basic_data.sex', 'M')
@@ -5299,6 +5308,7 @@ class ApiController extends Controller
             $female = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
                 ->where('old_student.schid', $schid)
                 ->where('old_student.ssn', $ssn)
+                ->where('old_student.trm', $trm)
                 ->where('status', 'active')
                 ->where('old_student.clsm', $clsm)
                 ->where('student_basic_data.sex', 'F')
@@ -5307,6 +5317,7 @@ class ApiController extends Controller
             $male = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
                 ->where('old_student.schid', $schid)
                 ->where('old_student.ssn', $ssn)
+                ->where('old_student.trm', $trm)
                 ->where('old_student.clsm', $clsm)
                 ->where('status', 'active')
                 ->where('old_student.clsa', $clsa)
@@ -5315,6 +5326,7 @@ class ApiController extends Controller
             $female = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
                 ->where('old_student.schid', $schid)
                 ->where('old_student.ssn', $ssn)
+                 ->where('old_student.trm', $trm)
                 ->where('old_student.clsm', $clsm)
                 ->where('status', 'active')
                 ->where('old_student.clsa', $clsa)
