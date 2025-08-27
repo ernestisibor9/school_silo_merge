@@ -4019,74 +4019,155 @@
                 "tags": [
                     "Api"
                 ],
-                "summary": "Get an old student's Basic Info",
-                "description": "Use this endpoint to get basic information about an old student.",
-                "operationId": "cbaefb0f6d3604a52bd6d507a0bdaccd",
+                "summary": "Get old students history",
+                "description": "Fetch old students by school, session, term, and class. If trm = -1, all terms for the session are returned. If clsa = -1, all arms are returned.",
+                "operationId": "getOldStudents",
                 "parameters": [
                     {
                         "name": "schid",
                         "in": "path",
-                        "description": "Id of the school",
+                        "description": "School ID",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "integer",
+                            "example": 12
                         }
                     },
                     {
                         "name": "ssn",
                         "in": "path",
-                        "description": "Id of the session",
+                        "description": "Session (academic year)",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "example": "2024"
                         }
                     },
                     {
                         "name": "trm",
                         "in": "path",
-                        "description": "Term of the session",
+                        "description": "Term ID (use -1 to fetch all terms for the session)",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "integer",
+                            "example": 1
                         }
                     },
                     {
                         "name": "clsm",
                         "in": "path",
-                        "description": "Id of the main class",
+                        "description": "Class main ID (e.g., JSS1, SS2)",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "example": "JSS1"
                         }
                     },
                     {
                         "name": "clsa",
                         "in": "path",
-                        "description": "Id of the class arm",
+                        "description": "Class arm (use -1 to fetch all arms)",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "example": "A"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Success",
+                        "description": "Successful Response",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "sid": {
+                                                        "type": "integer",
+                                                        "example": 101
+                                                    },
+                                                    "schid": {
+                                                        "type": "integer",
+                                                        "example": 12
+                                                    },
+                                                    "ssn": {
+                                                        "type": "string",
+                                                        "example": "2024/2025"
+                                                    },
+                                                    "trm": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "clsm": {
+                                                        "type": "string",
+                                                        "example": "JSS1"
+                                                    },
+                                                    "clsa": {
+                                                        "type": "string",
+                                                        "example": "A"
+                                                    },
+                                                    "status": {
+                                                        "type": "string",
+                                                        "example": "active"
+                                                    },
+                                                    "last_school": {
+                                                        "type": "string",
+                                                        "example": "St. Mary's Primary School"
+                                                    },
+                                                    "last_class": {
+                                                        "type": "string",
+                                                        "example": "Primary 6"
+                                                    },
+                                                    "new_class": {
+                                                        "type": "string",
+                                                        "example": "JSS1"
+                                                    },
+                                                    "new_class_main": {
+                                                        "type": "string",
+                                                        "example": "Junior Secondary"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
-                    "401": {
-                        "description": "Unauthorized"
+                    "404": {
+                        "description": "No records found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No records found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/getOldStudent/{schid}/{ssn}/{stid}": {
@@ -5268,6 +5349,166 @@
                     },
                     "401": {
                         "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/getOldStudentsAndSubjectScoreSheet/{schid}/{ssn}/{trm}/{clsm}/{clsa}/{stf}": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get old students and subject score sheet",
+                "description": "Fetches active old students for a given school, session, term, and class, along with their subject enrollments, scores, psychomotor info, and results.",
+                "operationId": "34057d1e59ba1667ee4421bd0c886d65",
+                "parameters": [
+                    {
+                        "name": "schid",
+                        "in": "path",
+                        "description": "School ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "path",
+                        "description": "Session identifier",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "path",
+                        "description": "Term identifier",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "clsm",
+                        "in": "path",
+                        "description": "Class main ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "clsa",
+                        "in": "path",
+                        "description": "Class arm ID (use -1 for all arms)",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "stf",
+                        "in": "path",
+                        "description": "Staff ID (-1 for all subjects, -2 for psychomotor)",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response with old students and their subject scores",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "std-pld": {
+                                                    "description": "List of students with their subjects and scores",
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "std": {
+                                                                "description": "Old student record",
+                                                                "type": "object"
+                                                            },
+                                                            "sbj": {
+                                                                "description": "List of subject IDs",
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "integer"
+                                                                }
+                                                            },
+                                                            "scr": {
+                                                                "description": "Scores per subject",
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "properties": {
+                                                                        "sbid": {
+                                                                            "description": "Subject ID",
+                                                                            "type": "integer"
+                                                                        },
+                                                                        "scores": {
+                                                                            "description": "List of scores for the subject",
+                                                                            "type": "array",
+                                                                            "items": {
+                                                                                "type": "object"
+                                                                            }
+                                                                        }
+                                                                    },
+                                                                    "type": "object"
+                                                                }
+                                                            },
+                                                            "psy": {
+                                                                "description": "Psychomotor record exists",
+                                                                "type": "boolean"
+                                                            },
+                                                            "res": {
+                                                                "description": "Result status",
+                                                                "type": "string"
+                                                            },
+                                                            "rinfo": {
+                                                                "description": "Student result info",
+                                                                "type": "object"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "cls-sbj": {
+                                                    "description": "List of class subjects",
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request"
                     }
                 },
                 "security": [

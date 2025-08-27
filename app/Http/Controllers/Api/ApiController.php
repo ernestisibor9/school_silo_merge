@@ -5082,72 +5082,98 @@ class ApiController extends Controller
     /**
      * @OA\Get(
      *     path="/api/getOldStudents/{schid}/{ssn}/{trm}/{clsm}/{clsa}",
+     *     summary="Get old students history",
+     *     description="Fetch old students by school, session, term, and class. If trm = -1, all terms for the session are returned. If clsa = -1, all arms are returned.",
+     *     operationId="getOldStudents",
      *     tags={"Api"},
-     *     security={{"bearerAuth": {}}},
-     *     summary="Get an old student's Basic Info",
-     *     description="Use this endpoint to get basic information about an old student.",
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
      *         required=true,
-     *         description="Id of the school",
-     *         @OA\Schema(type="string")
+     *         description="School ID",
+     *         @OA\Schema(type="integer", example=12)
      *     ),
      *     @OA\Parameter(
      *         name="ssn",
      *         in="path",
      *         required=true,
-     *         description="Id of the session",
-     *         @OA\Schema(type="string")
+     *         description="Session (academic year)",
+     *         @OA\Schema(type="string", example="2024")
      *     ),
      *     @OA\Parameter(
      *         name="trm",
      *         in="path",
      *         required=true,
-     *         description="Term of the session",
-     *         @OA\Schema(type="string")
+     *         description="Term ID (use -1 to fetch all terms for the session)",
+     *         @OA\Schema(type="integer", example=1)
      *     ),
      *     @OA\Parameter(
      *         name="clsm",
      *         in="path",
      *         required=true,
-     *         description="Id of the main class",
-     *         @OA\Schema(type="string")
+     *         description="Class main ID (e.g., JSS1, SS2)",
+     *         @OA\Schema(type="string", example="JSS1")
      *     ),
      *     @OA\Parameter(
      *         name="clsa",
      *         in="path",
      *         required=true,
-     *         description="Id of the class arm",
-     *         @OA\Schema(type="string")
+     *         description="Class arm (use -1 to fetch all arms)",
+     *         @OA\Schema(type="string", example="A")
      *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful Response",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="sid", type="integer", example=101),
+     *                     @OA\Property(property="schid", type="integer", example=12),
+     *                     @OA\Property(property="ssn", type="string", example="2024/2025"),
+     *                     @OA\Property(property="trm", type="integer", example=1),
+     *                     @OA\Property(property="clsm", type="string", example="JSS1"),
+     *                     @OA\Property(property="clsa", type="string", example="A"),
+     *                     @OA\Property(property="status", type="string", example="active"),
+     *                     @OA\Property(property="last_school", type="string", example="St. Mary's Primary School"),
+     *                     @OA\Property(property="last_class", type="string", example="Primary 6"),
+     *                     @OA\Property(property="new_class", type="string", example="JSS1"),
+     *                     @OA\Property(property="new_class_main", type="string", example="Junior Secondary")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="No records found",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="No records found")
+     *         )
+     *     )
      * )
      */
-    // public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
-    // {
-    //     $pld = [];
-    //     if ($clsa == '-1') {
-    //         $pld = old_student::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where("clsm", $clsm)->where("status", "active")->get();
-    //     } else {
-    //         $pld = old_student::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where("clsm", $clsm)->where("status", "active")->where("clsa", $clsa)->get();
-    //     }
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $pld,
-    //     ]);
-    // }
 
     public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
     {
         $query = old_student::leftJoin('student_academic_data', 'old_student.sid', '=', 'student_academic_data.user_id')
             ->where("old_student.schid", $schid)
             ->where("old_student.ssn", $ssn)
-            ->where("old_student.trm", $trm)
             ->where("old_student.clsm", $clsm)
             ->where("old_student.status", "active");
+
+        // Handle special flag: -1 = fetch all terms
+        if ($trm != -1) {
+            $query->where("old_student.trm", $trm);
+        }
 
         if ($clsa != '-1') {
             $query->where("old_student.clsa", $clsa);
@@ -5159,7 +5185,9 @@ class ApiController extends Controller
             'student_academic_data.last_class',
             'student_academic_data.new_class',
             'student_academic_data.new_class_main'
-        )->get();
+        )
+            ->orderBy('old_student.trm', 'asc') // helpful when returning multiple terms
+            ->get();
 
         return response()->json([
             "status" => true,
@@ -6950,6 +6978,107 @@ class ApiController extends Controller
 
 
     //////////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * @OA\Get(
+     *     path="/api/getOldStudentsAndSubjectScoreSheet/{schid}/{ssn}/{trm}/{clsm}/{clsa}/{stf}",
+     *     summary="Get old students and subject score sheet",
+     *     description="Fetches active old students for a given school, session, term, and class, along with their subject enrollments, scores, psychomotor info, and results.",
+     *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
+     *
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="path",
+     *         required=true,
+     *         description="School ID",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="path",
+     *         required=true,
+     *         description="Session identifier",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Term identifier",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="clsm",
+     *         in="path",
+     *         required=true,
+     *         description="Class main ID",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="clsa",
+     *         in="path",
+     *         required=true,
+     *         description="Class arm ID (use -1 for all arms)",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="stf",
+     *         in="path",
+     *         required=true,
+     *         description="Staff ID (-1 for all subjects, -2 for psychomotor)",
+     *         @OA\Schema(type="string")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful response with old students and their subject scores",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 @OA\Property(
+     *                     property="std-pld",
+     *                     type="array",
+     *                     description="List of students with their subjects and scores",
+     *                     @OA\Items(
+     *                         type="object",
+     *                         @OA\Property(property="std", type="object", description="Old student record"),
+     *                         @OA\Property(property="sbj", type="array", @OA\Items(type="integer"), description="List of subject IDs"),
+     *                         @OA\Property(
+     *                             property="scr",
+     *                             type="array",
+     *                             description="Scores per subject",
+     *                             @OA\Items(
+     *                                 type="object",
+     *                                 @OA\Property(property="sbid", type="integer", description="Subject ID"),
+     *                                 @OA\Property(property="scores", type="array", @OA\Items(type="object"), description="List of scores for the subject")
+     *                             )
+     *                         ),
+     *                         @OA\Property(property="psy", type="boolean", description="Psychomotor record exists"),
+     *                         @OA\Property(property="res", type="string", description="Result status"),
+     *                         @OA\Property(property="rinfo", type="object", description="Student result info")
+     *                     )
+     *                 ),
+     *                 @OA\Property(
+     *                     property="cls-sbj",
+     *                     type="array",
+     *                     description="List of class subjects",
+     *                     @OA\Items(type="object")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Bad request"
+     *     )
+     * )
+     */
+
 
     public function getOldStudentsAndSubjectScoreSheet($schid, $ssn, $trm, $clsm, $clsa, $stf)
     {
@@ -25051,22 +25180,77 @@ class ApiController extends Controller
     // }
 
 
+    // public function promoteStudent(Request $request)
+    // {
+    //     $request->validate([
+    //         'sid'   => 'required',
+    //         'schid' => 'required',
+    //         'sesn'  => 'required',
+    //         'trm'   => 'required',
+    //         'clsm'  => 'required', // main class
+    //         'clsa'  => 'required', // class arm
+    //         'suid'  => 'required',
+    //     ]);
+
+    //     // Find the student
+    //     $student = student::where('sid', $request->sid)->firstOrFail();
+
+    //     // Check if student has already been promoted for this session and term
+    //     $existingPromotion = old_student::where('sid', $request->sid)
+    //         ->where('ssn', $request->sesn)
+    //         ->where('trm', $request->trm)
+    //         ->first();
+
+    //     if ($existingPromotion) {
+    //         return response()->json([
+    //             'status'  => false,
+    //             'message' => 'Student has already been promoted for this session and term',
+    //         ], 409); // 409 Conflict
+    //     }
+
+    //     // Generate a unique promotion ID
+    //     $uid = $request->sesn . $request->trm . $request->sid;
+
+    //     // Create a new promotion record
+    //     old_student::create([
+    //         'uid'    => $uid,
+    //         'sid'    => $request->sid,
+    //         'schid'  => $request->schid,
+    //         'fname'  => $student->fname,
+    //         'mname'  => $student->mname,
+    //         'lname'  => $student->lname,
+    //         'status' => 'active',
+    //         'suid'   => $request->suid,
+    //         'ssn'    => $request->sesn,
+    //         'trm'    => $request->trm,
+    //         'clsm'   => $request->clsm, // main class
+    //         'clsa'   => $request->clsa, // arm
+    //         'more'   => '',
+    //     ]);
+
+    //     return response()->json([
+    //         'status'  => true,
+    //         'message' => 'Student promoted successfully',
+    //     ]);
+    // }
+
+
     public function promoteStudent(Request $request)
     {
         $request->validate([
             'sid'   => 'required',
             'schid' => 'required',
-            'sesn'  => 'required',
-            'trm'   => 'required',
-            'clsm'  => 'required', // main class
-            'clsa'  => 'required', // class arm
-            'suid'  => 'required',
+            'sesn'  => 'required',  // session
+            'trm'   => 'required',  // term
+            'clsm'  => 'required',  // main class
+            'clsa'  => 'required',  // class arm
+            'suid'  => 'required',  // student unique id
         ]);
 
-        // Find the student
+        // 1. Find the student
         $student = student::where('sid', $request->sid)->firstOrFail();
 
-        // Check if student has already been promoted for this session and term
+        // 2. Check if student already promoted in this session + term
         $existingPromotion = old_student::where('sid', $request->sid)
             ->where('ssn', $request->sesn)
             ->where('trm', $request->trm)
@@ -25076,13 +25260,13 @@ class ApiController extends Controller
             return response()->json([
                 'status'  => false,
                 'message' => 'Student has already been promoted for this session and term',
-            ], 409); // 409 Conflict
+            ], 409); // Conflict
         }
 
-        // Generate a unique promotion ID
-        $uid = $request->sesn . $request->trm . $request->sid;
+        // 3. Generate a unique promotion ID (session + term + sid)
+        $uid = $request->sesn . '-' . $request->trm . '-' . $request->sid;
 
-        // Create a new promotion record
+        // 4. Create a new promotion record (per term)
         old_student::create([
             'uid'    => $uid,
             'sid'    => $request->sid,
@@ -25092,8 +25276,8 @@ class ApiController extends Controller
             'lname'  => $student->lname,
             'status' => 'active',
             'suid'   => $request->suid,
-            'ssn'    => $request->sesn,
-            'trm'    => $request->trm,
+            'ssn'    => $request->sesn, // session
+            'trm'    => $request->trm,  // term
             'clsm'   => $request->clsm, // main class
             'clsa'   => $request->clsa, // arm
             'more'   => '',
@@ -25101,7 +25285,7 @@ class ApiController extends Controller
 
         return response()->json([
             'status'  => true,
-            'message' => 'Student promoted successfully',
+            'message' => 'Student promoted successfully for this term',
         ]);
     }
 
