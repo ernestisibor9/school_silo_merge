@@ -6856,19 +6856,24 @@ class ApiController extends Controller
             $scores = [];
             $totalScore = 0;
             $scoreCount = 0;
+            $studentSubjectIds = []; // Track subjects added for this student
 
             foreach ($studentSubjects as $sbj) {
-                // Avoid duplicates in student subjects
-                if (!isset($allSubjects[$sbj->sbj])) {
-                    $subject = subj::find($sbj->sbj);
-                    if ($subject) {
-                        $allSubjects[$sbj->sbj] = $subject;
-                    }
+                // Skip if this subject is already added for this student
+                if (in_array($sbj->sbj, $studentSubjectIds)) {
+                    continue;
                 }
+                $studentSubjectIds[] = $sbj->sbj;
 
+                // Fetch subject details
                 $subject = subj::find($sbj->sbj);
                 if ($subject) {
                     $mySbjs[] = $subject;
+
+                    // Track unique subjects for class-wide subjects list
+                    if (!isset($allSubjects[$sbj->sbj])) {
+                        $allSubjects[$sbj->sbj] = $subject;
+                    }
                 }
 
                 // Fetch scores for this subject
@@ -6967,6 +6972,7 @@ class ApiController extends Controller
             "pld" => $pld,
         ]);
     }
+
 
 
 
