@@ -6832,22 +6832,19 @@ class ApiController extends Controller
     public function getOldStudentsAndSubject($schid, $ssn, $trm, $clsm, $clsa, $stf)
     {
         // Fetch students based on class and arm
-        if ($clsa == '-1') {
-            $ostd = old_student::where("schid", $schid)
-                ->where("status", "active")
-                ->where("ssn", $ssn)
-                ->where("clsm", $clsm)
-                ->get();
-        } else {
-            $ostd = old_student::where("schid", $schid)
-                ->where("status", "active")
-                ->where("ssn", $ssn)
-                ->where("clsm", $clsm)
-                ->where("clsa", $clsa)
-                ->get();
+        $ostd = old_student::where("schid", $schid)
+            ->where("status", "active")
+            ->where("ssn", $ssn)
+            ->where("clsm", $clsm);
+
+        if ($clsa != '-1') {
+            $ostd = $ostd->where("clsa", $clsa);
         }
 
+        $ostd = $ostd->get();
+
         $stdPld = [];
+        $allSubjects = []; // To track unique subjects for cls-sbj
 
         foreach ($ostd as $std) {
             $user_id = $std->sid;
@@ -6861,7 +6858,14 @@ class ApiController extends Controller
             $scoreCount = 0;
 
             foreach ($studentSubjects as $sbj) {
-                // Fetch subject details
+                // Avoid duplicates in student subjects
+                if (!isset($allSubjects[$sbj->sbj])) {
+                    $subject = subj::find($sbj->sbj);
+                    if ($subject) {
+                        $allSubjects[$sbj->sbj] = $subject;
+                    }
+                }
+
                 $subject = subj::find($sbj->sbj);
                 if ($subject) {
                     $mySbjs[] = $subject;
@@ -6949,18 +6953,8 @@ class ApiController extends Controller
             ];
         }
 
-        // Prepare class subjects list
-        $clsSbj = [];
-        $temKeep = [];
-        foreach ($studentSubjects as $sbj) {
-            if (!in_array($sbj->sbj, $temKeep)) {
-                $temKeep[] = $sbj->sbj;
-                $schSbj = subj::find($sbj->sbj);
-                if ($schSbj) {
-                    $clsSbj[] = $schSbj;
-                }
-            }
-        }
+        // Prepare class subjects list without duplicates
+        $clsSbj = array_values($allSubjects);
 
         $pld = [
             'std-pld' => $stdPld,
@@ -6973,6 +6967,7 @@ class ApiController extends Controller
             "pld" => $pld,
         ]);
     }
+
 
 
     private function gradeFromAvg2($avg)
