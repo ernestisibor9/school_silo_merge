@@ -6841,7 +6841,8 @@ class ApiController extends Controller
             $ostd = $ostd->where("clsa", $clsa);
         }
 
-        $ostd = $ostd->get();
+        // 👉 Ensure unique students by sid (avoid duplicate entries across terms)
+        $ostd = $ostd->get()->unique('sid')->values();
 
         $stdPld = [];
         $allSubjects = []; // To track unique subjects for cls-sbj
