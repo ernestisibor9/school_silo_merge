@@ -24574,25 +24574,158 @@ class ApiController extends Controller
      * )
      */
 
+    // public function getStudentScoreSummary(Request $request)
+    // {
+    //     $schid = $request->schid;
+    //     $ssn = $request->ssn;
+    //     $trm = $request->trm;
+    //     $clsm = $request->clsm;
+    //     $clsa = $request->clsa;
+
+    //     // Get class name and class arm name
+    //     $className = cls::where('id', $clsm)->value('name') ?? "CLS-$clsm";
+
+    //     $classArmName = $clsa !== '-1'
+    //         ? sch_cls::where('schid', $schid)->where('cls_id', $clsm)->where('id', $clsa)->value('name') ?? 'N/A'
+    //         : 'All Arms';
+
+    //     // Get all active students
+    //     $students = old_student::where("schid", $schid)
+    //         ->where("status", "active")
+    //         ->where("ssn", $ssn)
+    //         ->where("clsm", $clsm)
+    //         ->when($clsa !== '-1', fn($q) => $q->where("clsa", $clsa))
+    //         ->get();
+
+    //     $scoreSheet = [];
+
+    //     foreach ($students as $student) {
+    //         $stid = $student->sid;
+
+    //         // Get the student's subjects
+    //         $subjects = student_subj::where("stid", $stid)->pluck("sbj")->toArray();
+
+    //         $grouped = [];
+    //         $totalScore = 0;
+    //         $subjectCount = 0;
+
+    //         foreach ($subjects as $sbjId) {
+    //             // Get all scores with assessment info
+    //             $scores = std_score::where("stid", $stid)
+    //                 ->where("sbj", $sbjId)
+    //                 ->where("schid", $schid)
+    //                 ->where("ssn", $ssn)
+    //                 ->where("trm", $trm)
+    //                 ->where("clsid", $clsm)
+    //                 ->get();
+
+    //             if ($scores->isNotEmpty()) {
+    //                 $grouped[$sbjId] = [];
+
+    //                 foreach ($scores as $score) {
+    //                     $markName = sch_mark::where('id', $score->aid)
+    //                         ->where('schid', $schid)
+    //                         ->where('clsid', $clsm)
+    //                         ->where('ssn', $ssn)
+    //                         ->where('trm', $trm)
+    //                         ->value('name') ?? 'Unknown';
+
+    //                     $grouped[$sbjId][] = [
+    //                         'assessment' => $markName,
+    //                         'score' => $score->scr,
+    //                     ];
+
+    //                     $totalScore += $score->scr;
+    //                 }
+
+    //                 $subjectCount++;
+    //             }
+    //         }
+
+    //         // Average is based on number of subjects with scores
+    //         $avg = $subjectCount ? round($totalScore / $subjectCount, 2) : 0;
+
+    //         // Format scores with subject names
+    //         $formattedScores = [];
+    //         foreach ($grouped as $sbjid => $scrArray) {
+    //             $subjectName = subj::find($sbjid)?->name ?? "Subject-$sbjid";
+    //             $formattedScores[] = [
+    //                 'subject_id' => $sbjid,
+    //                 'subject_name' => $subjectName,
+    //                 'scores' => $scrArray // array of [assessment, score]
+    //             ];
+    //         }
+
+    //         $scoreSheet[] = [
+    //             'uid' => $student->uid,
+    //             'schid' => $student->schid,
+    //             'sid' => $stid,
+    //             'learner_id' => $student->suid ?? $stid,
+    //             'name' => trim($student->fname . ' ' . $student->lname),
+    //             'avg_score' => $avg,
+    //             'class' => $clsm,
+    //             'class_name' => $className,
+    //             'class_arm_name' => $classArmName,
+    //             'no_of_subjects' => $subjectCount,
+    //             'scores' => $formattedScores,
+    //             'clsid' => $clsm,
+    //             'clsa' => $student->clsa,
+    //             'ssn' => $ssn,
+    //             'trm' => $trm,
+    //             'position' => 0 // placeholder, assigned below
+    //         ];
+    //     }
+
+    //     // Assign position based on avg_score
+    //     usort($scoreSheet, fn($a, $b) => $b['avg_score'] <=> $a['avg_score']);
+
+    //     $rank = 1;
+    //     $lastAvg = null;
+    //     $tieCount = 0;
+
+    //     foreach ($scoreSheet as $index => &$std) {
+    //         if ($std['avg_score'] === $lastAvg) {
+    //             $tieCount++;
+    //         } else {
+    //             $rank += $tieCount;
+    //             $tieCount = 1;
+    //         }
+    //         $std['position'] = $rank;
+    //         $lastAvg = $std['avg_score'];
+    //     }
+
+    //     return response()->json([
+    //         'status' => true,
+    //         'message' => 'Student Score Summary',
+    //         'data' => $scoreSheet
+    //     ]);
+    // }
+
+
+
     public function getStudentScoreSummary(Request $request)
     {
         $schid = $request->schid;
-        $ssn = $request->ssn;
-        $trm = $request->trm;
-        $clsm = $request->clsm;
-        $clsa = $request->clsa;
+        $ssn   = $request->ssn;
+        $trm   = $request->trm;
+        $clsm  = $request->clsm;
+        $clsa  = $request->clsa;
 
         // Get class name and class arm name
         $className = cls::where('id', $clsm)->value('name') ?? "CLS-$clsm";
 
         $classArmName = $clsa !== '-1'
-            ? sch_cls::where('schid', $schid)->where('cls_id', $clsm)->where('id', $clsa)->value('name') ?? 'N/A'
+            ? sch_cls::where('schid', $schid)
+            ->where('cls_id', $clsm)
+            ->where('id', $clsa)
+            ->value('name') ?? 'N/A'
             : 'All Arms';
 
-        // Get all active students
+        // 🔑 Get all active students for this session + term + class (+ arm if specified)
         $students = old_student::where("schid", $schid)
             ->where("status", "active")
             ->where("ssn", $ssn)
+            ->where("trm", $trm)   // ✅ filter by term to avoid duplicates
             ->where("clsm", $clsm)
             ->when($clsa !== '-1', fn($q) => $q->where("clsa", $clsa))
             ->get();
@@ -24610,7 +24743,7 @@ class ApiController extends Controller
             $subjectCount = 0;
 
             foreach ($subjects as $sbjId) {
-                // Get all scores with assessment info
+                // Get all scores with assessment info for this subject
                 $scores = std_score::where("stid", $stid)
                     ->where("sbj", $sbjId)
                     ->where("schid", $schid)
@@ -24642,7 +24775,7 @@ class ApiController extends Controller
                 }
             }
 
-            // Average is based on number of subjects with scores
+            // Average = totalScore / number of subjects with scores
             $avg = $subjectCount ? round($totalScore / $subjectCount, 2) : 0;
 
             // Format scores with subject names
@@ -24676,7 +24809,7 @@ class ApiController extends Controller
             ];
         }
 
-        // Assign position based on avg_score
+        // 🔑 Rank students by avg_score
         usort($scoreSheet, fn($a, $b) => $b['avg_score'] <=> $a['avg_score']);
 
         $rank = 1;
