@@ -4195,12 +4195,12 @@ class ApiController extends Controller
             ->where('student.stat', "1")
             ->where('student.status', "active")
             ->where('old_student.ssn', $ssn)
-            ->where('old_student.trm', $trm)   // ✅ FIX: filter by term
+            ->where('old_student.trm', $trm)   // ✅ filter by term
             ->where('old_student.clsm', $clsid)
             ->where('old_student.status', "active")
             ->where('old_student.clsa', $arm)
-            ->select('student.*', 'old_student.id as old_id')
-            ->distinct('student.sid') // ✅ One record per student
+            ->select('student.*', 'old_student.uid as old_uid') // ✅ FIX: use uid instead of id
+            ->distinct('student.sid') // ✅ one record per student
             ->get();
 
         $totalStd = count($members);
