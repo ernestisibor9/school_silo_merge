@@ -4227,14 +4227,14 @@
                 ]
             }
         },
-        "/api/getOldStudentsStat/{schid}/{ssn}/{clsm}/{clsa}": {
+        "/api/getOldStudentsStat/{schid}/{ssn}/{trm}/{clsm}/{clsa}": {
             "get": {
                 "tags": [
                     "Api"
                 ],
                 "summary": "Get an old student's stats",
                 "description": "Use this endpoint to get stats information about an old student.",
-                "operationId": "911174c3a4f152135119443e81ba4da0",
+                "operationId": "91b5a664cb457c9c01d105199e1556cb",
                 "parameters": [
                     {
                         "name": "schid",
@@ -4249,6 +4249,15 @@
                         "name": "ssn",
                         "in": "path",
                         "description": "Id of the session",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "path",
+                        "description": "Id of the trm",
                         "required": true,
                         "schema": {
                             "type": "string"
