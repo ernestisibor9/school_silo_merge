@@ -16387,75 +16387,133 @@ class ApiController extends Controller
     // }
 
 
-    /**
-     * @OA\Get(
-     *     path="/api/getStaffBySchool/{schid}/{stat}/{cls?}",
-     *     tags={"Admin"},
-     *     summary="ADMIN: Get staff by school id",
-     *     description="Use this endpoint to get staff by school",
-     *     security={{"bearerAuth": {}}},
-     *     @OA\Parameter(
-     *         name="schid",
-     *         in="path",
-     *         required=true,
-     *         description="School ID",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="stat",
-     *         in="path",
-     *         required=true,
-     *         description="Status of the staff",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="start",
-     *         in="query",
-     *         required=false,
-     *         description="Index to start at",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Parameter(
-     *         name="count",
-     *         in="query",
-     *         required=false,
-     *         description="No of records to retrieve",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
-     * )
-     */
-    public function getStaffBySchool($schid, $stat, $cls = 'zzz')
-    {
-        $start = 0;
-        $count = 20;
-        if (request()->has('start') && request()->has('count')) {
-            $start = request()->input('start');
-            $count = request()->input('count');
-        }
-        $members = [];
-        if ($cls !== 'zzz') {
-            $members = []; //TODO DO it join...
-        } else {
-            $members = staff::where('schid', $schid)->where('stat', $stat)->orderBy('sid', 'desc')->skip($start)->take($count)->get();
-        }
-        $pld = [];
-        foreach ($members as $member) {
-            $user_id = $member->sid;
-            $basicData = staff_basic_data::where('user_id', $user_id)->first();
-            $pld[] = [
-                's' => $member,
-                'b' => $basicData,
-            ];
-        }
-        // Respond
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $pld,
-        ]);
+/**
+ * @OA\Get(
+ *     path="/api/getStaffBySchool/{schid}/{stat}/{cls?}",
+ *     tags={"Admin"},
+ *     summary="ADMIN: Get staff by school id",
+ *     description="Use this endpoint to get staff by school, with optional filters for class, year, term, and pagination.",
+ *     security={{"bearerAuth": {}}},
+ *
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="path",
+ *         required=true,
+ *         description="School ID",
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Parameter(
+ *         name="stat",
+ *         in="path",
+ *         required=true,
+ *         description="Status of the staff (e.g., active, inactive)",
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Parameter(
+ *         name="cls",
+ *         in="path",
+ *         required=false,
+ *         description="Optional class assigned to staff (default = 'zzz')",
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Parameter(
+ *         name="start",
+ *         in="query",
+ *         required=false,
+ *         description="Index to start at (pagination start offset)",
+ *         @OA\Schema(type="integer", default=0)
+ *     ),
+ *     @OA\Parameter(
+ *         name="count",
+ *         in="query",
+ *         required=false,
+ *         description="Number of records to retrieve (pagination limit)",
+ *         @OA\Schema(type="integer", default=20)
+ *     ),
+ *     @OA\Parameter(
+ *         name="term",
+ *         in="query",
+ *         required=false,
+ *         description="Academic term filter",
+ *         @OA\Schema(type="string", example="1")
+ *     ),
+ *     @OA\Parameter(
+ *         name="year",
+ *         in="query",
+ *         required=false,
+ *         description="Academic year filter",
+ *         @OA\Schema(type="string", example="2024")
+ *     ),
+ *
+ *     @OA\Response(
+ *         response="200",
+ *         description="Success",
+ *         @OA\JsonContent()
+ *     ),
+ *     @OA\Response(
+ *         response="401",
+ *         description="Unauthorized"
+ *     ),
+ *     @OA\Response(
+ *         response="404",
+ *         description="Not Found"
+ *     )
+ * )
+ */
+
+public function getStaffBySchool(Request $request, $schid, $stat, $cls = 'zzz')
+{
+    $start = $request->query('start', 0);
+    $count = $request->query('count', 20);
+    $cls   = $request->query('cls', 'zzz');
+    $term  = $request->query('term', null);
+    $year  = $request->query('year', null);
+
+    if ($cls !== 'zzz') {
+        // Example if staff has academic/class relation
+        $query = Staff::join('staff_academic_data', 'staff.sid', '=', 'staff_academic_data.user_id')
+            ->where('staff.schid', $schid)
+            ->where('staff.stat', $stat)
+            ->where('staff_academic_data.class_assigned', $cls);
+    } else {
+        $query = Staff::where('schid', $schid)
+            ->where('stat', $stat);
     }
+
+    // Apply term filter if provided
+    if (!empty($term)) {
+        $query->where('staff.term', $term);
+    }
+
+    // Apply year filter if provided
+    if (!empty($year)) {
+        $query->where('staff.year', $year);
+    }
+
+    $members = $query->orderBy('staff.sid', 'desc')
+        ->skip($start)
+        ->take($count)
+        ->get();
+
+    $pld = [];
+    foreach ($members as $member) {
+        $user_id = $member->sid;
+
+        $basicData = staff_basic_data::where('user_id', $user_id)->first();
+
+        $pld[] = [
+            's' => $member,
+            'b' => $basicData,
+        ];
+    }
+
+    return response()->json([
+        "status"  => true,
+        "message" => "Success",
+        "pld"     => $pld,
+    ]);
+}
+
 
     /**
      * @OA\Get(

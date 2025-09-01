@@ -12872,7 +12872,7 @@
                     "Admin"
                 ],
                 "summary": "ADMIN: Get staff by school id",
-                "description": "Use this endpoint to get staff by school",
+                "description": "Use this endpoint to get staff by school, with optional filters for class, year, term, and pagination.",
                 "operationId": "df205ceb3158fb04793ee34f2920970c",
                 "parameters": [
                     {
@@ -12887,8 +12887,17 @@
                     {
                         "name": "stat",
                         "in": "path",
-                        "description": "Status of the staff",
+                        "description": "Status of the staff (e.g., active, inactive)",
                         "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "cls",
+                        "in": "path",
+                        "description": "Optional class assigned to staff (default = 'zzz')",
+                        "required": false,
                         "schema": {
                             "type": "string"
                         }
@@ -12896,19 +12905,41 @@
                     {
                         "name": "start",
                         "in": "query",
-                        "description": "Index to start at",
+                        "description": "Index to start at (pagination start offset)",
                         "required": false,
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "default": 0
                         }
                     },
                     {
                         "name": "count",
                         "in": "query",
-                        "description": "No of records to retrieve",
+                        "description": "Number of records to retrieve (pagination limit)",
                         "required": false,
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "default": 20
+                        }
+                    },
+                    {
+                        "name": "term",
+                        "in": "query",
+                        "description": "Academic term filter",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "1"
+                        }
+                    },
+                    {
+                        "name": "year",
+                        "in": "query",
+                        "description": "Academic year filter",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "2024"
                         }
                     }
                 ],
@@ -12923,6 +12954,9 @@
                     },
                     "401": {
                         "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Not Found"
                     }
                 },
                 "security": [
