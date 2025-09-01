@@ -13019,8 +13019,8 @@
                 "tags": [
                     "Admin"
                 ],
-                "summary": "ADMIN: Get how many Staff by school id",
-                "description": "Use this endpoint to get how many Staff by school",
+                "summary": "ADMIN: Get total number of Staff by school id",
+                "description": "Use this endpoint to get the total number of staff by school, with optional filters for class, term, and year.",
                 "operationId": "73936ce4028ebcd52d337530de499af0",
                 "parameters": [
                     {
@@ -13035,10 +13035,40 @@
                     {
                         "name": "stat",
                         "in": "path",
-                        "description": "Status of the staff",
+                        "description": "Status of the staff (e.g., active, inactive)",
                         "required": true,
                         "schema": {
                             "type": "string"
+                        }
+                    },
+                    {
+                        "name": "cls",
+                        "in": "path",
+                        "description": "Optional class filter (currently placeholder)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "11"
+                        }
+                    },
+                    {
+                        "name": "term",
+                        "in": "query",
+                        "description": "Optional academic term filter",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "1"
+                        }
+                    },
+                    {
+                        "name": "year",
+                        "in": "query",
+                        "description": "Optional academic year filter",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "2024"
                         }
                     }
                 ],
@@ -13047,7 +13077,28 @@
                         "description": "Success",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "total": {
+                                                    "type": "integer",
+                                                    "example": 57
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
