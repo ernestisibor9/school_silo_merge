@@ -5349,33 +5349,22 @@ class ApiController extends Controller
      * )
      */
 
-    public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
+    public function getOldStudents($schid, $ssn, $clsm, $clsa, $term)
     {
-        $query = old_student::leftJoin('student_academic_data', 'old_student.sid', '=', 'student_academic_data.user_id')
-            ->where("old_student.schid", $schid)
-            ->where("old_student.ssn", $ssn)
-            ->where("old_student.trm", $trm)
-            ->where("old_student.clsm", $clsm)
-            ->where("old_student.status", "active");
-
-        // Handle special flag: -1 = fetch all terms
-        if ($trm != -1) {
-            $query->where("old_student.trm", $trm);
-        }
+        $query = old_student::select('old_student.*')
+            ->join('student', 'old_student.sid', '=', 'student.sid')
+            ->where('old_student.schid', $schid)
+            ->where('old_student.ssn', $ssn)
+            ->where('old_student.clsm', $clsm)
+            ->where('old_student.status', 'active')      // old_student must be active
+            ->where('student.status', 'active')          // student must be active
+            ->where('student.term', $term);              // filter by term from students table
 
         if ($clsa != '-1') {
-            $query->where("old_student.clsa", $clsa);
+            $query->where('old_student.clsa', $clsa);
         }
 
-        $pld = $query->select(
-            'old_student.*',
-            'student_academic_data.last_school',
-            'student_academic_data.last_class',
-            'student_academic_data.new_class',
-            'student_academic_data.new_class_main'
-        )
-            ->orderBy('old_student.trm', 'asc') // helpful when returning multiple terms
-            ->get();
+        $pld = $query->get();
 
         return response()->json([
             "status" => true,
@@ -16213,66 +16202,66 @@ class ApiController extends Controller
      */
 
 
-public function getStudentsStatBySchool(Request $request)
-{
-    // Get query parameters
-    $schid = $request->query('schid'); // required
-    $cls   = $request->query('cls', 'zzz'); // optional
-    $year  = $request->query('year'); // optional
-    $term  = $request->query('term'); // optional
-    $stat  = $request->query('stat'); // optional
+    public function getStudentsStatBySchool(Request $request)
+    {
+        // Get query parameters
+        $schid = $request->query('schid'); // required
+        $cls   = $request->query('cls', 'zzz'); // optional
+        $year  = $request->query('year'); // optional
+        $term  = $request->query('term'); // optional
+        $stat  = $request->query('stat'); // optional
 
-    if (!$schid) {
+        if (!$schid) {
+            return response()->json([
+                'status' => false,
+                'message' => 'schid is required',
+                'pld' => []
+            ], 400);
+        }
+
+        // ---- Student table count ----
+        $studentQuery = student::where('schid', $schid)
+            ->where('status', 'active');
+
+        if ($stat) {
+            $studentQuery->where('stat', $stat);
+        }
+        if ($year) {
+            $studentQuery->where('year', $year);
+        }
+        if ($term) {
+            $studentQuery->where('term', $term);
+        }
+        if ($cls !== 'zzz') {
+            $studentQuery->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
+                ->where('student_academic_data.new_class_main', $cls);
+        }
+
+        $studentTotal = $studentQuery->count();
+
+        // ---- Old_student table count ----
+        $existingStudentIds = $studentQuery->pluck('sid')->toArray();
+
+        $oldQuery = old_student::where('schid', $schid)
+            ->where('status', 'active')
+            ->whereNotIn('sid', $existingStudentIds);
+
+        if ($year) $oldQuery->where('ssn', $year);
+        if ($term) $oldQuery->where('trm', $term);
+        if ($cls !== 'zzz') $oldQuery->where('clsm', $cls);
+
+        $oldTotal = $oldQuery->count();
+
+        $total = $studentTotal + $oldTotal;
+
         return response()->json([
-            'status' => false,
-            'message' => 'schid is required',
-            'pld' => []
-        ], 400);
+            'status' => true,
+            'message' => 'Success',
+            'pld' => [
+                'total' => $total
+            ]
+        ]);
     }
-
-    // ---- Student table count ----
-    $studentQuery = student::where('schid', $schid)
-        ->where('status', 'active');
-
-    if ($stat) {
-        $studentQuery->where('stat', $stat);
-    }
-    if ($year) {
-        $studentQuery->where('year', $year);
-    }
-    if ($term) {
-        $studentQuery->where('term', $term);
-    }
-    if ($cls !== 'zzz') {
-        $studentQuery->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
-            ->where('student_academic_data.new_class_main', $cls);
-    }
-
-    $studentTotal = $studentQuery->count();
-
-    // ---- Old_student table count ----
-    $existingStudentIds = $studentQuery->pluck('sid')->toArray();
-
-    $oldQuery = old_student::where('schid', $schid)
-        ->where('status', 'active')
-        ->whereNotIn('sid', $existingStudentIds);
-
-    if ($year) $oldQuery->where('ssn', $year);
-    if ($term) $oldQuery->where('trm', $term);
-    if ($cls !== 'zzz') $oldQuery->where('clsm', $cls);
-
-    $oldTotal = $oldQuery->count();
-
-    $total = $studentTotal + $oldTotal;
-
-    return response()->json([
-        'status' => true,
-        'message' => 'Success',
-        'pld' => [
-            'total' => $total
-        ]
-    ]);
-}
 
 
 
