@@ -16146,7 +16146,8 @@ class ApiController extends Controller
      *     path="/api/getStudentsStatBySchool/{schid}/{stat}/{cls}",
      *     summary="Get total active students by school, class, year, and term",
      *     description="Returns the total number of active students in a school. Optional class filter and query parameters for year and term.",
-     *     tags={"Students"},
+     *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
      *
      *     @OA\Parameter(
      *         name="schid",
