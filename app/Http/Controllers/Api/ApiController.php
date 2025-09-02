@@ -16144,17 +16144,12 @@ class ApiController extends Controller
         $total = 0;
 
         if ($cls !== 'zzz') {
-            $query = student::join(
-                'student_academic_data',
-                'student.sid',
-                '=',
-                'student_academic_data.user_id'
-            )
-                ->where('student.schid', $schid)
+            $query = student::where('student.schid', $schid)
                 ->where('student.stat', $stat)
                 ->where('student.status', 'active')
-                ->where('student_academic_data.new_class_main', $cls)
-                ->select('student.*'); // ✅ avoid duplicates
+                ->whereHas('academicData', function ($q) use ($cls) {
+                    $q->where('new_class_main', $cls);
+                });
 
             if (!is_null($year)) {
                 $query->where('student.year', $year);
@@ -16164,7 +16159,7 @@ class ApiController extends Controller
                 $query->where('student.term', $term);
             }
 
-            $total = $query->distinct()->count('student.sid'); // ✅ distinct count
+            $total = $query->distinct('student.sid')->count('student.sid'); // ✅ safe distinct
         } else {
             $query = student::where('schid', $schid)
                 ->where('stat', $stat)
@@ -16189,6 +16184,7 @@ class ApiController extends Controller
             ],
         ], 200);
     }
+
 
 
     /**
