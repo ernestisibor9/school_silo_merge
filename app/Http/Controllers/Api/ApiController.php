@@ -16139,88 +16139,87 @@ class ApiController extends Controller
         ]);
     }
 
-/**
- * @OA\Get(
- *     path="/api/getStudentsStatBySchool/{schid}/{stat}/{cls}/{year}/{term}",
- *     summary="Get statistics of students by school",
- *     description="Fetch the total number of active students in a school filtered by schid, stat, class, year, and term.",
- *     operationId="getStudentsStatBySchool",
- *     tags={"Api"},
- *     security={{"bearerAuth": {}}},
- *     @OA\Parameter(
- *         name="schid",
- *         in="path",
- *         description="School ID",
- *         required=true,
- *         @OA\Schema(type="integer", example=1)
- *     ),
- *     @OA\Parameter(
- *         name="stat",
- *         in="path",
- *         description="Student status (e.g. active, graduated, etc.)",
- *         required=true,
- *         @OA\Schema(type="string", example="promoted")
- *     ),
- *     @OA\Parameter(
- *         name="cls",
- *         in="path",
- *         description="Class (use 'zzz' to fetch all classes)",
- *         required=false,
- *         @OA\Schema(type="string", example="SS1")
- *     ),
- *     @OA\Parameter(
- *         name="year",
- *         in="query",
- *         description="Academic year (optional)",
- *         required=false,
- *         @OA\Schema(type="integer", example=2024)
- *     ),
- *     @OA\Parameter(
- *         name="term",
- *         in="query",
- *         description="Academic term (optional)",
- *         required=false,
- *         @OA\Schema(type="string", example="First Term")
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Successful response",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Success"),
- *             @OA\Property(
- *                 property="pld",
- *                 type="object",
- *                 @OA\Property(property="total", type="integer", example=45)
- *             )
- *         )
- *     ),
- *     @OA\Response(
- *         response=400,
- *         description="Bad request"
- *     )
- * )
- */
 
 
-    public function getStudentsStatBySchool($schid, $stat, $cls = 'zzz', $year = null, $term = null)
+    /**
+     * @OA\Get(
+     *     path="/api/getStudentsStatBySchool/{schid}/{stat}/{cls}",
+     *     summary="Get total active students by school, class, year, and term",
+     *     description="Returns the total number of active students in a school. Optional class filter and query parameters for year and term.",
+     *     tags={"Students"},
+     *
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="path",
+     *         description="School ID",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="stat",
+     *         in="path",
+     *         description="Student status code",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="cls",
+     *         in="path",
+     *         description="Class to filter (optional)",
+     *         required=false,
+     *         @OA\Schema(type="string", default="zzz")
+     *     ),
+     *     @OA\Parameter(
+     *         name="year",
+     *         in="query",
+     *         description="Academic year to filter (optional)",
+     *         required=false,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="term",
+     *         in="query",
+     *         description="Academic term to filter (optional)",
+     *         required=false,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 @OA\Property(property="total", type="integer", example=50)
+     *             )
+     *         )
+     *     )
+     * )
+     */
+    public function getStudentsStatBySchool($schid, $stat, $cls = 'zzz', Request $request)
     {
+        // Read query params
+        $year = $request->query('year');
+        $term = $request->query('term');
+
         $query = student::query()
             ->where('schid', $schid)
             ->where('stat', $stat)
-            ->where('status', 'active'); // ✅ enforce only active students
+            ->where('status', 'active'); // only active students
 
         if ($cls !== 'zzz') {
             $query->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
                 ->where('student_academic_data.new_class_main', $cls);
         }
 
-        if (!is_null($year)) {
+        if ($year) {
             $query->where('year', $year);
         }
 
-        if (!is_null($term)) {
+        if ($term) {
             $query->where('term', $term);
         }
 
@@ -16234,6 +16233,9 @@ class ApiController extends Controller
             ],
         ]);
     }
+
+
+
 
 
 

@@ -344,8 +344,8 @@ Route::group([
     // routes/api.php
 Route::get('getStudentsBySchool/{schid}/{stat}', [ApiController::class, 'getStudentsBySchool']);
 
-Route::get('getStudentsStatBySchool/{schid}/{stat}/{cls?}/{year?}/{term?}',
-    [ApiController::class, 'getStudentsStatBySchool']);
+Route::get('getStudentsStatBySchool/{schid}/{stat}/{cls?}', [ApiController::class, 'getStudentsStatBySchool']);
+
 
 
     Route::get('getStaffBySchool/{schid}/{stat}/{cls?}', [ApiController::class, 'getStaffBySchool']);
