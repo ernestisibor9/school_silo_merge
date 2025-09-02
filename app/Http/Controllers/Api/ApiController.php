@@ -8600,8 +8600,8 @@ class ApiController extends Controller
                 ->pluck('sbj');
 
             if ($allScores->isNotEmpty()) {
-                // If student already has scores, use those subjects
-                $mySbjs = $allScores->toArray();
+                // Remove duplicates
+                $mySbjs = $allScores->unique()->values()->toArray();
             } else {
                 // Otherwise, use subjects assigned in student_subj
                 $studentSubjects = student_subj::where('stid', $user_id)
@@ -8611,7 +8611,8 @@ class ApiController extends Controller
                     ->where("clsid", $clsm)
                     ->pluck('sbj');
 
-                $mySbjs = $studentSubjects->toArray();
+                // Remove duplicates
+                $mySbjs = $studentSubjects->unique()->values()->toArray();
             }
 
             $stdPld[] = [
@@ -8619,6 +8620,7 @@ class ApiController extends Controller
                 'sbj' => $mySbjs,
             ];
         }
+
 
         $pld = [
             'std-pld' => $stdPld,
