@@ -15822,67 +15822,139 @@ class ApiController extends Controller
      *     )
      * )
      */
-    public function getStudentsBySchool(Request $request, $schid, $stat, $cls = 'zzz')
+    // public function getStudentsBySchool(Request $request, $schid, $stat, $cls = 'zzz')
+    // {
+    //     $start = $request->query('start', 0);
+    //     $count = $request->query('count', 20);
+    //     $cls   = $request->query('cls', 'zzz');
+    //     $term  = $request->query('term', null);
+    //     $year  = $request->query('year', null);
+
+    //     if ($cls !== 'zzz') {
+    //         $query = student::join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
+    //             ->where('student.schid', $schid)
+    //             ->where('student.status', 'active') // ✅ keep only active
+    //             ->where('student.stat', $stat)
+    //             ->where('student_academic_data.new_class_main', $cls)
+    //             ->select('student.*');
+    //     } else {
+    //         $query = student::where('schid', $schid)
+    //             ->where('stat', $stat)
+    //             ->where('status', 'active'); // ✅ add this
+    //     }
+
+
+    //     // Apply filters
+    //     if (!empty($term)) {
+    //         $query->where('student.term', $term);
+    //     }
+
+    //     if (!empty($year)) {
+    //         $query->where('student.year', $year);
+    //     }
+
+    //     // Fetch data
+    //     $members = $query->orderBy('student.lname', 'asc')
+    //         ->skip($start)
+    //         ->take($count)
+    //         ->get();
+
+    //     // Get all user_ids
+    //     $userIds = $members->pluck('sid')->toArray();
+
+    //     // Fetch related data in bulk (avoid N+1 problem)
+    //     $academicData = student_academic_data::whereIn('user_id', $userIds)->get()->keyBy('user_id');
+    //     $basicData    = student_basic_data::whereIn('user_id', $userIds)->get()->keyBy('user_id');
+
+    //     // Build payload
+    //     $pld = $members->map(function ($member) use ($academicData, $basicData) {
+    //         return [
+    //             's' => $member,
+    //             'b' => $basicData[$member->sid] ?? null,
+    //             'a' => $academicData[$member->sid] ?? null,
+    //         ];
+    //     })->values();
+
+    //     // Final response
+    //     return response()->json([
+    //         "status"  => true,
+    //         "message" => "Success",
+    //         "count"   => $pld->count(),
+    //         "pld"     => $pld,
+    //     ]);
+    // }
+
+    public function getStudentsBySchool($schid, $stat, $cls = 'zzz')
     {
-        $start = $request->query('start', 0);
-        $count = $request->query('count', 20);
-        $cls   = $request->query('cls', 'zzz');
-        $term  = $request->query('term', null);
-        $year  = $request->query('year', null);
+        $start = 0;
+        $count = 20;
+
+        // Pagination inputs
+        if (request()->has('start') && request()->has('count')) {
+            $start = request()->input('start');
+            $count = request()->input('count');
+        }
+
+        // Optional filters
+        $year = request()->input('year', null);
+        $term = request()->input('term', null);
+
+        // Start query
+        $query = student::query();
 
         if ($cls !== 'zzz') {
-            $query = student::join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
+            // If class filter is applied
+            $query->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
                 ->where('student.schid', $schid)
-                ->where('student.status', 'active') // ✅ keep only active
                 ->where('student.stat', $stat)
-                ->where('student_academic_data.new_class_main', $cls)
-                ->select('student.*');
+                ->where('student.status', 'active') // ✅ only active students
+                ->where('student_academic_data.new_class_main', $cls);
         } else {
-            $query = student::where('schid', $schid)
+            // No class filter
+            $query->where('schid', $schid)
                 ->where('stat', $stat)
-                ->where('status', 'active'); // ✅ add this
+                ->where('status', 'active'); // ✅ only active students
         }
 
-
-        // Apply filters
-        if (!empty($term)) {
-            $query->where('student.term', $term);
-        }
-
-        if (!empty($year)) {
+        // Apply year filter if present
+        if (!is_null($year)) {
             $query->where('student.year', $year);
         }
 
-        // Fetch data
-        $members = $query->orderBy('student.lname', 'asc')
+        // Apply term filter if present
+        if (!is_null($term)) {
+            $query->where('student.term', $term);
+        }
+
+        // Fetch students
+        $members = $query->orderBy('student.lname', 'asc') // Sort alphabetically
             ->skip($start)
             ->take($count)
             ->get();
 
-        // Get all user_ids
-        $userIds = $members->pluck('sid')->toArray();
+        // Build response payload
+        $pld = [];
+        foreach ($members as $member) {
+            $user_id = $member->sid;
 
-        // Fetch related data in bulk (avoid N+1 problem)
-        $academicData = student_academic_data::whereIn('user_id', $userIds)->get()->keyBy('user_id');
-        $basicData    = student_basic_data::whereIn('user_id', $userIds)->get()->keyBy('user_id');
+            $academicData = student_academic_data::where('user_id', $user_id)->first();
+            $basicData = student_basic_data::where('user_id', $user_id)->first();
 
-        // Build payload
-        $pld = $members->map(function ($member) use ($academicData, $basicData) {
-            return [
+            $pld[] = [
                 's' => $member,
-                'b' => $basicData[$member->sid] ?? null,
-                'a' => $academicData[$member->sid] ?? null,
+                'b' => $basicData,
+                'a' => $academicData,
             ];
-        })->values();
+        }
 
-        // Final response
         return response()->json([
-            "status"  => true,
+            "status" => true,
             "message" => "Success",
-            "count"   => $pld->count(),
-            "pld"     => $pld,
+            "pld" => $pld,
         ]);
     }
+
+
 
 
 
@@ -16133,43 +16205,46 @@ class ApiController extends Controller
      */
 
 
-    public function getStudentsStatBySchool(Request $request, $schid, $stat, $cls = 'zzz')
+    public function getStudentsStatBySchool($schid, $stat, $cls = 'zzz', $year = null, $term = null)
     {
-        $term = $request->query('term', null);
-        $year = $request->query('year', null);
+        $total = 0;
 
         if ($cls !== 'zzz') {
             $query = student::join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
                 ->where('student.schid', $schid)
                 ->where('student.stat', $stat)
+                ->where('student.status', 'active') // ✅ Only active students
                 ->where('student_academic_data.new_class_main', $cls);
 
-            if (!empty($term)) {
-                $query->where('student_academic_data.term', $term);
+            if (!is_null($year)) {
+                $query->where('student.year', $year);
             }
 
-            if (!empty($year)) {
-                $query->where('student_academic_data.year', $year);
+            if (!is_null($term)) {
+                $query->where('student.term', $term);
             }
+
+            $total = $query->count();
         } else {
             $query = student::where('schid', $schid)
-                ->where('stat', $stat);
+                ->where('stat', $stat)
+                ->where('status', 'active'); // ✅ Only active students
 
-            if (!empty($term)) {
+            if (!is_null($year)) {
+                $query->where('year', $year);
+            }
+
+            if (!is_null($term)) {
                 $query->where('term', $term);
             }
 
-            if (!empty($year)) {
-                $query->where('year', $year);
-            }
+            $total = $query->count();
         }
 
-        $total = $query->count();
-
         return response()->json([
-            "status"  => true,
+            "status" => true,
             "message" => "Success",
-            "pld"     => [
+            "pld" => [
                 "total" => $total
             ],
         ]);
