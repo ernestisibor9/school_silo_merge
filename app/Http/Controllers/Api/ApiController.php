@@ -16200,7 +16200,7 @@ public function getStudentsStatBySchool(Request $request)
     if (!$schid) {
         return response()->json([
             'status'  => false,
-            'message' => 'schid is required',
+            'message' => 'schid and stat are required',
             'pld'     => []
         ], 400);
     }
@@ -16211,11 +16211,7 @@ public function getStudentsStatBySchool(Request $request)
     $year = $request->query('year', null);
 
     $query = student::where('schid', $schid)
-                    ->where('status', 'active');  // <-- Only active students
-
-    if ($stat) {
-        $query->where('stat', $stat);
-    }
+                    ->where('stat', $stat);
 
     if ($cls !== 'zzz') {
         $query->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
