@@ -16213,74 +16213,66 @@ class ApiController extends Controller
      */
 
 
-    public function getStudentsStatBySchool(Request $request)
-    {
-        // Get query parameters
-        $schid = $request->query('schid'); // required
-        $cls   = $request->query('cls', 'zzz'); // optional
-        $year  = $request->query('year'); // optional
-        $term  = $request->query('term'); // optional
-        $stat  = $request->query('stat'); // required
+public function getStudentsStatBySchool(Request $request)
+{
+    // Get query parameters
+    $schid = $request->query('schid'); // required
+    $cls   = $request->query('cls', 'zzz'); // optional
+    $year  = $request->query('year'); // optional
+    $term  = $request->query('term'); // optional
+    $stat  = $request->query('stat'); // optional
 
-        if (!$schid) {
-            return response()->json([
-                'status' => false,
-                'message' => 'schid is required',
-                'pld' => []
-            ], 400);
-        }
-
-        // if (!$stat) {
-        //     return response()->json([
-        //         'status' => false,
-        //         'message' => 'stat is required',
-        //         'pld' => []
-        //     ], 400);
-        // }
-
-        // ---- Student table count ----
-        $studentQuery = student::query()
-            ->where('schid', $schid)
-            ->where('status', 'active')
-            ->where('stat', $stat);
-
-        if ($year) $studentQuery->where('year', $year);
-        if ($term) $studentQuery->where('term', $term);
-
-        if ($cls !== 'zzz') {
-            $studentQuery->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
-                ->where('student_academic_data.new_class_main', $cls);
-        }
-
-        $studentTotal = $studentQuery->count();
-
-        // ---- Exclude students already in 'student' table ----
-        $existingStudentIds = $studentQuery->pluck('sid')->toArray();
-
-        // ---- Old_student table count (no stat filter!) ----
-        $oldQuery = old_student::query()
-            ->where('schid', $schid)
-            ->where('status', 'active')
-            ->whereNotIn('sid', $existingStudentIds);
-
-        if ($year) $oldQuery->where('ssn', $year);
-        if ($term) $oldQuery->where('trm', $term);
-        if ($cls !== 'zzz') $oldQuery->where('clsm', $cls);
-
-        $oldTotal = $oldQuery->count();
-
-        $total = $studentTotal + $oldTotal;
-
+    if (!$schid) {
         return response()->json([
-            'status' => true,
-            'message' => 'Success',
-            'pld' => [
-                'total' => $total
-            ]
-        ]);
+            'status' => false,
+            'message' => 'schid is required',
+            'pld' => []
+        ], 400);
     }
 
+    // ---- Student table count ----
+    $studentQuery = student::where('schid', $schid)
+        ->where('status', 'active');
 
+    if ($stat) {
+        $studentQuery->where('stat', $stat);
+    }
+    if ($year) {
+        $studentQuery->where('year', $year);
+    }
+    if ($term) {
+        $studentQuery->where('term', $term);
+    }
+    if ($cls !== 'zzz') {
+        $studentQuery->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
+            ->where('student_academic_data.new_class_main', $cls);
+    }
+
+    $studentTotal = $studentQuery->count();
+
+    // ---- Old_student table count ----
+    $existingStudentIds = $studentQuery->pluck('sid')->toArray();
+
+    $oldQuery = old_student::where('schid', $schid)
+        ->where('status', 'active')
+        ->whereNotIn('sid', $existingStudentIds);
+
+    if ($year) $oldQuery->where('ssn', $year);
+    if ($term) $oldQuery->where('trm', $term);
+    if ($cls !== 'zzz') $oldQuery->where('clsm', $cls);
+
+    $oldTotal = $oldQuery->count();
+
+    $total = $studentTotal + $oldTotal;
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Success',
+        'pld' => [
+            'total' => $total
+        ]
+    ]);
+}
 
 
 
