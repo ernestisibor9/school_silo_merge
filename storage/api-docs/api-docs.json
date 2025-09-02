@@ -12689,6 +12689,15 @@
                         }
                     },
                     {
+                        "name": "stat",
+                        "in": "query",
+                        "description": "Student status filter (optional, e.g., 'HGC')",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
                         "name": "cls",
                         "in": "query",
                         "description": "Class filter (optional, default 'zzz')",
