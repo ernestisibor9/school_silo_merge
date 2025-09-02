@@ -5350,30 +5350,19 @@ class ApiController extends Controller
      * )
      */
 
-public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
-{
-    $query = old_student::select('old_student.*')
-        ->join('student', 'old_student.sid', '=', 'student.sid') // join to student table
-        ->where('old_student.schid', $schid)
-        ->where('old_student.ssn', $ssn)
-        ->where('old_student.clsm', $clsm)
-        ->where('old_student.status', 'active') // only active old_student rows
-        ->where('student.term', $trm) // ✅ filter term only from student table
-        ->where('student.status', 'active'); // ✅ also ensure student itself is active
-
-    if ($clsa != '-1') {
-        $query->where('old_student.clsa', $clsa);
+    public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa){
+        $pld = [];
+        if($clsa=='-1'){
+            $pld = old_student::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where("clsm", $clsm)->where("status", "active")->get();
+        }else{
+            $pld = old_student::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where("clsm", $clsm)->where("status", "active")->where("clsa", $clsa)->get();
+        }
+        return response()->json([
+            "status"=> true,
+            "message"=> "Success",
+            "pld"=> $pld,
+        ]);
     }
-
-    $pld = $query->get();
-
-    return response()->json([
-        "status"  => true,
-        "message" => "Success",
-        "pld"     => $pld,
-    ]);
-}
-
 
 
 
