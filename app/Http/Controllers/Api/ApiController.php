@@ -16553,56 +16553,33 @@ public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
      * )
      */
 
-    public function getStaffBySchool(Request $request, $schid, $stat, $cls = 'zzz')
-    {
-        $start = $request->query('start', 0);
-        $count = $request->query('count', 20);
-        $cls   = $request->query('cls', 'zzz');
-        $term  = $request->query('term', null);
-        $year  = $request->query('year', null);
-
-        if ($cls !== 'zzz') {
-            // Example if staff has academic/class relation
-            $query = staff::join('staff_academic_data', 'staff.sid', '=', 'staff_academic_data.user_id')
-                ->where('staff.schid', $schid)
-                ->where('staff.stat', $stat)
-                ->where('staff_academic_data.class_assigned', $cls);
-        } else {
-            $query = staff::where('schid', $schid)
-                ->where('stat', $stat);
+    public function getStaffBySchool($schid,$stat,$cls='zzz'){
+        $start = 0;
+        $count = 20;
+        if(request()->has('start') && request()->has('count')) {
+            $start = request()->input('start');
+            $count = request()->input('count');
         }
-
-        // Apply term filter if provided
-        if (!empty($term)) {
-            $query->where('staff.term', $term);
+        $members = [];
+        if($cls !== 'zzz'){
+            $members =[];//TODO DO it join...
+        }else{
+            $members = staff::where('schid',$schid)->where('stat',$stat)->orderBy('sid', 'desc')->skip($start)->take($count)->get();
         }
-
-        // Apply year filter if provided
-        if (!empty($year)) {
-            $query->where('staff.year', $year);
-        }
-
-        $members = $query->orderBy('staff.sid', 'desc')
-            ->skip($start)
-            ->take($count)
-            ->get();
-
         $pld = [];
         foreach ($members as $member) {
             $user_id = $member->sid;
-
             $basicData = staff_basic_data::where('user_id', $user_id)->first();
-
             $pld[] = [
-                's' => $member,
-                'b' => $basicData,
+                's'=> $member,
+                'b'=> $basicData,
             ];
         }
-
+        // Respond
         return response()->json([
-            "status"  => true,
-            "message" => "Success",
-            "pld"     => $pld,
+            "status"=> true,
+            "message"=> "Success",
+            "pld"=> $pld,
         ]);
     }
 
