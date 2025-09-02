@@ -15822,66 +15822,67 @@ class ApiController extends Controller
      *     )
      * )
      */
-public function getStudentsBySchool(Request $request, $schid, $stat, $cls = 'zzz')
-{
-    $start = $request->query('start', 0);
-    $count = $request->query('count', 20);
-    $cls   = $request->query('cls', 'zzz');
-    $term  = $request->query('term', null);
-    $year  = $request->query('year', null);
+    public function getStudentsBySchool(Request $request, $schid, $stat, $cls = 'zzz')
+    {
+        $start = $request->query('start', 0);
+        $count = $request->query('count', 20);
+        $cls   = $request->query('cls', 'zzz');
+        $term  = $request->query('term', null);
+        $year  = $request->query('year', null);
 
-    // Base query
-    if ($cls !== 'zzz') {
-        $query = student::join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
-            ->where('student.schid', $schid)
-            ->where('student.status', 'active')
-            ->where('student.stat', $stat)
-            ->where('student_academic_data.new_class_main', $cls)
-            ->select('student.*'); // avoid duplicate fields
-    } else {
-        $query = student::where('schid', $schid)
-            ->where('stat', $stat);
+        if ($cls !== 'zzz') {
+            $query = student::join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
+                ->where('student.schid', $schid)
+                ->where('student.status', 'active') // ✅ keep only active
+                ->where('student.stat', $stat)
+                ->where('student_academic_data.new_class_main', $cls)
+                ->select('student.*');
+        } else {
+            $query = student::where('schid', $schid)
+                ->where('stat', $stat)
+                ->where('status', 'active'); // ✅ add this
+        }
+
+
+        // Apply filters
+        if (!empty($term)) {
+            $query->where('student.term', $term);
+        }
+
+        if (!empty($year)) {
+            $query->where('student.year', $year);
+        }
+
+        // Fetch data
+        $members = $query->orderBy('student.lname', 'asc')
+            ->skip($start)
+            ->take($count)
+            ->get();
+
+        // Get all user_ids
+        $userIds = $members->pluck('sid')->toArray();
+
+        // Fetch related data in bulk (avoid N+1 problem)
+        $academicData = student_academic_data::whereIn('user_id', $userIds)->get()->keyBy('user_id');
+        $basicData    = student_basic_data::whereIn('user_id', $userIds)->get()->keyBy('user_id');
+
+        // Build payload
+        $pld = $members->map(function ($member) use ($academicData, $basicData) {
+            return [
+                's' => $member,
+                'b' => $basicData[$member->sid] ?? null,
+                'a' => $academicData[$member->sid] ?? null,
+            ];
+        })->values();
+
+        // Final response
+        return response()->json([
+            "status"  => true,
+            "message" => "Success",
+            "count"   => $pld->count(),
+            "pld"     => $pld,
+        ]);
     }
-
-    // Apply filters
-    if (!empty($term)) {
-        $query->where('student.term', $term);
-    }
-
-    if (!empty($year)) {
-        $query->where('student.year', $year);
-    }
-
-    // Fetch data
-    $members = $query->orderBy('student.lname', 'asc')
-        ->skip($start)
-        ->take($count)
-        ->get();
-
-    // Get all user_ids
-    $userIds = $members->pluck('sid')->toArray();
-
-    // Fetch related data in bulk (avoid N+1 problem)
-    $academicData = student_academic_data::whereIn('user_id', $userIds)->get()->keyBy('user_id');
-    $basicData    = student_basic_data::whereIn('user_id', $userIds)->get()->keyBy('user_id');
-
-    // Build payload
-    $pld = $members->map(function ($member) use ($academicData, $basicData) {
-        return [
-            's' => $member,
-            'b' => $basicData[$member->sid] ?? null,
-            'a' => $academicData[$member->sid] ?? null,
-        ];
-    })->values();
-
-    // Final response
-    return response()->json([
-        "status"  => true,
-        "message" => "Success",
-        "count"   => $pld->count(),
-        "pld"     => $pld,
-    ]);
-}
 
 
 
@@ -16145,11 +16146,11 @@ public function getStudentsBySchool(Request $request, $schid, $stat, $cls = 'zzz
         if ($cls !== 'zzz') {
             // When class filter is applied
             $query = student::join(
-                    'student_academic_data',
-                    'student.sid',
-                    '=',
-                    'student_academic_data.user_id'
-                )
+                'student_academic_data',
+                'student.sid',
+                '=',
+                'student_academic_data.user_id'
+            )
                 ->where('student.schid', $schid)
                 ->where('student.stat', $stat)
                 ->where('student.status', 'active') // only active students
@@ -16588,70 +16589,70 @@ public function getStudentsBySchool(Request $request, $schid, $stat, $cls = 'zzz
         ]);
     }
 
-/**
- * @OA\Get(
- *     path="/api/getStaffStatBySchool/{schid}/{stat}/{cls?}",
- *     tags={"Admin"},
- *     summary="ADMIN: Get total number of Staff by school id",
- *     description="Use this endpoint to get the total number of staff by school, with optional filters for class, term, and year.",
- *     security={{"bearerAuth": {}}},
- *
- *     @OA\Parameter(
- *         name="schid",
- *         in="path",
- *         required=true,
- *         description="School ID",
- *         @OA\Schema(type="string")
- *     ),
- *     @OA\Parameter(
- *         name="stat",
- *         in="path",
- *         required=true,
- *         description="Status of the staff (e.g., active, inactive)",
- *         @OA\Schema(type="string")
- *     ),
- *     @OA\Parameter(
- *         name="cls",
- *         in="path",
- *         required=false,
- *         description="Optional class filter (currently placeholder)",
- *         @OA\Schema(type="string", example="11")
- *     ),
- *     @OA\Parameter(
- *         name="term",
- *         in="query",
- *         required=false,
- *         description="Optional academic term filter",
- *         @OA\Schema(type="string", example="1")
- *     ),
- *     @OA\Parameter(
- *         name="year",
- *         in="query",
- *         required=false,
- *         description="Optional academic year filter",
- *         @OA\Schema(type="string", example="2024")
- *     ),
- *
- *     @OA\Response(
- *         response="200",
- *         description="Success",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Success"),
- *             @OA\Property(
- *                 property="pld",
- *                 type="object",
- *                 @OA\Property(property="total", type="integer", example=57)
- *             )
- *         )
- *     ),
- *     @OA\Response(
- *         response="401",
- *         description="Unauthorized"
- *     )
- * )
- */
+    /**
+     * @OA\Get(
+     *     path="/api/getStaffStatBySchool/{schid}/{stat}/{cls?}",
+     *     tags={"Admin"},
+     *     summary="ADMIN: Get total number of Staff by school id",
+     *     description="Use this endpoint to get the total number of staff by school, with optional filters for class, term, and year.",
+     *     security={{"bearerAuth": {}}},
+     *
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="path",
+     *         required=true,
+     *         description="School ID",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="stat",
+     *         in="path",
+     *         required=true,
+     *         description="Status of the staff (e.g., active, inactive)",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="cls",
+     *         in="path",
+     *         required=false,
+     *         description="Optional class filter (currently placeholder)",
+     *         @OA\Schema(type="string", example="11")
+     *     ),
+     *     @OA\Parameter(
+     *         name="term",
+     *         in="query",
+     *         required=false,
+     *         description="Optional academic term filter",
+     *         @OA\Schema(type="string", example="1")
+     *     ),
+     *     @OA\Parameter(
+     *         name="year",
+     *         in="query",
+     *         required=false,
+     *         description="Optional academic year filter",
+     *         @OA\Schema(type="string", example="2024")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response="200",
+     *         description="Success",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 @OA\Property(property="total", type="integer", example=57)
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response="401",
+     *         description="Unauthorized"
+     *     )
+     * )
+     */
 
 
 
@@ -16672,37 +16673,37 @@ public function getStudentsBySchool(Request $request, $schid, $stat, $cls = 'zzz
     //     ]);
     // }
 
-public function getStaffStatBySchool(Request $request, $schid, $stat, $cls = 'zzz')
-{
-    $term = $request->query('term', null);
-    $year = $request->query('year', null);
+    public function getStaffStatBySchool(Request $request, $schid, $stat, $cls = 'zzz')
+    {
+        $term = $request->query('term', null);
+        $year = $request->query('year', null);
 
-    $query = staff::where('schid', $schid)
-                  ->where('stat', $stat);
+        $query = staff::where('schid', $schid)
+            ->where('stat', $stat);
 
-    // Optional class filter (currently placeholder, only works if column exists)
-    if ($cls !== 'zzz') {
-        // TODO: Add class filtering if staff table has class column or join with staff_academic_data
+        // Optional class filter (currently placeholder, only works if column exists)
+        if ($cls !== 'zzz') {
+            // TODO: Add class filtering if staff table has class column or join with staff_academic_data
+        }
+
+        if (!empty($term)) {
+            $query->where('term', $term);
+        }
+
+        if (!empty($year)) {
+            $query->where('year', $year);
+        }
+
+        $total = $query->count();
+
+        return response()->json([
+            "status"  => true,
+            "message" => "Success",
+            "pld"     => [
+                "total" => $total,
+            ],
+        ]);
     }
-
-    if (!empty($term)) {
-        $query->where('term', $term);
-    }
-
-    if (!empty($year)) {
-        $query->where('year', $year);
-    }
-
-    $total = $query->count();
-
-    return response()->json([
-        "status"  => true,
-        "message" => "Success",
-        "pld"     => [
-            "total" => $total,
-        ],
-    ]);
-}
 
 
 
