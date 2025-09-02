@@ -12673,7 +12673,7 @@
         "/api/getStudentsStatBySchool/{schid}/{stat}/{cls}/{year}/{term}": {
             "get": {
                 "tags": [
-                    "Students"
+                    "Api"
                 ],
                 "summary": "Get statistics of students by school",
                 "description": "Fetch the total number of active students in a school filtered by schid, stat, class, year, and term.",
@@ -12763,7 +12763,12 @@
                     "400": {
                         "description": "Bad request"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/getStudents": {
