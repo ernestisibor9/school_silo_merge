@@ -16255,26 +16255,12 @@ class ApiController extends Controller
         $studentTotal = $studentQuery->count();
 
         // ---- Exclude students already in 'student' table ----
-        $existingStudentIds = student::query()
-            ->where('schid', $schid)
-            ->where('status', 'active')
-            ->where('stat', $stat)
-            ->when($year, fn($q) => $q->where('year', $year))
-            ->when($term, fn($q) => $q->where('term', $term))
-            ->when(
-                $cls !== 'zzz',
-                fn($q) =>
-                $q->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
-                    ->where('student_academic_data.new_class_main', $cls)
-            )
-            ->pluck('sid')
-            ->toArray();
+        $existingStudentIds = $studentQuery->pluck('sid')->toArray();
 
-        // ---- Old_student table count ----
+        // ---- Old_student table count (no stat filter!) ----
         $oldQuery = old_student::query()
             ->where('schid', $schid)
             ->where('status', 'active')
-            ->where('stat', $stat)
             ->whereNotIn('sid', $existingStudentIds);
 
         if ($year) $oldQuery->where('ssn', $year);
