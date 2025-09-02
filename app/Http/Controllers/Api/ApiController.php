@@ -5074,20 +5074,100 @@ class ApiController extends Controller
      *     @OA\Response(response="400", description="Validation error"),
      * )
      */
+    // public function setStudentAcademicInfo(Request $request)
+    // {
+    //     //Data validation
+    //     $request->validate([
+    //         "user_id" => "required",
+    //         "schid" => "required",
+    //         "last_school" => "required",
+    //         "last_class" => "required",
+    //         "new_class" => "required",
+    //         "new_class_main" => "required",
+    //         "ssn" => "required",
+    //         "trm" => "required",
+    //         "suid" => "required",
+    //     ]);
+    //     $refreshSubjects = false;
+    //     $oldData = student_academic_data::where('user_id', $request->user_id)->first();
+    //     if ($oldData) {
+    //         $refreshSubjects = $oldData->new_class_main != $request->new_class_main;
+    //     } else {
+    //         $refreshSubjects = true;
+    //     }
+    //     student_academic_data::updateOrCreate(
+    //         ["user_id" => $request->user_id,],
+    //         [
+    //             "last_school" => $request->last_school,
+    //             "last_class" => $request->last_class,
+    //             "new_class" => $request->new_class,
+    //             "new_class_main" => $request->new_class_main,
+    //         ]
+    //     );
+    //     if ($refreshSubjects) { //Delete all subjs and set new, comps ones
+    //         student_subj::where('stid', $request->user_id)->delete();
+    //         // $schid = $request->schid;
+    //         // $clsid = $request->new_class_main;
+    //         // $members = class_subj::where("schid", $schid)->where("clsid", $clsid)->where("comp", '1')->get();
+    //         // $pld = [];
+    //         // foreach ($members as $member) {
+    //         //     $sbj = $member->subj_id;
+    //         //     $stid = $request->user_id;
+    //         //     student_subj::updateOrCreate(
+    //         //         ["uid"=> $sbj.$stid],
+    //         //         [
+    //         //         "stid"=> $stid,
+    //         //         "sbj"=> $sbj,
+    //         //         "comp"=> $member->comp,
+    //         //         "schid"=> $member->schid,
+    //         //     ]);
+    //         // }
+    //     }
+    //     $std = student::where('sid', $request->user_id)->first();
+    //     if ($request->new_class != 'NIL') { //Class Arm Specified
+    //         //--- RECORD IN OLD DATA SO DATA SHOWS UP IN CLASS DIST.
+    //         $uid = $request->ssn . $request->user_id;
+    //         old_student::updateOrCreate(
+    //             ["uid" => $uid,],
+    //             [
+    //                 'sid' => $request->user_id,
+    //                 'schid' => $request->schid,
+    //                 'fname' => $std->fname,
+    //                 'mname' => $std->mname,
+    //                 'lname' => $std->lname,
+    //                 'suid' => $request->suid,
+    //                 'ssn' => $request->ssn,
+    //                 'trm' => $request->trm,
+    //                 'clsm' => $request->new_class_main,
+    //                 'clsa' => $request->new_class,
+    //                 'more' => "",
+    //             ]
+    //         );
+    //     }
+    //     $std->update([
+    //         "s_academic" => '1'
+    //     ]);
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //     ]);
+    // }
+
     public function setStudentAcademicInfo(Request $request)
     {
-        //Data validation
+        // Data validation: make certain fields optional using 'nullable'
         $request->validate([
-            "user_id" => "required",
-            "schid" => "required",
-            "last_school" => "required",
-            "last_class" => "required",
-            "new_class" => "required",
-            "new_class_main" => "required",
-            "ssn" => "required",
-            "trm" => "required",
-            "suid" => "required",
+            "user_id"        => "required",
+            "schid"          => "required",
+            "last_school"    => "required",
+            "last_class"     => "nullable",      // optional
+            "new_class"      => "nullable",      // optional
+            "new_class_main" => "nullable",      // optional
+            "ssn"            => "required",
+            "trm"            => "required",
+            "suid"           => "required",
         ]);
+
         $refreshSubjects = false;
         $oldData = student_academic_data::where('user_id', $request->user_id)->first();
         if ($oldData) {
@@ -5095,63 +5175,54 @@ class ApiController extends Controller
         } else {
             $refreshSubjects = true;
         }
+
         student_academic_data::updateOrCreate(
-            ["user_id" => $request->user_id,],
+            ["user_id" => $request->user_id],
             [
-                "last_school" => $request->last_school,
-                "last_class" => $request->last_class,
-                "new_class" => $request->new_class,
-                "new_class_main" => $request->new_class_main,
+                "last_school"    => $request->last_school,
+                "last_class"     => $request->last_class ?? null,
+                "new_class"      => $request->new_class ?? null,
+                "new_class_main" => $request->new_class_main ?? null,
             ]
         );
-        if ($refreshSubjects) { //Delete all subjs and set new, comps ones
+
+        if ($refreshSubjects) {
             student_subj::where('stid', $request->user_id)->delete();
-            // $schid = $request->schid;
-            // $clsid = $request->new_class_main;
-            // $members = class_subj::where("schid", $schid)->where("clsid", $clsid)->where("comp", '1')->get();
-            // $pld = [];
-            // foreach ($members as $member) {
-            //     $sbj = $member->subj_id;
-            //     $stid = $request->user_id;
-            //     student_subj::updateOrCreate(
-            //         ["uid"=> $sbj.$stid],
-            //         [
-            //         "stid"=> $stid,
-            //         "sbj"=> $sbj,
-            //         "comp"=> $member->comp,
-            //         "schid"=> $member->schid,
-            //     ]);
-            // }
+            // You can optionally re-add subjects here
         }
+
         $std = student::where('sid', $request->user_id)->first();
-        if ($request->new_class != 'NIL') { //Class Arm Specified
-            //--- RECORD IN OLD DATA SO DATA SHOWS UP IN CLASS DIST.
+
+        if (!empty($request->new_class) && $request->new_class != 'NIL') { // Class Arm Specified
             $uid = $request->ssn . $request->user_id;
             old_student::updateOrCreate(
-                ["uid" => $uid,],
+                ["uid" => $uid],
                 [
-                    'sid' => $request->user_id,
+                    'sid'  => $request->user_id,
                     'schid' => $request->schid,
                     'fname' => $std->fname,
                     'mname' => $std->mname,
                     'lname' => $std->lname,
                     'suid' => $request->suid,
-                    'ssn' => $request->ssn,
-                    'trm' => $request->trm,
-                    'clsm' => $request->new_class_main,
-                    'clsa' => $request->new_class,
+                    'ssn'  => $request->ssn,
+                    'trm'  => $request->trm,
+                    'clsm' => $request->new_class_main ?? null,
+                    'clsa' => $request->new_class ?? null,
                     'more' => "",
                 ]
             );
         }
+
         $std->update([
             "s_academic" => '1'
         ]);
+
         return response()->json([
             "status" => true,
             "message" => "Success",
         ]);
     }
+
 
 
     /**
@@ -5350,17 +5421,18 @@ class ApiController extends Controller
      * )
      */
 
-    public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa){
+    public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
+    {
         $pld = [];
-        if($clsa=='-1'){
+        if ($clsa == '-1') {
             $pld = old_student::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where("clsm", $clsm)->where("status", "active")->get();
-        }else{
+        } else {
             $pld = old_student::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where("clsm", $clsm)->where("status", "active")->where("clsa", $clsa)->get();
         }
         return response()->json([
-            "status"=> true,
-            "message"=> "Success",
-            "pld"=> $pld,
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld,
         ]);
     }
 
@@ -16191,50 +16263,50 @@ class ApiController extends Controller
      */
 
 
-public function getStudentsStatBySchool(Request $request)
-{
-    // Required
-    $schid = $request->query('schid');
-    $stat  = $request->query('stat');
+    public function getStudentsStatBySchool(Request $request)
+    {
+        // Required
+        $schid = $request->query('schid');
+        $stat  = $request->query('stat');
 
-    if (!$schid) {
+        if (!$schid) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'schid and stat are required',
+                'pld'     => []
+            ], 400);
+        }
+
+        // Optional filters
+        $cls  = $request->query('cls', 'zzz');
+        $term = $request->query('term', null);
+        $year = $request->query('year', null);
+
+        $query = student::where('schid', $schid)
+            ->where('status', 'active')
+            ->where('stat', $stat);
+
+        if ($cls !== 'zzz') {
+            $query->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
+                ->where('student_academic_data.new_class_main', $cls);
+        }
+
+        if (!is_null($term)) {
+            $query->where('term', $term);
+        }
+
+        if (!is_null($year)) {
+            $query->where('year', $year);
+        }
+
+        $total = $query->count();
+
         return response()->json([
-            'status'  => false,
-            'message' => 'schid and stat are required',
-            'pld'     => []
-        ], 400);
+            'status'  => true,
+            'message' => 'Success',
+            'pld'     => ['total' => $total],
+        ]);
     }
-
-    // Optional filters
-    $cls  = $request->query('cls', 'zzz');
-    $term = $request->query('term', null);
-    $year = $request->query('year', null);
-
-    $query = student::where('schid', $schid)
-                    ->where('status', 'active')
-                    ->where('stat', $stat);
-
-    if ($cls !== 'zzz') {
-        $query->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
-              ->where('student_academic_data.new_class_main', $cls);
-    }
-
-    if (!is_null($term)) {
-        $query->where('term', $term);
-    }
-
-    if (!is_null($year)) {
-        $query->where('year', $year);
-    }
-
-    $total = $query->count();
-
-    return response()->json([
-        'status'  => true,
-        'message' => 'Success',
-        'pld'     => ['total' => $total],
-    ]);
-}
 
 
 
@@ -16526,33 +16598,34 @@ public function getStudentsStatBySchool(Request $request)
      * )
      */
 
-    public function getStaffBySchool($schid,$stat,$cls='zzz'){
+    public function getStaffBySchool($schid, $stat, $cls = 'zzz')
+    {
         $start = 0;
         $count = 20;
-        if(request()->has('start') && request()->has('count')) {
+        if (request()->has('start') && request()->has('count')) {
             $start = request()->input('start');
             $count = request()->input('count');
         }
         $members = [];
-        if($cls !== 'zzz'){
-            $members =[];//TODO DO it join...
-        }else{
-            $members = staff::where('schid',$schid)->where('stat',$stat)->orderBy('sid', 'desc')->skip($start)->take($count)->get();
+        if ($cls !== 'zzz') {
+            $members = []; //TODO DO it join...
+        } else {
+            $members = staff::where('schid', $schid)->where('stat', $stat)->orderBy('sid', 'desc')->skip($start)->take($count)->get();
         }
         $pld = [];
         foreach ($members as $member) {
             $user_id = $member->sid;
             $basicData = staff_basic_data::where('user_id', $user_id)->first();
             $pld[] = [
-                's'=> $member,
-                'b'=> $basicData,
+                's' => $member,
+                'b' => $basicData,
             ];
         }
         // Respond
         return response()->json([
-            "status"=> true,
-            "message"=> "Success",
-            "pld"=> $pld,
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld,
         ]);
     }
 
