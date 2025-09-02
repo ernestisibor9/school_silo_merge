@@ -16207,39 +16207,25 @@ class ApiController extends Controller
 
     public function getStudentsStatBySchool($schid, $stat, $cls = 'zzz', $year = null, $term = null)
     {
-        $total = 0;
+        $query = student::query()
+            ->where('schid', $schid)
+            ->where('stat', $stat)
+            ->where('status', 'active'); // ✅ enforce only active students
 
         if ($cls !== 'zzz') {
-            $query = student::join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
-                ->where('student.schid', $schid)
-                ->where('student.stat', $stat)
-                ->where('student.status', 'active') // ✅ Only active students
+            $query->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
                 ->where('student_academic_data.new_class_main', $cls);
-
-            if (!is_null($year)) {
-                $query->where('student.year', $year);
-            }
-
-            if (!is_null($term)) {
-                $query->where('student.term', $term);
-            }
-
-            $total = $query->count();
-        } else {
-            $query = student::where('schid', $schid)
-                ->where('stat', $stat)
-                ->where('status', 'active'); // ✅ Only active students
-
-            if (!is_null($year)) {
-                $query->where('year', $year);
-            }
-
-            if (!is_null($term)) {
-                $query->where('term', $term);
-            }
-
-            $total = $query->count();
         }
+
+        if (!is_null($year)) {
+            $query->where('year', $year);
+        }
+
+        if (!is_null($term)) {
+            $query->where('term', $term);
+        }
+
+        $total = $query->count();
 
         return response()->json([
             "status" => true,
