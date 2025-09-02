@@ -16197,7 +16197,7 @@ public function getStudentsStatBySchool(Request $request)
     $schid = $request->query('schid');
     $stat  = $request->query('stat');
 
-    if (!$schid || !$stat) {
+    if (!$schid) {
         return response()->json([
             'status'  => false,
             'message' => 'schid and stat are required',
