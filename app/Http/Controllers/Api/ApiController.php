@@ -8561,6 +8561,7 @@ class ApiController extends Controller
                 ->where("ssn", $ssn)
                 ->where("trm", $trm)
                 ->where("clsm", $clsm)
+                ->where("status", "active")
                 ->get();
         } else {
             $ostd = old_student::where("schid", $schid)
@@ -8568,6 +8569,7 @@ class ApiController extends Controller
                 ->where("trm", $trm)
                 ->where("clsm", $clsm)
                 ->where("clsa", $clsa)
+                ->where("status", "active")
                 ->get();
         }
 
