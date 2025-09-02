@@ -12670,14 +12670,14 @@
                 ]
             }
         },
-        "/api/getStudentsStatBySchool/{schid}/{stat}/{cls}/{year}/{term}": {
+        "/api/getStudentsStatBySchool/{schid}/{stat}/{cls}": {
             "get": {
                 "tags": [
-                    "Api"
+                    "Students"
                 ],
-                "summary": "Get statistics of students by school",
-                "description": "Fetch the total number of active students in a school filtered by schid, stat, class, year, and term.",
-                "operationId": "getStudentsStatBySchool",
+                "summary": "Get total active students by school, class, year, and term",
+                "description": "Returns the total number of active students in a school. Optional class filter and query parameters for year and term.",
+                "operationId": "9ee999055f805c059c6c1eed4c86c7a2",
                 "parameters": [
                     {
                         "name": "schid",
@@ -12685,54 +12685,50 @@
                         "description": "School ID",
                         "required": true,
                         "schema": {
-                            "type": "integer",
-                            "example": 1
+                            "type": "integer"
                         }
                     },
                     {
                         "name": "stat",
                         "in": "path",
-                        "description": "Student status (e.g. active, graduated, etc.)",
+                        "description": "Student status code",
                         "required": true,
                         "schema": {
-                            "type": "string",
-                            "example": "promoted"
+                            "type": "integer"
                         }
                     },
                     {
                         "name": "cls",
                         "in": "path",
-                        "description": "Class (use 'zzz' to fetch all classes)",
+                        "description": "Class to filter (optional)",
                         "required": false,
                         "schema": {
                             "type": "string",
-                            "example": "SS1"
+                            "default": "zzz"
                         }
                     },
                     {
                         "name": "year",
                         "in": "query",
-                        "description": "Academic year (optional)",
+                        "description": "Academic year to filter (optional)",
                         "required": false,
                         "schema": {
-                            "type": "integer",
-                            "example": 2024
+                            "type": "integer"
                         }
                     },
                     {
                         "name": "term",
                         "in": "query",
-                        "description": "Academic term (optional)",
+                        "description": "Academic term to filter (optional)",
                         "required": false,
                         "schema": {
-                            "type": "string",
-                            "example": "First Term"
+                            "type": "integer"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Successful response",
+                        "description": "Success",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -12749,7 +12745,7 @@
                                             "properties": {
                                                 "total": {
                                                     "type": "integer",
-                                                    "example": 45
+                                                    "example": 50
                                                 }
                                             },
                                             "type": "object"
@@ -12759,16 +12755,8 @@
                                 }
                             }
                         }
-                    },
-                    "400": {
-                        "description": "Bad request"
                     }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/getStudents": {
