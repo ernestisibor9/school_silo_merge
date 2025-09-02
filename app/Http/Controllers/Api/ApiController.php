@@ -5273,6 +5273,7 @@ class ApiController extends Controller
      *     description="Fetch old students by school, session, term, and class. If trm = -1, all terms for the session are returned. If clsa = -1, all arms are returned.",
      *     operationId="getOldStudents",
      *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
      *
      *     @OA\Parameter(
      *         name="schid",
