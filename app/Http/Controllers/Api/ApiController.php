@@ -16135,16 +16135,15 @@ class ApiController extends Controller
 
     public function getStudentsStatBySchool(Request $request)
     {
-        $schid = $request->query('schid');   // school id
-        $stat  = $request->query('stat');    // student status (e.g., enrolled, graduated, etc.)
-        $cls   = $request->query('cls', 'zzz'); // default to 'zzz' if not passed
-        $year  = $request->query('sesn');    // academic session (mapped from sesn)
-        $term  = $request->query('trm');     // academic term (mapped from trm)
+        $schid = $request->query('schid');
+        $stat  = $request->query('stat');
+        $cls   = $request->query('cls', 'zzz');
+        $year  = $request->query('year', $request->query('sesn')); // support both
+        $term  = $request->query('term', $request->query('trm'));  // support both
 
         $total = 0;
 
         if ($cls !== 'zzz') {
-            // When class filter is applied
             $query = student::join(
                 'student_academic_data',
                 'student.sid',
@@ -16153,8 +16152,9 @@ class ApiController extends Controller
             )
                 ->where('student.schid', $schid)
                 ->where('student.stat', $stat)
-                ->where('student.status', 'active') // only active students
-                ->where('student_academic_data.new_class_main', $cls);
+                ->where('student.status', 'active')
+                ->where('student_academic_data.new_class_main', $cls)
+                ->select('student.*'); // ✅ avoid duplicates
 
             if (!is_null($year)) {
                 $query->where('student.year', $year);
@@ -16164,12 +16164,11 @@ class ApiController extends Controller
                 $query->where('student.term', $term);
             }
 
-            $total = $query->count();
+            $total = $query->distinct()->count('student.sid'); // ✅ distinct count
         } else {
-            // When no class filter
             $query = student::where('schid', $schid)
                 ->where('stat', $stat)
-                ->where('status', 'active'); // only active students
+                ->where('status', 'active');
 
             if (!is_null($year)) {
                 $query->where('year', $year);
@@ -16190,6 +16189,7 @@ class ApiController extends Controller
             ],
         ], 200);
     }
+
 
     /**
      * @OA\Get(
