@@ -16141,72 +16141,76 @@ class ApiController extends Controller
 
 
 
-    /**
-     * @OA\Get(
-     *     path="/api/getStudentsStatBySchool",
-     *     summary="Get total active students for a school",
-     *     description="Returns the total number of active students (from student and old_student tables) for a given school, optionally filtered by class, year, and term.",
-     *     operationId="getStudentsStatBySchool",
-     *     tags={"Api"},
-     *     security={{"bearerAuth": {}}},
-     *     @OA\Parameter(
-     *         name="schid",
-     *         in="query",
-     *         description="School ID",
-     *         required=true,
-     *         @OA\Schema(type="integer", example=12)
-     *     ),
-     *     @OA\Parameter(
-     *         name="cls",
-     *         in="query",
-     *         description="Class filter (optional)",
-     *         required=false,
-     *         @OA\Schema(type="string", example="11")
-     *     ),
-     *     @OA\Parameter(
-     *         name="year",
-     *         in="query",
-     *         description="Academic year filter (optional)",
-     *         required=false,
-     *         @OA\Schema(type="integer", example=2024)
-     *     ),
-     *     @OA\Parameter(
-     *         name="term",
-     *         in="query",
-     *         description="Term filter (optional)",
-     *         required=false,
-     *         @OA\Schema(type="integer", example=1)
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Successful response",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Success"),
-     *             @OA\Property(
-     *                 property="pld",
-     *                 type="object",
-     *                 @OA\Property(property="total", type="integer", example=21)
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=400,
-     *         description="Bad request (missing required parameter)",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="schid is required"),
-     *             @OA\Property(property="pld", type="array", example=[])
-     *         )
-     *     )
-     * )
-     */
+/**
+ * @OA\Get(
+ *     path="/api/getStudentsStatBySchool",
+ *     summary="Get total count of active students for a school",
+ *     description="Returns the total number of active students for the given school, optionally filtered by class, year, and term. Students from the 'old_student' table who also exist in the 'student' table are excluded to avoid duplicates.",
+ *     tags={"Api"},
+ *     security={{"bearerAuth": {}}},
+ *
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="query",
+ *         description="School ID (required)",
+ *         required=true,
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Parameter(
+ *         name="cls",
+ *         in="query",
+ *         description="Class filter (optional, default 'zzz')",
+ *         required=false,
+ *         @OA\Schema(type="string", default="zzz")
+ *     ),
+ *     @OA\Parameter(
+ *         name="year",
+ *         in="query",
+ *         description="Academic year filter (optional)",
+ *         required=false,
+ *         @OA\Schema(type="string", example="2024")
+ *     ),
+ *     @OA\Parameter(
+ *         name="term",
+ *         in="query",
+ *         description="Term filter (optional)",
+ *         required=false,
+ *         @OA\Schema(type="integer", example=1)
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Success",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="object",
+ *                 @OA\Property(property="total", type="integer", example=42)
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=400,
+ *         description="Bad request (missing required parameter)",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="schid is required"),
+ *             @OA\Property(property="pld", type="object", example={})
+ *         )
+ *     )
+ * )
+ */
+
 
     public function getStudentsStatBySchool(Request $request)
     {
         // Get query parameters
         $schid = $request->query('schid'); // required
-        $cls   = $request->query('cls', 'zzz'); // optional, default 'zzz'
+        $cls   = $request->query('cls', 'zzz'); // optional
         $year  = $request->query('year'); // optional
         $term  = $request->query('term'); // optional
 
@@ -16233,10 +16237,24 @@ class ApiController extends Controller
 
         $studentTotal = $studentQuery->count();
 
-        // ---- Old_student table count ----
+        // ---- Old_student table count (exclude students already in 'student' table) ----
         $oldQuery = old_student::query()
             ->where('schid', $schid)
-            ->where('status', 'active');
+            ->where('status', 'active')
+            ->whereNotIn('sid', function ($query) use ($schid, $year, $term, $cls) {
+                $subQuery = student::query()->select('sid')
+                    ->where('schid', $schid)
+                    ->where('status', 'active');
+
+                if ($year) $subQuery->where('year', $year);
+                if ($term) $subQuery->where('term', $term);
+                if ($cls !== 'zzz') {
+                    $subQuery->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
+                        ->where('student_academic_data.new_class_main', $cls);
+                }
+
+                $query->fromSub($subQuery, 'existing_students');
+            });
 
         if ($year) $oldQuery->where('ssn', $year);
         if ($term) $oldQuery->where('trm', $term);
@@ -16254,6 +16272,7 @@ class ApiController extends Controller
             ]
         ]);
     }
+
 
 
 

@@ -12670,28 +12670,19 @@
                 ]
             }
         },
-        "/api/getStudentsStatBySchool/{schid}/{stat}/{cls}": {
+        "/api/getStudentsStatBySchool": {
             "get": {
                 "tags": [
                     "Api"
                 ],
-                "summary": "Get total active students by school, class, year, and term",
-                "description": "Returns the total number of active students in a school. Optional class filter and query parameters for year and term.",
-                "operationId": "9ee999055f805c059c6c1eed4c86c7a2",
+                "summary": "Get total count of active students for a school",
+                "description": "Returns the total number of active students for the given school, optionally filtered by class, year, and term. Students from the 'old_student' table who also exist in the 'student' table are excluded to avoid duplicates.",
+                "operationId": "bceabf29799b3237005eb25779a4fdf4",
                 "parameters": [
                     {
                         "name": "schid",
-                        "in": "path",
-                        "description": "School ID",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "stat",
-                        "in": "path",
-                        "description": "Student status code",
+                        "in": "query",
+                        "description": "School ID (required)",
                         "required": true,
                         "schema": {
                             "type": "integer"
@@ -12699,8 +12690,8 @@
                     },
                     {
                         "name": "cls",
-                        "in": "path",
-                        "description": "Class to filter (optional)",
+                        "in": "query",
+                        "description": "Class filter (optional, default 'zzz')",
                         "required": false,
                         "schema": {
                             "type": "string",
@@ -12710,19 +12701,21 @@
                     {
                         "name": "year",
                         "in": "query",
-                        "description": "Academic year to filter (optional)",
+                        "description": "Academic year filter (optional)",
                         "required": false,
                         "schema": {
-                            "type": "integer"
+                            "type": "string",
+                            "example": "2024"
                         }
                     },
                     {
                         "name": "term",
                         "in": "query",
-                        "description": "Academic term to filter (optional)",
+                        "description": "Term filter (optional)",
                         "required": false,
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "example": 1
                         }
                     }
                 ],
@@ -12745,10 +12738,34 @@
                                             "properties": {
                                                 "total": {
                                                     "type": "integer",
-                                                    "example": 50
+                                                    "example": 42
                                                 }
                                             },
                                             "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request (missing required parameter)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "schid is required"
+                                        },
+                                        "pld": {
+                                            "type": "object",
+                                            "example": []
                                         }
                                     },
                                     "type": "object"
