@@ -16133,56 +16133,46 @@ class ApiController extends Controller
      */
 
 
-    public function getStudentsStatBySchool(Request $request)
+    public function getStudentsStatBySchool(Request $request, $schid, $stat, $cls = 'zzz')
     {
-        $schid = $request->query('schid');
-        $stat  = $request->query('stat');
-        $cls   = $request->query('cls', 'zzz');
-        $year  = $request->query('year', $request->query('sesn')); // support both
-        $term  = $request->query('term', $request->query('trm'));  // support both
-
-        $total = 0;
+        $term = $request->query('term', null);
+        $year = $request->query('year', null);
 
         if ($cls !== 'zzz') {
-            $query = student::where('student.schid', $schid)
+            $query = student::join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
+                ->where('student.schid', $schid)
                 ->where('student.stat', $stat)
-                ->where('student.status', 'active')
-                ->whereHas('student_academic_data', function ($q) use ($cls) {
-                    $q->where('new_class_main', $cls);
-                });
+                ->where('student_academic_data.new_class_main', $cls);
 
-            if (!is_null($year)) {
-                $query->where('student.year', $year);
+            if (!empty($term)) {
+                $query->where('student_academic_data.term', $term);
             }
 
-            if (!is_null($term)) {
-                $query->where('student.term', $term);
+            if (!empty($year)) {
+                $query->where('student_academic_data.year', $year);
             }
-
-            $total = $query->distinct('student.sid')->count('student.sid'); // ✅ safe distinct
         } else {
             $query = student::where('schid', $schid)
-                ->where('stat', $stat)
-                ->where('status', 'active');
+                ->where('stat', $stat);
 
-            if (!is_null($year)) {
-                $query->where('year', $year);
-            }
-
-            if (!is_null($term)) {
+            if (!empty($term)) {
                 $query->where('term', $term);
             }
 
-            $total = $query->count();
+            if (!empty($year)) {
+                $query->where('year', $year);
+            }
         }
 
+        $total = $query->count();
+
         return response()->json([
-            "status" => true,
+            "status"  => true,
             "message" => "Success",
-            "pld" => [
+            "pld"     => [
                 "total" => $total
             ],
-        ], 200);
+        ]);
     }
 
 
