@@ -16230,13 +16230,13 @@ class ApiController extends Controller
             ], 400);
         }
 
-        if (!$stat) {
-            return response()->json([
-                'status' => false,
-                'message' => 'stat is required',
-                'pld' => []
-            ], 400);
-        }
+        // if (!$stat) {
+        //     return response()->json([
+        //         'status' => false,
+        //         'message' => 'stat is required',
+        //         'pld' => []
+        //     ], 400);
+        // }
 
         // ---- Student table count ----
         $studentQuery = student::query()
