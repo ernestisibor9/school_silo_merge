@@ -5349,30 +5349,29 @@ class ApiController extends Controller
      * )
      */
 
-    public function getOldStudents($schid, $ssn, $clsm, $clsa, $term)
-    {
-        $query = old_student::select('old_student.*')
-            ->join('student', 'old_student.sid', '=', 'student.sid')
-            ->where('old_student.schid', $schid)
-            ->where('old_student.ssn', $ssn)
-            ->where('old_student.clsm', $clsm)
-            ->where('old_student.status', 'active')      // old_student must be active
-            ->where('student.status', 'active')          // student must be active
-            ->where('student.term', $term);              // filter by term from students table
+public function getOldStudents($schid, $ssn, $clsm, $clsa, $trm)
+{
+    $query = old_student::select('old_student.*')
+        ->join('student', 'old_student.sid', '=', 'student.sid')
+        ->where('old_student.schid', $schid)
+        ->where('old_student.ssn', $ssn)
+        ->where('old_student.clsm', $clsm)
+        ->where('old_student.status', 'active')   // old_student must be active
+        ->where('student.status', 'active')       // student must be active
+        ->where('student.term', $trm);           // ✅ filter strictly by term in student table
 
-        if ($clsa != '-1') {
-            $query->where('old_student.clsa', $clsa);
-        }
-
-        $pld = $query->get();
-
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $pld,
-        ]);
+    if ($clsa != '-1') {
+        $query->where('old_student.clsa', $clsa);
     }
 
+    $pld = $query->get();
+
+    return response()->json([
+        "status"  => true,
+        "message" => "Success",
+        "pld"     => $pld,
+    ]);
+}
 
 
 
