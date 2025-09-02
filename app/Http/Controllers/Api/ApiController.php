@@ -15831,12 +15831,12 @@ class ApiController extends Controller
         $year  = $request->query('year', null);
 
         if ($cls !== 'zzz') {
-            $query = Student::join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
+            $query = student::join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
                 ->where('student.schid', $schid)
                 ->where('student.stat', $stat)
                 ->where('student_academic_data.new_class_main', $cls);
         } else {
-            $query = Student::where('schid', $schid)
+            $query = student::where('schid', $schid)
                 ->where('stat', $stat);
         }
 
