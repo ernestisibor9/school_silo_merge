@@ -12670,58 +12670,63 @@
                 ]
             }
         },
-        "/api/getStudentsStatBySchool": {
+        "/api/getStudentsStatBySchool/{schid}/{stat}/{cls}/{year}/{term}": {
             "get": {
                 "tags": [
-                    "Api"
+                    "Students"
                 ],
-                "summary": "Get total students by school, status, class, session (year), and term",
-                "description": "Returns total number of students filtered by school ID, student status, class (optional), session (year), and term",
+                "summary": "Get statistics of students by school",
+                "description": "Fetch the total number of active students in a school filtered by schid, stat, class, year, and term.",
                 "operationId": "getStudentsStatBySchool",
                 "parameters": [
                     {
                         "name": "schid",
-                        "in": "query",
+                        "in": "path",
                         "description": "School ID",
                         "required": true,
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "example": 1
                         }
                     },
                     {
                         "name": "stat",
-                        "in": "query",
-                        "description": "Student status (e.g., active, inactive)",
+                        "in": "path",
+                        "description": "Student status (e.g. active, graduated, etc.)",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "example": "promoted"
                         }
                     },
                     {
                         "name": "cls",
-                        "in": "query",
-                        "description": "Class (optional, defaults to all classes)",
+                        "in": "path",
+                        "description": "Class (use 'zzz' to fetch all classes)",
                         "required": false,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "example": "SS1"
                         }
                     },
                     {
-                        "name": "sesn",
+                        "name": "year",
                         "in": "query",
-                        "description": "Academic session (year)",
+                        "description": "Academic year (optional)",
                         "required": false,
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "example": 2024
                         }
                     },
                     {
-                        "name": "trm",
+                        "name": "term",
                         "in": "query",
-                        "description": "Academic term (e.g., 1st Term, 2nd Term)",
+                        "description": "Academic term (optional)",
                         "required": false,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "example": "First Term"
                         }
                     }
                 ],
@@ -12744,7 +12749,7 @@
                                             "properties": {
                                                 "total": {
                                                     "type": "integer",
-                                                    "example": 87
+                                                    "example": 45
                                                 }
                                             },
                                             "type": "object"
@@ -12756,14 +12761,9 @@
                         }
                     },
                     "400": {
-                        "description": "Invalid parameters"
+                        "description": "Bad request"
                     }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/getStudents": {
