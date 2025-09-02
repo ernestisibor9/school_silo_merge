@@ -12673,7 +12673,7 @@
         "/api/getStudentsStatBySchool/{schid}/{stat}/{cls}": {
             "get": {
                 "tags": [
-                    "Students"
+                    "Api"
                 ],
                 "summary": "Get total active students by school, class, year, and term",
                 "description": "Returns the total number of active students in a school. Optional class filter and query parameters for year and term.",
@@ -12756,7 +12756,12 @@
                             }
                         }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/getStudents": {
