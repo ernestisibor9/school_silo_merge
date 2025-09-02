@@ -16206,24 +16206,29 @@ class ApiController extends Controller
         $year = $request->query('year');
         $term = $request->query('term');
 
+        // Base query: only active students
         $query = student::query()
             ->where('schid', $schid)
             ->where('stat', $stat)
             ->where('status', 'active'); // only active students
 
+        // Filter by class if provided
         if ($cls !== 'zzz') {
-            $query->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
+            $query->leftJoin('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
                 ->where('student_academic_data.new_class_main', $cls);
         }
 
+        // Filter by year if provided
         if ($year) {
-            $query->where('year', $year);
+            $query->where('student.year', $year);
         }
 
+        // Filter by term if provided
         if ($term) {
-            $query->where('term', $term);
+            $query->where('student.term', $term);
         }
 
+        // Get total count
         $total = $query->count();
 
         return response()->json([
