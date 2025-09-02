@@ -16200,45 +16200,46 @@ class ApiController extends Controller
      *     )
      * )
      */
-    public function getStudentsStatBySchool($schid, $stat, $cls = 'zzz', Request $request)
+    public function getStudentsStatBySchool($schid, $cls = 'zzz', Request $request)
     {
-        // Read query params
-        $year = $request->query('year');
-        $term = $request->query('term');
+        $year = $request->query('year'); // for student.year / old_student.ssn
+        $term = $request->query('term'); // for student.term / old_student.trm
 
-        // Base query: only active students
-        $query = student::query()
-            ->where('schid', $schid)
-            ->where('stat', $stat)
-            ->where('status', 'active'); // only active students
+        // ---- Student table count ----
+        $studentQuery = student::query()->where('schid', $schid)
+            ->where('status', 'active');
 
-        // Filter by class if provided
+        if ($year) $studentQuery->where('year', $year);
+        if ($term) $studentQuery->where('term', $term);
+
         if ($cls !== 'zzz') {
-            $query->leftJoin('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
+            $studentQuery->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
                 ->where('student_academic_data.new_class_main', $cls);
         }
 
-        // Filter by year if provided
-        if ($year) {
-            $query->where('student.year', $year);
-        }
+        $studentTotal = $studentQuery->count();
 
-        // Filter by term if provided
-        if ($term) {
-            $query->where('student.term', $term);
-        }
+        // ---- Old_student table count ----
+        $oldQuery = old_student::query()->where('schid', $schid)
+            ->where('status', 'active');
 
-        // Get total count
-        $total = $query->count();
+        if ($year) $oldQuery->where('ssn', $year);
+        if ($term) $oldQuery->where('trm', $term);
+        if ($cls !== 'zzz') $oldQuery->where('clsm', $cls);
+
+        $oldTotal = $oldQuery->count();
+
+        $total = $studentTotal + $oldTotal;
 
         return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => [
-                "total" => $total
-            ],
+            'status' => true,
+            'message' => 'Success',
+            'pld' => [
+                'total' => $total
+            ]
         ]);
     }
+
 
 
 
