@@ -15833,6 +15833,7 @@ class ApiController extends Controller
         if ($cls !== 'zzz') {
             $query = student::join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
                 ->where('student.schid', $schid)
+                 ->where('student.status', 'active') // Added condition
                 ->where('student.stat', $stat)
                 ->where('student_academic_data.new_class_main', $cls);
         } else {
