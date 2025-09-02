@@ -16563,12 +16563,12 @@ public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
 
         if ($cls !== 'zzz') {
             // Example if staff has academic/class relation
-            $query = Staff::join('staff_academic_data', 'staff.sid', '=', 'staff_academic_data.user_id')
+            $query = staff::join('staff_academic_data', 'staff.sid', '=', 'staff_academic_data.user_id')
                 ->where('staff.schid', $schid)
                 ->where('staff.stat', $stat)
                 ->where('staff_academic_data.class_assigned', $cls);
         } else {
-            $query = Staff::where('schid', $schid)
+            $query = staff::where('schid', $schid)
                 ->where('stat', $stat);
         }
 
