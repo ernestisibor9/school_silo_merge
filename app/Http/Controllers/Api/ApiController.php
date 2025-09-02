@@ -16147,7 +16147,7 @@ class ApiController extends Controller
             $query = student::where('student.schid', $schid)
                 ->where('student.stat', $stat)
                 ->where('student.status', 'active')
-                ->whereHas('academicData', function ($q) use ($cls) {
+                ->whereHas('student_academic_data', function ($q) use ($cls) {
                     $q->where('new_class_main', $cls);
                 });
 
