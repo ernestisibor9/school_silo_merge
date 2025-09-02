@@ -16211,7 +16211,7 @@ public function getStudentsStatBySchool(Request $request)
     $year = $request->query('year', null);
 
     $query = student::where('schid', $schid)
-                    ->where('status', 'active');
+                    ->where('status', 'active')
                     ->where('stat', $stat);
 
     if ($cls !== 'zzz') {
