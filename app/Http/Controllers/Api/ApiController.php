@@ -26212,22 +26212,22 @@ class ApiController extends Controller
         $student = student::where('sid', $request->sid)->firstOrFail();
 
         // Check if student is already marked to repeat for the same session, term, and class/arm
-        $existingRepeat = old_student::where('sid', $request->sid)
-            ->where('ssn', $request->sesn)
-            ->where('trm', $request->trm)
-            ->where('clsm', $request->clsm)
-            ->where('clsa', $request->clsa)
-            ->first();
+        // $existingRepeat = old_student::where('sid', $request->sid)
+        //     ->where('ssn', $request->sesn)
+        //     ->where('trm', $request->trm)
+        //     ->where('clsm', $request->clsm)
+        //     ->where('clsa', $request->clsa)
+        //     ->first();
 
-        if ($existingRepeat) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'Student is already marked to repeat for this session and term',
-            ], 409); // 409 Conflict
-        }
+        // if ($existingRepeat) {
+        //     return response()->json([
+        //         'status'  => false,
+        //         'message' => 'Student is already marked to repeat for this session and term',
+        //     ], 409); // 409 Conflict
+        // }
 
-        // Generate a unique ID for the repeat record
-        $uid = $request->sesn . $request->trm . $request->sid;
+        // 3. Generate a unique numeric promotion ID (session + term + sid + random 5-digit number)
+        $uid = $request->sesn . $request->trm . $request->sid . rand(10000, 99999);
 
         // Create a new old_student record for repeating
         old_student::create([
