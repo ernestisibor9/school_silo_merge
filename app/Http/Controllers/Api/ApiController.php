@@ -3161,36 +3161,79 @@ class ApiController extends Controller
      *     @OA\Response(response="400", description="Validation error"),
      * )
      */
+    // public function setClassSubject(Request $request)
+    // {
+    //     //Data validation
+    //     $request->validate([
+    //         "uid" => "required",
+    //         "schid" => "required",
+    //         "subj_id" => "required",
+    //         "name" => "required",
+    //         "comp" => "required",
+    //         "clsid" => "required",
+    //         "sesn" => "required",
+    //         "trm" => "required",
+    //     ]);
+    //     class_subj::updateOrCreate(
+    //         ["uid" => $request->uid,],
+    //         [
+    //             "schid" => $request->schid,
+    //             "subj_id" => $request->subj_id,
+    //             "name" => $request->name,
+    //             "comp" => $request->comp,
+    //             "clsid" => $request->clsid,
+    //             "sesn" => $request->sesn,
+    //             "trm" => $request->trm,
+    //         ]
+    //     );
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //     ]);
+    // }
+
+
     public function setClassSubject(Request $request)
     {
-        //Data validation
+        // Data validation
         $request->validate([
-            "uid" => "required",
-            "schid" => "required",
+            "schid"   => "required",
             "subj_id" => "required",
-            "name" => "required",
-            "comp" => "required",
-            "clsid" => "required",
-            "sesn" => "required",
-            "trm" => "required",
+            "name"    => "required",
+            "comp"    => "required",
+            "clsid"   => "required",
+            "sesn"    => "required",
+            "trm"     => "required",
         ]);
+
+        // Generate a unique numeric UID
+        $uid = $request->subj_id
+            . $request->schid
+            . $request->clsid
+            . $request->sesn
+            . $request->trm
+            . rand(10000, 99999);
+
+        // Insert or update subject
         class_subj::updateOrCreate(
-            ["uid" => $request->uid,],
+            ["uid" => $uid],
             [
-                "schid" => $request->schid,
+                "schid"   => $request->schid,
                 "subj_id" => $request->subj_id,
-                "name" => $request->name,
-                "comp" => $request->comp,
-                "clsid" => $request->clsid,
-                "sesn" => $request->sesn,
-                "trm" => $request->trm,
+                "name"    => $request->name,
+                "comp"    => $request->comp,
+                "clsid"   => $request->clsid,
+                "sesn"    => $request->sesn,
+                "trm"     => $request->trm,
             ]
         );
+
         return response()->json([
-            "status" => true,
-            "message" => "Success",
+            "status"  => true,
+            "message" => "Subject added successfully",
         ]);
     }
+
 
 
     /**
@@ -25874,8 +25917,8 @@ class ApiController extends Controller
         //     ], 409); // Conflict
         // }
 
-        // 3. Generate a unique numeric promotion ID (session + term + sid + random 4-digit number)
-        $uid = $request->sesn . $request->trm . $request->sid . rand(1000, 9999);
+        // 3. Generate a unique numeric promotion ID (session + term + sid + random 5-digit number)
+        $uid = $request->sesn . $request->trm . $request->sid . rand(10000, 99999);
 
         // 4. Create a new promotion record (per term)
         old_student::create([
