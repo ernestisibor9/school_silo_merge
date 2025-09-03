@@ -6038,28 +6038,52 @@
                 "tags": [
                     "Api"
                 ],
-                "summary": "Set staff class arm",
+                "summary": "Assign staff to a class arm",
+                "description": "Creates or updates the staff class arm assignment for a given session and term.",
                 "operationId": "c1941f8570f76f0288cd42ac34acce40",
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
+                                "required": [
+                                    "stid",
+                                    "cls",
+                                    "arm",
+                                    "schid",
+                                    "sesn",
+                                    "trm"
+                                ],
                                 "properties": {
-                                    "uid": {
-                                        "type": "string"
-                                    },
                                     "stid": {
-                                        "type": "string"
+                                        "description": "Staff ID",
+                                        "type": "integer",
+                                        "example": 12
                                     },
                                     "cls": {
-                                        "type": "string"
+                                        "description": "Class name",
+                                        "type": "string",
+                                        "example": "11"
                                     },
                                     "arm": {
-                                        "type": "string"
+                                        "description": "Class arm",
+                                        "type": "string",
+                                        "example": "1"
                                     },
                                     "schid": {
-                                        "type": "string"
+                                        "description": "School ID",
+                                        "type": "integer",
+                                        "example": 101
+                                    },
+                                    "sesn": {
+                                        "description": "Academic session",
+                                        "type": "integer",
+                                        "example": 2024
+                                    },
+                                    "trm": {
+                                        "description": "Term number (1, 2, or 3)",
+                                        "type": "integer",
+                                        "example": 1
                                     }
                                 },
                                 "type": "object"
@@ -6069,10 +6093,85 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Staff data set successfully"
+                        "description": "Successful assignment",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "uid": {
+                                                    "type": "string",
+                                                    "example": "2024112101234"
+                                                },
+                                                "stid": {
+                                                    "type": "integer",
+                                                    "example": 12
+                                                },
+                                                "cls": {
+                                                    "type": "string",
+                                                    "example": "SS1"
+                                                },
+                                                "arm": {
+                                                    "type": "string",
+                                                    "example": "A"
+                                                },
+                                                "schid": {
+                                                    "type": "integer",
+                                                    "example": 101
+                                                },
+                                                "sesn": {
+                                                    "type": "integer",
+                                                    "example": 2024
+                                                },
+                                                "trm": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
-                    "400": {
-                        "description": "Validation error"
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "properties": {
+                                                "stid": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string",
+                                                        "example": "The stid field is required."
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
@@ -6082,63 +6181,105 @@
                 ]
             }
         },
-        "/api/getStaffClassArms/{stid}/{cls}": {
+        "/api/getStaffClassArms/{stid}/{cls}/{sesn}/{trm}": {
             "get": {
                 "tags": [
                     "Api"
                 ],
-                "summary": "Get a staff's class arms",
-                "description": "Use this endpoint to get class arms of a staff.",
-                "operationId": "576461a7af0b4408f1ed1114ecdb2614",
+                "summary": "Get Staff Class Arms",
+                "description": "Fetch class arms assigned to a staff for a given session and term",
+                "operationId": "be8964fb843d5ad80783d35718e0b139",
                 "parameters": [
                     {
                         "name": "stid",
                         "in": "path",
-                        "description": "User Id of the staff",
+                        "description": "Staff ID",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "integer",
+                            "example": 1929
                         }
                     },
                     {
                         "name": "cls",
                         "in": "path",
-                        "description": "The Class Id",
+                        "description": "Class ID",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "integer",
+                            "example": 15
+                        }
+                    },
+                    {
+                        "name": "sesn",
+                        "in": "path",
+                        "description": "Session year",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 2024
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "path",
+                        "description": "Term number",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
                         }
                     },
                     {
                         "name": "start",
                         "in": "query",
-                        "description": "Index to start at",
+                        "description": "Pagination start offset",
                         "required": false,
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "example": 0
                         }
                     },
                     {
                         "name": "count",
                         "in": "query",
-                        "description": "No of records to retrieve",
+                        "description": "Number of records to fetch",
                         "required": false,
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "example": 20
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Success",
+                        "description": "Successful response",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
-                    "401": {
-                        "description": "Unauthorized"
+                    "400": {
+                        "description": "Invalid input"
                     }
                 },
                 "security": [

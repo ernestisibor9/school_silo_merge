@@ -5196,79 +5196,105 @@ class ApiController extends Controller
     //     ]);
     // }
 
-    public function setStudentAcademicInfo(Request $request){
-        //Data validation
+    public function setStudentAcademicInfo(Request $request)
+    {
+        // Data validation
         $request->validate([
-            "user_id"=> "required",
-            "schid"=> "required",
-            "last_school"=> "required",
-            "last_class"=> "required",
-            "new_class"=> "required",
-            "new_class_main"=> "required",
-            "ssn"=> "required",
-            "suid"=> "required",
+            "user_id"        => "required",
+            "schid"          => "required",
+            "last_school"    => "required",
+            "last_class"     => "nullable",      // optional
+            "new_class"      => "nullable",      // optional
+            "new_class_main" => "nullable",      // optional
+            "ssn"            => "required",
+            "suid"           => "required",
         ]);
+
+        // ✅ Determine if we need to refresh subjects
         $refreshSubjects = false;
         $oldData = student_academic_data::where('user_id', $request->user_id)->first();
-        if($oldData){
-            $refreshSubjects = $oldData->new_class_main != $request->new_class_main;
-        }else{
+        if ($oldData) {
+            $refreshSubjects = $oldData->new_class_main != ($request->new_class_main ?? null);
+        } else {
             $refreshSubjects = true;
         }
+
+        // ✅ Save/update student academic info
         student_academic_data::updateOrCreate(
-            ["user_id"=> $request->user_id,],
+            ["user_id" => $request->user_id],
             [
-            "last_school"=> $request->last_school,
-            "last_class"=> $request->last_class,
-            "new_class"=> $request->new_class,
-            "new_class_main"=> $request->new_class_main,
-        ]);
-        if($refreshSubjects){//Delete all subjs and set new, comps ones
-            student_subj::where('stid',$request->user_id)->delete();
-            // $schid = $request->schid;
-            // $clsid = $request->new_class_main;
-            // $members = class_subj::where("schid", $schid)->where("clsid", $clsid)->where("comp", '1')->get();
-            // $pld = [];
-            // foreach ($members as $member) {
-            //     $sbj = $member->subj_id;
-            //     $stid = $request->user_id;
-            //     student_subj::updateOrCreate(
-            //         ["uid"=> $sbj.$stid],
-            //         [
-            //         "stid"=> $stid,
-            //         "sbj"=> $sbj,
-            //         "comp"=> $member->comp,
-            //         "schid"=> $member->schid,
-            //     ]);
+                "last_school"    => $request->last_school,
+                "last_class"     => $request->last_class ?? null,
+                "new_class"      => $request->new_class ?? null,
+                "new_class_main" => $request->new_class_main ?? null,
+            ]
+        );
+
+        // ✅ If class changed, clear subjects
+        if ($refreshSubjects) {
+            student_subj::where('stid', $request->user_id)->delete();
+
+            // (Optional) Re-assign compulsory subjects only if new_class_main is provided
+            // if (!empty($request->new_class_main)) {
+            //     $members = class_subj::where("schid", $request->schid)
+            //         ->where("clsid", $request->new_class_main)
+            //         ->where("comp", '1')
+            //         ->get();
+            //     foreach ($members as $member) {
+            //         student_subj::updateOrCreate(
+            //             ["uid" => $member->subj_id . $request->user_id],
+            //             [
+            //                 "stid"  => $request->user_id,
+            //                 "sbj"   => $member->subj_id,
+            //                 "comp"  => $member->comp,
+            //                 "schid" => $member->schid,
+            //             ]
+            //         );
+            //     }
             // }
         }
-        $std = student::where('sid',$request->user_id)->first();
-        if($request->new_class != 'NIL'){//Class Arm Specified
-            //--- RECORD IN OLD DATA SO DATA SHOWS UP IN CLASS DIST.
-            $uid = $request->ssn.$request->user_id;
-            old_student::updateOrCreate(
-                ["uid"=> $uid,],
-                [
-                'sid' => $request->user_id,
-                'schid' => $request->schid,
-                'fname' => $std->fname,
-                'mname' => $std->mname,
-                'lname' => $std->lname,
-                'suid' => $request->suid,
-                'ssn' => $request->ssn,
-                'clsm' => $request->new_class_main,
-                'clsa' => $request->new_class,
-                'more' => "",
-            ]);
+
+        // ✅ Fetch student
+        $std = student::where('sid', $request->user_id)->first();
+        if (!$std) {
+            return response()->json([
+                "status" => false,
+                "message" => "Student not found",
+            ], 404);
         }
+
+        // ✅ Record in old_student only if new_class is provided
+        if (!empty($request->new_class) && $request->new_class != 'NIL') {
+            $uid = $request->ssn . $request->user_id;
+
+            old_student::updateOrCreate(
+                ["uid" => $uid],
+                [
+                    'sid'   => $request->user_id,
+                    'schid' => $request->schid,
+                    'fname' => $std->fname,
+                    'mname' => $std->mname,
+                    'lname' => $std->lname,
+                    'suid'  => $request->suid,
+                    'ssn'   => $request->ssn,
+                    'clsm'  => $request->new_class_main ?? null,
+                    'clsa'  => $request->new_class ?? null,
+                    'more'  => "",
+                ]
+            );
+        }
+
+        // ✅ Mark student academic record as set
         $std->update([
-            "s_academic"=>'1'
+            "s_academic" => '1'
         ]);
+
         return response()->json([
-            "status"=> true,
-            "message"=> "Success",
+            "status"  => true,
+            "message" => "Success",
         ]);
     }
+
 
 
     /**
@@ -9400,105 +9426,208 @@ class ApiController extends Controller
     /**
      * @OA\Post(
      *     path="/api/setStaffClassArm",
+     *     summary="Assign staff to a class arm",
+     *     description="Creates or updates the staff class arm assignment for a given session and term.",
      *     tags={"Api"},
      *     security={{"bearerAuth": {}}},
-     *     summary="Set staff class arm",
+     *
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="uid", type="string"),
-     *             @OA\Property(property="stid", type="string"),
-     *             @OA\Property(property="cls", type="string"),
-     *             @OA\Property(property="arm", type="string"),
-     *             @OA\Property(property="schid", type="string"),
+     *             required={"stid","cls","arm","schid","sesn","trm"},
+     *             @OA\Property(property="stid", type="integer", example=12, description="Staff ID"),
+     *             @OA\Property(property="cls", type="string", example="11", description="Class name"),
+     *             @OA\Property(property="arm", type="string", example="1", description="Class arm"),
+     *             @OA\Property(property="schid", type="integer", example=101, description="School ID"),
+     *             @OA\Property(property="sesn", type="integer", example=2024, description="Academic session"),
+     *             @OA\Property(property="trm", type="integer", example=1, description="Term number (1, 2, or 3)")
      *         )
      *     ),
-     *     @OA\Response(response="200", description="Staff data set successfully"),
-     *     @OA\Response(response="400", description="Validation error"),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful assignment",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 @OA\Property(property="uid", type="string", example="2024112101234"),
+     *                 @OA\Property(property="stid", type="integer", example=12),
+     *                 @OA\Property(property="cls", type="string", example="SS1"),
+     *                 @OA\Property(property="arm", type="string", example="A"),
+     *                 @OA\Property(property="schid", type="integer", example=101),
+     *                 @OA\Property(property="sesn", type="integer", example=2024),
+     *                 @OA\Property(property="trm", type="integer", example=1)
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+     *             @OA\Property(
+     *                 property="errors",
+     *                 type="object",
+     *                 @OA\Property(property="stid", type="array", @OA\Items(type="string", example="The stid field is required."))
+     *             )
+     *         )
+     *     )
      * )
      */
+
+
     public function setStaffClassArm(Request $request)
     {
-        //Data validation
+        // ✅ Data validation
         $request->validate([
-            "uid" => "required",
-            "stid" => "required",
-            "cls" => "required",
-            "arm" => "required",
+            "stid"  => "required",
+            "cls"   => "required",
+            "arm"   => "required",
             "schid" => "required",
+            "sesn"  => "required",
+            "trm"   => "required",
         ]);
+
+        // ✅ Generate unique uid
+        $uid = $request->sesn . $request->trm . $request->stid . rand(10000, 99999);
+
+        // ✅ Update or create staff class arm record
         $pld = staff_class_arm::updateOrCreate(
-            ["uid" => $request->uid,],
             [
-                "stid" => $request->stid,
-                "cls" => $request->cls,
-                "arm" => $request->arm,
+                "stid"  => $request->stid,
+                "cls"   => $request->cls,
+                "arm"   => $request->arm,
                 "schid" => $request->schid,
+                "sesn"  => $request->sesn,
+                "trm"   => $request->trm,
+            ],
+            [
+                "uid"   => $uid,
             ]
         );
+
+        // ✅ Return JSON response
         return response()->json([
-            "status" => true,
+            "status"  => true,
             "message" => "Success",
-            "pld" => $pld
+            "pld"     => $pld
         ]);
     }
 
 
-    /**
-     * @OA\Get(
-     *     path="/api/getStaffClassArms/{stid}/{cls}",
-     *     tags={"Api"},
-     *     security={{"bearerAuth": {}}},
-     *     summary="Get a staff's class arms",
-     *     description="Use this endpoint to get class arms of a staff.",
-     *     @OA\Parameter(
-     *         name="stid",
-     *         in="path",
-     *         required=true,
-     *         description="User Id of the staff",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="cls",
-     *         in="path",
-     *         required=true,
-     *         description="The Class Id",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="start",
-     *         in="query",
-     *         required=false,
-     *         description="Index to start at",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Parameter(
-     *         name="count",
-     *         in="query",
-     *         required=false,
-     *         description="No of records to retrieve",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
-     * )
-     */
-    public function getStaffClassArms($stid, $cls)
+
+/**
+ * @OA\Get(
+ *     path="/api/getStaffClassArms/{stid}/{cls}/{sesn}/{trm}",
+ *     summary="Get Staff Class Arms",
+ *     description="Fetch class arms assigned to a staff for a given session and term",
+ *     tags={"Api"},
+ *     security={{"bearerAuth": {}}},
+ *
+ *     @OA\Parameter(
+ *         name="stid",
+ *         in="path",
+ *         required=true,
+ *         description="Staff ID",
+ *         @OA\Schema(type="integer", example=1929)
+ *     ),
+ *     @OA\Parameter(
+ *         name="cls",
+ *         in="path",
+ *         required=true,
+ *         description="Class ID",
+ *         @OA\Schema(type="integer", example=15)
+ *     ),
+ *     @OA\Parameter(
+ *         name="sesn",
+ *         in="path",
+ *         required=true,
+ *         description="Session year",
+ *         @OA\Schema(type="integer", example=2024)
+ *     ),
+ *     @OA\Parameter(
+ *         name="trm",
+ *         in="path",
+ *         required=true,
+ *         description="Term number",
+ *         @OA\Schema(type="integer", example=1)
+ *     ),
+ *     @OA\Parameter(
+ *         name="start",
+ *         in="query",
+ *         required=false,
+ *         description="Pagination start offset",
+ *         @OA\Schema(type="integer", example=0)
+ *     ),
+ *     @OA\Parameter(
+ *         name="count",
+ *         in="query",
+ *         required=false,
+ *         description="Number of records to fetch",
+ *         @OA\Schema(type="integer", example=20)
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful response",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(type="object")
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=400,
+ *         description="Invalid input"
+ *     )
+ * )
+ */
+
+    // public function getStaffClassArms($stid, $cls)
+    // {
+    //     $start = 0;
+    //     $count = 20;
+    //     if (request()->has('start') && request()->has('count')) {
+    //         $start = request()->input('start');
+    //         $count = request()->input('count');
+    //     }
+    //     $pld = staff_class_arm::where("stid", $stid)->where("cls", $cls)->skip($start)->take($count)->get();
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => $pld,
+    //     ]);
+    // }
+
+    public function getStaffClassArms($stid, $cls, $sesn, $trm)
     {
-        $start = 0;
-        $count = 20;
-        if (request()->has('start') && request()->has('count')) {
-            $start = request()->input('start');
-            $count = request()->input('count');
-        }
-        $pld = staff_class_arm::where("stid", $stid)->where("cls", $cls)->skip($start)->take($count)->get();
+        $start = request()->input('start', 0);
+        $count = request()->input('count', 20);
+
+        $pld = staff_class_arm::where("stid", $stid)
+            ->where("cls", $cls)
+            ->where("sesn", $sesn)
+            ->where("trm", $trm)
+            ->skip($start)
+            ->take($count)
+            ->get();
+
         return response()->json([
-            "status" => true,
+            "status"  => true,
             "message" => "Success",
-            "pld" => $pld,
+            "pld"     => $pld,
         ]);
     }
+
 
     /**
      * @OA\Get(
