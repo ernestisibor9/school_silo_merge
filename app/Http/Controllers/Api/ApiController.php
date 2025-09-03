@@ -25862,17 +25862,17 @@ class ApiController extends Controller
         $student = student::where('sid', $request->sid)->firstOrFail();
 
         // 2. Check if student already promoted in this session + term
-        $existingPromotion = old_student::where('sid', $request->sid)
-            ->where('ssn', $request->sesn)
-            ->where('trm', $request->trm)
-            ->first();
+        // $existingPromotion = old_student::where('sid', $request->sid)
+        //     ->where('ssn', $request->sesn)
+        //     ->where('trm', $request->trm)
+        //     ->first();
 
-        if ($existingPromotion) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'Student has already been promoted for this session and term',
-            ], 409); // Conflict
-        }
+        // if ($existingPromotion) {
+        //     return response()->json([
+        //         'status'  => false,
+        //         'message' => 'Student has already been promoted for this session and term',
+        //     ], 409); // Conflict
+        // }
 
         // 3. Generate a unique numeric promotion ID (session + term + sid + random 4-digit number)
         $uid = $request->sesn . $request->trm . $request->sid . rand(1000, 9999);
