@@ -5196,76 +5196,79 @@ class ApiController extends Controller
     //     ]);
     // }
 
-    public function setStudentAcademicInfo(Request $request)
-    {
-        // Data validation: make certain fields optional using 'nullable'
+    public function setStudentAcademicInfo(Request $request){
+        //Data validation
         $request->validate([
-            "user_id"        => "required",
-            "schid"          => "required",
-            "last_school"    => "required",
-            "last_class"     => "nullable",      // optional
-            "new_class"      => "nullable",      // optional
-            "new_class_main" => "nullable",      // optional
-            "ssn"            => "required",
-            "trm"            => "required",
-            "suid"           => "required",
+            "user_id"=> "required",
+            "schid"=> "required",
+            "last_school"=> "required",
+            "last_class"=> "required",
+            "new_class"=> "required",
+            "new_class_main"=> "required",
+            "ssn"=> "required",
+            "suid"=> "required",
         ]);
-
         $refreshSubjects = false;
         $oldData = student_academic_data::where('user_id', $request->user_id)->first();
-        if ($oldData) {
+        if($oldData){
             $refreshSubjects = $oldData->new_class_main != $request->new_class_main;
-        } else {
+        }else{
             $refreshSubjects = true;
         }
-
         student_academic_data::updateOrCreate(
-            ["user_id" => $request->user_id],
+            ["user_id"=> $request->user_id,],
             [
-                "last_school"    => $request->last_school,
-                "last_class"     => $request->last_class ?? null,
-                "new_class"      => $request->new_class ?? null,
-                "new_class_main" => $request->new_class_main ?? null,
-            ]
-        );
-
-        if ($refreshSubjects) {
-            student_subj::where('stid', $request->user_id)->delete();
-            // You can optionally re-add subjects here
-        }
-
-        $std = student::where('sid', $request->user_id)->first();
-
-        if (!empty($request->new_class) && $request->new_class != 'NIL') { // Class Arm Specified
-            $uid = $request->ssn . $request->user_id;
-            old_student::updateOrCreate(
-                ["uid" => $uid],
-                [
-                    'sid'  => $request->user_id,
-                    'schid' => $request->schid,
-                    'fname' => $std->fname,
-                    'mname' => $std->mname,
-                    'lname' => $std->lname,
-                    'suid' => $request->suid,
-                    'ssn'  => $request->ssn,
-                    'trm'  => $request->trm,
-                    'clsm' => $request->new_class_main ?? null,
-                    'clsa' => $request->new_class ?? null,
-                    'more' => "",
-                ]
-            );
-        }
-
-        $std->update([
-            "s_academic" => '1'
+            "last_school"=> $request->last_school,
+            "last_class"=> $request->last_class,
+            "new_class"=> $request->new_class,
+            "new_class_main"=> $request->new_class_main,
         ]);
-
+        if($refreshSubjects){//Delete all subjs and set new, comps ones
+            student_subj::where('stid',$request->user_id)->delete();
+            // $schid = $request->schid;
+            // $clsid = $request->new_class_main;
+            // $members = class_subj::where("schid", $schid)->where("clsid", $clsid)->where("comp", '1')->get();
+            // $pld = [];
+            // foreach ($members as $member) {
+            //     $sbj = $member->subj_id;
+            //     $stid = $request->user_id;
+            //     student_subj::updateOrCreate(
+            //         ["uid"=> $sbj.$stid],
+            //         [
+            //         "stid"=> $stid,
+            //         "sbj"=> $sbj,
+            //         "comp"=> $member->comp,
+            //         "schid"=> $member->schid,
+            //     ]);
+            // }
+        }
+        $std = student::where('sid',$request->user_id)->first();
+        if($request->new_class != 'NIL'){//Class Arm Specified
+            //--- RECORD IN OLD DATA SO DATA SHOWS UP IN CLASS DIST.
+            $uid = $request->ssn.$request->user_id;
+            old_student::updateOrCreate(
+                ["uid"=> $uid,],
+                [
+                'sid' => $request->user_id,
+                'schid' => $request->schid,
+                'fname' => $std->fname,
+                'mname' => $std->mname,
+                'lname' => $std->lname,
+                'suid' => $request->suid,
+                'ssn' => $request->ssn,
+                'clsm' => $request->new_class_main,
+                'clsa' => $request->new_class,
+                'more' => "",
+            ]);
+        }
+        $std->update([
+            "s_academic"=>'1'
+        ]);
         return response()->json([
-            "status" => true,
-            "message" => "Success",
+            "status"=> true,
+            "message"=> "Success",
         ]);
     }
-
 
 
     /**
