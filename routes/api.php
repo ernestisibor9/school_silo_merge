@@ -232,7 +232,7 @@ Route::group([
     Route::get('getStudentSubjects/{stid}', [ApiController::class, 'getStudentSubjects']);
     Route::delete('deleteStudentSubject/{uid}/{sbj}', [ApiController::class, 'deleteStudentSubject']);
     Route::delete('deleteStudentSubject/{uid}/{sbj}/{term}', [ApiController::class, 'deleteStudentSubject']);
-    Route::get('getStaffSubjects/{stid}', [ApiController::class, 'getStaffSubjects']);
+   Route::get('getStaffSubjects/{stid}/{sesn}/{trm}', [ApiController::class, 'getStaffSubjects']);
     Route::get('deleteStaffSubject/{uid}', [ApiController::class, 'deleteStaffSubject']);
     Route::get('getStaffClasses/{stid}', [ApiController::class, 'getStaffClasses']);
    Route::get('getStaffClassArms/{stid}/{cls}/{sesn}/{trm}', [ApiController::class, 'getStaffClassArms']);

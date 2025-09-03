@@ -10,7 +10,7 @@ class staff_subj extends Model
     protected $primaryKey = 'uid';
     public $incrementing = false;
     protected $fillable = [
-        'uid','stid', 'sbj', 'schid'
+        'uid','stid', 'sbj', 'schid', 'sesn', 'trm'
     ];
     /*protected $hidden = [
         'password',

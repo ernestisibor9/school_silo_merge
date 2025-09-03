@@ -6816,41 +6816,78 @@ class ApiController extends Controller
      *     path="/api/setStaffSubject",
      *     tags={"Api"},
      *     security={{"bearerAuth": {}}},
-     *     summary="Set staff subjects",
+     *     summary="Assign subject(s) to staff",
+     *     description="Creates or updates a staff subject assignment with a unique UID for the given session and term.",
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
      *             type="object",
-     *             @OA\Property(property="uid", type="string"),
-     *             @OA\Property(property="stid", type="string"),
-     *             @OA\Property(property="sbj", type="string"),
-     *             @OA\Property(property="schid", type="string"),
+     *             required={"stid","sbj","schid","sesn","trm"},
+     *             @OA\Property(property="stid", type="integer", example=1929, description="Staff ID"),
+     *             @OA\Property(property="sbj", type="integer", example=101, description="Subject ID"),
+     *             @OA\Property(property="schid", type="integer", example=12, description="School ID"),
+     *             @OA\Property(property="sesn", type="integer", example=2024, description="Academic Session"),
+     *             @OA\Property(property="trm", type="integer", example=1, description="Academic Term")
      *         )
      *     ),
-     *     @OA\Response(response="200", description="Staff data set successfully"),
-     *     @OA\Response(response="400", description="Validation error"),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Subject successfully assigned to staff",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 @OA\Property(property="uid", type="string", example="20241192956789"),
+     *                 @OA\Property(property="stid", type="integer", example=1929),
+     *                 @OA\Property(property="sbj", type="integer", example=101),
+     *                 @OA\Property(property="schid", type="integer", example=12),
+     *                 @OA\Property(property="sesn", type="integer", example=2024),
+     *                 @OA\Property(property="trm", type="integer", example=1),
+     *                 @OA\Property(property="created_at", type="string", example="2024-11-27 04:25:03"),
+     *                 @OA\Property(property="updated_at", type="string", example="2024-11-27 04:25:03")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error"
+     *     )
      * )
      */
+
     public function setStaffSubject(Request $request)
     {
-        //Data validation
+        // ✅ Data validation
         $request->validate([
-            "uid" => "required",
-            "stid" => "required",
-            "sbj" => "required",
+            "stid"  => "required",
+            "sbj"   => "required",
             "schid" => "required",
+            "sesn"  => "required",
+            "trm"   => "required",
         ]);
-        staff_subj::updateOrCreate(
-            ["uid" => $request->uid,],
+
+        // ✅ Generate unique UID
+        $uid = $request->sesn . $request->trm . $request->stid . rand(10000, 99999);
+
+        // ✅ Update or create based on UID only
+        $pld = staff_subj::updateOrCreate(
+            ["uid" => $uid],
             [
-                "stid" => $request->stid,
-                "sbj" => $request->sbj,
+                "stid"  => $request->stid,
+                "sbj"   => $request->sbj,
                 "schid" => $request->schid,
+                "sesn"  => $request->sesn,
+                "trm"   => $request->trm,
             ]
         );
+
         return response()->json([
-            "status" => true,
+            "status"  => true,
             "message" => "Success",
+            "pld"     => $pld
         ]);
     }
 
@@ -9192,53 +9229,92 @@ class ApiController extends Controller
 
 
 
-    /**
-     * @OA\Get(
-     *     path="/api/getStaffSubjects/{stid}",
-     *     tags={"Api"},
-     *     security={{"bearerAuth": {}}},
-     *     summary="Get a staff's subjects",
-     *     description="Use this endpoint to get subjects of a staff.",
-     *     @OA\Parameter(
-     *         name="stid",
-     *         in="path",
-     *         required=true,
-     *         description="User Id of the staff",
-     *         @OA\Schema(type="string")
-     *     ),
-     *      @OA\Parameter(
-     *         name="start",
-     *         in="query",
-     *         required=false,
-     *         description="Index to start at",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Parameter(
-     *         name="count",
-     *         in="query",
-     *         required=false,
-     *         description="No of records to retrieve",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
-     * )
-     */
-    public function getStaffSubjects($stid)
-    {
-        $start = 0;
-        $count = 20;
-        if (request()->has('start') && request()->has('count')) {
-            $start = request()->input('start');
-            $count = request()->input('count');
-        }
-        $pld = staff_subj::where("stid", $stid)->skip($start)->take($count)->get();
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $pld,
-        ]);
-    }
+/**
+ * @OA\Get(
+ *     path="/api/getStaffSubjects/{stid}/{sesn}/{trm}",
+ *     summary="Get staff subjects by staff ID, session, and term",
+ *     description="Fetches subjects assigned to a staff filtered by staff ID, session, and term with pagination support.",
+ *     tags={"Api"},
+ *      security={{"bearerAuth": {}}},
+ *
+ *     @OA\Parameter(
+ *         name="stid",
+ *         in="path",
+ *         required=true,
+ *         description="Staff ID",
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Parameter(
+ *         name="sesn",
+ *         in="path",
+ *         required=true,
+ *         description="Academic session (e.g. 2024)",
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Parameter(
+ *         name="trm",
+ *         in="path",
+ *         required=true,
+ *         description="Term (e.g. 1, 2, or 3)",
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Parameter(
+ *         name="start",
+ *         in="query",
+ *         required=false,
+ *         description="Offset for pagination (default 0)",
+ *         @OA\Schema(type="integer", default=0)
+ *     ),
+ *     @OA\Parameter(
+ *         name="count",
+ *         in="query",
+ *         required=false,
+ *         description="Number of records to return (default 20)",
+ *         @OA\Schema(type="integer", default=20)
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful response",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(type="object")
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="Staff subjects not found"
+ *     )
+ * )
+ */
+
+
+    public function getStaffSubjects($stid, $sesn, $trm)
+{
+    $start = request()->input('start', 0);   // default 0
+    $count = request()->input('count', 20);  // default 20
+
+    $pld = staff_subj::where("stid", $stid)
+        ->where("sesn", $sesn)
+        ->where("trm", $trm)
+        ->skip($start)
+        ->take($count)
+        ->get();
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => $pld,
+    ]);
+}
+
+
 
     /**
      * @OA\Get(
@@ -9520,77 +9596,77 @@ class ApiController extends Controller
 
 
 
-/**
- * @OA\Get(
- *     path="/api/getStaffClassArms/{stid}/{cls}/{sesn}/{trm}",
- *     summary="Get Staff Class Arms",
- *     description="Fetch class arms assigned to a staff for a given session and term",
- *     tags={"Api"},
- *     security={{"bearerAuth": {}}},
- *
- *     @OA\Parameter(
- *         name="stid",
- *         in="path",
- *         required=true,
- *         description="Staff ID",
- *         @OA\Schema(type="integer", example=1929)
- *     ),
- *     @OA\Parameter(
- *         name="cls",
- *         in="path",
- *         required=true,
- *         description="Class ID",
- *         @OA\Schema(type="integer", example=15)
- *     ),
- *     @OA\Parameter(
- *         name="sesn",
- *         in="path",
- *         required=true,
- *         description="Session year",
- *         @OA\Schema(type="integer", example=2024)
- *     ),
- *     @OA\Parameter(
- *         name="trm",
- *         in="path",
- *         required=true,
- *         description="Term number",
- *         @OA\Schema(type="integer", example=1)
- *     ),
- *     @OA\Parameter(
- *         name="start",
- *         in="query",
- *         required=false,
- *         description="Pagination start offset",
- *         @OA\Schema(type="integer", example=0)
- *     ),
- *     @OA\Parameter(
- *         name="count",
- *         in="query",
- *         required=false,
- *         description="Number of records to fetch",
- *         @OA\Schema(type="integer", example=20)
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Successful response",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Success"),
- *             @OA\Property(
- *                 property="pld",
- *                 type="array",
- *                 @OA\Items(type="object")
- *             )
- *         )
- *     ),
- *     @OA\Response(
- *         response=400,
- *         description="Invalid input"
- *     )
- * )
- */
+    /**
+     * @OA\Get(
+     *     path="/api/getStaffClassArms/{stid}/{cls}/{sesn}/{trm}",
+     *     summary="Get Staff Class Arms",
+     *     description="Fetch class arms assigned to a staff for a given session and term",
+     *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
+     *
+     *     @OA\Parameter(
+     *         name="stid",
+     *         in="path",
+     *         required=true,
+     *         description="Staff ID",
+     *         @OA\Schema(type="integer", example=1929)
+     *     ),
+     *     @OA\Parameter(
+     *         name="cls",
+     *         in="path",
+     *         required=true,
+     *         description="Class ID",
+     *         @OA\Schema(type="integer", example=15)
+     *     ),
+     *     @OA\Parameter(
+     *         name="sesn",
+     *         in="path",
+     *         required=true,
+     *         description="Session year",
+     *         @OA\Schema(type="integer", example=2024)
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Term number",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         required=false,
+     *         description="Pagination start offset",
+     *         @OA\Schema(type="integer", example=0)
+     *     ),
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         required=false,
+     *         description="Number of records to fetch",
+     *         @OA\Schema(type="integer", example=20)
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful response",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(type="object")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Invalid input"
+     *     )
+     * )
+     */
 
     // public function getStaffClassArms($stid, $cls)
     // {
