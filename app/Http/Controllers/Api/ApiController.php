@@ -5196,104 +5196,104 @@ class ApiController extends Controller
     //     ]);
     // }
 
-public function setStudentAcademicInfo(Request $request)
-{
-    // Data validation
-    $request->validate([
-        "user_id"        => "required",
-        "schid"          => "required",
-        "last_school"    => "required",
-        "last_class"     => "nullable",      // optional
-        "new_class"      => "nullable",      // optional
-        "new_class_main" => "nullable",      // optional
-        "ssn"            => "required",
-        "suid"           => "required",
-    ]);
+    public function setStudentAcademicInfo(Request $request)
+    {
+        // Data validation
+        $request->validate([
+            "user_id"        => "required",
+            "schid"          => "required",
+            "last_school"    => "required",
+            "last_class"     => "nullable",      // optional
+            "new_class"      => "nullable",      // optional
+            "new_class_main" => "nullable",      // optional
+            "ssn"            => "required",
+            "suid"           => "required",
+        ]);
 
-    // ✅ Determine if we need to refresh subjects
-    $refreshSubjects = false;
-    $oldData = student_academic_data::where('user_id', $request->user_id)->first();
-    if ($oldData) {
-        $refreshSubjects = $oldData->new_class_main != ($request->new_class_main ?? null);
-    } else {
-        $refreshSubjects = true;
-    }
+        // ✅ Determine if we need to refresh subjects
+        $refreshSubjects = false;
+        $oldData = student_academic_data::where('user_id', $request->user_id)->first();
+        if ($oldData) {
+            $refreshSubjects = $oldData->new_class_main != ($request->new_class_main ?? null);
+        } else {
+            $refreshSubjects = true;
+        }
 
-    // ✅ Save/update student academic info
-    student_academic_data::updateOrCreate(
-        ["user_id" => $request->user_id],
-        [
-            "last_school"    => $request->last_school,
-            "last_class"     => $request->last_class ?? null,
-            "new_class"      => $request->new_class ?? null,
-            "new_class_main" => $request->new_class_main ?? null,
-        ]
-    );
-
-    // ✅ If class changed, clear subjects
-    if ($refreshSubjects) {
-        student_subj::where('stid', $request->user_id)->delete();
-
-        // (Optional) Re-assign compulsory subjects only if new_class_main is provided
-        // if (!empty($request->new_class_main)) {
-        //     $members = class_subj::where("schid", $request->schid)
-        //         ->where("clsid", $request->new_class_main)
-        //         ->where("comp", '1')
-        //         ->get();
-        //     foreach ($members as $member) {
-        //         student_subj::updateOrCreate(
-        //             ["uid" => $member->subj_id . $request->user_id],
-        //             [
-        //                 "stid"  => $request->user_id,
-        //                 "sbj"   => $member->subj_id,
-        //                 "comp"  => $member->comp,
-        //                 "schid" => $member->schid,
-        //             ]
-        //         );
-        //     }
-        // }
-    }
-
-    // ✅ Fetch student
-    $std = student::where('sid', $request->user_id)->first();
-    if (!$std) {
-        return response()->json([
-            "status" => false,
-            "message" => "Student not found",
-        ], 404);
-    }
-
-    // ✅ Record in old_student only if new_class is provided
-    if (!empty($request->new_class) && $request->new_class != 'NIL') {
-        $uid = $request->ssn . $request->user_id;
-
-        old_student::updateOrCreate(
-            ["uid" => $uid],
+        // ✅ Save/update student academic info
+        student_academic_data::updateOrCreate(
+            ["user_id" => $request->user_id],
             [
-                'sid'   => $request->user_id,
-                'schid' => $request->schid,
-                'fname' => $std->fname,
-                'mname' => $std->mname,
-                'lname' => $std->lname,
-                'suid'  => $request->suid,
-                'ssn'   => $request->ssn,
-                'clsm'  => $request->new_class_main ?? null,
-                'clsa'  => $request->new_class ?? null,
-                'more'  => "",
+                "last_school"    => $request->last_school,
+                "last_class"     => $request->last_class ?? null,
+                "new_class"      => $request->new_class ?? null,
+                "new_class_main" => $request->new_class_main ?? null,
             ]
         );
+
+        // ✅ If class changed, clear subjects
+        if ($refreshSubjects) {
+            student_subj::where('stid', $request->user_id)->delete();
+
+            // (Optional) Re-assign compulsory subjects only if new_class_main is provided
+            // if (!empty($request->new_class_main)) {
+            //     $members = class_subj::where("schid", $request->schid)
+            //         ->where("clsid", $request->new_class_main)
+            //         ->where("comp", '1')
+            //         ->get();
+            //     foreach ($members as $member) {
+            //         student_subj::updateOrCreate(
+            //             ["uid" => $member->subj_id . $request->user_id],
+            //             [
+            //                 "stid"  => $request->user_id,
+            //                 "sbj"   => $member->subj_id,
+            //                 "comp"  => $member->comp,
+            //                 "schid" => $member->schid,
+            //             ]
+            //         );
+            //     }
+            // }
+        }
+
+        // ✅ Fetch student
+        $std = student::where('sid', $request->user_id)->first();
+        if (!$std) {
+            return response()->json([
+                "status" => false,
+                "message" => "Student not found",
+            ], 404);
+        }
+
+        // ✅ Record in old_student only if new_class is provided
+        if (!empty($request->new_class) && $request->new_class != 'NIL') {
+            $uid = $request->ssn . $request->user_id;
+
+            old_student::updateOrCreate(
+                ["uid" => $uid],
+                [
+                    'sid'   => $request->user_id,
+                    'schid' => $request->schid,
+                    'fname' => $std->fname,
+                    'mname' => $std->mname,
+                    'lname' => $std->lname,
+                    'suid'  => $request->suid,
+                    'ssn'   => $request->ssn,
+                    'clsm'  => $request->new_class_main ?? null,
+                    'clsa'  => $request->new_class ?? null,
+                    'more'  => "",
+                ]
+            );
+        }
+
+        // ✅ Mark student academic record as set
+        $std->update([
+            "s_academic" => '1'
+        ]);
+
+        return response()->json([
+            "status"  => true,
+            "message" => "Success",
+        ]);
     }
-
-    // ✅ Mark student academic record as set
-    $std->update([
-        "s_academic" => '1'
-    ]);
-
-    return response()->json([
-        "status"  => true,
-        "message" => "Success",
-    ]);
-}
 
 
 
@@ -25918,6 +25918,61 @@ public function setStudentAcademicInfo(Request $request)
     // }
 
 
+    // public function promoteStudent(Request $request)
+    // {
+    //     $request->validate([
+    //         'sid'   => 'required',
+    //         'schid' => 'required',
+    //         'sesn'  => 'required',  // session
+    //         'trm'   => 'required',  // term
+    //         'clsm'  => 'required',  // main class
+    //         'clsa'  => 'required',  // class arm
+    //         'suid'  => 'required',  // student unique id
+    //     ]);
+
+    //     // 1. Find the student
+    //     $student = student::where('sid', $request->sid)->firstOrFail();
+
+    //     // 2. Check if student already promoted in this session + term
+    //     // $existingPromotion = old_student::where('sid', $request->sid)
+    //     //     ->where('ssn', $request->sesn)
+    //     //     ->where('trm', $request->trm)
+    //     //     ->first();
+
+    //     // if ($existingPromotion) {
+    //     //     return response()->json([
+    //     //         'status'  => false,
+    //     //         'message' => 'Student has already been promoted for this session and term',
+    //     //     ], 409); // Conflict
+    //     // }
+
+    //     // 3. Generate a unique numeric promotion ID (session + term + sid + random 5-digit number)
+    //     $uid = $request->sesn . $request->trm . $request->sid . rand(10000, 99999);
+
+    //     // 4. Create a new promotion record (per term)
+    //     old_student::create([
+    //         'uid'    => $uid,
+    //         'sid'    => $request->sid,
+    //         'schid'  => $request->schid,
+    //         'fname'  => $student->fname,
+    //         'mname'  => $student->mname,
+    //         'lname'  => $student->lname,
+    //         'status' => 'active',
+    //         'suid'   => $request->suid,
+    //         'ssn'    => $request->sesn, // session
+    //         'trm'    => $request->trm,  // term
+    //         'clsm'   => $request->clsm, // main class
+    //         'clsa'   => $request->clsa, // arm
+    //         'more'   => '',
+    //     ]);
+
+    //     return response()->json([
+    //         'status'  => true,
+    //         'message' => 'Student promoted successfully for this term',
+    //     ]);
+    // }
+
+
     public function promoteStudent(Request $request)
     {
         $request->validate([
@@ -25933,24 +25988,11 @@ public function setStudentAcademicInfo(Request $request)
         // 1. Find the student
         $student = student::where('sid', $request->sid)->firstOrFail();
 
-        // 2. Check if student already promoted in this session + term
-        // $existingPromotion = old_student::where('sid', $request->sid)
-        //     ->where('ssn', $request->sesn)
-        //     ->where('trm', $request->trm)
-        //     ->first();
-
-        // if ($existingPromotion) {
-        //     return response()->json([
-        //         'status'  => false,
-        //         'message' => 'Student has already been promoted for this session and term',
-        //     ], 409); // Conflict
-        // }
-
-        // 3. Generate a unique numeric promotion ID (session + term + sid + random 5-digit number)
+        // 2. Generate a unique numeric promotion ID
         $uid = $request->sesn . $request->trm . $request->sid . rand(10000, 99999);
 
-        // 4. Create a new promotion record (per term)
-        old_student::create([
+        // 3. Create a new promotion record
+        $promotion = old_student::create([
             'uid'    => $uid,
             'sid'    => $request->sid,
             'schid'  => $request->schid,
@@ -25959,19 +26001,30 @@ public function setStudentAcademicInfo(Request $request)
             'lname'  => $student->lname,
             'status' => 'active',
             'suid'   => $request->suid,
-            'ssn'    => $request->sesn, // session
-            'trm'    => $request->trm,  // term
-            'clsm'   => $request->clsm, // main class
-            'clsa'   => $request->clsa, // arm
+            'ssn'    => $request->sesn,
+            'trm'    => $request->trm,
+            'clsm'   => $request->clsm,
+            'clsa'   => $request->clsa,
             'more'   => '',
         ]);
 
+        // 4. Load class arm name via relationship
+        $promotion->load('classArm');
+
         return response()->json([
-            'status'  => true,
-            'message' => 'Student promoted successfully for this term',
+            'status'    => true,
+            'message'   => 'Student promoted successfully for this term',
+            'data'      => [
+                'sid'       => $promotion->sid,
+                'suid'      => $promotion->suid,
+                'ssn'       => $promotion->ssn,
+                'trm'       => $promotion->trm,
+                'clsm'      => $promotion->clsm,
+                'clsa'      => $promotion->clsa,
+                'clsa_name' => $promotion->classArm?->name,  // ✅ arm name
+            ],
         ]);
     }
-
 
 
 
