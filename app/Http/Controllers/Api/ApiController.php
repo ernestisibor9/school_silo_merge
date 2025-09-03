@@ -25874,8 +25874,8 @@ class ApiController extends Controller
             ], 409); // Conflict
         }
 
-        // 3. Generate a unique promotion ID (session + term + sid)
-        $uid = $request->sesn . '-' . $request->trm . '-' . $request->sid;
+        // 3. Generate a unique numeric promotion ID (session + term + sid + random 4-digit number)
+        $uid = $request->sesn . $request->trm . $request->sid . rand(1000, 9999);
 
         // 4. Create a new promotion record (per term)
         old_student::create([
