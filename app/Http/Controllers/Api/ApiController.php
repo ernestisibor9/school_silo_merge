@@ -5196,105 +5196,79 @@ class ApiController extends Controller
     //     ]);
     // }
 
-    public function setStudentAcademicInfo(Request $request)
-    {
-        // Data validation
+    public function setStudentAcademicInfo(Request $request){
+        //Data validation
         $request->validate([
-            "user_id"        => "required",
-            "schid"          => "required",
-            "last_school"    => "required",
-            "last_class"     => "nullable",      // optional
-            "new_class"      => "nullable",      // optional
-            "new_class_main" => "nullable",      // optional
-            "ssn"            => "required",
-            "suid"           => "required",
+            "user_id"=> "required",
+            "schid"=> "required",
+            "last_school"=> "required",
+            "last_class"=> "required",
+            "new_class"=> "required",
+            "new_class_main"=> "required",
+            "ssn"=> "required",
+            "suid"=> "required",
         ]);
-
-        // ✅ Determine if we need to refresh subjects
         $refreshSubjects = false;
         $oldData = student_academic_data::where('user_id', $request->user_id)->first();
-        if ($oldData) {
-            $refreshSubjects = $oldData->new_class_main != ($request->new_class_main ?? null);
-        } else {
+        if($oldData){
+            $refreshSubjects = $oldData->new_class_main != $request->new_class_main;
+        }else{
             $refreshSubjects = true;
         }
-
-        // ✅ Save/update student academic info
         student_academic_data::updateOrCreate(
-            ["user_id" => $request->user_id],
+            ["user_id"=> $request->user_id,],
             [
-                "last_school"    => $request->last_school,
-                "last_class"     => $request->last_class ?? null,
-                "new_class"      => $request->new_class ?? null,
-                "new_class_main" => $request->new_class_main ?? null,
-            ]
-        );
-
-        // ✅ If class changed, clear subjects
-        if ($refreshSubjects) {
-            student_subj::where('stid', $request->user_id)->delete();
-
-            // (Optional) Re-assign compulsory subjects only if new_class_main is provided
-            // if (!empty($request->new_class_main)) {
-            //     $members = class_subj::where("schid", $request->schid)
-            //         ->where("clsid", $request->new_class_main)
-            //         ->where("comp", '1')
-            //         ->get();
-            //     foreach ($members as $member) {
-            //         student_subj::updateOrCreate(
-            //             ["uid" => $member->subj_id . $request->user_id],
-            //             [
-            //                 "stid"  => $request->user_id,
-            //                 "sbj"   => $member->subj_id,
-            //                 "comp"  => $member->comp,
-            //                 "schid" => $member->schid,
-            //             ]
-            //         );
-            //     }
+            "last_school"=> $request->last_school,
+            "last_class"=> $request->last_class,
+            "new_class"=> $request->new_class,
+            "new_class_main"=> $request->new_class_main,
+        ]);
+        if($refreshSubjects){//Delete all subjs and set new, comps ones
+            student_subj::where('stid',$request->user_id)->delete();
+            // $schid = $request->schid;
+            // $clsid = $request->new_class_main;
+            // $members = class_subj::where("schid", $schid)->where("clsid", $clsid)->where("comp", '1')->get();
+            // $pld = [];
+            // foreach ($members as $member) {
+            //     $sbj = $member->subj_id;
+            //     $stid = $request->user_id;
+            //     student_subj::updateOrCreate(
+            //         ["uid"=> $sbj.$stid],
+            //         [
+            //         "stid"=> $stid,
+            //         "sbj"=> $sbj,
+            //         "comp"=> $member->comp,
+            //         "schid"=> $member->schid,
+            //     ]);
             // }
         }
-
-        // ✅ Fetch student
-        $std = student::where('sid', $request->user_id)->first();
-        if (!$std) {
-            return response()->json([
-                "status" => false,
-                "message" => "Student not found",
-            ], 404);
-        }
-
-        // ✅ Record in old_student only if new_class is provided
-        if (!empty($request->new_class) && $request->new_class != 'NIL') {
-            $uid = $request->ssn . $request->user_id;
-
+        $std = student::where('sid',$request->user_id)->first();
+        if($request->new_class != 'NIL'){//Class Arm Specified
+            //--- RECORD IN OLD DATA SO DATA SHOWS UP IN CLASS DIST.
+            $uid = $request->ssn.$request->user_id;
             old_student::updateOrCreate(
-                ["uid" => $uid],
+                ["uid"=> $uid,],
                 [
-                    'sid'   => $request->user_id,
-                    'schid' => $request->schid,
-                    'fname' => $std->fname,
-                    'mname' => $std->mname,
-                    'lname' => $std->lname,
-                    'suid'  => $request->suid,
-                    'ssn'   => $request->ssn,
-                    'clsm'  => $request->new_class_main ?? null,
-                    'clsa'  => $request->new_class ?? null,
-                    'more'  => "",
-                ]
-            );
+                'sid' => $request->user_id,
+                'schid' => $request->schid,
+                'fname' => $std->fname,
+                'mname' => $std->mname,
+                'lname' => $std->lname,
+                'suid' => $request->suid,
+                'ssn' => $request->ssn,
+                'clsm' => $request->new_class_main,
+                'clsa' => $request->new_class,
+                'more' => "",
+            ]);
         }
-
-        // ✅ Mark student academic record as set
         $std->update([
-            "s_academic" => '1'
+            "s_academic"=>'1'
         ]);
-
         return response()->json([
-            "status"  => true,
-            "message" => "Success",
+            "status"=> true,
+            "message"=> "Success",
         ]);
     }
-
 
 
     /**
