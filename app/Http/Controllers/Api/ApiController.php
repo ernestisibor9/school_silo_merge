@@ -9873,76 +9873,122 @@ class ApiController extends Controller
         ]);
     }
 
-    /**
-     * @OA\Post(
-     *     path="/api/setOldStaffInfo",
-     *     tags={"Api"},
-     *     security={{"bearerAuth": {}}},
-     *     summary="Set info about an old staff data. Specify id if you wish to update",
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="uid", type="string"),
-     *             @OA\Property(property="sid", type="string"),
-     *             @OA\Property(property="schid", type="string"),
-     *             @OA\Property(property="fname", type="string"),
-     *             @OA\Property(property="mname", type="string"),
-     *             @OA\Property(property="lname", type="string"),
-     *             @OA\Property(property="suid", type="string"),
-     *             @OA\Property(property="ssn", type="string"),
-     *             @OA\Property(property="clsm", type="string"),
-     *             @OA\Property(property="role", type="string"),
-     *             @OA\Property(property="role2", type="string"),
-     *             @OA\Property(property="more", type="string"),
-     *         )
-     *     ),
-     *     @OA\Response(response="200", description="Staff old data set successfully"),
-     *     @OA\Response(response="400", description="Validation error"),
-     * )
-     */
-    public function setOldStaffInfo(Request $request)
-    {
-        //Data validation
-        $request->validate([
-            "uid" => "required",
-            "sid" => "required",
-            "schid" => "required",
-            "fname" => "required",
-            "mname" => "required",
-            "lname" => "required",
-            "suid" => "required",
-            "ssn" => "required",
-            "clsm" => "required",
-            "role" => "required",
-            "role2" => "required",
-            "more" => "required",
-        ]);
-        old_staff::updateOrCreate(
-            ["uid" => $request->uid,],
-            [
-                'sid' => $request->sid,
-                'schid' => $request->schid,
-                'fname' => $request->fname,
-                'mname' => $request->mname,
-                'lname' => $request->lname,
-                'suid' => $request->suid,
-                'ssn' => $request->ssn,
-                'clsm' => $request->clsm,
-                'role' => $request->role,
-                'role2' => $request->role2,
-                'more' => $request->more,
-            ]
-        );
-        return response()->json([
-            "status" => true,
-            "message" => "Info Updated"
-        ]);
-    }
+/**
+ * @OA\Post(
+ *     path="/api/setOldStaffInfo",
+ *     tags={"Api"},
+ *     security={{"bearerAuth": {}}},
+ *     summary="Create or update old staff info",
+ *     description="This endpoint creates or updates old staff information. Uniqueness is enforced using the `uid` field only.",
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             required={"sid","schid","fname","mname","lname","suid","ssn","trm","clsm","role","role2","more"},
+ *             @OA\Property(property="sid", type="string", example="12345"),
+ *             @OA\Property(property="schid", type="string", example="6789"),
+ *             @OA\Property(property="fname", type="string", example="John"),
+ *             @OA\Property(property="mname", type="string", example="Michael"),
+ *             @OA\Property(property="lname", type="string", example="Doe"),
+ *             @OA\Property(property="suid", type="string", example="STF001"),
+ *             @OA\Property(property="ssn", type="string", example="2024"),
+ *             @OA\Property(property="trm", type="string", example="1"),
+ *             @OA\Property(property="clsm", type="string", example="SS2A"),
+ *             @OA\Property(property="role", type="string", example="Class Teacher"),
+ *             @OA\Property(property="role2", type="string", example="Exam Officer"),
+ *             @OA\Property(property="more", type="string", example="Additional notes or duties"),
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Old staff info successfully created or updated",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Info Updated"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="object",
+ *                 description="The created/updated staff record",
+ *                 @OA\Property(property="uid", type="string", example="202411234512345"),
+ *                 @OA\Property(property="sid", type="string", example="12345"),
+ *                 @OA\Property(property="schid", type="string", example="6789"),
+ *                 @OA\Property(property="fname", type="string", example="John"),
+ *                 @OA\Property(property="mname", type="string", example="Michael"),
+ *                 @OA\Property(property="lname", type="string", example="Doe"),
+ *                 @OA\Property(property="suid", type="string", example="STF001"),
+ *                 @OA\Property(property="ssn", type="string", example="2024"),
+ *                 @OA\Property(property="trm", type="string", example="1"),
+ *                 @OA\Property(property="clsm", type="string", example="SS2A"),
+ *                 @OA\Property(property="role", type="string", example="Class Teacher"),
+ *                 @OA\Property(property="role2", type="string", example="Exam Officer"),
+ *                 @OA\Property(property="more", type="string", example="Additional notes or duties"),
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation error",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+ *             @OA\Property(property="errors", type="object")
+ *         )
+ *     )
+ * )
+ */
+
+
+public function setOldStaffInfo(Request $request)
+{
+    // ✅ Data validation
+    $request->validate([
+        "sid"   => "required",
+        "schid" => "required",
+        "fname" => "required",
+        "mname" => "required",
+        "lname" => "required",
+        "suid"  => "required",
+        "ssn"   => "required",
+        "trm"   => "required",
+        "clsm"  => "required",
+        "role"  => "required",
+        "role2" => "required",
+        "more"  => "required",
+    ]);
+
+    // ✅ Generate UID automatically
+    $uid = $request->ssn . $request->trm . $request->sid . rand(10000, 99999);
+
+    // ✅ Update or create record based only on uid
+    $pld = old_staff::updateOrCreate(
+        [
+            "uid" => $uid,   // uniqueness check is ONLY on uid
+        ],
+        [
+            "sid"   => $request->sid,
+            "schid" => $request->schid,
+            "fname" => $request->fname,
+            "mname" => $request->mname,
+            "lname" => $request->lname,
+            "suid"  => $request->suid,
+            "ssn"   => $request->ssn,
+            "trm"   => $request->trm,
+            "clsm"  => $request->clsm,
+            "role"  => $request->role,
+            "role2" => $request->role2,
+            "more"  => $request->more,
+        ]
+    );
+
+    return response()->json([
+        "status"  => true,
+        "message" => "Info Updated",
+        "pld"     => $pld
+    ]);
+}
+
 
     /**
      * @OA\Get(
-     *     path="/api/getOldStaff/{schid}/{ssn}/{clsm}/{role}",
+     *     path="/api/getOldStaff/{schid}/{ssn}/{trm}/{clsm}/{role}",
      *     tags={"Api"},
      *     security={{"bearerAuth": {}}},
      *     summary="Get an old staff's Basic Info",
@@ -9959,6 +10005,13 @@ class ApiController extends Controller
      *         in="path",
      *         required=true,
      *         description="Id of the session",
+     *         @OA\Schema(type="string")
+     *     ),
+     *       @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Id of the term",
      *         @OA\Schema(type="string")
      *     ),
      *     @OA\Parameter(
@@ -9979,14 +10032,15 @@ class ApiController extends Controller
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    public function getOldStaff($schid, $ssn, $clsm, $role)
+    public function getOldStaff($schid, $ssn, $trm, $clsm, $role)
     {
         $pld = [];
         if ($role == '-1') {
-            $pld = old_staff::where("schid", $schid)->where("ssn", $ssn)->where("status", "active")->where("clsm", $clsm)->get();
+            $pld = old_staff::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where("status", "active")->where("clsm", $clsm)->get();
         } else {
             $pld = old_staff::where("schid", $schid)
                 ->where("ssn", $ssn)
+                ->where("trm", $trm)
                 ->where("status", "active")
                 ->where("clsm", $clsm)
                 ->where(function ($query) use ($role) {
