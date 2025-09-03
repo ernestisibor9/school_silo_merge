@@ -49,7 +49,7 @@ use App\Models\sch_mark;
 use App\Models\std_score;
 use App\Models\arm_result_conf;
 use App\Models\subj;
-use App\Models\subaccount;
+use App\Models\subject_dest;
 use App\Models\payment_instruction;
 use App\Models\student_subj;
 use App\Models\result_meta;
@@ -9229,90 +9229,90 @@ class ApiController extends Controller
 
 
 
-/**
- * @OA\Get(
- *     path="/api/getStaffSubjects/{stid}/{sesn}/{trm}",
- *     summary="Get staff subjects by staff ID, session, and term",
- *     description="Fetches subjects assigned to a staff filtered by staff ID, session, and term with pagination support.",
- *     tags={"Api"},
- *      security={{"bearerAuth": {}}},
- *
- *     @OA\Parameter(
- *         name="stid",
- *         in="path",
- *         required=true,
- *         description="Staff ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Parameter(
- *         name="sesn",
- *         in="path",
- *         required=true,
- *         description="Academic session (e.g. 2024)",
- *         @OA\Schema(type="string")
- *     ),
- *     @OA\Parameter(
- *         name="trm",
- *         in="path",
- *         required=true,
- *         description="Term (e.g. 1, 2, or 3)",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Parameter(
- *         name="start",
- *         in="query",
- *         required=false,
- *         description="Offset for pagination (default 0)",
- *         @OA\Schema(type="integer", default=0)
- *     ),
- *     @OA\Parameter(
- *         name="count",
- *         in="query",
- *         required=false,
- *         description="Number of records to return (default 20)",
- *         @OA\Schema(type="integer", default=20)
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Successful response",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Success"),
- *             @OA\Property(
- *                 property="pld",
- *                 type="array",
- *                 @OA\Items(type="object")
- *             )
- *         )
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="Staff subjects not found"
- *     )
- * )
- */
+    /**
+     * @OA\Get(
+     *     path="/api/getStaffSubjects/{stid}/{sesn}/{trm}",
+     *     summary="Get staff subjects by staff ID, session, and term",
+     *     description="Fetches subjects assigned to a staff filtered by staff ID, session, and term with pagination support.",
+     *     tags={"Api"},
+     *      security={{"bearerAuth": {}}},
+     *
+     *     @OA\Parameter(
+     *         name="stid",
+     *         in="path",
+     *         required=true,
+     *         description="Staff ID",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="sesn",
+     *         in="path",
+     *         required=true,
+     *         description="Academic session (e.g. 2024)",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Term (e.g. 1, 2, or 3)",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         required=false,
+     *         description="Offset for pagination (default 0)",
+     *         @OA\Schema(type="integer", default=0)
+     *     ),
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         required=false,
+     *         description="Number of records to return (default 20)",
+     *         @OA\Schema(type="integer", default=20)
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful response",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(type="object")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Staff subjects not found"
+     *     )
+     * )
+     */
 
 
     public function getStaffSubjects($stid, $sesn, $trm)
-{
-    $start = request()->input('start', 0);   // default 0
-    $count = request()->input('count', 20);  // default 20
+    {
+        $start = request()->input('start', 0);   // default 0
+        $count = request()->input('count', 20);  // default 20
 
-    $pld = staff_subj::where("stid", $stid)
-        ->where("sesn", $sesn)
-        ->where("trm", $trm)
-        ->skip($start)
-        ->take($count)
-        ->get();
+        $pld = staff_subj::where("stid", $stid)
+            ->where("sesn", $sesn)
+            ->where("trm", $trm)
+            ->skip($start)
+            ->take($count)
+            ->get();
 
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => $pld,
-    ]);
-}
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld,
+        ]);
+    }
 
 
 
@@ -9873,117 +9873,117 @@ class ApiController extends Controller
         ]);
     }
 
-/**
- * @OA\Post(
- *     path="/api/setOldStaffInfo",
- *     tags={"Api"},
- *     security={{"bearerAuth": {}}},
- *     summary="Create or update old staff info",
- *     description="This endpoint creates or updates old staff information. Uniqueness is enforced using the `uid` field only.",
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"sid","schid","fname","mname","lname","suid","ssn","trm","clsm","role","role2","more"},
- *             @OA\Property(property="sid", type="string", example="12345"),
- *             @OA\Property(property="schid", type="string", example="6789"),
- *             @OA\Property(property="fname", type="string", example="John"),
- *             @OA\Property(property="mname", type="string", example="Michael"),
- *             @OA\Property(property="lname", type="string", example="Doe"),
- *             @OA\Property(property="suid", type="string", example="STF001"),
- *             @OA\Property(property="ssn", type="string", example="2024"),
- *             @OA\Property(property="trm", type="string", example="1"),
- *             @OA\Property(property="clsm", type="string", example="SS2A"),
- *             @OA\Property(property="role", type="string", example="Class Teacher"),
- *             @OA\Property(property="role2", type="string", example="Exam Officer"),
- *             @OA\Property(property="more", type="string", example="Additional notes or duties"),
- *         )
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Old staff info successfully created or updated",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Info Updated"),
- *             @OA\Property(
- *                 property="pld",
- *                 type="object",
- *                 description="The created/updated staff record",
- *                 @OA\Property(property="uid", type="string", example="202411234512345"),
- *                 @OA\Property(property="sid", type="string", example="12345"),
- *                 @OA\Property(property="schid", type="string", example="6789"),
- *                 @OA\Property(property="fname", type="string", example="John"),
- *                 @OA\Property(property="mname", type="string", example="Michael"),
- *                 @OA\Property(property="lname", type="string", example="Doe"),
- *                 @OA\Property(property="suid", type="string", example="STF001"),
- *                 @OA\Property(property="ssn", type="string", example="2024"),
- *                 @OA\Property(property="trm", type="string", example="1"),
- *                 @OA\Property(property="clsm", type="string", example="SS2A"),
- *                 @OA\Property(property="role", type="string", example="Class Teacher"),
- *                 @OA\Property(property="role2", type="string", example="Exam Officer"),
- *                 @OA\Property(property="more", type="string", example="Additional notes or duties"),
- *             )
- *         )
- *     ),
- *     @OA\Response(
- *         response=422,
- *         description="Validation error",
- *         @OA\JsonContent(
- *             @OA\Property(property="message", type="string", example="The given data was invalid."),
- *             @OA\Property(property="errors", type="object")
- *         )
- *     )
- * )
- */
+    /**
+     * @OA\Post(
+     *     path="/api/setOldStaffInfo",
+     *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
+     *     summary="Create or update old staff info",
+     *     description="This endpoint creates or updates old staff information. Uniqueness is enforced using the `uid` field only.",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"sid","schid","fname","mname","lname","suid","ssn","trm","clsm","role","role2","more"},
+     *             @OA\Property(property="sid", type="string", example="12345"),
+     *             @OA\Property(property="schid", type="string", example="6789"),
+     *             @OA\Property(property="fname", type="string", example="John"),
+     *             @OA\Property(property="mname", type="string", example="Michael"),
+     *             @OA\Property(property="lname", type="string", example="Doe"),
+     *             @OA\Property(property="suid", type="string", example="STF001"),
+     *             @OA\Property(property="ssn", type="string", example="2024"),
+     *             @OA\Property(property="trm", type="string", example="1"),
+     *             @OA\Property(property="clsm", type="string", example="SS2A"),
+     *             @OA\Property(property="role", type="string", example="Class Teacher"),
+     *             @OA\Property(property="role2", type="string", example="Exam Officer"),
+     *             @OA\Property(property="more", type="string", example="Additional notes or duties"),
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Old staff info successfully created or updated",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Info Updated"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 description="The created/updated staff record",
+     *                 @OA\Property(property="uid", type="string", example="202411234512345"),
+     *                 @OA\Property(property="sid", type="string", example="12345"),
+     *                 @OA\Property(property="schid", type="string", example="6789"),
+     *                 @OA\Property(property="fname", type="string", example="John"),
+     *                 @OA\Property(property="mname", type="string", example="Michael"),
+     *                 @OA\Property(property="lname", type="string", example="Doe"),
+     *                 @OA\Property(property="suid", type="string", example="STF001"),
+     *                 @OA\Property(property="ssn", type="string", example="2024"),
+     *                 @OA\Property(property="trm", type="string", example="1"),
+     *                 @OA\Property(property="clsm", type="string", example="SS2A"),
+     *                 @OA\Property(property="role", type="string", example="Class Teacher"),
+     *                 @OA\Property(property="role2", type="string", example="Exam Officer"),
+     *                 @OA\Property(property="more", type="string", example="Additional notes or duties"),
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     )
+     * )
+     */
 
 
-public function setOldStaffInfo(Request $request)
-{
-    // ✅ Data validation
-    $request->validate([
-        "sid"   => "required",
-        "schid" => "required",
-        "fname" => "required",
-        "mname" => "required",
-        "lname" => "required",
-        "suid"  => "required",
-        "ssn"   => "required",
-        "trm"   => "required",
-        "clsm"  => "required",
-        "role"  => "required",
-        "role2" => "required",
-        "more"  => "required",
-    ]);
+    public function setOldStaffInfo(Request $request)
+    {
+        // ✅ Data validation
+        $request->validate([
+            "sid"   => "required",
+            "schid" => "required",
+            "fname" => "required",
+            "mname" => "required",
+            "lname" => "required",
+            "suid"  => "required",
+            "ssn"   => "required",
+            "trm"   => "required",
+            "clsm"  => "required",
+            "role"  => "required",
+            "role2" => "required",
+            "more"  => "required",
+        ]);
 
-    // ✅ Generate UID automatically
-    $uid = $request->ssn . $request->trm . $request->sid . rand(10000, 99999);
+        // ✅ Generate UID automatically
+        $uid = $request->ssn . $request->trm . $request->sid . rand(10000, 99999);
 
-    // ✅ Update or create record based only on uid
-    $pld = old_staff::updateOrCreate(
-        [
-            "uid" => $uid,   // uniqueness check is ONLY on uid
-        ],
-        [
-            "sid"   => $request->sid,
-            "schid" => $request->schid,
-            "fname" => $request->fname,
-            "mname" => $request->mname,
-            "lname" => $request->lname,
-            "suid"  => $request->suid,
-            "ssn"   => $request->ssn,
-            "trm"   => $request->trm,
-            "clsm"  => $request->clsm,
-            "role"  => $request->role,
-            "role2" => $request->role2,
-            "more"  => $request->more,
-        ]
-    );
+        // ✅ Update or create record based only on uid
+        $pld = old_staff::updateOrCreate(
+            [
+                "uid" => $uid,   // uniqueness check is ONLY on uid
+            ],
+            [
+                "sid"   => $request->sid,
+                "schid" => $request->schid,
+                "fname" => $request->fname,
+                "mname" => $request->mname,
+                "lname" => $request->lname,
+                "suid"  => $request->suid,
+                "ssn"   => $request->ssn,
+                "trm"   => $request->trm,
+                "clsm"  => $request->clsm,
+                "role"  => $request->role,
+                "role2" => $request->role2,
+                "more"  => $request->more,
+            ]
+        );
 
-    return response()->json([
-        "status"  => true,
-        "message" => "Info Updated",
-        "pld"     => $pld
-    ]);
-}
+        return response()->json([
+            "status"  => true,
+            "message" => "Info Updated",
+            "pld"     => $pld
+        ]);
+    }
 
 
     /**
@@ -26606,6 +26606,181 @@ public function setOldStaffInfo(Request $request)
         return response()->json([
             'status'  => true,
             'message' => 'Student marked to repeat successfully',
+        ]);
+    }
+
+
+
+
+    /**
+     * @OA\Post(
+     *     path="/api/setSubjStaff",
+     *     summary="Assign subject to a staff",
+     *     description="This endpoint assigns a subject to a staff member. A unique UID is auto-generated for each record.",
+     *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"stid","sbj","schid","sesn","trm"},
+     *             @OA\Property(property="stid", type="integer", example=1929, description="Staff ID"),
+     *             @OA\Property(property="sbj", type="integer", example=15, description="Subject ID"),
+     *             @OA\Property(property="schid", type="integer", example=12, description="School ID"),
+     *             @OA\Property(property="sesn", type="integer", example=2024, description="Academic session"),
+     *             @OA\Property(property="trm", type="integer", example=1, description="Academic term (1, 2, or 3)")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Subject successfully assigned to staff",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Subject Successfully Assigned to Staff"),
+     *             @OA\Property(property="pld", type="object",
+     *                 @OA\Property(property="uid", type="string", example="20241192912345"),
+     *                 @OA\Property(property="stid", type="integer", example=1929),
+     *                 @OA\Property(property="sbj", type="integer", example=15),
+     *                 @OA\Property(property="schid", type="integer", example=12),
+     *                 @OA\Property(property="sesn", type="integer", example=2024),
+     *                 @OA\Property(property="trm", type="integer", example=1)
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error - Missing required fields"
+     *     )
+     * )
+     */
+    public function setSubjStaff(Request $request)
+    {
+        // ✅ Data validation
+        $request->validate([
+            "stid"  => "required",
+            "sbj"   => "required",
+            "schid" => "required",
+            "sesn"  => "required",
+            "trm"   => "required",
+        ]);
+
+        // ✅ Generate unique UID
+        $uid = $request->sesn . $request->trm . $request->stid . rand(10000, 99999);
+
+        // ✅ Update or create based on UID only
+        $pld = subject_dest::updateOrCreate(
+            ["uid" => $uid],
+            [
+                "stid"  => $request->stid,
+                "sbj"   => $request->sbj,
+                "schid" => $request->schid,
+                "sesn"  => $request->sesn,
+                "trm"   => $request->trm,
+            ]
+        );
+
+        return response()->json([
+            "status"  => true,
+            "message" => "Subject Successfully Assigned to Staff",
+            "pld"     => $pld
+        ]);
+    }
+
+
+
+
+
+    /**
+     * @OA\Get(
+     *     path="/api/getSubjStaff/{schid}/{stid}/{sesn}/{trm}",
+     *     summary="Get subjects assigned to a staff",
+     *     description="Fetches subjects assigned to a staff for a specific session and term. Supports pagination using `start` and `count` query parameters.",
+     *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
+     *
+     *       @OA\Parameter(
+     *         name="schid",
+     *         in="path",
+     *         required=true,
+     *         description="Sch ID",
+     *         @OA\Schema(type="integer", example=12)
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="stid",
+     *         in="path",
+     *         required=true,
+     *         description="Staff ID",
+     *         @OA\Schema(type="integer", example=1929)
+     *     ),
+     *     @OA\Parameter(
+     *         name="sesn",
+     *         in="path",
+     *         required=true,
+     *         description="Academic session",
+     *         @OA\Schema(type="integer", example=2024)
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Academic term (1, 2, or 3)",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         required=false,
+     *         description="Pagination start index (default: 0)",
+     *         @OA\Schema(type="integer", example=0)
+     *     ),
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         required=false,
+     *         description="Number of records to fetch (default: 20)",
+     *         @OA\Schema(type="integer", example=20)
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Subjects successfully retrieved",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(property="pld", type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="uid", type="string", example="20241192912345"),
+     *                     @OA\Property(property="stid", type="integer", example=1929),
+     *                     @OA\Property(property="sbj", type="integer", example=15),
+     *                     @OA\Property(property="schid", type="integer", example=12),
+     *                     @OA\Property(property="sesn", type="integer", example=2024),
+     *                     @OA\Property(property="trm", type="integer", example=1)
+     *                 )
+     *             )
+     *         )
+     *     )
+     * )
+     */
+    public function getSubjStaff($schid, $stid, $sesn, $trm)
+    {
+        $start = request()->input('start', 0);   // default 0
+        $count = request()->input('count', 20);  // default 20
+
+        $pld = subject_dest::where("stid", $stid)
+            ->where("schid", $schid)
+            ->where("sesn", $sesn)
+            ->where("trm", $trm)
+            ->skip($start)
+            ->take($count)
+            ->get();
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld,
         ]);
     }
 }

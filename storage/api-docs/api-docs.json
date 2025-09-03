@@ -21699,6 +21699,250 @@
                     }
                 ]
             }
+        },
+        "/api/setSubjStaff": {
+            "post": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Assign subject to a staff",
+                "description": "This endpoint assigns a subject to a staff member. A unique UID is auto-generated for each record.",
+                "operationId": "bb96df1e5ec825f73a8a3de1aca2c9c8",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "stid",
+                                    "sbj",
+                                    "schid",
+                                    "sesn",
+                                    "trm"
+                                ],
+                                "properties": {
+                                    "stid": {
+                                        "description": "Staff ID",
+                                        "type": "integer",
+                                        "example": 1929
+                                    },
+                                    "sbj": {
+                                        "description": "Subject ID",
+                                        "type": "integer",
+                                        "example": 15
+                                    },
+                                    "schid": {
+                                        "description": "School ID",
+                                        "type": "integer",
+                                        "example": 12
+                                    },
+                                    "sesn": {
+                                        "description": "Academic session",
+                                        "type": "integer",
+                                        "example": 2024
+                                    },
+                                    "trm": {
+                                        "description": "Academic term (1, 2, or 3)",
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Subject successfully assigned to staff",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Subject Successfully Assigned to Staff"
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "uid": {
+                                                    "type": "string",
+                                                    "example": "20241192912345"
+                                                },
+                                                "stid": {
+                                                    "type": "integer",
+                                                    "example": 1929
+                                                },
+                                                "sbj": {
+                                                    "type": "integer",
+                                                    "example": 15
+                                                },
+                                                "schid": {
+                                                    "type": "integer",
+                                                    "example": 12
+                                                },
+                                                "sesn": {
+                                                    "type": "integer",
+                                                    "example": 2024
+                                                },
+                                                "trm": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error - Missing required fields"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/getSubjStaff/{schid}/{stid}/{sesn}/{trm}": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get subjects assigned to a staff",
+                "description": "Fetches subjects assigned to a staff for a specific session and term. Supports pagination using `start` and `count` query parameters.",
+                "operationId": "91e2ae5aad91918fa4a10eeb04489bdb",
+                "parameters": [
+                    {
+                        "name": "schid",
+                        "in": "path",
+                        "description": "Sch ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 12
+                        }
+                    },
+                    {
+                        "name": "stid",
+                        "in": "path",
+                        "description": "Staff ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1929
+                        }
+                    },
+                    {
+                        "name": "sesn",
+                        "in": "path",
+                        "description": "Academic session",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 2024
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "path",
+                        "description": "Academic term (1, 2, or 3)",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Pagination start index (default: 0)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 0
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "Number of records to fetch (default: 20)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 20
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Subjects successfully retrieved",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "uid": {
+                                                        "type": "string",
+                                                        "example": "20241192912345"
+                                                    },
+                                                    "stid": {
+                                                        "type": "integer",
+                                                        "example": 1929
+                                                    },
+                                                    "sbj": {
+                                                        "type": "integer",
+                                                        "example": 15
+                                                    },
+                                                    "schid": {
+                                                        "type": "integer",
+                                                        "example": 12
+                                                    },
+                                                    "sesn": {
+                                                        "type": "integer",
+                                                        "example": 2024
+                                                    },
+                                                    "trm": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {

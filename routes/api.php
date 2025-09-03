@@ -53,6 +53,9 @@ Route::get('getAdminStaffRole/{rid}', [ApiController::class, 'getAdminStaffRole'
 Route::get('getSchoolStaffRoles/{schid}', [ApiController::class, 'getSchoolStaffRoles']);
 Route::get('getSchoolStaffRole/{rid}', [ApiController::class, 'getSchoolStaffRole']);
 
+Route::get('getSubjStaff/{schid}/{stid}/{sesn}/{trm}', [ApiController::class, 'getSubjStaff']);
+
+
 //-B/c of result checking
 Route::get('getSessions', [ApiController::class, 'getSesns']);
 Route::get('getTerms', [ApiController::class, 'getTrms']);
@@ -140,6 +143,7 @@ Route::group([
     Route::post('admitStaff', [ApiController::class, 'admitStaff']);
     Route::post('setStaffSubject', [ApiController::class, 'setStaffSubject']);
     Route::post('setStaffClass', [ApiController::class, 'setStaffClass']);
+    Route::post('setSubjStaff', [ApiController::class, 'setSubjStaff']);
     Route::post('setStaffClassArm', [ApiController::class, 'setStaffClassArm']);
     Route::post('setOldStaffInfo', [ApiController::class, 'setOldStaffInfo']);
     Route::post('setClassGrade', [ApiController::class, 'setClassGrade']);
@@ -232,10 +236,10 @@ Route::group([
     Route::get('getStudentSubjects/{stid}', [ApiController::class, 'getStudentSubjects']);
     Route::delete('deleteStudentSubject/{uid}/{sbj}', [ApiController::class, 'deleteStudentSubject']);
     Route::delete('deleteStudentSubject/{uid}/{sbj}/{term}', [ApiController::class, 'deleteStudentSubject']);
-   Route::get('getStaffSubjects/{stid}/{sesn}/{trm}', [ApiController::class, 'getStaffSubjects']);
+    Route::get('getStaffSubjects/{stid}/{sesn}/{trm}', [ApiController::class, 'getStaffSubjects']);
     Route::get('deleteStaffSubject/{uid}', [ApiController::class, 'deleteStaffSubject']);
     Route::get('getStaffClasses/{stid}', [ApiController::class, 'getStaffClasses']);
-   Route::get('getStaffClassArms/{stid}/{cls}/{sesn}/{trm}', [ApiController::class, 'getStaffClassArms']);
+    Route::get('getStaffClassArms/{stid}/{cls}/{sesn}/{trm}', [ApiController::class, 'getStaffClassArms']);
     Route::get('getStaffByClassArms/{schid}/{arm}', [ApiController::class, 'getStaffByClassArms']);
     Route::get('deleteStaffClass/{uid}', [ApiController::class, 'deleteStaffClass']);
     Route::get('deleteStaffClassArm/{uid}', [ApiController::class, 'deleteStaffClassArm']);
