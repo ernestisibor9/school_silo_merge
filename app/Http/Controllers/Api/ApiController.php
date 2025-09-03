@@ -25973,58 +25973,60 @@ class ApiController extends Controller
     // }
 
 
-    public function promoteStudent(Request $request)
-    {
-        $request->validate([
-            'sid'   => 'required',
-            'schid' => 'required',
-            'sesn'  => 'required',  // session
-            'trm'   => 'required',  // term
-            'clsm'  => 'required',  // main class
-            'clsa'  => 'required',  // class arm
-            'suid'  => 'required',  // student unique id
-        ]);
+public function promoteStudent(Request $request)
+{
+    $request->validate([
+        'sid'   => 'required',
+        'schid' => 'required',
+        'sesn'  => 'required',  // session
+        'trm'   => 'required',  // term
+        'clsm'  => 'required',  // main class
+        'clsa'  => 'required',  // class arm
+        'suid'  => 'required',  // student unique id
+    ]);
 
-        // 1. Find the student
-        $student = student::where('sid', $request->sid)->firstOrFail();
+    // 1. Find the student
+    $student = student::where('sid', $request->sid)->firstOrFail();
 
-        // 2. Generate a unique numeric promotion ID
-        $uid = $request->sesn . $request->trm . $request->sid . rand(10000, 99999);
+    // 2. Generate a unique numeric promotion ID
+    $uid = $request->sesn . $request->trm . $request->sid . rand(10000, 99999);
 
-        // 3. Create a new promotion record
-        $promotion = old_student::create([
-            'uid'    => $uid,
-            'sid'    => $request->sid,
-            'schid'  => $request->schid,
-            'fname'  => $student->fname,
-            'mname'  => $student->mname,
-            'lname'  => $student->lname,
-            'status' => 'active',
-            'suid'   => $request->suid,
-            'ssn'    => $request->sesn,
-            'trm'    => $request->trm,
-            'clsm'   => $request->clsm,
-            'clsa'   => $request->clsa,
-            'more'   => '',
-        ]);
+    // 3. Create a new promotion record (per term)
+    $promotion = old_student::create([
+        'uid'    => $uid,
+        'sid'    => $request->sid,
+        'schid'  => $request->schid,
+        'fname'  => $student->fname,
+        'mname'  => $student->mname,
+        'lname'  => $student->lname,
+        'status' => 'active',
+        'suid'   => $request->suid,
+        'ssn'    => $request->sesn, // session
+        'trm'    => $request->trm,  // term
+        'clsm'   => $request->clsm, // main class
+        'clsa'   => $request->clsa, // arm id
+        'more'   => '',
+    ]);
 
-        // 4. Load class arm name via relationship
-        $promotion->load('classArm');
+    // 4. Fetch class arm name from sch_cls
+    $armName = \DB::table('sch_cls')
+        ->where('id', $request->clsa)
+        ->value('name');  // get the class arm name
 
-        return response()->json([
-            'status'    => true,
-            'message'   => 'Student promoted successfully for this term',
-            'data'      => [
-                'sid'       => $promotion->sid,
-                'suid'      => $promotion->suid,
-                'ssn'       => $promotion->ssn,
-                'trm'       => $promotion->trm,
-                'clsm'      => $promotion->clsm,
-                'clsa'      => $promotion->clsa,
-                'clsa_name' => $promotion->classArm?->name,  // ✅ arm name
-            ],
-        ]);
-    }
+    return response()->json([
+        'status'    => true,
+        'message'   => 'Student promoted successfully for this term',
+        'data'      => [
+            'sid'       => $promotion->sid,
+            'suid'      => $promotion->suid,
+            'ssn'       => $promotion->ssn,
+            'trm'       => $promotion->trm,
+            'clsm'      => $promotion->clsm,
+            'clsa'      => $promotion->clsa,
+            'clsa_name' => $armName,   // ✅ arm name
+        ],
+    ]);
+}
 
 
 
