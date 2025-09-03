@@ -10,7 +10,18 @@ class old_student extends Model
     protected $primaryKey = 'uid';
     public $incrementing = false;
     protected $fillable = [
-        'uid','sid', 'schid', 'fname','mname','lname','suid','ssn','trm','clsm', 'clsa', 'more'
+        'uid',
+        'sid',
+        'schid',
+        'fname',
+        'mname',
+        'lname',
+        'suid',
+        'ssn',
+        'trm',
+        'clsm',
+        'clsa',
+        'more'
     ];
     /*protected $hidden = [
         'password',
@@ -21,4 +32,8 @@ class old_student extends Model
         return $this->belongsTo(student::class, 'sid', 'sid');
     }
 
+    public function academicData()
+    {
+        return $this->belongsTo(student_academic_data::class, 'sid', 'user_id');
+    }
 }
