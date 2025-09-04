@@ -21952,6 +21952,119 @@
                     }
                 ]
             }
+        },
+        "/api/assignSubjectStaff": {
+            "post": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Assign subject to a staff",
+                "description": "This endpoint assigns a subject to a staff member. A unique UID is auto-generated for each record.",
+                "operationId": "9f91101cfd05126da517b4f931f2687a",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "stid",
+                                    "sbj",
+                                    "schid",
+                                    "sesn",
+                                    "trm"
+                                ],
+                                "properties": {
+                                    "stid": {
+                                        "description": "Staff ID",
+                                        "type": "integer",
+                                        "example": 1929
+                                    },
+                                    "sbj": {
+                                        "description": "Subject ID",
+                                        "type": "integer",
+                                        "example": 15
+                                    },
+                                    "schid": {
+                                        "description": "School ID",
+                                        "type": "integer",
+                                        "example": 12
+                                    },
+                                    "sesn": {
+                                        "description": "Academic session",
+                                        "type": "integer",
+                                        "example": 2024
+                                    },
+                                    "trm": {
+                                        "description": "Academic term (1, 2, or 3)",
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Subject successfully assigned to staff",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Subject Successfully Assigned to Staff"
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "uid": {
+                                                    "type": "string",
+                                                    "example": "20241192912345"
+                                                },
+                                                "stid": {
+                                                    "type": "integer",
+                                                    "example": 1929
+                                                },
+                                                "sbj": {
+                                                    "type": "integer",
+                                                    "example": 15
+                                                },
+                                                "schid": {
+                                                    "type": "integer",
+                                                    "example": 12
+                                                },
+                                                "sesn": {
+                                                    "type": "integer",
+                                                    "example": 2024
+                                                },
+                                                "trm": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error - Missing required fields"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
