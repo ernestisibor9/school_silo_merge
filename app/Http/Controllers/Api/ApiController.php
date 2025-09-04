@@ -26794,4 +26794,84 @@ class ApiController extends Controller
             "pld" => $pld,
         ]);
     }
+
+
+
+
+        /**
+     * @OA\Post(
+     *     path="/api/assignSubjectStaff",
+     *     summary="Assign subject to a staff",
+     *     description="This endpoint assigns a subject to a staff member. A unique UID is auto-generated for each record.",
+     *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"stid","sbj","schid","sesn","trm"},
+     *             @OA\Property(property="stid", type="integer", example=1929, description="Staff ID"),
+     *             @OA\Property(property="sbj", type="integer", example=15, description="Subject ID"),
+     *             @OA\Property(property="schid", type="integer", example=12, description="School ID"),
+     *             @OA\Property(property="sesn", type="integer", example=2024, description="Academic session"),
+     *             @OA\Property(property="trm", type="integer", example=1, description="Academic term (1, 2, or 3)")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Subject successfully assigned to staff",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Subject Successfully Assigned to Staff"),
+     *             @OA\Property(property="pld", type="object",
+     *                 @OA\Property(property="uid", type="string", example="20241192912345"),
+     *                 @OA\Property(property="stid", type="integer", example=1929),
+     *                 @OA\Property(property="sbj", type="integer", example=15),
+     *                 @OA\Property(property="schid", type="integer", example=12),
+     *                 @OA\Property(property="sesn", type="integer", example=2024),
+     *                 @OA\Property(property="trm", type="integer", example=1)
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error - Missing required fields"
+     *     )
+     * )
+     */
+    public function assignSubjectStaff(Request $request)
+    {
+        // ✅ Data validation
+        $request->validate([
+            "stid"  => "required",
+            "sbj"   => "required",
+            "schid" => "required",
+            "sesn"  => "required",
+            "trm"   => "required",
+        ]);
+
+        // ✅ Generate unique UID
+        $uid = $request->sesn . $request->trm . $request->stid . rand(10000, 99999);
+
+        // ✅ Update or create based on UID only
+        $pld = staff_subj::updateOrCreate(
+            ["uid" => $uid],
+            [
+                "stid"  => $request->stid,
+                "sbj"   => $request->sbj,
+                "schid" => $request->schid,
+                "sesn"  => $request->sesn,
+                "trm"   => $request->trm,
+            ]
+        );
+
+        return response()->json([
+            "status"  => true,
+            "message" => "Subject Successfully Assigned to Staff",
+            "pld"     => $pld
+        ]);
+    }
+
 }
