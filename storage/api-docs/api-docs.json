@@ -6870,14 +6870,14 @@
                 ]
             }
         },
-        "/api/getOldStaffStat/{schid}/{ssn}/{clsm}/{role}": {
+        "/api/getOldStaffStat/{schid}/{ssn}/{trm}/{clsm}/{role}": {
             "get": {
                 "tags": [
                     "Api"
                 ],
                 "summary": "Get an old staff's stats",
                 "description": "Use this endpoint to get stats information about an old staff.",
-                "operationId": "a6a00061be3cc485cef1b1141f41fd96",
+                "operationId": "5637f8cda853352fede0975b5290b070",
                 "parameters": [
                     {
                         "name": "schid",
@@ -6892,6 +6892,15 @@
                         "name": "ssn",
                         "in": "path",
                         "description": "Id of the session",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "path",
+                        "description": "Id of the trm",
                         "required": true,
                         "schema": {
                             "type": "string"

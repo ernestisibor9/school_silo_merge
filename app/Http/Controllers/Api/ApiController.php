@@ -10058,7 +10058,7 @@ class ApiController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/getOldStaffStat/{schid}/{ssn}/{clsm}/{role}",
+     *     path="/api/getOldStaffStat/{schid}/{ssn}/{trm}/{clsm}/{role}",
      *     tags={"Api"},
      *     security={{"bearerAuth": {}}},
      *     summary="Get an old staff's stats",
@@ -10075,6 +10075,13 @@ class ApiController extends Controller
      *         in="path",
      *         required=true,
      *         description="Id of the session",
+     *         @OA\Schema(type="string")
+     *     ),
+     *      @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Id of the trm",
      *         @OA\Schema(type="string")
      *     ),
      *     @OA\Parameter(
@@ -10095,7 +10102,7 @@ class ApiController extends Controller
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    public function getOldStaffStat($schid, $ssn, $clsm, $role)
+    public function getOldStaffStat($schid, $ssn, $trm, $clsm, $role)
     {
         $male = 0;
         $female = 0;
@@ -10103,6 +10110,7 @@ class ApiController extends Controller
             $male = old_staff::join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
                 ->where('old_staff.schid', $schid)
                 ->where('old_staff.ssn', $ssn)
+                ->where('old_staff.trm', $trm)
                 ->where('status', 'active')
                 ->where('old_staff.clsm', $clsm)
                 ->where('staff_basic_data.sex', 'M')
@@ -10110,6 +10118,7 @@ class ApiController extends Controller
             $female = old_staff::join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
                 ->where('old_staff.schid', $schid)
                 ->where('old_staff.ssn', $ssn)
+                ->where('old_staff.trm', $trm)
                 ->where('status', 'active')
                 ->where('old_staff.clsm', $clsm)
                 ->where('staff_basic_data.sex', 'F')
@@ -10118,6 +10127,7 @@ class ApiController extends Controller
             $male = old_staff::join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
                 ->where('old_staff.schid', $schid)
                 ->where('old_staff.ssn', $ssn)
+                ->where('old_staff.trm', $trm)
                 ->where('old_staff.clsm', $clsm)
                 ->where(function ($query) use ($role) {
                     $query->where('old_staff.role', $role)
@@ -10129,6 +10139,7 @@ class ApiController extends Controller
             $female = old_staff::join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
                 ->where('old_staff.schid', $schid)
                 ->where('old_staff.ssn', $ssn)
+                ->where('old_staff.trm', $trm)
                 ->where('old_staff.clsm', $clsm)
                 ->where(function ($query) use ($role) {
                     $query->where('old_staff.role', $role)

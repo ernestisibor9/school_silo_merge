@@ -276,7 +276,7 @@ Route::group([
     Route::get('getOldStudents/{schid}/{ssn}/{trm}/{clsm}/{clsa}', [ApiController::class, 'getOldStudents']);
 
     Route::get('getOldStaffInfo/{uid}', [ApiController::class, 'getOldStaffInfo']);
-    Route::get('getOldStaffStat/{schid}/{ssn}/{clsm}/{role}', [ApiController::class, 'getOldStaffStat']);
+    Route::get('getOldStaffStat/{schid}/{ssn}/{trm}/{clsm}/{role}', [ApiController::class, 'getOldStaffStat']);
     Route::get('getOldStaff/{schid}/{ssn}/{trm}/{clsm}/{role}', [ApiController::class, 'getOldStaff']);
     Route::get('getStaffRoleByClass/{stid}/{schid}/{clsid}/{ssn}', [ApiController::class, 'getStaffRoleByClass']);
     Route::get('getOldStudentsAndSubject/{schid}/{ssn}/{trm}/{clsm}/{clsa}/{stf}', [ApiController::class, 'getOldStudentsAndSubject']);
