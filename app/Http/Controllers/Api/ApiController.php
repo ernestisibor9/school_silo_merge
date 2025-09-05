@@ -27191,4 +27191,70 @@ class ApiController extends Controller
             "pld"     => $pld
         ]);
     }
+
+
+
+
+    /**
+     * @OA\Get(
+     *     path="/api/getClassArms/{schid}/{cls_id}",
+     *     summary="Get all class arms for a specific school and class",
+     *     description="Fetch all class arms (id, name, cls_id, schid) based on school ID and class ID",
+     *     operationId="getClassArms",
+     *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="path",
+     *         description="School ID",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=12)
+     *     ),
+     *     @OA\Parameter(
+     *         name="cls_id",
+     *         in="path",
+     *         description="Class ID",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=12)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful response",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Class arms fetched successfully"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="id", type="integer", example=3),
+     *                     @OA\Property(property="name", type="string", example="A"),
+     *                     @OA\Property(property="cls_id", type="integer", example=12),
+     *                     @OA\Property(property="schid", type="integer", example=12)
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error or bad request"
+     *     )
+     * )
+     */
+    public function getClassArms($schid, $cls_id)
+    {
+        $arms = DB::table('sch_cls')
+            ->select('id', 'name', 'cls_id', 'schid')
+            ->where('schid', $schid)
+            ->where('cls_id', $cls_id)
+            ->get();
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Class arms fetched successfully',
+            'pld'     => $arms,
+        ]);
+    }
 }
