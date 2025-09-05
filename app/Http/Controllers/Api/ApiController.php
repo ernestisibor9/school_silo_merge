@@ -26459,18 +26459,32 @@ class ApiController extends Controller
             'schid' => 'required',
             'sesn'  => 'required',  // session
             'trm'   => 'required',  // term
-            'clsm'  => 'required',  // main class
-            'clsa'  => 'required',  // class arm
+            'clsm'  => 'required',  // new main class
+            'clsa'  => 'required',  // requested new class arm (sch_cls.id)
             'suid'  => 'required',  // student unique id
         ]);
 
         // 1. Find the student
         $student = student::where('sid', $request->sid)->firstOrFail();
 
-        // 2. Generate a unique numeric promotion ID
+        // 2. Make sure this arm belongs to the new class
+        $validArm = DB::table('sch_cls')
+            ->where('id', $request->clsa)
+            ->where('cls_id', $request->clsm)   // ✅ ensure arm belongs to this class
+            ->where('schid', $request->schid)
+            ->first();
+
+        if (!$validArm) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Invalid class arm for the selected class',
+            ], 422);
+        }
+
+        // 3. Generate a unique promotion ID
         $uid = $request->sesn . $request->trm . $request->sid . rand(10000, 99999);
 
-        // 3. Create a new promotion record (per term)
+        // 4. Create promotion record
         $promotion = old_student::create([
             'uid'    => $uid,
             'sid'    => $request->sid,
@@ -26480,17 +26494,12 @@ class ApiController extends Controller
             'lname'  => $student->lname,
             'status' => 'active',
             'suid'   => $request->suid,
-            'ssn'    => $request->sesn, // session
-            'trm'    => $request->trm,  // term
-            'clsm'   => $request->clsm, // main class
-            'clsa'   => $request->clsa, // arm id
+            'ssn'    => $request->sesn,
+            'trm'    => $request->trm,
+            'clsm'   => $request->clsm,      // ✅ new class
+            'clsa'   => $validArm->id,       // ✅ new arm from sch_cls
             'more'   => '',
         ]);
-
-        // 4. Fetch class arm name from sch_cls
-        $armName = \DB::table('sch_cls')
-            ->where('id', $request->clsa)
-            ->value('name');  // get the class arm name
 
         return response()->json([
             'status'    => true,
@@ -26502,7 +26511,7 @@ class ApiController extends Controller
                 'trm'       => $promotion->trm,
                 'clsm'      => $promotion->clsm,
                 'clsa'      => $promotion->clsa,
-                'clsa_name' => $armName,   // ✅ arm name
+                'clsa_name' => $validArm->name,   // ✅ arm name
             ],
         ]);
     }
