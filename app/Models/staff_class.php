@@ -10,7 +10,7 @@ class staff_class extends Model
     protected $primaryKey = 'uid';
     public $incrementing = false;
     protected $fillable = [
-        'uid','stid', 'cls', 'schid'
+        'uid','stid', 'cls', 'schid', 'ssn','trm'
     ];
     /*protected $hidden = [
         'password',

@@ -5993,46 +5993,81 @@
                 "tags": [
                     "Api"
                 ],
-                "summary": "Set staff classes",
-                "operationId": "73549368cf12b599749282d343d137d3",
+                "summary": "Assign staff to a class and save old staff info",
+                "description": "This endpoint assigns a staff member to a class and also saves their information into old_staff with a generated UID.",
+                "operationId": "setStaffClass",
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
+                                "required": [
+                                    "stid",
+                                    "cls",
+                                    "schid",
+                                    "ssn",
+                                    "trm",
+                                    "fname",
+                                    "lname",
+                                    "suid",
+                                    "role",
+                                    "role2"
+                                ],
                                 "properties": {
-                                    "uid": {
-                                        "type": "string"
-                                    },
                                     "stid": {
-                                        "type": "string"
+                                        "description": "Staff ID",
+                                        "type": "integer",
+                                        "example": 1929
                                     },
                                     "cls": {
-                                        "type": "string"
+                                        "description": "Class assigned",
+                                        "type": "string",
+                                        "example": "SS1A"
                                     },
                                     "schid": {
-                                        "type": "string"
+                                        "description": "School ID",
+                                        "type": "integer",
+                                        "example": 12
                                     },
                                     "ssn": {
-                                        "type": "string"
+                                        "description": "Session",
+                                        "type": "string",
+                                        "example": "2024"
+                                    },
+                                    "trm": {
+                                        "description": "Term",
+                                        "type": "string",
+                                        "example": "1"
                                     },
                                     "fname": {
-                                        "type": "string"
+                                        "description": "First name of staff",
+                                        "type": "string",
+                                        "example": "John"
                                     },
                                     "lname": {
-                                        "type": "string"
+                                        "description": "Last name of staff",
+                                        "type": "string",
+                                        "example": "Doe"
                                     },
                                     "mname": {
-                                        "type": "string"
+                                        "description": "Middle name of staff (optional)",
+                                        "type": "string",
+                                        "example": "Michael"
                                     },
                                     "suid": {
-                                        "type": "string"
+                                        "description": "Staff unique identifier",
+                                        "type": "string",
+                                        "example": "STF123"
                                     },
                                     "role": {
-                                        "type": "string"
+                                        "description": "Primary role",
+                                        "type": "string",
+                                        "example": "Teacher"
                                     },
                                     "role2": {
-                                        "type": "string"
+                                        "description": "Secondary role",
+                                        "type": "string",
+                                        "example": "Class Advisor"
                                     }
                                 },
                                 "type": "object"
@@ -6042,10 +6077,64 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Staff data set successfully"
+                        "description": "Success response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "staff_class": {
+                                                    "description": "Saved staff_class data",
+                                                    "type": "object"
+                                                },
+                                                "old_staff": {
+                                                    "description": "Saved old_staff data",
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
-                    "400": {
-                        "description": "Validation error"
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "example": {
+                                                "stid": [
+                                                    "The stid field is required."
+                                                ],
+                                                "cls": [
+                                                    "The cls field is required."
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
@@ -6060,49 +6149,124 @@
                 "tags": [
                     "Api"
                 ],
-                "summary": "Get a staff's classes",
-                "description": "Use this endpoint to get classes of a staff.",
+                "summary": "Retrieve staff classes for a specific staff ID",
+                "description": "Fetch staff class records for a given staff ID, with optional filters for session (ssn) and term (trm). Supports pagination with start and count.",
                 "operationId": "88ce6b0193925e3342ccab846e8229f8",
                 "parameters": [
                     {
                         "name": "stid",
                         "in": "path",
-                        "description": "User Id of the staff",
+                        "description": "Staff ID",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "example": "1929"
+                        }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "query",
+                        "description": "Filter by academic session",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "2025"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "query",
+                        "description": "Filter by term",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "2"
                         }
                     },
                     {
                         "name": "start",
                         "in": "query",
-                        "description": "Index to start at",
+                        "description": "Pagination start offset (default 0)",
                         "required": false,
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "example": 0
                         }
                     },
                     {
                         "name": "count",
                         "in": "query",
-                        "description": "No of records to retrieve",
+                        "description": "Number of records to return (default 20)",
                         "required": false,
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "example": 10
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Success",
+                        "description": "Successful response",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "uid": {
+                                                        "type": "string",
+                                                        "example": "SETSTAFFCLASS52205"
+                                                    },
+                                                    "stid": {
+                                                        "type": "string",
+                                                        "example": "1929"
+                                                    },
+                                                    "cls": {
+                                                        "type": "string",
+                                                        "example": "11"
+                                                    },
+                                                    "schid": {
+                                                        "type": "string",
+                                                        "example": "12"
+                                                    },
+                                                    "ssn": {
+                                                        "type": "string",
+                                                        "example": "2025"
+                                                    },
+                                                    "trm": {
+                                                        "type": "string",
+                                                        "example": "2"
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    },
+                                                    "updated_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
-                    "401": {
-                        "description": "Unauthorized"
+                    "400": {
+                        "description": "Invalid request"
                     }
                 },
                 "security": [

@@ -9300,9 +9300,17 @@ class ApiController extends Controller
         $start = request()->input('start', 0);   // default 0
         $count = request()->input('count', 20);  // default 20
 
-        $pld = staff_subj::where("stid", $stid)
-            ->where("sesn", $sesn)
-            ->where("trm", $trm)
+        // ✅ Join staff_subj with staff to retrieve staff names
+        $pld = staff_subj::where("staff_subj.stid", $stid)
+            ->where("staff_subj.sesn", $sesn)
+            ->where("staff_subj.trm", $trm)
+            ->join("staff", "staff.sid", "=", "staff_subj.stid")
+            ->select(
+                "staff_subj.*",
+                "staff.lname",
+                "staff.fname",
+                "staff.mname"
+            )
             ->skip($start)
             ->take($count)
             ->get();
@@ -9313,6 +9321,7 @@ class ApiController extends Controller
             "pld" => $pld,
         ]);
     }
+
 
 
 
@@ -9347,76 +9356,185 @@ class ApiController extends Controller
     /**
      * @OA\Post(
      *     path="/api/setStaffClass",
+     *     summary="Assign staff to a class and save old staff info",
+     *     description="This endpoint assigns a staff member to a class and also saves their information into old_staff with a generated UID.",
+     *     operationId="setStaffClass",
      *     tags={"Api"},
      *     security={{"bearerAuth": {}}},
-     *     summary="Set staff classes",
+     *
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="uid", type="string"),
-     *             @OA\Property(property="stid", type="string"),
-     *             @OA\Property(property="cls", type="string"),
-     *             @OA\Property(property="schid", type="string"),
-     *             @OA\Property(property="ssn", type="string"),
-     *             @OA\Property(property="fname", type="string"),
-     *             @OA\Property(property="lname", type="string"),
-     *             @OA\Property(property="mname", type="string"),
-     *             @OA\Property(property="suid", type="string"),
-     *             @OA\Property(property="role", type="string"),
-     *             @OA\Property(property="role2", type="string"),
+     *             required={"stid","cls","schid","ssn","trm","fname","lname","suid","role","role2"},
+     *             @OA\Property(property="stid", type="integer", example=1929, description="Staff ID"),
+     *             @OA\Property(property="cls", type="string", example="SS1A", description="Class assigned"),
+     *             @OA\Property(property="schid", type="integer", example=12, description="School ID"),
+     *             @OA\Property(property="ssn", type="string", example="2024", description="Session"),
+     *             @OA\Property(property="trm", type="string", example="1", description="Term"),
+     *             @OA\Property(property="fname", type="string", example="John", description="First name of staff"),
+     *             @OA\Property(property="lname", type="string", example="Doe", description="Last name of staff"),
+     *             @OA\Property(property="mname", type="string", example="Michael", description="Middle name of staff (optional)"),
+     *             @OA\Property(property="suid", type="string", example="STF123", description="Staff unique identifier"),
+     *             @OA\Property(property="role", type="string", example="Teacher", description="Primary role"),
+     *             @OA\Property(property="role2", type="string", example="Class Advisor", description="Secondary role")
      *         )
      *     ),
-     *     @OA\Response(response="200", description="Staff data set successfully"),
-     *     @OA\Response(response="400", description="Validation error"),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success response",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 @OA\Property(
+     *                     property="staff_class",
+     *                     type="object",
+     *                     description="Saved staff_class data"
+     *                 ),
+     *                 @OA\Property(
+     *                     property="old_staff",
+     *                     type="object",
+     *                     description="Saved old_staff data"
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+     *             @OA\Property(
+     *                 property="errors",
+     *                 type="object",
+     *                 example={
+     *                     "stid": {"The stid field is required."},
+     *                     "cls": {"The cls field is required."}
+     *                 }
+     *             )
+     *         )
+     *     )
      * )
      */
+
+    // public function setStaffClass(Request $request)
+    // {
+    //     //Data validation
+    //     $request->validate([
+    //         "uid" => "required",
+    //         "stid" => "required",
+    //         "cls" => "required",
+    //         "schid" => "required",
+    //         "ssn" => "required",
+    //          "trm" => "required",
+    //         "fname" => "required",
+    //         "lname" => "required",
+    //         "mname" => "nullable",
+    //         "suid" => "required",
+    //         "role" => "required",
+    //         "role2" => "required",
+    //     ]);
+    //     staff_class::updateOrCreate(
+    //         ["uid" => $request->uid,],
+    //         [
+    //             "stid" => $request->stid,
+    //             "cls" => $request->cls,
+    //             "schid" => $request->schid,
+    //              "ssn" => $request->ssn,
+    //               "trm" => $request->trm,
+    //         ]
+    //     );
+    //     $uid = $request->ssn . $request->cls . $request->stid;
+    //     old_staff::updateOrCreate(
+    //         ["uid" => $uid,],
+    //         [
+    //             'sid' => $request->stid,
+    //             'schid' => $request->schid,
+    //             'fname' => $request->fname,
+    //             'mname' => $request->mname,
+    //             'lname' => $request->lname,
+    //             'suid' => $request->suid,
+    //             'ssn' => $request->ssn,
+    //             'trm' => $request->trm,
+    //             'clsm' => $request->cls,
+    //             'role' => $request->role,
+    //             'role2' => $request->role2,
+    //             'more' => "",
+    //         ]
+    //     );
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //     ]);
+    // }
+
+
     public function setStaffClass(Request $request)
     {
-        //Data validation
+        // ✅ Data validation
         $request->validate([
-            "uid" => "required",
-            "stid" => "required",
-            "cls" => "required",
-            "schid" => "required",
-            "ssn" => "required",
-            "fname" => "required",
-            "lname" => "required",
-            "mname" => "nullable",
-            "suid" => "required",
-            "role" => "required",
-            "role2" => "required",
+            "stid"   => "required",
+            "cls"    => "required",
+            "schid"  => "required",
+            "ssn"    => "required",
+            "trm"    => "required",
+            "fname"  => "required",
+            "lname"  => "required",
+            "mname"  => "nullable",
+            "suid"   => "required",
+            "role"   => "required",
+            "role2"  => "required",
         ]);
-        staff_class::updateOrCreate(
-            ["uid" => $request->uid,],
+
+        // ✅ Generate UID automatically (like setOldStaffInfo)
+        $uid = $request->ssn . $request->trm . $request->stid . rand(10000, 99999);
+
+        // ✅ Save to staff_class
+        $pld = staff_class::updateOrCreate(
+            ["uid" => $uid],
             [
-                "stid" => $request->stid,
-                "cls" => $request->cls,
+                "stid"  => $request->stid,
+                "cls"   => $request->cls,
                 "schid" => $request->schid,
+                "ssn"   => $request->ssn,
+                "trm"   => $request->trm,
             ]
         );
-        $uid = $request->ssn . $request->cls . $request->stid;
-        old_staff::updateOrCreate(
-            ["uid" => $uid,],
+
+        // ✅ Save also to old_staff with same uid style
+        $old = old_staff::updateOrCreate(
+            ["uid" => $uid],
             [
-                'sid' => $request->stid,
+                'sid'   => $request->stid,
                 'schid' => $request->schid,
                 'fname' => $request->fname,
                 'mname' => $request->mname,
                 'lname' => $request->lname,
-                'suid' => $request->suid,
-                'ssn' => $request->ssn,
-                'clsm' => $request->cls,
-                'role' => $request->role,
+                'suid'  => $request->suid,
+                'ssn'   => $request->ssn,
+                'trm'   => $request->trm,
+                'clsm'  => $request->cls,
+                'role'  => $request->role,
                 'role2' => $request->role2,
-                'more' => "",
+                'more'  => "",
             ]
         );
+
+        // ✅ Return JSON response
         return response()->json([
-            "status" => true,
+            "status"  => true,
             "message" => "Success",
+            "pld"     => [
+                "staff_class" => $pld,
+                "old_staff"   => $old,
+            ]
         ]);
     }
+
 
 
     /**
@@ -9424,48 +9542,125 @@ class ApiController extends Controller
      *     path="/api/getStaffClasses/{stid}",
      *     tags={"Api"},
      *     security={{"bearerAuth": {}}},
-     *     summary="Get a staff's classes",
-     *     description="Use this endpoint to get classes of a staff.",
+     *     summary="Retrieve staff classes for a specific staff ID",
+     *     description="Fetch staff class records for a given staff ID, with optional filters for session (ssn) and term (trm). Supports pagination with start and count.",
+     *
      *     @OA\Parameter(
      *         name="stid",
      *         in="path",
      *         required=true,
-     *         description="User Id of the staff",
-     *         @OA\Schema(type="string")
+     *         description="Staff ID",
+     *         @OA\Schema(type="string", example="1929")
      *     ),
-     *      @OA\Parameter(
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="query",
+     *         required=false,
+     *         description="Filter by academic session",
+     *         @OA\Schema(type="string", example="2025")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="query",
+     *         required=false,
+     *         description="Filter by term",
+     *         @OA\Schema(type="string", example="2")
+     *     ),
+     *     @OA\Parameter(
      *         name="start",
      *         in="query",
      *         required=false,
-     *         description="Index to start at",
-     *         @OA\Schema(type="integer")
+     *         description="Pagination start offset (default 0)",
+     *         @OA\Schema(type="integer", example=0)
      *     ),
      *     @OA\Parameter(
      *         name="count",
      *         in="query",
      *         required=false,
-     *         description="No of records to retrieve",
-     *         @OA\Schema(type="integer")
+     *         description="Number of records to return (default 20)",
+     *         @OA\Schema(type="integer", example=10)
      *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful response",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="uid", type="string", example="SETSTAFFCLASS52205"),
+     *                     @OA\Property(property="stid", type="string", example="1929"),
+     *                     @OA\Property(property="cls", type="string", example="11"),
+     *                     @OA\Property(property="schid", type="string", example="12"),
+     *                     @OA\Property(property="ssn", type="string", example="2025"),
+     *                     @OA\Property(property="trm", type="string", example="2"),
+     *                     @OA\Property(property="created_at", type="string", format="date-time"),
+     *                     @OA\Property(property="updated_at", type="string", format="date-time")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Invalid request"
+     *     )
      * )
      */
+
+    // public function getStaffClasses($stid)
+    // {
+    //     $start = 0;
+    //     $count = 20;
+    //     if (request()->has('start') && request()->has('count')) {
+    //         $start = request()->input('start');
+    //         $count = request()->input('count');
+    //     }
+    //     $pld = staff_class::where("stid", $stid)->skip($start)->take($count)->get();
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => $pld,
+    //     ]);
+    // }
+
     public function getStaffClasses($stid)
     {
-        $start = 0;
-        $count = 20;
-        if (request()->has('start') && request()->has('count')) {
-            $start = request()->input('start');
-            $count = request()->input('count');
+        $start = request()->input('start', 0);   // default 0
+        $count = request()->input('count', 20);  // default 20
+
+        $query = staff_class::where("staff_class.stid", $stid)
+            ->join("old_staff", "staff_class.stid", "=", "old_staff.sid") // ✅ join staff table
+            ->select(
+                "staff_class.*",
+                "old_staff.fname",
+                "old_staff.mname",
+                "old_staff.lname"
+            );
+
+        // ✅ Filter by session if provided
+        if (request()->has('ssn')) {
+            $query->where("staff_class.ssn", request()->input('ssn'));
         }
-        $pld = staff_class::where("stid", $stid)->skip($start)->take($count)->get();
+
+        // ✅ Filter by term if provided
+        if (request()->has('trm')) {
+            $query->where("staff_class.trm", request()->input('trm'));
+        }
+
+        $pld = $query->skip($start)->take($count)->get();
+
         return response()->json([
-            "status" => true,
+            "status"  => true,
             "message" => "Success",
-            "pld" => $pld,
+            "pld"     => $pld,
         ]);
     }
+
+
 
     /**
      * @OA\Get(
@@ -26798,7 +26993,7 @@ class ApiController extends Controller
 
 
 
-        /**
+    /**
      * @OA\Post(
      *     path="/api/assignSubjectStaff",
      *     summary="Assign subject to a staff",
@@ -26873,5 +27068,4 @@ class ApiController extends Controller
             "pld"     => $pld
         ]);
     }
-
 }
