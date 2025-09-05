@@ -5653,7 +5653,6 @@ class ApiController extends Controller
                 ->where('old_student.trm', $trm)
                 ->where('status', 'active')
                 ->where('old_student.clsm', $clsm)
-                ->where('old_student.clsm', $clsa)
                 ->where('student_basic_data.sex', 'M')
                 ->count();
             $female = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
@@ -5662,7 +5661,6 @@ class ApiController extends Controller
                 ->where('old_student.trm', $trm)
                 ->where('status', 'active')
                 ->where('old_student.clsm', $clsm)
-                ->where('old_student.clsm', $clsa)
                 ->where('student_basic_data.sex', 'F')
                 ->count();
         } else {
