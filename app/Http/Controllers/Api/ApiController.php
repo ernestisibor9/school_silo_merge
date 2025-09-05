@@ -5516,6 +5516,7 @@ class ApiController extends Controller
             ->where("ssn", $ssn)
             ->where("trm", $trm)
             ->where("clsm", $clsm)
+            ->where("clsa", $clsa)
             ->where("status", "active");
 
         if ($clsa != '-1') {
