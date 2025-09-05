@@ -146,6 +146,7 @@ Route::group([
     Route::post('setSubjStaff', [ApiController::class, 'setSubjStaff']);
 
     Route::post('assignSubjectStaff', [ApiController::class, 'assignSubjectStaff']);
+    Route::post('setRepostStaff', [ApiController::class, 'setRepostStaff']);
 
     Route::post('setStaffClassArm', [ApiController::class, 'setStaffClassArm']);
     Route::post('setOldStaffInfo', [ApiController::class, 'setOldStaffInfo']);

@@ -27068,4 +27068,118 @@ class ApiController extends Controller
             "pld"     => $pld
         ]);
     }
+
+
+
+    /**
+     * @OA\Post(
+     *     path="/api/setRepostStaff",
+     *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
+     *     summary="Create or update old staff info",
+     *     description="This endpoint creates or updates old staff information. Uniqueness is enforced using the `uid` field only.",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"sid","schid","fname","mname","lname","suid","ssn","trm","clsm","role","role2","more"},
+     *             @OA\Property(property="sid", type="string", example="12345"),
+     *             @OA\Property(property="schid", type="string", example="6789"),
+     *             @OA\Property(property="fname", type="string", example="John"),
+     *             @OA\Property(property="mname", type="string", example="Michael"),
+     *             @OA\Property(property="lname", type="string", example="Doe"),
+     *             @OA\Property(property="suid", type="string", example="STF001"),
+     *             @OA\Property(property="ssn", type="string", example="2024"),
+     *             @OA\Property(property="trm", type="string", example="1"),
+     *             @OA\Property(property="clsm", type="string", example="SS2A"),
+     *             @OA\Property(property="role", type="string", example="Class Teacher"),
+     *             @OA\Property(property="role2", type="string", example="Exam Officer"),
+     *             @OA\Property(property="more", type="string", example="Additional notes or duties"),
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Old staff info successfully created or updated",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Info Updated"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 description="The created/updated staff record",
+     *                 @OA\Property(property="uid", type="string", example="202411234512345"),
+     *                 @OA\Property(property="sid", type="string", example="12345"),
+     *                 @OA\Property(property="schid", type="string", example="6789"),
+     *                 @OA\Property(property="fname", type="string", example="John"),
+     *                 @OA\Property(property="mname", type="string", example="Michael"),
+     *                 @OA\Property(property="lname", type="string", example="Doe"),
+     *                 @OA\Property(property="suid", type="string", example="STF001"),
+     *                 @OA\Property(property="ssn", type="string", example="2024"),
+     *                 @OA\Property(property="trm", type="string", example="1"),
+     *                 @OA\Property(property="clsm", type="string", example="SS2A"),
+     *                 @OA\Property(property="role", type="string", example="Class Teacher"),
+     *                 @OA\Property(property="role2", type="string", example="Exam Officer"),
+     *                 @OA\Property(property="more", type="string", example="Additional notes or duties"),
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     )
+     * )
+     */
+
+
+    public function setRepostStaff(Request $request)
+    {
+        // ✅ Data validation
+        $request->validate([
+            "sid"   => "required",
+            "schid" => "required",
+            "fname" => "required",
+            "mname" => "required",
+            "lname" => "required",
+            "suid"  => "required",
+            "ssn"   => "required",
+            "trm"   => "required",
+            "clsm"  => "required",
+            "role"  => "required",
+            "role2" => "required",
+            "more"  => "required",
+        ]);
+
+        // ✅ Generate UID automatically
+        $uid = $request->ssn . $request->trm . $request->sid . rand(10000, 99999);
+
+        // ✅ Update or create record based only on uid
+        $pld = old_staff::updateOrCreate(
+            [
+                "uid" => $uid,   // uniqueness check is ONLY on uid
+            ],
+            [
+                "sid"   => $request->sid,
+                "schid" => $request->schid,
+                "fname" => $request->fname,
+                "mname" => $request->mname,
+                "lname" => $request->lname,
+                "suid"  => $request->suid,
+                "ssn"   => $request->ssn,
+                "trm"   => $request->trm,
+                "clsm"  => $request->clsm,
+                "role"  => $request->role,
+                "role2" => $request->role2,
+                "more"  => $request->more,
+            ]
+        );
+
+        return response()->json([
+            "status"  => true,
+            "message" => "Info Updated",
+            "pld"     => $pld
+        ]);
+    }
 }

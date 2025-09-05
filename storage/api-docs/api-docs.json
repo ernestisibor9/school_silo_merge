@@ -22229,6 +22229,194 @@
                     }
                 ]
             }
+        },
+        "/api/setRepostStaff": {
+            "post": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Create or update old staff info",
+                "description": "This endpoint creates or updates old staff information. Uniqueness is enforced using the `uid` field only.",
+                "operationId": "950cb343bb12d0f78faee35b4ff1a0d7",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "sid",
+                                    "schid",
+                                    "fname",
+                                    "mname",
+                                    "lname",
+                                    "suid",
+                                    "ssn",
+                                    "trm",
+                                    "clsm",
+                                    "role",
+                                    "role2",
+                                    "more"
+                                ],
+                                "properties": {
+                                    "sid": {
+                                        "type": "string",
+                                        "example": "12345"
+                                    },
+                                    "schid": {
+                                        "type": "string",
+                                        "example": "6789"
+                                    },
+                                    "fname": {
+                                        "type": "string",
+                                        "example": "John"
+                                    },
+                                    "mname": {
+                                        "type": "string",
+                                        "example": "Michael"
+                                    },
+                                    "lname": {
+                                        "type": "string",
+                                        "example": "Doe"
+                                    },
+                                    "suid": {
+                                        "type": "string",
+                                        "example": "STF001"
+                                    },
+                                    "ssn": {
+                                        "type": "string",
+                                        "example": "2024"
+                                    },
+                                    "trm": {
+                                        "type": "string",
+                                        "example": "1"
+                                    },
+                                    "clsm": {
+                                        "type": "string",
+                                        "example": "SS2A"
+                                    },
+                                    "role": {
+                                        "type": "string",
+                                        "example": "Class Teacher"
+                                    },
+                                    "role2": {
+                                        "type": "string",
+                                        "example": "Exam Officer"
+                                    },
+                                    "more": {
+                                        "type": "string",
+                                        "example": "Additional notes or duties"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Old staff info successfully created or updated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Info Updated"
+                                        },
+                                        "pld": {
+                                            "description": "The created/updated staff record",
+                                            "properties": {
+                                                "uid": {
+                                                    "type": "string",
+                                                    "example": "202411234512345"
+                                                },
+                                                "sid": {
+                                                    "type": "string",
+                                                    "example": "12345"
+                                                },
+                                                "schid": {
+                                                    "type": "string",
+                                                    "example": "6789"
+                                                },
+                                                "fname": {
+                                                    "type": "string",
+                                                    "example": "John"
+                                                },
+                                                "mname": {
+                                                    "type": "string",
+                                                    "example": "Michael"
+                                                },
+                                                "lname": {
+                                                    "type": "string",
+                                                    "example": "Doe"
+                                                },
+                                                "suid": {
+                                                    "type": "string",
+                                                    "example": "STF001"
+                                                },
+                                                "ssn": {
+                                                    "type": "string",
+                                                    "example": "2024"
+                                                },
+                                                "trm": {
+                                                    "type": "string",
+                                                    "example": "1"
+                                                },
+                                                "clsm": {
+                                                    "type": "string",
+                                                    "example": "SS2A"
+                                                },
+                                                "role": {
+                                                    "type": "string",
+                                                    "example": "Class Teacher"
+                                                },
+                                                "role2": {
+                                                    "type": "string",
+                                                    "example": "Exam Officer"
+                                                },
+                                                "more": {
+                                                    "type": "string",
+                                                    "example": "Additional notes or duties"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
