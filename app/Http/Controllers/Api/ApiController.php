@@ -9627,19 +9627,71 @@ class ApiController extends Controller
     //     ]);
     // }
 
+    // public function getStaffClasses($stid)
+    // {
+    //     $start = request()->input('start', 0);   // default 0
+    //     $count = request()->input('count', 20);  // default 20
+
+    //     $query = staff_class::where("staff_class.stid", $stid)
+    //         ->join("old_staff", "staff_class.stid", "=", "old_staff.sid") // ✅ join staff table
+    //         ->select(
+    //             "staff_class.*",
+    //             "old_staff.fname",
+    //             "old_staff.mname",
+    //             "old_staff.lname"
+    //         );
+
+    //     // ✅ Filter by session if provided
+    //     if (request()->has('ssn')) {
+    //         $query->where("staff_class.ssn", request()->input('ssn'));
+    //     }
+
+    //     // ✅ Filter by term if provided
+    //     if (request()->has('trm')) {
+    //         $query->where("staff_class.trm", request()->input('trm'));
+    //     }
+
+    //     $pld = $query->skip($start)->take($count)->get();
+
+    //     return response()->json([
+    //         "status"  => true,
+    //         "message" => "Success",
+    //         "pld"     => $pld,
+    //     ]);
+    // }
+
+
     public function getStaffClasses($stid)
     {
         $start = request()->input('start', 0);   // default 0
         $count = request()->input('count', 20);  // default 20
 
         $query = staff_class::where("staff_class.stid", $stid)
-            ->join("old_staff", "staff_class.stid", "=", "old_staff.sid") // ✅ join staff table
+            ->join("old_staff", "staff_class.stid", "=", "old_staff.sid")
             ->select(
-                "staff_class.*",
+                "staff_class.uid",
+                "staff_class.stid",
+                "staff_class.cls",
+                "staff_class.schid",
+                "staff_class.ssn",
+                "staff_class.trm",
                 "old_staff.fname",
                 "old_staff.mname",
                 "old_staff.lname"
-            );
+            )
+            ->groupBy(
+                "staff_class.stid",
+                "staff_class.ssn",
+                "staff_class.trm",
+                "staff_class.uid",
+                "staff_class.cls",
+                "staff_class.schid",
+                "old_staff.fname",
+                "old_staff.mname",
+                "old_staff.lname"
+            )
+            ->orderBy("staff_class.ssn", "desc")
+            ->orderBy("staff_class.trm", "asc");
 
         // ✅ Filter by session if provided
         if (request()->has('ssn')) {
