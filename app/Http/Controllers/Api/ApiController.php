@@ -10390,32 +10390,37 @@ class ApiController extends Controller
     {
         $male = 0;
         $female = 0;
+
         if ($role == '-1') {
+            // ✅ No role filter
             $male = old_staff::join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
                 ->where('old_staff.schid', $schid)
                 ->where('old_staff.ssn', $ssn)
                 ->where('old_staff.trm', $trm)
-                ->where('status', 'active')
+                ->where('old_staff.status', 'active')
                 ->where('old_staff.clsm', $clsm)
                 ->where('staff_basic_data.sex', 'M')
                 ->count();
+
             $female = old_staff::join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
                 ->where('old_staff.schid', $schid)
                 ->where('old_staff.ssn', $ssn)
                 ->where('old_staff.trm', $trm)
-                ->where('status', 'active')
+                ->where('old_staff.status', 'active')
                 ->where('old_staff.clsm', $clsm)
                 ->where('staff_basic_data.sex', 'F')
                 ->count();
         } else {
+            // ✅ Clean "*" before comparing roles
             $male = old_staff::join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
                 ->where('old_staff.schid', $schid)
                 ->where('old_staff.ssn', $ssn)
                 ->where('old_staff.trm', $trm)
+                ->where('old_staff.status', 'active')
                 ->where('old_staff.clsm', $clsm)
                 ->where(function ($query) use ($role) {
-                    $query->where('old_staff.role', $role)
-                        ->orWhere('old_staff.role2', $role);
+                    $query->whereRaw("REPLACE(old_staff.role, '*', '') = ?", [$role])
+                        ->orWhereRaw("REPLACE(old_staff.role2, '*', '') = ?", [$role]);
                 })
                 ->where('staff_basic_data.sex', 'M')
                 ->count();
@@ -10424,14 +10429,16 @@ class ApiController extends Controller
                 ->where('old_staff.schid', $schid)
                 ->where('old_staff.ssn', $ssn)
                 ->where('old_staff.trm', $trm)
+                ->where('old_staff.status', 'active')
                 ->where('old_staff.clsm', $clsm)
                 ->where(function ($query) use ($role) {
-                    $query->where('old_staff.role', $role)
-                        ->orWhere('old_staff.role2', $role);
+                    $query->whereRaw("REPLACE(old_staff.role, '*', '') = ?", [$role])
+                        ->orWhereRaw("REPLACE(old_staff.role2, '*', '') = ?", [$role]);
                 })
                 ->where('staff_basic_data.sex', 'F')
                 ->count();
         }
+
         return response()->json([
             "status" => true,
             "message" => "Success",
@@ -10441,6 +10448,7 @@ class ApiController extends Controller
             ]
         ]);
     }
+
 
     /**
      * @OA\Get(
