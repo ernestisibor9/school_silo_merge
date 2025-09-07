@@ -10279,29 +10279,66 @@ class ApiController extends Controller
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
+    // public function getOldStaff($schid, $ssn, $trm, $clsm, $role)
+    // {
+    //     $pld = [];
+    //     if ($role == '-1') {
+    //         $pld = old_staff::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where("status", "active")->where("clsm", $clsm)->get();
+    //     } else {
+    //         $pld = old_staff::where("schid", $schid)
+    //             ->where("ssn", $ssn)
+    //             ->where("trm", $trm)
+    //             ->where("status", "active")
+    //             ->where("clsm", $clsm)
+    //             ->where(function ($query) use ($role) {
+    //                 $query->where("role", $role)
+    //                     ->orWhere("role2", $role);
+    //             })
+    //             ->get();
+    //     }
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => $pld,
+    //     ]);
+    // }
+
+
     public function getOldStaff($schid, $ssn, $trm, $clsm, $role)
     {
-        $pld = [];
-        if ($role == '-1') {
-            $pld = old_staff::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where("status", "active")->where("clsm", $clsm)->get();
-        } else {
-            $pld = old_staff::where("schid", $schid)
-                ->where("ssn", $ssn)
-                ->where("trm", $trm)
-                ->where("status", "active")
-                ->where("clsm", $clsm)
-                ->where(function ($query) use ($role) {
-                    $query->where("role", $role)
-                        ->orWhere("role2", $role);
-                })
-                ->get();
+        $query = DB::table('old_staff')
+            ->where('old_staff.schid', $schid)
+            ->where('old_staff.ssn', $ssn)
+            ->where('old_staff.trm', $trm)
+            ->where('old_staff.status', 'active')
+            ->where('old_staff.clsm', $clsm);
+
+        // ✅ If role filter is provided
+        if ($role != '-1') {
+            $query->where(function ($q) use ($role) {
+                $q->where('old_staff.role', $role)
+                    ->orWhere('old_staff.role2', $role);
+            });
         }
+
+        // ✅ Clean "*" prefix and join with staff_role
+        $pld = $query
+            ->leftJoin('staff_role as r1', DB::raw("REPLACE(old_staff.role, '*', '')"), '=', 'r1.id')
+            ->leftJoin('staff_role as r2', DB::raw("REPLACE(old_staff.role2, '*', '')"), '=', 'r2.id')
+            ->select(
+                'old_staff.*',
+                'r1.name as role_name',
+                'r2.name as role2_name'
+            )
+            ->get();
+
         return response()->json([
-            "status" => true,
+            "status"  => true,
             "message" => "Success",
-            "pld" => $pld,
+            "pld"     => $pld,
         ]);
     }
+
 
     /**
      * @OA\Get(
