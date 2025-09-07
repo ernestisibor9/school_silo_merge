@@ -10313,15 +10313,15 @@ class ApiController extends Controller
             ->where('old_staff.status', 'active')
             ->where('old_staff.clsm', $clsm);
 
-        // ✅ If role filter is provided
+        // ✅ Clean "*" when filtering
         if ($role != '-1') {
             $query->where(function ($q) use ($role) {
-                $q->where('old_staff.role', $role)
-                    ->orWhere('old_staff.role2', $role);
+                $q->whereRaw("REPLACE(old_staff.role, '*', '') = ?", [$role])
+                    ->orWhereRaw("REPLACE(old_staff.role2, '*', '') = ?", [$role]);
             });
         }
 
-        // ✅ Clean "*" prefix and join with staff_role
+        // ✅ Join to get role names
         $pld = $query
             ->leftJoin('staff_role as r1', DB::raw("REPLACE(old_staff.role, '*', '')"), '=', 'r1.id')
             ->leftJoin('staff_role as r2', DB::raw("REPLACE(old_staff.role2, '*', '')"), '=', 'r2.id')
