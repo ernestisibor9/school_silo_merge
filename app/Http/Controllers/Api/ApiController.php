@@ -5561,7 +5561,7 @@ class ApiController extends Controller
             $query->where("clsa", $clsa);
         }
 
-        // ✅ Ensure unique students by sid
+        // ✅ Select only needed columns and make students unique by sid
         $pld = $query->select(
             'sid',
             'suid',
@@ -5573,7 +5573,7 @@ class ApiController extends Controller
             'clsm',
             'clsa'
         )
-            ->groupBy('sid')   // group by student ID
+            ->distinct('sid') // ✅ ensures unique student records
             ->get()
             ->map(function ($student) {
                 return [
@@ -5599,6 +5599,7 @@ class ApiController extends Controller
             "pld"     => $pld,
         ]);
     }
+
 
 
 
