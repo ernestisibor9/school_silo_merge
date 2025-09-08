@@ -5508,11 +5508,50 @@ class ApiController extends Controller
     //     ]);
     // }
 
+    // public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
+    // {
+    //     $query = old_student::with(['academicData']); // eager load academic info
+
+    //     $query->where("schid", $schid)
+    //         ->where("ssn", $ssn)
+    //         ->where("trm", $trm)
+    //         ->where("clsm", $clsm)
+    //         ->where("status", "active");
+
+    //     if ($clsa != '-1') {
+    //         $query->where("clsa", $clsa);
+    //     }
+
+    //     $pld = $query->get()->map(function ($student) {
+    //         return [
+    //             "sid"            => $student->sid,
+    //             "suid"           => $student->suid,
+    //             "fname"          => $student->fname,
+    //             "mname"          => $student->mname,
+    //             "lname"          => $student->lname,
+    //             "ssn"            => $student->ssn,
+    //             "trm"            => $student->trm,
+    //             "clsm"           => $student->clsm,
+    //             "clsa"           => $student->clsa,
+    //             "last_school"    => $student->academicData?->last_school,
+    //             "last_class"     => $student->academicData?->last_class,
+    //             "new_class"      => $student->academicData?->new_class,
+    //             "new_class_main" => $student->academicData?->new_class_main,
+    //         ];
+    //     });
+
+    //     return response()->json([
+    //         "status"  => true,
+    //         "message" => "Success",
+    //         "pld"     => $pld,
+    //     ]);
+    // }
+
+
     public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
     {
-        $query = old_student::with(['academicData']); // eager load academic info
-
-        $query->where("schid", $schid)
+        $query = old_student::with(['academicData'])
+            ->where("schid", $schid)
             ->where("ssn", $ssn)
             ->where("trm", $trm)
             ->where("clsm", $clsm)
@@ -5522,23 +5561,37 @@ class ApiController extends Controller
             $query->where("clsa", $clsa);
         }
 
-        $pld = $query->get()->map(function ($student) {
-            return [
-                "sid"            => $student->sid,
-                "suid"           => $student->suid,
-                "fname"          => $student->fname,
-                "mname"          => $student->mname,
-                "lname"          => $student->lname,
-                "ssn"            => $student->ssn,
-                "trm"            => $student->trm,
-                "clsm"           => $student->clsm,
-                "clsa"           => $student->clsa,
-                "last_school"    => $student->academicData?->last_school,
-                "last_class"     => $student->academicData?->last_class,
-                "new_class"      => $student->academicData?->new_class,
-                "new_class_main" => $student->academicData?->new_class_main,
-            ];
-        });
+        // ✅ Ensure unique students by sid
+        $pld = $query->select(
+            'sid',
+            'suid',
+            'fname',
+            'mname',
+            'lname',
+            'ssn',
+            'trm',
+            'clsm',
+            'clsa'
+        )
+            ->groupBy('sid')   // group by student ID
+            ->get()
+            ->map(function ($student) {
+                return [
+                    "sid"            => $student->sid,
+                    "suid"           => $student->suid,
+                    "fname"          => $student->fname,
+                    "mname"          => $student->mname,
+                    "lname"          => $student->lname,
+                    "ssn"            => $student->ssn,
+                    "trm"            => $student->trm,
+                    "clsm"           => $student->clsm,
+                    "clsa"           => $student->clsa,
+                    "last_school"    => $student->academicData?->last_school,
+                    "last_class"     => $student->academicData?->last_class,
+                    "new_class"      => $student->academicData?->new_class,
+                    "new_class_main" => $student->academicData?->new_class_main,
+                ];
+            });
 
         return response()->json([
             "status"  => true,
@@ -5546,6 +5599,7 @@ class ApiController extends Controller
             "pld"     => $pld,
         ]);
     }
+
 
 
 
