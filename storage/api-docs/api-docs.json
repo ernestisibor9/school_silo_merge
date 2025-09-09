@@ -13004,16 +13004,6 @@
                         }
                     },
                     {
-                        "name": "term",
-                        "in": "query",
-                        "description": "Term filter (from student table)",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "example": 3
-                        }
-                    },
-                    {
                         "name": "year",
                         "in": "query",
                         "description": "Year filter (from student table)",

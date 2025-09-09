@@ -16529,13 +16529,6 @@ class ApiController extends Controller
      *         @OA\Schema(type="string", example="13")
      *     ),
      *     @OA\Parameter(
-     *         name="term",
-     *         in="query",
-     *         required=false,
-     *         description="Term filter (from student table)",
-     *         @OA\Schema(type="integer", example=3)
-     *     ),
-     *     @OA\Parameter(
      *         name="year",
      *         in="query",
      *         required=false,
@@ -16706,7 +16699,6 @@ public function getStudentsBySchool($schid, $stat) {
     $start = request()->input('start', 0);
     $count = request()->input('count', 20);
     $year  = request()->input('year');   // optional
-    $term  = request()->input('term');   // optional
     $cls   = request()->input('cls', 'zzz'); // 👈 read class from query string
 
     $query = student::query()
@@ -16726,12 +16718,9 @@ public function getStudentsBySchool($schid, $stat) {
         $query->where('sad.new_class_main', $cls);
     }
 
-    // filter by year and term from student table
+    // filter by year if provided
     if ($year) {
         $query->where('student.year', $year);
-    }
-    if ($term) {
-        $query->where('student.term', $term);
     }
 
     $members = $query->select('student.*', 'sad.new_class_main')
@@ -16762,6 +16751,7 @@ public function getStudentsBySchool($schid, $stat) {
         "pld" => $pld,
     ]);
 }
+
 
 
 
