@@ -243,7 +243,7 @@ Route::group([
     Route::get('getStaffSubjects/{stid}/{sesn}/{trm}', [ApiController::class, 'getStaffSubjects']);
     Route::get('deleteStaffSubject/{uid}', [ApiController::class, 'deleteStaffSubject']);
     Route::get('getStaffClasses/{stid}', [ApiController::class, 'getStaffClasses']);
-    Route::get('getStaffClassArms/{stid}/{cls}/{sesn}/{trm}', [ApiController::class, 'getStaffClassArms']);
+    Route::get('getStaffClassArms/{stid}/{cls}', [ApiController::class, 'getStaffClassArms']);
     Route::get('getStaffByClassArms/{schid}/{arm}', [ApiController::class, 'getStaffByClassArms']);
     Route::get('deleteStaffClass/{uid}', [ApiController::class, 'deleteStaffClass']);
     Route::get('deleteStaffClassArm/{uid}', [ApiController::class, 'deleteStaffClassArm']);

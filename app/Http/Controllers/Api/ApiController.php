@@ -9890,7 +9890,7 @@ class ApiController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/getStaffClassArms/{stid}/{cls}/{sesn}/{trm}",
+     *     path="/api/getStaffClassArms/{stid}/{cls}",
      *     summary="Get Staff Class Arms",
      *     description="Fetch class arms assigned to a staff for a given session and term",
      *     tags={"Api"},
@@ -9909,20 +9909,6 @@ class ApiController extends Controller
      *         required=true,
      *         description="Class ID",
      *         @OA\Schema(type="integer", example=15)
-     *     ),
-     *     @OA\Parameter(
-     *         name="sesn",
-     *         in="path",
-     *         required=true,
-     *         description="Session year",
-     *         @OA\Schema(type="integer", example=2024)
-     *     ),
-     *     @OA\Parameter(
-     *         name="trm",
-     *         in="path",
-     *         required=true,
-     *         description="Term number",
-     *         @OA\Schema(type="integer", example=1)
      *     ),
      *     @OA\Parameter(
      *         name="start",
@@ -9960,41 +9946,41 @@ class ApiController extends Controller
      * )
      */
 
-    // public function getStaffClassArms($stid, $cls)
-    // {
-    //     $start = 0;
-    //     $count = 20;
-    //     if (request()->has('start') && request()->has('count')) {
-    //         $start = request()->input('start');
-    //         $count = request()->input('count');
-    //     }
-    //     $pld = staff_class_arm::where("stid", $stid)->where("cls", $cls)->skip($start)->take($count)->get();
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $pld,
-    //     ]);
-    // }
-
-    public function getStaffClassArms($stid, $cls, $sesn, $trm)
+    public function getStaffClassArms($stid, $cls)
     {
-        $start = request()->input('start', 0);
-        $count = request()->input('count', 20);
-
-        $pld = staff_class_arm::where("stid", $stid)
-            ->where("cls", $cls)
-            ->where("sesn", $sesn)
-            ->where("trm", $trm)
-            ->skip($start)
-            ->take($count)
-            ->get();
-
+        $start = 0;
+        $count = 20;
+        if (request()->has('start') && request()->has('count')) {
+            $start = request()->input('start');
+            $count = request()->input('count');
+        }
+        $pld = staff_class_arm::where("stid", $stid)->where("cls", $cls)->skip($start)->take($count)->get();
         return response()->json([
-            "status"  => true,
+            "status" => true,
             "message" => "Success",
-            "pld"     => $pld,
+            "pld" => $pld,
         ]);
     }
+
+    // public function getStaffClassArms($stid, $cls, $sesn, $trm)
+    // {
+    //     $start = request()->input('start', 0);
+    //     $count = request()->input('count', 20);
+
+    //     $pld = staff_class_arm::where("stid", $stid)
+    //         ->where("cls", $cls)
+    //         ->where("sesn", $sesn)
+    //         ->where("trm", $trm)
+    //         ->skip($start)
+    //         ->take($count)
+    //         ->get();
+
+    //     return response()->json([
+    //         "status"  => true,
+    //         "message" => "Success",
+    //         "pld"     => $pld,
+    //     ]);
+    // }
 
 
     /**

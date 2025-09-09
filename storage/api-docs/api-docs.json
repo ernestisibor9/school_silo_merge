@@ -6458,14 +6458,14 @@
                 ]
             }
         },
-        "/api/getStaffClassArms/{stid}/{cls}/{sesn}/{trm}": {
+        "/api/getStaffClassArms/{stid}/{cls}": {
             "get": {
                 "tags": [
                     "Api"
                 ],
                 "summary": "Get Staff Class Arms",
                 "description": "Fetch class arms assigned to a staff for a given session and term",
-                "operationId": "be8964fb843d5ad80783d35718e0b139",
+                "operationId": "576461a7af0b4408f1ed1114ecdb2614",
                 "parameters": [
                     {
                         "name": "stid",
@@ -6485,26 +6485,6 @@
                         "schema": {
                             "type": "integer",
                             "example": 15
-                        }
-                    },
-                    {
-                        "name": "sesn",
-                        "in": "path",
-                        "description": "Session year",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "example": 2024
-                        }
-                    },
-                    {
-                        "name": "trm",
-                        "in": "path",
-                        "description": "Term number",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "example": 1
                         }
                     },
                     {
