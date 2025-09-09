@@ -9734,17 +9734,7 @@ class ApiController extends Controller
                 "old_staff.mname",
                 "old_staff.lname"
             )
-            ->groupBy(
-                "staff_class.stid",
-                "staff_class.ssn",
-                "staff_class.trm",
-                "staff_class.uid",
-                "staff_class.cls",
-                "staff_class.schid",
-                "old_staff.fname",
-                "old_staff.mname",
-                "old_staff.lname"
-            )
+            ->distinct() // 👈 ensures uniqueness
             ->orderBy("staff_class.ssn", "desc")
             ->orderBy("staff_class.trm", "asc");
 
