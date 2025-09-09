@@ -16701,6 +16701,7 @@ class ApiController extends Controller
     //     ]);
     // }
 
+
     public function getStudentsBySchool($schid, $stat, $cls = 'zzz')
     {
         $start = request()->input('start', 0);
@@ -16709,30 +16710,29 @@ class ApiController extends Controller
         $year = request()->input('year', null);
         $term = request()->input('term', null);
 
-        // Base query with joins
+        // ✅ Always join student_academic_data
         $query = DB::table('student')
             ->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
-            ->join('student_basic_data', 'student.sid', '=', 'student_basic_data.user_id')
             ->where('student.schid', $schid)
             ->where('student.stat', $stat)
             ->where('student.status', 'active');
 
-        // ✅ Filter by class if provided
+        // ✅ If class filter is provided
         if ($cls !== 'zzz') {
             $query->where('student_academic_data.new_class_main', $cls);
         }
 
-        // ✅ Filter by year if provided
+        // ✅ Year filter
         if (!is_null($year)) {
             $query->where('student.year', $year);
         }
 
-        // ✅ Filter by term if provided
+        // ✅ Term filter
         if (!is_null($term)) {
             $query->where('student.term', $term);
         }
 
-        // ✅ Select distinct students only (prevents duplicates)
+        // ✅ Fetch students (DISTINCT by sid)
         $members = $query->select(
             'student.sid',
             'student.fname',
@@ -16742,26 +16742,35 @@ class ApiController extends Controller
             'student.status',
             'student.year',
             'student.term',
-            'student_academic_data.new_class_main',
-            'student_basic_data.sex',
-            'student_basic_data.country',
-            'student_basic_data.state',
-            'student_basic_data.lga',
-            'student_basic_data.addr'
+            'student_academic_data.new_class_main'
         )
-            ->distinct() // 👈 prevents duplicate rows
+            ->distinct()  // 👈 ensures no duplicates
             ->orderBy('student.lname', 'asc')
             ->skip($start)
             ->take($count)
             ->get();
 
+        // ✅ Fetch extra data for each student (basic + academic)
+        $pld = [];
+        foreach ($members as $member) {
+            $user_id = $member->sid;
+
+            $basicData = DB::table('student_basic_data')->where('user_id', $user_id)->first();
+            $academicData = DB::table('student_academic_data')->where('user_id', $user_id)->first();
+
+            $pld[] = [
+                's' => $member,
+                'b' => $basicData,
+                'a' => $academicData,
+            ];
+        }
+
         return response()->json([
             "status"  => true,
             "message" => "Success",
-            "pld"     => $members
+            "pld"     => $pld,
         ]);
     }
-
 
 
 
