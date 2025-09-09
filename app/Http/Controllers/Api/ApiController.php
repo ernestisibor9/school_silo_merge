@@ -16631,132 +16631,61 @@ class ApiController extends Controller
     //     ]);
     // }
 
-    // public function getStudentsBySchool($schid, $stat, $cls = 'zzz')
-    // {
-    //     $start = 0;
-    //     $count = 20;
-
-    //     // Pagination inputs
-    //     if (request()->has('start') && request()->has('count')) {
-    //         $start = request()->input('start');
-    //         $count = request()->input('count');
-    //     }
-
-    //     // Optional filters
-    //     $year = request()->input('year', null);
-    //     $term = request()->input('term', null);
-
-    //     // Start query
-    //     $query = student::query();
-
-    //     if ($cls !== 'zzz') {
-    //         // If class filter is applied
-    //         $query->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
-    //             ->where('student.schid', $schid)
-    //             ->where('student.stat', $stat)
-    //             ->where('student.status', 'active') // ✅ only active students
-    //             ->where('student_academic_data.new_class_main', $cls);
-    //     } else {
-    //         // No class filter
-    //         $query->where('schid', $schid)
-    //             ->where('stat', $stat)
-    //             ->where('status', 'active'); // ✅ only active students
-    //     }
-
-    //     // Apply year filter if present
-    //     if (!is_null($year)) {
-    //         $query->where('student.year', $year);
-    //     }
-
-    //     // Apply term filter if present
-    //     if (!is_null($term)) {
-    //         $query->where('student.term', $term);
-    //     }
-
-    //     // Fetch students
-    //     $members = $query->orderBy('student.lname', 'asc') // Sort alphabetically
-    //         ->skip($start)
-    //         ->take($count)
-    //         ->get();
-
-    //     // Build response payload
-    //     $pld = [];
-    //     foreach ($members as $member) {
-    //         $user_id = $member->sid;
-
-    //         $academicData = student_academic_data::where('user_id', $user_id)->first();
-    //         $basicData = student_basic_data::where('user_id', $user_id)->first();
-
-    //         $pld[] = [
-    //             's' => $member,
-    //             'b' => $basicData,
-    //             'a' => $academicData,
-    //         ];
-    //     }
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $pld,
-    //     ]);
-    // }
-
-
     public function getStudentsBySchool($schid, $stat, $cls = 'zzz')
     {
-        $start = request()->input('start', 0);
-        $count = request()->input('count', 20);
+        $start = 0;
+        $count = 20;
 
+        // Pagination inputs
+        if (request()->has('start') && request()->has('count')) {
+            $start = request()->input('start');
+            $count = request()->input('count');
+        }
+
+        // Optional filters
         $year = request()->input('year', null);
         $term = request()->input('term', null);
 
-        // ✅ Always join student_academic_data
-        $query = DB::table('student')
-            ->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
-            ->where('student.schid', $schid)
-            ->where('student.stat', $stat)
-            ->where('student.status', 'active');
+        // Start query
+        $query = student::query();
 
-        // ✅ If class filter is provided
         if ($cls !== 'zzz') {
-            $query->where('student_academic_data.new_class_main', $cls);
+            // If class filter is applied
+            $query->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
+                ->where('student.schid', $schid)
+                ->where('student.stat', $stat)
+                ->where('student.status', 'active') // ✅ only active students
+                ->where('student_academic_data.new_class_main', $cls);
+        } else {
+            // No class filter
+            $query->where('schid', $schid)
+                ->where('stat', $stat)
+                ->where('status', 'active'); // ✅ only active students
         }
 
-        // ✅ Year filter
+        // Apply year filter if present
         if (!is_null($year)) {
             $query->where('student.year', $year);
         }
 
-        // ✅ Term filter
+        // Apply term filter if present
         if (!is_null($term)) {
             $query->where('student.term', $term);
         }
 
-        // ✅ Fetch students (DISTINCT by sid)
-        $members = $query->select(
-            'student.sid',
-            'student.fname',
-            'student.mname',
-            'student.lname',
-            'student.schid',
-            'student.status',
-            'student.year',
-            'student.term',
-            'student_academic_data.new_class_main'
-        )
-            ->distinct()  // 👈 ensures no duplicates
-            ->orderBy('student.lname', 'asc')
+        // Fetch students
+        $members = $query->orderBy('student.lname', 'asc') // Sort alphabetically
             ->skip($start)
             ->take($count)
             ->get();
 
-        // ✅ Fetch extra data for each student (basic + academic)
+        // Build response payload
         $pld = [];
         foreach ($members as $member) {
             $user_id = $member->sid;
 
-            $basicData = DB::table('student_basic_data')->where('user_id', $user_id)->first();
-            $academicData = DB::table('student_academic_data')->where('user_id', $user_id)->first();
+            $academicData = student_academic_data::where('user_id', $user_id)->first();
+            $basicData = student_basic_data::where('user_id', $user_id)->first();
 
             $pld[] = [
                 's' => $member,
@@ -16766,11 +16695,13 @@ class ApiController extends Controller
         }
 
         return response()->json([
-            "status"  => true,
+            "status" => true,
             "message" => "Success",
-            "pld"     => $pld,
+            "pld" => $pld,
         ]);
     }
+
+
 
 
 
