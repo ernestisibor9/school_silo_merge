@@ -9723,20 +9723,20 @@ class ApiController extends Controller
 
         $query = staff_class::where("staff_class.stid", $stid)
             ->join("old_staff", "staff_class.stid", "=", "old_staff.sid")
-            ->select(
-                "staff_class.uid",
-                "staff_class.stid",
-                "staff_class.cls",
-                "staff_class.schid",
-                "staff_class.ssn",
-                "staff_class.trm",
-                "old_staff.fname",
-                "old_staff.mname",
-                "old_staff.lname"
-            )
-            ->distinct() // 👈 ensures uniqueness
-            ->orderBy("staff_class.ssn", "desc")
-            ->orderBy("staff_class.trm", "asc");
+            ->selectRaw("
+            MIN(staff_class.uid) as uid,
+            staff_class.stid,
+            staff_class.cls,
+            staff_class.schid,
+            MIN(staff_class.ssn) as ssn,
+            MIN(staff_class.trm) as trm,
+            old_staff.fname,
+            old_staff.mname,
+            old_staff.lname
+        ")
+            ->groupBy("staff_class.stid", "staff_class.cls", "staff_class.schid", "old_staff.fname", "old_staff.mname", "old_staff.lname") // ✅ group by staff + class
+            ->orderBy("ssn", "desc")
+            ->orderBy("trm", "asc");
 
         // ✅ Filter by session if provided
         if (request()->has('ssn')) {
@@ -16631,76 +16631,136 @@ class ApiController extends Controller
     //     ]);
     // }
 
+    // public function getStudentsBySchool($schid, $stat, $cls = 'zzz')
+    // {
+    //     $start = 0;
+    //     $count = 20;
+
+    //     // Pagination inputs
+    //     if (request()->has('start') && request()->has('count')) {
+    //         $start = request()->input('start');
+    //         $count = request()->input('count');
+    //     }
+
+    //     // Optional filters
+    //     $year = request()->input('year', null);
+    //     $term = request()->input('term', null);
+
+    //     // Start query
+    //     $query = student::query();
+
+    //     if ($cls !== 'zzz') {
+    //         // If class filter is applied
+    //         $query->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
+    //             ->where('student.schid', $schid)
+    //             ->where('student.stat', $stat)
+    //             ->where('student.status', 'active') // ✅ only active students
+    //             ->where('student_academic_data.new_class_main', $cls);
+    //     } else {
+    //         // No class filter
+    //         $query->where('schid', $schid)
+    //             ->where('stat', $stat)
+    //             ->where('status', 'active'); // ✅ only active students
+    //     }
+
+    //     // Apply year filter if present
+    //     if (!is_null($year)) {
+    //         $query->where('student.year', $year);
+    //     }
+
+    //     // Apply term filter if present
+    //     if (!is_null($term)) {
+    //         $query->where('student.term', $term);
+    //     }
+
+    //     // Fetch students
+    //     $members = $query->orderBy('student.lname', 'asc') // Sort alphabetically
+    //         ->skip($start)
+    //         ->take($count)
+    //         ->get();
+
+    //     // Build response payload
+    //     $pld = [];
+    //     foreach ($members as $member) {
+    //         $user_id = $member->sid;
+
+    //         $academicData = student_academic_data::where('user_id', $user_id)->first();
+    //         $basicData = student_basic_data::where('user_id', $user_id)->first();
+
+    //         $pld[] = [
+    //             's' => $member,
+    //             'b' => $basicData,
+    //             'a' => $academicData,
+    //         ];
+    //     }
+
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => $pld,
+    //     ]);
+    // }
+
     public function getStudentsBySchool($schid, $stat, $cls = 'zzz')
     {
-        $start = 0;
-        $count = 20;
+        $start = request()->input('start', 0);
+        $count = request()->input('count', 20);
 
-        // Pagination inputs
-        if (request()->has('start') && request()->has('count')) {
-            $start = request()->input('start');
-            $count = request()->input('count');
-        }
-
-        // Optional filters
         $year = request()->input('year', null);
         $term = request()->input('term', null);
 
-        // Start query
-        $query = student::query();
+        // Base query with joins
+        $query = DB::table('student')
+            ->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
+            ->join('student_basic_data', 'student.sid', '=', 'student_basic_data.user_id')
+            ->where('student.schid', $schid)
+            ->where('student.stat', $stat)
+            ->where('student.status', 'active');
 
+        // ✅ Filter by class if provided
         if ($cls !== 'zzz') {
-            // If class filter is applied
-            $query->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
-                ->where('student.schid', $schid)
-                ->where('student.stat', $stat)
-                ->where('student.status', 'active') // ✅ only active students
-                ->where('student_academic_data.new_class_main', $cls);
-        } else {
-            // No class filter
-            $query->where('schid', $schid)
-                ->where('stat', $stat)
-                ->where('status', 'active'); // ✅ only active students
+            $query->where('student_academic_data.new_class_main', $cls);
         }
 
-        // Apply year filter if present
+        // ✅ Filter by year if provided
         if (!is_null($year)) {
             $query->where('student.year', $year);
         }
 
-        // Apply term filter if present
+        // ✅ Filter by term if provided
         if (!is_null($term)) {
             $query->where('student.term', $term);
         }
 
-        // Fetch students
-        $members = $query->orderBy('student.lname', 'asc') // Sort alphabetically
+        // ✅ Select distinct students only (prevents duplicates)
+        $members = $query->select(
+            'student.sid',
+            'student.fname',
+            'student.mname',
+            'student.lname',
+            'student.schid',
+            'student.status',
+            'student.year',
+            'student.term',
+            'student_academic_data.new_class_main',
+            'student_basic_data.sex',
+            'student_basic_data.country',
+            'student_basic_data.state',
+            'student_basic_data.lga',
+            'student_basic_data.addr'
+        )
+            ->distinct() // 👈 prevents duplicate rows
+            ->orderBy('student.lname', 'asc')
             ->skip($start)
             ->take($count)
             ->get();
 
-        // Build response payload
-        $pld = [];
-        foreach ($members as $member) {
-            $user_id = $member->sid;
-
-            $academicData = student_academic_data::where('user_id', $user_id)->first();
-            $basicData = student_basic_data::where('user_id', $user_id)->first();
-
-            $pld[] = [
-                's' => $member,
-                'b' => $basicData,
-                'a' => $academicData,
-            ];
-        }
-
         return response()->json([
-            "status" => true,
+            "status"  => true,
             "message" => "Success",
-            "pld" => $pld,
+            "pld"     => $members
         ]);
     }
-
 
 
 
