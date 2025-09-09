@@ -16702,33 +16702,39 @@ class ApiController extends Controller
     // }
 
 
-public function getStudentsBySchool($schid, $stat, $cls = 'zzz') {
+public function getStudentsBySchool($schid, $stat) {
     $start = request()->input('start', 0);
     $count = request()->input('count', 20);
     $year  = request()->input('year');   // optional
     $term  = request()->input('term');   // optional
+    $cls   = request()->input('cls', 'zzz'); // 👈 read class from query string
 
-    $query = student::query();
+    $query = student::query()
+        ->join('student_academic_data as sad', function($join) {
+            $join->on('student.sid', '=', 'sad.user_id')
+                 ->whereRaw('sad.created_at = (
+                     SELECT MAX(created_at)
+                     FROM student_academic_data
+                     WHERE user_id = student.sid
+                 )');
+        })
+        ->where('student.schid', $schid)
+        ->where('student.stat', $stat);
 
+    // filter by class if provided
     if ($cls !== 'zzz') {
-        $query->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
-            ->where('student.schid', $schid)
-            ->where('student.stat', $stat)
-            ->where('student_academic_data.new_class_main', $cls);
-
-        if ($year) {
-            $query->where('student_academic_data.year', $year);
-        }
-        if ($term) {
-            $query->where('student_academic_data.term', $term);
-        }
-    } else {
-        $query->where('student.schid', $schid)
-              ->where('student.stat', $stat);
+        $query->where('sad.new_class_main', $cls);
     }
 
-    // Ensure no duplicates
-    $members = $query->select('student.*')
+    // filter by year and term from student table
+    if ($year) {
+        $query->where('student.year', $year);
+    }
+    if ($term) {
+        $query->where('student.term', $term);
+    }
+
+    $members = $query->select('student.*', 'sad.new_class_main')
         ->distinct()
         ->orderBy('student.lname', 'asc')
         ->skip($start)
@@ -16738,7 +16744,9 @@ public function getStudentsBySchool($schid, $stat, $cls = 'zzz') {
     $pld = [];
     foreach ($members as $member) {
         $user_id = $member->sid;
-        $academicData = student_academic_data::where('user_id', $user_id)->first();
+        $academicData = student_academic_data::where('user_id', $user_id)
+                        ->orderBy('created_at', 'desc')
+                        ->first();
         $basicData = student_basic_data::where('user_id', $user_id)->first();
 
         $pld[] = [
@@ -16754,7 +16762,6 @@ public function getStudentsBySchool($schid, $stat, $cls = 'zzz') {
         "pld" => $pld,
     ]);
 }
-
 
 
 
