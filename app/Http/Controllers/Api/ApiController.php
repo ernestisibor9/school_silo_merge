@@ -27419,4 +27419,150 @@ class ApiController extends Controller
             'pld'     => $arms,
         ]);
     }
+
+
+
+
+
+    /**
+     * @OA\Post(
+     *     path="/api/rePromoteStudent",
+     *     summary="Promote or re-promote a student to a new class",
+     *     description="Promotes a student to a new class and updates their academic record.
+     *                  A student can only be re-promoted if there are no scores for the given
+     *                  session, term, and class.",
+     *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"sid","schid","sesn","trm","clsm","clsa","suid"},
+     *             @OA\Property(property="sid", type="integer", example=1001, description="Student ID"),
+     *             @OA\Property(property="schid", type="integer", example=12, description="School ID"),
+     *             @OA\Property(property="sesn", type="string", example="2024", description="Academic session"),
+     *             @OA\Property(property="trm", type="integer", example=1, description="Term number"),
+     *             @OA\Property(property="clsm", type="integer", example=11, description="New main class ID"),
+     *             @OA\Property(property="clsa", type="integer", example=5, description="New class arm ID"),
+     *             @OA\Property(property="suid", type="string", example="STU2024001", description="Student unique identifier")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Student promoted successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Student promoted successfully for this term"),
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="sid", type="integer", example=1001),
+     *                 @OA\Property(property="suid", type="string", example="STU2024001"),
+     *                 @OA\Property(property="ssn", type="string", example="2024"),
+     *                 @OA\Property(property="trm", type="integer", example=1),
+     *                 @OA\Property(property="clsm", type="integer", example=11),
+     *                 @OA\Property(property="clsa", type="integer", example=5),
+     *                 @OA\Property(property="clsa_name", type="string", example="Science A")
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Invalid request or re-promotion blocked",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Cannot re-promote student: scores/results already exist for this class, session, and term.")
+     *         )
+     *     )
+     * )
+     */
+
+    public function rePromoteStudent(Request $request)
+    {
+        $request->validate([
+            'sid'   => 'required',
+            'schid' => 'required',
+            'sesn'  => 'required',  // session
+            'trm'   => 'required',  // term
+            'clsm'  => 'required',  // new main class
+            'clsa'  => 'required',  // requested new class arm (sch_cls.id)
+            'suid'  => 'required',  // student unique id
+        ]);
+
+        // 1. Find the student
+        $student = student::where('sid', $request->sid)->firstOrFail();
+
+        // 2. Make sure this arm belongs to the new class
+        $validArm = DB::table('sch_cls')
+            ->where('id', $request->clsa)
+            ->where('cls_id', $request->clsm)   // ✅ ensure arm belongs to this class
+            ->where('schid', $request->schid)
+            ->first();
+
+        if (!$validArm) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Invalid class arm for the selected class',
+            ], 422);
+        }
+
+        // 3. Check if student already has scores for this session, term, and class
+        $hasScores = std_score::where('stid', $request->sid)
+            ->where('ssn', $request->sesn)
+            ->where('trm', $request->trm)
+            ->where('clsid', $request->clsm)
+            ->exists();
+
+        if ($hasScores) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Cannot re-promote student: scores/results already exist for this class, session, and term.',
+            ], 422);
+        }
+
+        // 4. Generate a unique promotion ID
+        $uid = $request->sesn . $request->trm . $request->sid . rand(10000, 99999);
+
+        // 5. Create or update promotion record (so re-promotion overwrites old one)
+        $promotion = old_student::updateOrCreate(
+            [
+                'sid'  => $request->sid,
+                'ssn'  => $request->sesn,
+                'trm'  => $request->trm,
+            ],
+            [
+                'uid'    => $uid,
+                'schid'  => $request->schid,
+                'fname'  => $student->fname,
+                'mname'  => $student->mname,
+                'lname'  => $student->lname,
+                'status' => 'active',
+                'suid'   => $request->suid,
+                'clsm'   => $request->clsm,
+                'clsa'   => $validArm->id,
+                'more'   => '',
+            ]
+        );
+
+        // 6. Update student_academic_data table
+        student_academic_data::where('user_id', $request->sid)
+            ->update([
+                'new_class_main' => $request->clsm,
+                'new_class'      => $validArm->id,
+            ]);
+
+        return response()->json([
+            'status'    => true,
+            'message'   => 'Student promoted successfully for this term',
+            'data'      => [
+                'sid'       => $promotion->sid,
+                'suid'      => $promotion->suid,
+                'ssn'       => $promotion->ssn,
+                'trm'       => $promotion->trm,
+                'clsm'      => $promotion->clsm,
+                'clsa'      => $promotion->clsa,
+                'clsa_name' => $validArm->name,
+            ],
+        ]);
+    }
 }

@@ -22473,6 +22473,152 @@
                     }
                 ]
             }
+        },
+        "/api/rePromoteStudent": {
+            "post": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Promote or re-promote a student to a new class",
+                "description": "Promotes a student to a new class and updates their academic record.\n     *                  A student can only be re-promoted if there are no scores for the given\n     *                  session, term, and class.",
+                "operationId": "c53c7b29d5eaa4f08a2b5c49e4c7df02",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "sid",
+                                    "schid",
+                                    "sesn",
+                                    "trm",
+                                    "clsm",
+                                    "clsa",
+                                    "suid"
+                                ],
+                                "properties": {
+                                    "sid": {
+                                        "description": "Student ID",
+                                        "type": "integer",
+                                        "example": 1001
+                                    },
+                                    "schid": {
+                                        "description": "School ID",
+                                        "type": "integer",
+                                        "example": 12
+                                    },
+                                    "sesn": {
+                                        "description": "Academic session",
+                                        "type": "string",
+                                        "example": "2024"
+                                    },
+                                    "trm": {
+                                        "description": "Term number",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "clsm": {
+                                        "description": "New main class ID",
+                                        "type": "integer",
+                                        "example": 11
+                                    },
+                                    "clsa": {
+                                        "description": "New class arm ID",
+                                        "type": "integer",
+                                        "example": 5
+                                    },
+                                    "suid": {
+                                        "description": "Student unique identifier",
+                                        "type": "string",
+                                        "example": "STU2024001"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Student promoted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Student promoted successfully for this term"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "sid": {
+                                                    "type": "integer",
+                                                    "example": 1001
+                                                },
+                                                "suid": {
+                                                    "type": "string",
+                                                    "example": "STU2024001"
+                                                },
+                                                "ssn": {
+                                                    "type": "string",
+                                                    "example": "2024"
+                                                },
+                                                "trm": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "clsm": {
+                                                    "type": "integer",
+                                                    "example": 11
+                                                },
+                                                "clsa": {
+                                                    "type": "integer",
+                                                    "example": 5
+                                                },
+                                                "clsa_name": {
+                                                    "type": "string",
+                                                    "example": "Science A"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid request or re-promotion blocked",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Cannot re-promote student: scores/results already exist for this class, session, and term."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
