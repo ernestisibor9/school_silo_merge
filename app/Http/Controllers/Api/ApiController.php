@@ -6409,8 +6409,8 @@ class ApiController extends Controller
             "fname" => "required",
             "lname" => "required",
             "sch3" => "required",
-             "year" => "nullable",
-             "trm" => "nullable",
+            "year" => "nullable",
+            "trm" => "nullable",
             "stat" => "required",
             "role" => "required",
         ]);
@@ -16593,62 +16593,63 @@ class ApiController extends Controller
     //     ]);
     // }
 
-public function getStudentsBySchool($schid, $stat) {
-    $start = request()->input('start', 0);
-    $count = request()->input('count', 20);
-    $year  = request()->input('year');   // optional
-    $cls   = request()->input('cls', 'zzz'); // 👈 read class from query string
+    public function getStudentsBySchool($schid, $stat)
+    {
+        $start = request()->input('start', 0);
+        $count = request()->input('count', 20);
+        $year  = request()->input('year');   // optional
+        $cls   = request()->input('cls', 'zzz'); // 👈 read class from query string
 
-    $query = student::query()
-        ->join('student_academic_data as sad', function($join) {
-            $join->on('student.sid', '=', 'sad.user_id')
-                 ->whereRaw('sad.created_at = (
+        $query = student::query()
+            ->join('student_academic_data as sad', function ($join) {
+                $join->on('student.sid', '=', 'sad.user_id')
+                    ->whereRaw('sad.created_at = (
                      SELECT MAX(created_at)
                      FROM student_academic_data
                      WHERE user_id = student.sid
                  )');
-        })
-        ->where('student.schid', $schid)
-        ->where('student.stat', $stat);
+            })
+            ->where('student.schid', $schid)
+            ->where('student.stat', $stat);
 
-    // filter by class if provided
-    if ($cls !== 'zzz') {
-        $query->where('sad.new_class_main', $cls);
+        // filter by class if provided
+        if ($cls !== 'zzz') {
+            $query->where('sad.new_class_main', $cls);
+        }
+
+        // filter by year if provided
+        if ($year) {
+            $query->where('student.year', $year);
+        }
+
+        $members = $query->select('student.*', 'sad.new_class_main')
+            ->distinct()
+            ->orderBy('student.lname', 'asc')
+            ->skip($start)
+            ->take($count)
+            ->get();
+
+        $pld = [];
+        foreach ($members as $member) {
+            $user_id = $member->sid;
+            $academicData = student_academic_data::where('user_id', $user_id)
+                ->orderBy('created_at', 'desc')
+                ->first();
+            $basicData = student_basic_data::where('user_id', $user_id)->first();
+
+            $pld[] = [
+                's' => $member,
+                'b' => $basicData,
+                'a' => $academicData,
+            ];
+        }
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld,
+        ]);
     }
-
-    // filter by year if provided
-    if ($year) {
-        $query->where('student.year', $year);
-    }
-
-    $members = $query->select('student.*', 'sad.new_class_main')
-        ->distinct()
-        ->orderBy('student.lname', 'asc')
-        ->skip($start)
-        ->take($count)
-        ->get();
-
-    $pld = [];
-    foreach ($members as $member) {
-        $user_id = $member->sid;
-        $academicData = student_academic_data::where('user_id', $user_id)
-                        ->orderBy('created_at', 'desc')
-                        ->first();
-        $basicData = student_basic_data::where('user_id', $user_id)->first();
-
-        $pld[] = [
-            's' => $member,
-            'b' => $basicData,
-            'a' => $academicData,
-        ];
-    }
-
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => $pld,
-    ]);
-}
 
 
 
@@ -26541,6 +26542,71 @@ public function getStudentsBySchool($schid, $stat) {
     // }
 
 
+    // public function promoteStudent(Request $request)
+    // {
+    //     $request->validate([
+    //         'sid'   => 'required',
+    //         'schid' => 'required',
+    //         'sesn'  => 'required',  // session
+    //         'trm'   => 'required',  // term
+    //         'clsm'  => 'required',  // new main class
+    //         'clsa'  => 'required',  // requested new class arm (sch_cls.id)
+    //         'suid'  => 'required',  // student unique id
+    //     ]);
+
+    //     // 1. Find the student
+    //     $student = student::where('sid', $request->sid)->firstOrFail();
+
+    //     // 2. Make sure this arm belongs to the new class
+    //     $validArm = DB::table('sch_cls')
+    //         ->where('id', $request->clsa)
+    //         ->where('cls_id', $request->clsm)   // ✅ ensure arm belongs to this class
+    //         ->where('schid', $request->schid)
+    //         ->first();
+
+    //     if (!$validArm) {
+    //         return response()->json([
+    //             'status'  => false,
+    //             'message' => 'Invalid class arm for the selected class',
+    //         ], 422);
+    //     }
+
+    //     // 3. Generate a unique promotion ID
+    //     $uid = $request->sesn . $request->trm . $request->sid . rand(10000, 99999);
+
+    //     // 4. Create promotion record
+    //     $promotion = old_student::create([
+    //         'uid'    => $uid,
+    //         'sid'    => $request->sid,
+    //         'schid'  => $request->schid,
+    //         'fname'  => $student->fname,
+    //         'mname'  => $student->mname,
+    //         'lname'  => $student->lname,
+    //         'status' => 'active',
+    //         'suid'   => $request->suid,
+    //         'ssn'    => $request->sesn,
+    //         'trm'    => $request->trm,
+    //         'clsm'   => $request->clsm,      // ✅ new class
+    //         'clsa'   => $validArm->id,       // ✅ new arm from sch_cls
+    //         'more'   => '',
+    //     ]);
+
+    //     return response()->json([
+    //         'status'    => true,
+    //         'message'   => 'Student promoted successfully for this term',
+    //         'data'      => [
+    //             'sid'       => $promotion->sid,
+    //             'suid'      => $promotion->suid,
+    //             'ssn'       => $promotion->ssn,
+    //             'trm'       => $promotion->trm,
+    //             'clsm'      => $promotion->clsm,
+    //             'clsa'      => $promotion->clsa,
+    //             'clsa_name' => $validArm->name,   // ✅ arm name
+    //         ],
+    //     ]);
+    // }
+
+
     public function promoteStudent(Request $request)
     {
         $request->validate([
@@ -26589,6 +26655,13 @@ public function getStudentsBySchool($schid, $stat) {
             'clsa'   => $validArm->id,       // ✅ new arm from sch_cls
             'more'   => '',
         ]);
+
+        // 5. Update student_academic_data table
+        student_academic_data::where('user_id', $request->sid)
+            ->update([
+                'new_class_main' => $request->clsm,
+                'new_class'      => $validArm->id, // optional if you want to also track the arm
+            ]);
 
         return response()->json([
             'status'    => true,
