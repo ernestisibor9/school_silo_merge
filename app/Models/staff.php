@@ -10,7 +10,7 @@ class staff extends Model
     protected $primaryKey = 'sid';
     public $incrementing = false;
     protected $fillable = [
-        'sid', 'schid', 'fname','mname','lname', 'count','sch3', 'year', 'term', 'stat','cuid','status','exit_status',"role","role2",'s_basic','s_prof'
+        'sid', 'schid', 'fname','mname','lname', 'count','sch3', 'year', 'trm', 'stat','cuid','status','exit_status',"role","role2",'s_basic','s_prof'
     ];
     /*protected $hidden = [
         'password',
