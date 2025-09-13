@@ -27511,4 +27511,103 @@ class ApiController extends Controller
             ],
         ]);
     }
+
+
+
+
+    /**
+     * @OA\Post(
+     *     path="/api/resetPass",
+     *     tags={"Api"},
+     *     summary="Reset user password (Admin or School only)",
+     *     description="Allows an Admin (`typ=a`) or School (`typ=s`) to reset the password of a Student (`typ=z`) or Staff (`typ=w`).",
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"user_id","new_password","new_password_confirmation"},
+     *             @OA\Property(property="user_id", type="integer", example=123, description="ID of the user whose password is to be reset"),
+     *             @OA\Property(property="new_password", type="string", format="password", example="secret123"),
+     *             @OA\Property(property="new_password_confirmation", type="string", format="password", example="secret123")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Password reset successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Password reset successfully for student@example.com")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=400,
+     *         description="Invalid target user (not Student or Staff)",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Only Student or Staff accounts can be reset.")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=403,
+     *         description="Unauthorized (if caller is not Admin or School)",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Unauthorized. Only Admin or School can reset passwords.")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     )
+     * )
+     */
+
+
+    public function resetPass(Request $request)
+    {
+        $request->validate([
+            'user_id'      => 'required|exists:users,id',
+            'new_password' => 'required|min:6|confirmed',
+        ]);
+
+        $actor = auth()->user();
+
+        // ✅ Only Admin or School can reset
+        if (!in_array($actor->typ, ['a', 's'])) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Unauthorized. Only Admin or School can reset passwords.'
+            ], 403);
+        }
+
+        $targetUser = User::find($request->user_id);
+
+        // ✅ Only Student or Staff passwords can be reset
+        if (!in_array($targetUser->typ, ['z', 'w'])) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Only Student or Staff accounts can be reset.',
+            ], 400);
+        }
+
+        $targetUser->password = bcrypt($request->new_password);
+        $targetUser->save();
+
+        // Optional: notify the user
+        // Mail::to($targetUser->email)->send(new PasswordResetByAdminOrSchool($targetUser));
+
+        return response()->json([
+            'status'  => true,
+            'message' => "Password reset successfully",
+        ]);
+    }
 }
