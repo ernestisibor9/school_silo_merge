@@ -26326,157 +26326,6 @@ class ApiController extends Controller
      *     )
      * )
      */
-    // public function promoteStudent(Request $request)
-    // {
-    //     $request->validate([
-    //         'sid'   => 'required',
-    //         'schid' => 'required',
-    //         'sesn'  => 'required',
-    //         'trm'   => 'required',
-    //         'clsm'  => 'required', // main class
-    //         'clsa'  => 'required', // class arm
-    //         'suid'  => 'required',
-    //     ]);
-
-    //     // Find the student
-    //     $student = student::where('sid', $request->sid)->firstOrFail();
-
-    //     // Generate a unique promotion ID (could be session+term+student ID)
-    //     $uid = $request->sesn . $request->trm . $request->sid;
-
-    //     // Always create a new row in old_student (no update)
-    //     old_student::create([
-    //         'uid'    => $uid,
-    //         'sid'    => $request->sid,
-    //         'schid'  => $request->schid,
-    //         'fname'  => $student->fname,
-    //         'mname'  => $student->mname,
-    //         'lname'  => $student->lname,
-    //         'status' => 'active',
-    //         'suid'   => $request->suid,
-    //         'ssn'    => $request->sesn,
-    //         'trm'    => $request->trm,
-    //         'clsm'   => $request->clsm, // main class
-    //         'clsa'   => $request->clsa, // arm
-    //         'more'   => '',
-    //     ]);
-
-    //     return response()->json([
-    //         'status'  => true,
-    //         'message' => 'Student promoted successfully',
-    //     ]);
-    // }
-
-
-    // public function promoteStudent(Request $request)
-    // {
-    //     $request->validate([
-    //         'sid'   => 'required',
-    //         'schid' => 'required',
-    //         'sesn'  => 'required',
-    //         'trm'   => 'required',
-    //         'clsm'  => 'required', // main class
-    //         'clsa'  => 'required', // class arm
-    //         'suid'  => 'required',
-    //     ]);
-
-    //     // Find the student
-    //     $student = student::where('sid', $request->sid)->firstOrFail();
-
-    //     // Check if student has already been promoted for this session and term
-    //     $existingPromotion = old_student::where('sid', $request->sid)
-    //         ->where('ssn', $request->sesn)
-    //         ->where('trm', $request->trm)
-    //         ->first();
-
-    //     if ($existingPromotion) {
-    //         return response()->json([
-    //             'status'  => false,
-    //             'message' => 'Student has already been promoted for this session and term',
-    //         ], 409); // 409 Conflict
-    //     }
-
-    //     // Generate a unique promotion ID
-    //     $uid = $request->sesn . $request->trm . $request->sid;
-
-    //     // Create a new promotion record
-    //     old_student::create([
-    //         'uid'    => $uid,
-    //         'sid'    => $request->sid,
-    //         'schid'  => $request->schid,
-    //         'fname'  => $student->fname,
-    //         'mname'  => $student->mname,
-    //         'lname'  => $student->lname,
-    //         'status' => 'active',
-    //         'suid'   => $request->suid,
-    //         'ssn'    => $request->sesn,
-    //         'trm'    => $request->trm,
-    //         'clsm'   => $request->clsm, // main class
-    //         'clsa'   => $request->clsa, // arm
-    //         'more'   => '',
-    //     ]);
-
-    //     return response()->json([
-    //         'status'  => true,
-    //         'message' => 'Student promoted successfully',
-    //     ]);
-    // }
-
-
-    // public function promoteStudent(Request $request)
-    // {
-    //     $request->validate([
-    //         'sid'   => 'required',
-    //         'schid' => 'required',
-    //         'sesn'  => 'required',  // session
-    //         'trm'   => 'required',  // term
-    //         'clsm'  => 'required',  // main class
-    //         'clsa'  => 'required',  // class arm
-    //         'suid'  => 'required',  // student unique id
-    //     ]);
-
-    //     // 1. Find the student
-    //     $student = student::where('sid', $request->sid)->firstOrFail();
-
-    //     // 2. Check if student already promoted in this session + term
-    //     // $existingPromotion = old_student::where('sid', $request->sid)
-    //     //     ->where('ssn', $request->sesn)
-    //     //     ->where('trm', $request->trm)
-    //     //     ->first();
-
-    //     // if ($existingPromotion) {
-    //     //     return response()->json([
-    //     //         'status'  => false,
-    //     //         'message' => 'Student has already been promoted for this session and term',
-    //     //     ], 409); // Conflict
-    //     // }
-
-    //     // 3. Generate a unique numeric promotion ID (session + term + sid + random 5-digit number)
-    //     $uid = $request->sesn . $request->trm . $request->sid . rand(10000, 99999);
-
-    //     // 4. Create a new promotion record (per term)
-    //     old_student::create([
-    //         'uid'    => $uid,
-    //         'sid'    => $request->sid,
-    //         'schid'  => $request->schid,
-    //         'fname'  => $student->fname,
-    //         'mname'  => $student->mname,
-    //         'lname'  => $student->lname,
-    //         'status' => 'active',
-    //         'suid'   => $request->suid,
-    //         'ssn'    => $request->sesn, // session
-    //         'trm'    => $request->trm,  // term
-    //         'clsm'   => $request->clsm, // main class
-    //         'clsa'   => $request->clsa, // arm
-    //         'more'   => '',
-    //     ]);
-
-    //     return response()->json([
-    //         'status'  => true,
-    //         'message' => 'Student promoted successfully for this term',
-    //     ]);
-    // }
-
 
     // public function promoteStudent(Request $request)
     // {
@@ -26527,6 +26376,13 @@ class ApiController extends Controller
     //         'more'   => '',
     //     ]);
 
+    //     // 5. Update student_academic_data table
+    //     student_academic_data::where('user_id', $request->sid)
+    //         ->update([
+    //             'new_class_main' => $request->clsm,
+    //             'new_class'      => $validArm->id, // optional if you want to also track the arm
+    //         ]);
+
     //     return response()->json([
     //         'status'    => true,
     //         'message'   => 'Student promoted successfully for this term',
@@ -26572,10 +26428,24 @@ class ApiController extends Controller
             ], 422);
         }
 
-        // 3. Generate a unique promotion ID
+        // 3. ✅ Check if already promoted for this session + term
+        $alreadyPromoted = old_student::where('sid', $request->sid)
+            ->where('schid', $request->schid)
+            ->where('ssn', $request->sesn)
+            ->where('trm', $request->trm)
+            ->first();
+
+        if ($alreadyPromoted) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'This student has already been promoted for the selected session and term',
+            ], 409); // conflict
+        }
+
+        // 4. Generate a unique promotion ID
         $uid = $request->sesn . $request->trm . $request->sid . rand(10000, 99999);
 
-        // 4. Create promotion record
+        // 5. Create promotion record
         $promotion = old_student::create([
             'uid'    => $uid,
             'sid'    => $request->sid,
@@ -26592,7 +26462,7 @@ class ApiController extends Controller
             'more'   => '',
         ]);
 
-        // 5. Update student_academic_data table
+        // 6. Update student_academic_data table
         student_academic_data::where('user_id', $request->sid)
             ->update([
                 'new_class_main' => $request->clsm,
