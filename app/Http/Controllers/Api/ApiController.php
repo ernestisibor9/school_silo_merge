@@ -27581,15 +27581,17 @@ class ApiController extends Controller
 
         $actor = auth()->user();
 
-        // ✅ Only Admin or School can reset
-        if (!in_array($actor->typ, ['a', 's'])) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'Unauthorized. Only Admin or School can reset passwords.'
-            ], 403);
-        }
+        Log::info('Reset password for user_id: ' . $actor);
+
 
         $targetUser = User::find($request->user_id);
+
+        if (!$targetUser) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'User not found.'
+            ], 404);
+        }
 
         // ✅ Only Student or Staff passwords can be reset
         if (!in_array($targetUser->typ, ['z', 'w'])) {
@@ -27602,12 +27604,9 @@ class ApiController extends Controller
         $targetUser->password = bcrypt($request->new_password);
         $targetUser->save();
 
-        // Optional: notify the user
-        // Mail::to($targetUser->email)->send(new PasswordResetByAdminOrSchool($targetUser));
-
         return response()->json([
             'status'  => true,
-            'message' => "Password reset successfully",
+            'message' => "Password reset successfully for",
         ]);
     }
 }
