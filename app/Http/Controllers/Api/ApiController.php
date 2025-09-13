@@ -16466,6 +16466,65 @@ class ApiController extends Controller
     //     ]);
     // }
 
+    // public function getStudentsBySchool($schid, $stat)
+    // {
+    //     $start = request()->input('start', 0);
+    //     $count = request()->input('count', 20);
+    //     $year  = request()->input('year');   // optional
+    //     $cls   = request()->input('cls', 'zzz'); // 👈 read class from query string
+
+    //     $query = student::query()
+    //         ->join('student_academic_data as sad', function ($join) {
+    //             $join->on('student.sid', '=', 'sad.user_id')
+    //                 ->whereRaw('sad.created_at = (
+    //                  SELECT MAX(created_at)
+    //                  FROM student_academic_data
+    //                  WHERE user_id = student.sid
+    //              )');
+    //         })
+    //         ->where('student.schid', $schid)
+    //         ->where('student.stat', $stat);
+
+    //     // filter by class if provided
+    //     if ($cls !== 'zzz') {
+    //         $query->where('sad.new_class_main', $cls);
+    //     }
+
+    //     // filter by year if provided
+    //     if ($year) {
+    //         $query->where('student.year', $year);
+    //     }
+
+    //     $members = $query->select('student.*', 'sad.new_class_main')
+    //         ->distinct()
+    //         ->orderBy('student.lname', 'asc')
+    //         ->skip($start)
+    //         ->take($count)
+    //         ->get();
+
+    //     $pld = [];
+    //     foreach ($members as $member) {
+    //         $user_id = $member->sid;
+    //         $academicData = student_academic_data::where('user_id', $user_id)
+    //             ->orderBy('created_at', 'desc')
+    //             ->first();
+    //         $basicData = student_basic_data::where('user_id', $user_id)->first();
+
+    //         $pld[] = [
+    //             's' => $member,
+    //             'b' => $basicData,
+    //             'a' => $academicData,
+    //         ];
+    //     }
+
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => $pld,
+    //     ]);
+    // }
+
+
     public function getStudentsBySchool($schid, $stat)
     {
         $start = request()->input('start', 0);
@@ -16474,13 +16533,13 @@ class ApiController extends Controller
         $cls   = request()->input('cls', 'zzz'); // 👈 read class from query string
 
         $query = student::query()
-            ->join('student_academic_data as sad', function ($join) {
+            ->leftJoin('student_academic_data as sad', function ($join) {
                 $join->on('student.sid', '=', 'sad.user_id')
                     ->whereRaw('sad.created_at = (
-                     SELECT MAX(created_at)
-                     FROM student_academic_data
-                     WHERE user_id = student.sid
-                 )');
+                    SELECT MAX(created_at)
+                    FROM student_academic_data
+                    WHERE user_id = student.sid
+                )');
             })
             ->where('student.schid', $schid)
             ->where('student.stat', $stat);
@@ -16505,15 +16564,19 @@ class ApiController extends Controller
         $pld = [];
         foreach ($members as $member) {
             $user_id = $member->sid;
+
+            // academic data (may not exist)
             $academicData = student_academic_data::where('user_id', $user_id)
                 ->orderBy('created_at', 'desc')
                 ->first();
+
+            // basic data (may not exist)
             $basicData = student_basic_data::where('user_id', $user_id)->first();
 
             $pld[] = [
-                's' => $member,
-                'b' => $basicData,
-                'a' => $academicData,
+                's' => $member,          // student record (always there)
+                'b' => $basicData ?: [], // return [] if no basic data
+                'a' => $academicData ?: [] // return [] if no academic data
             ];
         }
 
