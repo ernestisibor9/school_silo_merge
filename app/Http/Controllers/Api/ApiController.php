@@ -7004,218 +7004,82 @@ class ApiController extends Controller
      * )
      */
 
+
     // public function getOldStudentsAndSubject($schid, $ssn, $trm, $clsm, $clsa, $stf)
     // {
-    //     $ostd = [];
+    //     // Fetch students based on class and arm
+    //     $ostd = old_student::where("schid", $schid)
+    //         ->where("status", "active")
+    //         ->where("ssn", $ssn)
+    //         ->where("clsm", $clsm);
 
-    //     if ($clsa == '-1') {
-    //         $ostd = old_student::where("schid", $schid)
-    //             ->where("status", "active")
-    //             ->where("ssn", $ssn)
-    //             ->where("clsm", $clsm)
-    //             ->get();
-    //     } else {
-    //         $ostd = old_student::where("schid", $schid)
-    //             ->where("status", "active")
-    //             ->where("ssn", $ssn)
-    //             ->where("clsm", $clsm)
-    //             ->where("clsa", $clsa)
-    //             ->get();
+    //     if ($clsa != '-1') {
+    //         $ostd = $ostd->where("clsa", $clsa);
     //     }
 
-    //     $relevantSubjects = [];
-    //     if ($stf == "-1" || $stf == "-2") {
-    //         $relevantSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
-    //             ->where('class_subj.schid', $schid)
-    //             ->where('class_subj.clsid', $clsm)
-    //             ->pluck('sbj');
-    //     } else {
-    //         $relevantSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
-    //             ->where('class_subj.schid', $schid)
-    //             ->where('class_subj.clsid', $clsm)
-    //             ->where('staff_subj.stid', $stf)
-    //             ->pluck('sbj');
-    //     }
+    //     // 👉 Ensure unique students by sid (avoid duplicate entries across terms)
+    //     $ostd = $ostd->get()->unique('sid')->values();
 
     //     $stdPld = [];
+    //     $allSubjects = []; // To track unique subjects for cls-sbj
 
     //     foreach ($ostd as $std) {
     //         $user_id = $std->sid;
-    //         $studentSubjects = student_subj::where('stid', $user_id)
-    //             ->whereIn('sbj', $relevantSubjects)
-    //             ->get();
+
+    //         // Get all subjects assigned to the student
+    //         $studentSubjects = student_subj::where('stid', $user_id)->get();
 
     //         $mySbjs = [];
     //         $scores = [];
+    //         $totalScore = 0;
+    //         $scoreCount = 0;
+    //         $studentSubjectIds = []; // Track subjects added for this student
 
     //         foreach ($studentSubjects as $sbj) {
-    //             $sbid = $sbj->sbj;
-
-    //             // Fetch scores for this subject
-    //             $subjectScores = std_score::where('stid', $user_id)
-    //                 ->where('sbj', $sbid)
-    //                 ->where('schid', $schid)
-    //                 ->where('ssn', $ssn)
-    //                 ->where('trm', $trm)
-    //                 ->where('clsid', $clsm)
-    //                 ->get();
-
-    //             if ($subjectScores->isEmpty()) {
-    //                 // Subject was offered, but no score entered â€” use 0
-    //                 $subjectScores = collect([
-    //                     (object)[
-    //                         'stid' => $user_id,
-    //                         'sbj' => $sbid,
-    //                         'scr' => 0,
-    //                         'note' => 'Auto-generated zero score' // optional
-    //                     ]
-    //                 ]);
-    //             }
-
-    //             $mySbjs[] = $sbid;
-    //             $scores[] = [
-    //                 'sbid' => $sbid,
-    //                 'scores' => $subjectScores
-    //             ];
-
-    //         }
-
-    //         $psy = false;
-    //         $res = "0";
-    //         $rinfo = [];
-
-    //         if ($stf == "-2") {
-    //             $psy = student_psy::where("schid", $schid)
-    //                 ->where("ssn", $ssn)
-    //                 ->where("trm", $trm)
-    //                 ->where("clsm", $clsm)
-    //                 ->where("stid", $user_id)
-    //                 ->exists();
-
-    //             $rinfo = student_res::where("schid", $schid)
-    //                 ->where("ssn", $ssn)
-    //                 ->where("trm", $trm)
-    //                 ->where("clsm", $clsm)
-    //                 ->where("stid", $user_id)
-    //                 ->first();
-
-    //             if ($rinfo) {
-    //                 $res = $rinfo->stat;
-    //             }
-    //         }
-
-    //         $stdPld[] = [
-    //             'std' => $std,
-    //             'sbj' => $mySbjs,
-    //             'scr' => $scores,
-    //             'psy' => $psy,
-    //             'res' => $res,
-    //             'rinfo' => $rinfo,
-    //         ];
-    //     }
-
-    //     // Get unique class subjects that are actually used
-    //     $clsSbj = [];
-    //     $temKeep = [];
-
-    //     foreach ($relevantSubjects as $sbid) {
-    //         if (!in_array($sbid, $temKeep)) {
-    //             $temKeep[] = $sbid;
-    //             $schSbj = subj::where('id', $sbid)->first();
-    //             if ($schSbj) {
-    //                 $clsSbj[] = $schSbj;
-    //             }
-    //         }
-    //     }
-
-    //     $pld = [
-    //         'std-pld' => $stdPld,
-    //         'cls-sbj' => $clsSbj // Optional, keep if needed
-    //     ];
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $pld,
-    //     ]);
-    // }
-
-
-    ////////////////////////////////////////////////////////////////////////////////
-
-    //     public function getOldStudentsAndSubject($schid, $ssn, $trm, $clsm, $clsa, $stf)
-    // {
-    //     $ostd = [];
-
-    //     if ($clsa == '-1') {
-    //         $ostd = old_student::where("schid", $schid)
-    //             ->where("status", "active")
-    //             ->where("ssn", $ssn)
-    //             ->where("clsm", $clsm)
-    //             ->get();
-    //     } else {
-    //         $ostd = old_student::where("schid", $schid)
-    //             ->where("status", "active")
-    //             ->where("ssn", $ssn)
-    //             ->where("clsm", $clsm)
-    //             ->where("clsa", $clsa)
-    //             ->get();
-    //     }
-
-    //     $relevantSubjects = [];
-    //     if ($stf == "-1" || $stf == "-2") {
-    //         $relevantSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
-    //             ->where('class_subj.schid', $schid)
-    //             ->where('class_subj.clsid', $clsm)
-    //             ->pluck('sbj');
-    //     } else {
-    //         $relevantSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
-    //             ->where('class_subj.schid', $schid)
-    //             ->where('class_subj.clsid', $clsm)
-    //             ->where('staff_subj.stid', $stf)
-    //             ->pluck('sbj');
-    //     }
-
-    //     $stdPld = [];
-
-    //     foreach ($ostd as $std) {
-    //         $user_id = $std->sid;
-    //         $studentSubjects = student_subj::where('stid', $user_id)
-    //             ->whereIn('sbj', $relevantSubjects)
-    //             ->get();
-
-    //         $mySbjs = [];
-    //         $scores = [];
-
-    //         foreach ($studentSubjects as $sbj) {
-    //             $sbid = $sbj->sbj;
-
-    //             // Fetch scores for this subject
-    //             $subjectScores = std_score::where('stid', $user_id)
-    //                 ->where('sbj', $sbid)
-    //                 ->where('schid', $schid)
-    //                 ->where('ssn', $ssn)
-    //                 ->where('trm', $trm)
-    //                 ->where('clsid', $clsm)
-    //                 ->get();
-
-    //             // Exclude if all scores are 0 or null, only for admin
-    //             if (($stf == "-1" || $stf == "-2") && $subjectScores->every(fn($s) => empty($s->scr) || $s->scr == 0)) {
+    //             // Skip if this subject is already added for this student
+    //             if (in_array($sbj->sbj, $studentSubjectIds)) {
     //                 continue;
     //             }
+    //             $studentSubjectIds[] = $sbj->sbj;
 
-    //             // Include even if empty or all zero, for teachers or others
-    //             $mySbjs[] = $sbid;
+    //             // Fetch subject details
+    //             $subject = subj::find($sbj->sbj);
+    //             if ($subject) {
+    //                 $mySbjs[] = $subject;
+
+    //                 // Track unique subjects for class-wide subjects list
+    //                 if (!isset($allSubjects[$sbj->sbj])) {
+    //                     $allSubjects[$sbj->sbj] = $subject;
+    //                 }
+    //             }
+
+    //             // Fetch scores for this subject
+    //             $subjectScores = std_score::where('stid', $user_id)
+    //                 ->where('sbj', $sbj->sbj)
+    //                 ->where('schid', $schid)
+    //                 ->where('ssn', $ssn)
+    //                 ->where('trm', $trm)
+    //                 ->where('clsid', $clsm)
+    //                 ->get();
+
+    //             foreach ($subjectScores as $s) {
+    //                 if (!empty($s->scr) && is_numeric($s->scr)) {
+    //                     $totalScore += $s->scr;
+    //                     $scoreCount++;
+    //                 }
+    //             }
+
     //             $scores[] = [
-    //                 'sbid' => $sbid,
+    //                 'sbid' => $sbj->sbj,
     //                 'scores' => $subjectScores
     //             ];
     //         }
 
-    //         $psy = false;
-    //         $res = "0";
-    //         $rinfo = [];
+    //         $avgScore = $scoreCount > 0 ? round($totalScore / $scoreCount, 2) : 0;
+    //         $grade = $this->gradeFromAvg2($avgScore);
 
+    //         // Check for psychological evaluation if needed
+    //         $psy = false;
     //         if ($stf == "-2") {
     //             $psy = student_psy::where("schid", $schid)
     //                 ->where("ssn", $ssn)
@@ -7223,42 +7087,56 @@ class ApiController extends Controller
     //                 ->where("clsm", $clsm)
     //                 ->where("stid", $user_id)
     //                 ->exists();
-
-    //             $rinfo = student_res::where("schid", $schid)
-    //                 ->where("ssn", $ssn)
-    //                 ->where("trm", $trm)
-    //                 ->where("clsm", $clsm)
-    //                 ->where("stid", $user_id)
-    //                 ->first();
-
-    //             if ($rinfo) {
-    //                 $res = $rinfo->stat;
-    //             }
     //         }
 
+    //         // Fetch student result info
+    //         $res = "0";
+    //         $rinfo = student_res::where("schid", $schid)
+    //             ->where("ssn", $ssn)
+    //             ->where("trm", $trm)
+    //             ->where("clsm", $clsm)
+    //             ->where("clsa", $clsa)
+    //             ->where("stid", $user_id)
+    //             ->first();
+
+    //         if ($rinfo) {
+    //             $res = $rinfo->stat;
+    //             $rinfo = [
+    //                 'uid' => $rinfo->uid,
+    //                 'stat' => $rinfo->stat,
+    //                 'com' => $rinfo->com,
+    //                 'stid' => $rinfo->stid,
+    //                 'schid' => $rinfo->schid,
+    //                 'ssn' => $rinfo->ssn,
+    //                 'trm' => $rinfo->trm,
+    //                 'clsm' => $rinfo->clsm,
+    //                 'clsa' => $rinfo->clsa,
+    //                 'pos' => $rinfo->pos,
+    //                 'avg' => $rinfo->avg,
+    //                 'cavg' => $rinfo->cavg,
+    //                 'created_at' => $rinfo->created_at,
+    //                 'updated_at' => $rinfo->updated_at,
+    //                 'grade' => isset($rinfo->avg) ? $this->gradeFromAvg2($rinfo->avg) : null,
+    //             ];
+    //         } else {
+    //             $rinfo = [];
+    //         }
+
+    //         // Build student payload
     //         $stdPld[] = [
     //             'std' => $std,
     //             'sbj' => $mySbjs,
     //             'scr' => $scores,
+    //             'avg_score' => $avgScore,
+    //             'grade' => $grade,
     //             'psy' => $psy,
     //             'res' => $res,
     //             'rinfo' => $rinfo,
     //         ];
     //     }
 
-    //     // Get unique class subjects that are actually used
-    //     $clsSbj = [];
-    //     $temKeep = [];
-
-    //     foreach ($relevantSubjects as $sbid) {
-    //         if (!in_array($sbid, $temKeep)) {
-    //             $temKeep[] = $sbid;
-    //             $schSbj = subj::where('id', $sbid)->first();
-    //             if ($schSbj) {
-    //                 $clsSbj[] = $schSbj;
-    //             }
-    //         }
-    //     }
+    //     // Prepare class subjects list without duplicates
+    //     $clsSbj = array_values($allSubjects);
 
     //     $pld = [
     //         'std-pld' => $stdPld,
@@ -7273,8 +7151,6 @@ class ApiController extends Controller
     // }
 
 
-
-
     public function getOldStudentsAndSubject($schid, $ssn, $trm, $clsm, $clsa, $stf)
     {
         // Fetch students based on class and arm
@@ -7287,11 +7163,11 @@ class ApiController extends Controller
             $ostd = $ostd->where("clsa", $clsa);
         }
 
-        // 👉 Ensure unique students by sid (avoid duplicate entries across terms)
+        // 👉 Ensure unique students by sid
         $ostd = $ostd->get()->unique('sid')->values();
 
         $stdPld = [];
-        $allSubjects = []; // To track unique subjects for cls-sbj
+        $allSubjects = []; // Track unique subjects for cls-sbj
 
         foreach ($ostd as $std) {
             $user_id = $std->sid;
@@ -7303,52 +7179,50 @@ class ApiController extends Controller
             $scores = [];
             $totalScore = 0;
             $scoreCount = 0;
-            $studentSubjectIds = []; // Track subjects added for this student
+            $studentSubjectIds = [];
 
             foreach ($studentSubjects as $sbj) {
-                // Skip if this subject is already added for this student
                 if (in_array($sbj->sbj, $studentSubjectIds)) {
                     continue;
                 }
                 $studentSubjectIds[] = $sbj->sbj;
 
-                // Fetch subject details
-                $subject = subj::find($sbj->sbj);
-                if ($subject) {
-                    $mySbjs[] = $subject;
+                // Save only subject ID
+                $mySbjs[] = (string) $sbj->sbj;
 
-                    // Track unique subjects for class-wide subjects list
-                    if (!isset($allSubjects[$sbj->sbj])) {
-                        $allSubjects[$sbj->sbj] = $subject;
-                    }
+                // Track unique subjects for class-wide subjects list
+                if (!isset($allSubjects[$sbj->sbj])) {
+                    $allSubjects[$sbj->sbj] = (string) $sbj->sbj;
                 }
 
-                // Fetch scores for this subject
+                // Fetch scores
                 $subjectScores = std_score::where('stid', $user_id)
                     ->where('sbj', $sbj->sbj)
                     ->where('schid', $schid)
                     ->where('ssn', $ssn)
                     ->where('trm', $trm)
                     ->where('clsid', $clsm)
-                    ->get();
+                    ->get()
+                    ->map(fn($s) => $s->toArray())
+                    ->values();
 
                 foreach ($subjectScores as $s) {
-                    if (!empty($s->scr) && is_numeric($s->scr)) {
-                        $totalScore += $s->scr;
+                    if (!empty($s['scr']) && is_numeric($s['scr'])) {
+                        $totalScore += $s['scr'];
                         $scoreCount++;
                     }
                 }
 
                 $scores[] = [
-                    'sbid' => $sbj->sbj,
-                    'scores' => $subjectScores
+                    'sbid' => (string) $sbj->sbj,
+                    'scores' => $subjectScores,
                 ];
             }
 
             $avgScore = $scoreCount > 0 ? round($totalScore / $scoreCount, 2) : 0;
             $grade = $this->gradeFromAvg2($avgScore);
 
-            // Check for psychological evaluation if needed
+            // Check for psychological evaluation
             $psy = false;
             if ($stf == "-2") {
                 $psy = student_psy::where("schid", $schid)
@@ -7361,7 +7235,7 @@ class ApiController extends Controller
 
             // Fetch student result info
             $res = "0";
-            $rinfo = student_res::where("schid", $schid)
+            $rinfoModel = student_res::where("schid", $schid)
                 ->where("ssn", $ssn)
                 ->where("trm", $trm)
                 ->where("clsm", $clsm)
@@ -7369,32 +7243,31 @@ class ApiController extends Controller
                 ->where("stid", $user_id)
                 ->first();
 
-            if ($rinfo) {
-                $res = $rinfo->stat;
+            $rinfo = new \stdClass(); // Ensure object
+            if ($rinfoModel) {
+                $res = $rinfoModel->stat;
                 $rinfo = [
-                    'uid' => $rinfo->uid,
-                    'stat' => $rinfo->stat,
-                    'com' => $rinfo->com,
-                    'stid' => $rinfo->stid,
-                    'schid' => $rinfo->schid,
-                    'ssn' => $rinfo->ssn,
-                    'trm' => $rinfo->trm,
-                    'clsm' => $rinfo->clsm,
-                    'clsa' => $rinfo->clsa,
-                    'pos' => $rinfo->pos,
-                    'avg' => $rinfo->avg,
-                    'cavg' => $rinfo->cavg,
-                    'created_at' => $rinfo->created_at,
-                    'updated_at' => $rinfo->updated_at,
-                    'grade' => isset($rinfo->avg) ? $this->gradeFromAvg2($rinfo->avg) : null,
+                    'uid' => $rinfoModel->uid,
+                    'stat' => $rinfoModel->stat,
+                    'com' => $rinfoModel->com,
+                    'stid' => $rinfoModel->stid,
+                    'schid' => $rinfoModel->schid,
+                    'ssn' => $rinfoModel->ssn,
+                    'trm' => $rinfoModel->trm,
+                    'clsm' => $rinfoModel->clsm,
+                    'clsa' => $rinfoModel->clsa,
+                    'pos' => $rinfoModel->pos,
+                    'avg' => $rinfoModel->avg,
+                    'cavg' => $rinfoModel->cavg,
+                    'created_at' => $rinfoModel->created_at,
+                    'updated_at' => $rinfoModel->updated_at,
+                    'grade' => isset($rinfoModel->avg) ? $this->gradeFromAvg2($rinfoModel->avg) : null,
                 ];
-            } else {
-                $rinfo = [];
             }
 
             // Build student payload
             $stdPld[] = [
-                'std' => $std,
+                'std' => $std->toArray(),
                 'sbj' => $mySbjs,
                 'scr' => $scores,
                 'avg_score' => $avgScore,
@@ -7405,12 +7278,12 @@ class ApiController extends Controller
             ];
         }
 
-        // Prepare class subjects list without duplicates
+        // Prepare class subjects list
         $clsSbj = array_values($allSubjects);
 
         $pld = [
             'std-pld' => $stdPld,
-            'cls-sbj' => $clsSbj
+            'cls-sbj' => $clsSbj,
         ];
 
         return response()->json([
@@ -27477,103 +27350,102 @@ class ApiController extends Controller
      * )
      */
 
-public function rePromoteStudent(Request $request)
-{
-    $request->validate([
-        'sid'   => 'required',
-        'schid' => 'required',
-        'sesn'  => 'required',  // session
-        'trm'   => 'required',  // term
-        'clsm'  => 'required',  // new main class
-        'clsa'  => 'required',  // requested new class arm (sch_cls.id)
-        'suid'  => 'required',  // student unique id
-    ]);
-
-    // 1. Find the student
-    $student = student::where('sid', $request->sid)->firstOrFail();
-
-    // 2. Make sure this arm belongs to the new class
-    $validArm = DB::table('sch_cls')
-        ->where('id', $request->clsa)
-        ->where('cls_id', $request->clsm)   // ✅ ensure arm belongs to this class
-        ->where('schid', $request->schid)
-        ->first();
-
-    if (!$validArm) {
-        return response()->json([
-            'status'  => false,
-            'message' => 'Invalid class arm for the selected class',
-        ], 422);
-    }
-
-    // 3. Check if student already has scores for this session, term, and class
-    $hasScores = std_score::where('stid', $request->sid)
-        ->where('ssn', $request->sesn)
-        ->where('trm', $request->trm)
-        ->where('clsid', $request->clsm)
-        ->exists();
-
-    if ($hasScores) {
-        return response()->json([
-            'status'  => false,
-            'message' => 'Cannot re-promote student: scores/results already exist for this class, session, and term.',
-        ], 422);
-    }
-
-    // 4. Generate a unique promotion ID
-    $uid = $request->sesn . $request->trm . $request->sid . rand(10000, 99999);
-
-    // 5. Remove any mistaken promotion records (wrong class/arm for same session & term)
-    old_student::where('sid', $request->sid)
-        ->where('ssn', $request->sesn)
-        ->where('trm', $request->trm)
-        ->where(function ($q) use ($request) {
-            $q->where('clsm', '!=', $request->clsm)
-              ->orWhere('clsa', '!=', $request->clsa);
-        })
-        ->delete();
-
-    // 6. Create or update promotion record (correct one)
-    $promotion = old_student::updateOrCreate(
-        [
-            'sid'  => $request->sid,
-            'ssn'  => $request->sesn,
-            'trm'  => $request->trm,
-        ],
-        [
-            'uid'    => $uid,
-            'schid'  => $request->schid,
-            'fname'  => $student->fname,
-            'mname'  => $student->mname,
-            'lname'  => $student->lname,
-            'status' => 'active',
-            'suid'   => $request->suid,
-            'clsm'   => $request->clsm,
-            'clsa'   => $validArm->id,
-            'more'   => '',
-        ]
-    );
-
-    // 7. Update student_academic_data table
-    student_academic_data::where('user_id', $request->sid)
-        ->update([
-            'new_class_main' => $request->clsm,
-            'new_class'      => $validArm->id,
+    public function rePromoteStudent(Request $request)
+    {
+        $request->validate([
+            'sid'   => 'required',
+            'schid' => 'required',
+            'sesn'  => 'required',  // session
+            'trm'   => 'required',  // term
+            'clsm'  => 'required',  // new main class
+            'clsa'  => 'required',  // requested new class arm (sch_cls.id)
+            'suid'  => 'required',  // student unique id
         ]);
 
-    return response()->json([
-        'status'    => true,
-        'message'   => 'Student re-promoted successfully for this term',
-        'data'      => [
-            'sid'       => $promotion->sid,
-            'suid'      => $promotion->suid,
-            'ssn'       => $promotion->ssn,
-            'trm'       => $promotion->trm,
-            'clsm'      => $promotion->clsm,
-            'clsa'      => $promotion->clsa,
-            'clsa_name' => $validArm->name,
-        ],
-    ]);
-}
+        // 1. Find the student
+        $student = student::where('sid', $request->sid)->firstOrFail();
 
+        // 2. Make sure this arm belongs to the new class
+        $validArm = DB::table('sch_cls')
+            ->where('id', $request->clsa)
+            ->where('cls_id', $request->clsm)   // ✅ ensure arm belongs to this class
+            ->where('schid', $request->schid)
+            ->first();
+
+        if (!$validArm) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Invalid class arm for the selected class',
+            ], 422);
+        }
+
+        // 3. Check if student already has scores for this session, term, and class
+        $hasScores = std_score::where('stid', $request->sid)
+            ->where('ssn', $request->sesn)
+            ->where('trm', $request->trm)
+            ->where('clsid', $request->clsm)
+            ->exists();
+
+        if ($hasScores) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Cannot re-promote student: scores/results already exist for this class, session, and term.',
+            ], 422);
+        }
+
+        // 4. Generate a unique promotion ID
+        $uid = $request->sesn . $request->trm . $request->sid . rand(10000, 99999);
+
+        // 5. Remove any mistaken promotion records (wrong class/arm for same session & term)
+        old_student::where('sid', $request->sid)
+            ->where('ssn', $request->sesn)
+            ->where('trm', $request->trm)
+            ->where(function ($q) use ($request) {
+                $q->where('clsm', '!=', $request->clsm)
+                    ->orWhere('clsa', '!=', $request->clsa);
+            })
+            ->delete();
+
+        // 6. Create or update promotion record (correct one)
+        $promotion = old_student::updateOrCreate(
+            [
+                'sid'  => $request->sid,
+                'ssn'  => $request->sesn,
+                'trm'  => $request->trm,
+            ],
+            [
+                'uid'    => $uid,
+                'schid'  => $request->schid,
+                'fname'  => $student->fname,
+                'mname'  => $student->mname,
+                'lname'  => $student->lname,
+                'status' => 'active',
+                'suid'   => $request->suid,
+                'clsm'   => $request->clsm,
+                'clsa'   => $validArm->id,
+                'more'   => '',
+            ]
+        );
+
+        // 7. Update student_academic_data table
+        student_academic_data::where('user_id', $request->sid)
+            ->update([
+                'new_class_main' => $request->clsm,
+                'new_class'      => $validArm->id,
+            ]);
+
+        return response()->json([
+            'status'    => true,
+            'message'   => 'Student re-promoted successfully for this term',
+            'data'      => [
+                'sid'       => $promotion->sid,
+                'suid'      => $promotion->suid,
+                'ssn'       => $promotion->ssn,
+                'trm'       => $promotion->trm,
+                'clsm'      => $promotion->clsm,
+                'clsa'      => $promotion->clsa,
+                'clsa_name' => $validArm->name,
+            ],
+        ]);
+    }
 }
