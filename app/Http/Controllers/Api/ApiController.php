@@ -16606,10 +16606,11 @@ class ApiController extends Controller
                 )');
             })
             // exclude students that exist in student_subj
-            ->whereNotIn('student.sid', function ($q) use ($schid) {
-                $q->select('stid')
+            ->whereNotExists(function ($q) use ($schid) {
+                $q->select(DB::raw(1))
                     ->from('student_subj')
-                    ->where('schid', $schid);
+                    ->whereRaw('student_subj.stid = student.sid')
+                    ->where('student_subj.schid', $schid);
             })
             ->where('student.schid', $schid)
             ->where('student.stat', $stat);
@@ -16644,9 +16645,9 @@ class ApiController extends Controller
             $basicData = student_basic_data::where('user_id', $user_id)->first();
 
             $pld[] = [
-                's' => $member,          // student record (always there)
-                'b' => $basicData ?: [], // return [] if no basic data
-                'a' => $academicData ?: [] // return [] if no academic data
+                's' => $member,               // student record
+                'b' => $basicData ?: (object)[], // empty object if none
+                'a' => $academicData ?: (object)[] // empty object if none
             ];
         }
 
