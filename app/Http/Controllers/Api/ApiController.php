@@ -16605,11 +16605,14 @@ class ApiController extends Controller
                     WHERE user_id = student.sid
                 )');
             })
+            // exclude students that exist in student_subj
+            ->whereNotIn('student.sid', function ($q) use ($schid) {
+                $q->select('stid')
+                    ->from('student_subj')
+                    ->where('schid', $schid);
+            })
             ->where('student.schid', $schid)
-            ->where('student.stat', $stat)
-            ->whereNotIn('student.sid', function ($sub) {
-                $sub->select('stid')->from('student_subj');
-            });
+            ->where('student.stat', $stat);
 
         // filter by class if provided
         if ($cls !== 'zzz') {
@@ -16628,7 +16631,7 @@ class ApiController extends Controller
             ->take($count)
             ->get();
 
-        $response = [];
+        $pld = [];
         foreach ($members as $member) {
             $user_id = $member->sid;
 
@@ -16640,15 +16643,20 @@ class ApiController extends Controller
             // basic data (may not exist)
             $basicData = student_basic_data::where('user_id', $user_id)->first();
 
-            $response[] = [
-                's' => $member,               // student record
-                'b' => $basicData ?: (object)[], // empty object if none
-                'a' => $academicData ?: (object)[] // empty object if none
+            $pld[] = [
+                's' => $member,          // student record (always there)
+                'b' => $basicData ?: [], // return [] if no basic data
+                'a' => $academicData ?: [] // return [] if no academic data
             ];
         }
 
-        return response()->json($response);
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld,
+        ]);
     }
+
 
 
 
