@@ -16525,135 +16525,67 @@ class ApiController extends Controller
     // }
 
 
-    // public function getStudentsBySchool($schid, $stat)
-    // {
-    //     $start = request()->input('start', 0);
-    //     $count = request()->input('count', 20);
-    //     $year  = request()->input('year');   // optional
-    //     $cls   = request()->input('cls', 'zzz'); // 👈 read class from query string
+    public function getStudentsBySchool($schid, $stat)
+    {
+        $start = request()->input('start', 0);
+        $count = request()->input('count', 20);
+        $year  = request()->input('year');   // optional
+        $cls   = request()->input('cls', 'zzz'); // 👈 read class from query string
 
-    //     $query = student::query()
-    //         ->leftJoin('student_academic_data as sad', function ($join) {
-    //             $join->on('student.sid', '=', 'sad.user_id')
-    //                 ->whereRaw('sad.created_at = (
-    //                 SELECT MAX(created_at)
-    //                 FROM student_academic_data
-    //                 WHERE user_id = student.sid
-    //             )');
-    //         })
-    //         ->where('student.schid', $schid)
-    //         ->where('student.stat', $stat);
-
-    //     // filter by class if provided
-    //     if ($cls !== 'zzz') {
-    //         $query->where('sad.new_class_main', $cls);
-    //     }
-
-    //     // filter by year if provided
-    //     if ($year) {
-    //         $query->where('student.year', $year);
-    //     }
-
-    //     $members = $query->select('student.*', 'sad.new_class_main')
-    //         ->distinct()
-    //         ->orderBy('student.lname', 'asc')
-    //         ->skip($start)
-    //         ->take($count)
-    //         ->get();
-
-    //     $pld = [];
-    //     foreach ($members as $member) {
-    //         $user_id = $member->sid;
-
-    //         // academic data (may not exist)
-    //         $academicData = student_academic_data::where('user_id', $user_id)
-    //             ->orderBy('created_at', 'desc')
-    //             ->first();
-
-    //         // basic data (may not exist)
-    //         $basicData = student_basic_data::where('user_id', $user_id)->first();
-
-    //         $pld[] = [
-    //             's' => $member,          // student record (always there)
-    //             'b' => $basicData ?: [], // return [] if no basic data
-    //             'a' => $academicData ?: [] // return [] if no academic data
-    //         ];
-    //     }
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $pld,
-    //     ]);
-    // }
-
-
-
-public function getStudentsBySchool($schid, $stat)
-{
-    $page  = request()->input('start', 0); // page number
-    $count = request()->input('count', 20);
-    $year  = request()->input('year');    // optional
-    $cls   = request()->input('cls', 'zzz');
-
-    $offset = $page * $count; // calculate offset
-
-    $query = student::query()
-        ->leftJoin('student_academic_data as sad', function ($join) {
-            $join->on('student.sid', '=', 'sad.user_id')
-                ->whereRaw('sad.created_at = (
+        $query = student::query()
+            ->leftJoin('student_academic_data as sad', function ($join) {
+                $join->on('student.sid', '=', 'sad.user_id')
+                    ->whereRaw('sad.created_at = (
                     SELECT MAX(created_at)
                     FROM student_academic_data
                     WHERE user_id = student.sid
                 )');
-        })
-        ->whereNotExists(function ($q) use ($schid) {
-            $q->select(DB::raw(1))
-                ->from('student_subj')
-                ->whereRaw('student_subj.stid = student.sid')
-                ->where('student_subj.schid', $schid);
-        })
-        ->where('student.schid', $schid)
-        ->where('student.stat', $stat);
+            })
+            ->where('student.schid', $schid)
+            ->where('student.stat', $stat);
 
-    if ($cls !== 'zzz') {
-        $query->where('sad.new_class_main', $cls);
+        // filter by class if provided
+        if ($cls !== 'zzz') {
+            $query->where('sad.new_class_main', $cls);
+        }
+
+        // filter by year if provided
+        if ($year) {
+            $query->where('student.year', $year);
+        }
+
+        $members = $query->select('student.*', 'sad.new_class_main')
+            ->distinct()
+            ->orderBy('student.lname', 'asc')
+            ->skip($start)
+            ->take($count)
+            ->get();
+
+        $pld = [];
+        foreach ($members as $member) {
+            $user_id = $member->sid;
+
+            // academic data (may not exist)
+            $academicData = student_academic_data::where('user_id', $user_id)
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            // basic data (may not exist)
+            $basicData = student_basic_data::where('user_id', $user_id)->first();
+
+            $pld[] = [
+                's' => $member,          // student record (always there)
+                'b' => $basicData ?: [], // return [] if no basic data
+                'a' => $academicData ?: [] // return [] if no academic data
+            ];
+        }
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld,
+        ]);
     }
-
-    if ($year) {
-        $query->where('student.year', $year);
-    }
-
-    $members = $query->select('student.*', 'sad.new_class_main')
-        ->distinct()
-        ->orderBy('student.lname', 'asc')
-        ->skip($offset)
-        ->take($count)
-        ->get();
-
-    $pld = [];
-    foreach ($members as $member) {
-        $user_id = $member->sid;
-
-        $academicData = student_academic_data::where('user_id', $user_id)
-            ->orderBy('created_at', 'desc')
-            ->first();
-
-        $basicData = student_basic_data::where('user_id', $user_id)->first();
-
-        $pld[] = [
-            's' => $member,
-            'b' => $basicData ?: (object)[],
-            'a' => $academicData ?: (object)[]
-        ];
-    }
-
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => $pld,
-    ]);
-}
 
 
 
