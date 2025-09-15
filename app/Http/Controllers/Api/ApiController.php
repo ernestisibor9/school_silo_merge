@@ -21325,7 +21325,7 @@ class ApiController extends Controller
                 'message' => 'Lesson note saved successfully',
                 'lesson_note' => $lessonNote,
             ],
-        ], 201);
+        ], 200);
     }
 
 
