@@ -6263,7 +6263,7 @@ class ApiController extends Controller
             "trm" => "required",
             "clsm" => "required",
             "clsa" => "required",
-            "sbjpos" => "required",
+            "sbjpos" => "nullable",
         ]);
         $sbjPosCombo = explode('~', $request->sbjpos);
         foreach ($sbjPosCombo as $spc) {
