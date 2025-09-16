@@ -22797,6 +22797,55 @@
                     }
                 ]
             }
+        },
+        "/api/getActiveLearnersByGender": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get total active learners grouped by gender",
+                "operationId": "589227afde76cfe6654a49558d2f45ab",
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "total_active": {
+                                                    "type": "integer",
+                                                    "example": 5000
+                                                },
+                                                "male": {
+                                                    "type": "integer",
+                                                    "example": 2400
+                                                },
+                                                "female": {
+                                                    "type": "integer",
+                                                    "example": 2600
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
