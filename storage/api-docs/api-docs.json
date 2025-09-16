@@ -22895,6 +22895,55 @@
                     }
                 ]
             }
+        },
+        "/api/getActiveStaffByGender": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get total active staff count by gender",
+                "operationId": "766c10913fd879bc14568c9614ea8d7a",
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "total_active_staff": {
+                                                    "type": "integer",
+                                                    "example": 356
+                                                },
+                                                "male": {
+                                                    "type": "integer",
+                                                    "example": 200
+                                                },
+                                                "female": {
+                                                    "type": "integer",
+                                                    "example": 156
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {

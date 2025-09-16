@@ -27669,4 +27669,49 @@ public function getAlumniByGender()
 }
 
 
+
+/**
+ * @OA\Get(
+ *     path="/api/getActiveStaffByGender",
+ *     summary="Get total active staff count by gender",
+ *     tags={"Admin"},
+ *     security={{"bearerAuth":{}}},
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful response",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="object",
+ *                 @OA\Property(property="total_active_staff", type="integer", example=356),
+ *                 @OA\Property(property="male", type="integer", example=200),
+ *                 @OA\Property(property="female", type="integer", example=156)
+ *             )
+ *         )
+ *     )
+ * )
+ */
+public function getActiveStaffByGender()
+{
+    $query = DB::table('old_staff as os')
+        ->join('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
+        ->where('os.status', 'active')
+        ->selectRaw('COUNT(*) as total_active_staff')
+        ->selectRaw("SUM(CASE WHEN sb.sex = 'M' THEN 1 ELSE 0 END) as male")
+        ->selectRaw("SUM(CASE WHEN sb.sex = 'F' THEN 1 ELSE 0 END) as female")
+        ->first();
+
+    return response()->json([
+        'status' => true,
+        'pld' => [
+            'total_active_staff' => (int) $query->total_active_staff,
+            'male'               => (int) $query->male,
+            'female'             => (int) $query->female,
+        ]
+    ]);
+}
+
+
 }
