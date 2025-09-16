@@ -362,6 +362,7 @@ Route::group([
 
     Route::get('getSchoolCounts', [ApiController::class, 'getSchoolCounts']);
     Route::get('getActiveLearnersByGender', [ApiController::class, 'getActiveLearnersByGender']);
+    Route::get('getAlumniByGender', [ApiController::class, 'getAlumniByGender']);
 
     //--PAYMENT
     Route::post('setPayRecord', [ApiController::class, 'setPayRecord']);

@@ -27623,4 +27623,50 @@ public function getActiveLearnersByGender()
 }
 
 
+
+
+
+/**
+ * @OA\Get(
+ *     path="/api/getAlumniByGender",
+ *     summary="Get total alumni count by gender",
+ *     tags={"Admin"},
+ *     security={{"bearerAuth":{}}},
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful response",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="object",
+ *                 @OA\Property(property="total_alumni", type="integer", example=198),
+ *                 @OA\Property(property="male", type="integer", example=110),
+ *                 @OA\Property(property="female", type="integer", example=88)
+ *             )
+ *         )
+ *     )
+ * )
+ */
+public function getAlumniByGender()
+{
+    $query = DB::table('alumnis as a')
+        ->join('student_basic_data as sb', 'a.stid', '=', 'sb.user_id')
+        ->selectRaw('COUNT(*) as total_alumni')
+        ->selectRaw("SUM(CASE WHEN sb.sex = 'M' THEN 1 ELSE 0 END) as male")
+        ->selectRaw("SUM(CASE WHEN sb.sex = 'F' THEN 1 ELSE 0 END) as female")
+        ->first();
+
+    return response()->json([
+        'status' => true,
+        'pld' => [
+            'total_alumni' => (int) $query->total_alumni,
+            'male'         => (int) $query->male,
+            'female'       => (int) $query->female,
+        ]
+    ]);
+}
+
+
 }

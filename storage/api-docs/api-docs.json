@@ -22846,6 +22846,55 @@
                     }
                 ]
             }
+        },
+        "/api/getAlumniByGender": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get total alumni count by gender",
+                "operationId": "8da4afdd313c0dba4e22b2c7890ee47d",
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "total_alumni": {
+                                                    "type": "integer",
+                                                    "example": 198
+                                                },
+                                                "male": {
+                                                    "type": "integer",
+                                                    "example": 110
+                                                },
+                                                "female": {
+                                                    "type": "integer",
+                                                    "example": 88
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
