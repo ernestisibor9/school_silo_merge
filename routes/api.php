@@ -360,6 +360,8 @@ Route::group([
     Route::get('getStudents', [ApiController::class, 'getStudents']);
     Route::get('getStaff', [ApiController::class, 'getStaff']);
 
+     Route::get('getSchoolCounts', [ApiController::class, 'getSchoolCounts']);
+
     //--PAYMENT
     Route::post('setPayRecord', [ApiController::class, 'setPayRecord']);
     Route::post('setAFeeRecord', [ApiController::class, 'setAFeeRecord']);

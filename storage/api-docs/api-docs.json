@@ -22747,6 +22747,56 @@
                     }
                 ]
             }
+        },
+        "/api/getSchoolCounts": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get total number of schools by category",
+                "description": "Fetches the total number of schools, including secondary and nursery/primary counts.",
+                "operationId": "ae54326cc01ad58c449ea12ee3bab73c",
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "total_schools": {
+                                                    "type": "integer",
+                                                    "example": 40
+                                                },
+                                                "secondary_schools": {
+                                                    "type": "integer",
+                                                    "example": 15
+                                                },
+                                                "nursery_schools": {
+                                                    "type": "integer",
+                                                    "example": 23
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {

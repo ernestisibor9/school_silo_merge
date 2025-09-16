@@ -1928,6 +1928,7 @@ class ApiController extends Controller
             "ssn" => "required",
             "sch3" => "required",
             "stat" => "required",
+            "cuid"     => "nullable|unique:student,cuid",
         ]);
         if (strlen($request->password) < 6) {
             return response()->json([
@@ -27480,4 +27481,85 @@ class ApiController extends Controller
             'message' => "Password reset successfully for",
         ]);
     }
+
+
+
+
+
+
+    /**
+ * @OA\Get(
+ *     path="/api/getSchoolCounts",
+ *     summary="Get total number of schools by category",
+ *     description="Fetches the total number of schools, including secondary and nursery/primary counts.",
+ *     tags={"Admin"},
+ *     security={{"bearerAuth":{}}},
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful response",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(
+ *                 property="status",
+ *                 type="boolean",
+ *                 example=true
+ *             ),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="object",
+ *                 @OA\Property(
+ *                     property="total_schools",
+ *                     type="integer",
+ *                     example=40
+ *                 ),
+ *                 @OA\Property(
+ *                     property="secondary_schools",
+ *                     type="integer",
+ *                     example=15
+ *                 ),
+ *                 @OA\Property(
+ *                     property="nursery_schools",
+ *                     type="integer",
+ *                     example=23
+ *                 )
+ *             )
+ *         )
+ *     )
+ * )
+ */
+public function getSchoolCounts()
+{
+    // List of secondary classes
+    $secondaryClasses = [
+        'JSS 1','JSS 2','JSS 3','SSS 1','SSS 2','SSS 3',
+        'YEAR 7','YEAR 8','YEAR 9','YEAR 10','YEAR 11','YEAR 12',
+        'JSS 3 PR','SSS 2 PW','SSS 3 MOCK'
+    ];
+
+    // Get IDs of secondary classes from cls table
+    $secondaryClsIds = cls::whereIn('name', $secondaryClasses)->pluck('id');
+
+    // Count secondary schools
+    $secondarySchools = school_class::whereIn('clsid', $secondaryClsIds)
+        ->distinct('schid')
+        ->count('schid');
+
+    // Count nursery/primary schools
+    $nurserySchools = school_class::whereNotIn('clsid', $secondaryClsIds)
+        ->distinct('schid')
+        ->count('schid');
+
+    // Count all schools
+    $totalSchools = school_class::distinct('schid')->count('schid');
+
+    return response()->json([
+        'status' => true,
+        'pld' => [
+            'total_schools'     => $totalSchools,
+            'secondary_schools' => $secondarySchools,
+            'nursery_schools'   => $nurserySchools
+        ]
+    ]);
+}
+
 }
