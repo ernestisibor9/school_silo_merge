@@ -10,7 +10,7 @@ class school extends Model
     protected $primaryKey = 'sid';
     public $incrementing = false;
     protected $fillable = [
-        'sid', 'name', 'count','s_web', 's_info', 'sbd','sch3','cssn', 'ctrm', 'ctrmn'
+        'sid', 'name', 'count','s_web', 's_info', 'sbd','sch3','cssn', 'ctrm', 'ctrmn', 'latt', 'longi'
     ];
     /*protected $hidden = [
         'password',
