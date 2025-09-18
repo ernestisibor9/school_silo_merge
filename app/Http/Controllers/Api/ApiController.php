@@ -27818,7 +27818,11 @@ public function getAllSchoolsInfo()
     $count = request()->input('count', 20);
 
     // Fetch schools with pagination and alphabetical order
-    $schools = school::orderBy('name', 'asc')->skip($start)->take($count)->get();
+    $schools = school::orderBy('name', 'asc')
+                ->skip($start)
+                ->take($count)
+                ->get();
+
     $pld = [];
 
     foreach ($schools as $school) {
@@ -27840,36 +27844,50 @@ public function getAllSchoolsInfo()
                         ->where('status', 'active')
                         ->count();
 
+        // Fetch list of classes + arms from sch_cls
+        $classArms = sch_cls::where('schid', $user_id)
+                        ->get(['cls_id', 'name'])
+                        ->groupBy('cls_id')
+                        ->map(function ($items) {
+                            return $items->pluck('name')->toArray(); // arms only
+                        })
+                        ->toArray();
+
+        // Count total classes (all rows in sch_cls for the school)
+        $totalClasses = sch_cls::where('schid', $user_id)->count();
+
         // Proper numbering code like ABJCE/000001
         $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 6, '0', STR_PAD_LEFT);
 
         $pld[] = [
             's' => [
-                'sid'       => $school->sid,
-                'school_id' => $schoolCode,
-                'name'      => $school->name,
-                'count'     => $school->count,
-                's_web'     => $school->s_web,
-                's_info'    => $school->s_info,
-                'sbd'       => $school->sbd,
-                'sch3'      => $school->sch3,
-                'cssn'      => $school->cssn,
-                'ctrm'      => $school->ctrm,
-                'ctrmn'     => $school->ctrmn,
-                'created_at'=> $school->created_at,
-                'updated_at'=> $school->updated_at,
-                'active_learners' => $activeLearners,
-                'alumni'          => $alumniCount,
-                'active_staff'    => $activeStaff,
+                'sid'            => $school->sid,
+                'school_id'      => $schoolCode,
+                'name'           => $school->name,
+                'count'          => $school->count,
+                's_web'          => $school->s_web,
+                's_info'         => $school->s_info,
+                'sbd'            => $school->sbd,
+                'sch3'           => $school->sch3,
+                'cssn'           => $school->cssn,
+                'ctrm'           => $school->ctrm,
+                'ctrmn'          => $school->ctrmn,
+                'created_at'     => $school->created_at,
+                'updated_at'     => $school->updated_at,
+                'active_learners'=> $activeLearners,
+                'alumni'         => $alumniCount,
+                'active_staff'   => $activeStaff,
+                'classes'        => $classArms,    // grouped by cls_id → list of arms
+                'total_classes'  => $totalClasses, // count of all arms
             ],
             'w' => $webData ? $webData->toArray() : null,
         ];
     }
 
     return response()->json([
-        "status" => true,
+        "status"  => true,
         "message" => "Success",
-        "pld" => $pld,
+        "pld"     => $pld,
     ]);
 }
 
