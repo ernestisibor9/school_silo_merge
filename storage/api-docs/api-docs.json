@@ -23181,6 +23181,134 @@
                     }
                 ]
             }
+        },
+        "/api/updateLocation/{schid}": {
+            "post": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Update school location (latitude & longitude)",
+                "description": "Allows a school to update its latitude and longitude by providing the sid.",
+                "operationId": "9ef7a56cef4e45ffdfeb8854be2488dc",
+                "parameters": [
+                    {
+                        "name": "schid",
+                        "in": "path",
+                        "description": "School ID (schid)",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 12
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "latt",
+                                    "longi"
+                                ],
+                                "properties": {
+                                    "latt": {
+                                        "description": "Latitude (-90 to 90)",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 6.5244
+                                    },
+                                    "longi": {
+                                        "description": "Longitude (-180 to 180)",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 3.3792
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Location updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Location updated successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "sid": {
+                                                    "type": "integer",
+                                                    "example": 11
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "example": "HHCJ NURSERY AND PRIMARY SCHOOL"
+                                                },
+                                                "latt": {
+                                                    "type": "string",
+                                                    "example": "6.5244000"
+                                                },
+                                                "longi": {
+                                                    "type": "string",
+                                                    "example": "3.3792000"
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2025-09-18T10:45:00.000000Z"
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2024-09-09T21:53:24.000000Z"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "School not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "School not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {

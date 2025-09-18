@@ -150,6 +150,8 @@ Route::group([
     Route::post('assignSubjectStaff', [ApiController::class, 'assignSubjectStaff']);
     Route::post('setRepostStaff', [ApiController::class, 'setRepostStaff']);
 
+    Route::post('updateLocation/{schid}', [ApiController::class, 'updateLocation']);
+
     Route::post('setStaffClassArm', [ApiController::class, 'setStaffClassArm']);
     Route::post('setOldStaffInfo', [ApiController::class, 'setOldStaffInfo']);
     Route::post('setClassGrade', [ApiController::class, 'setClassGrade']);
