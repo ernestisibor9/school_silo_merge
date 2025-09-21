@@ -27631,8 +27631,8 @@ public function getActiveLearnersByGender()
         ->where('os.status', 'active')
         ->select(
             DB::raw("COUNT(DISTINCT os.sid) as total_active"),
-            DB::raw("SUM(CASE WHEN sb.sex = 'M' THEN 1 ELSE 0 END) as male"),
-            DB::raw("SUM(CASE WHEN sb.sex = 'F' THEN 1 ELSE 0 END) as female")
+            DB::raw("COUNT(DISTINCT CASE WHEN sb.sex = 'M' THEN os.sid END) as male"),
+            DB::raw("COUNT(DISTINCT CASE WHEN sb.sex = 'F' THEN os.sid END) as female")
         )
         ->first();
 
@@ -27645,6 +27645,7 @@ public function getActiveLearnersByGender()
         ]
     ]);
 }
+
 
 
 
@@ -27716,26 +27717,47 @@ public function getActiveLearnersByGender()
      *     )
      * )
      */
-    public function getActiveStaffByGender()
-    {
-        $query = DB::table('old_staff as os')
-            ->join('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
-            ->where('os.status', 'active')
-            ->selectRaw('COUNT(*) as total_active_staff')
-            ->selectRaw("SUM(CASE WHEN sb.sex = 'M' THEN 1 ELSE 0 END) as male")
-            ->selectRaw("SUM(CASE WHEN sb.sex = 'F' THEN 1 ELSE 0 END) as female")
-            ->first();
+    // public function getActiveStaffByGender()
+    // {
+    //     $query = DB::table('old_staff as os')
+    //         ->join('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
+    //         ->where('os.status', 'active')
+    //         ->selectRaw('COUNT(*) as total_active_staff')
+    //         ->selectRaw("SUM(CASE WHEN sb.sex = 'M' THEN 1 ELSE 0 END) as male")
+    //         ->selectRaw("SUM(CASE WHEN sb.sex = 'F' THEN 1 ELSE 0 END) as female")
+    //         ->first();
 
-        return response()->json([
-            'status' => true,
-            'pld' => [
-                'total_active_staff' => (int) $query->total_active_staff,
-                'male'               => (int) $query->male,
-                'female'             => (int) $query->female,
-            ]
-        ]);
-    }
+    //     return response()->json([
+    //         'status' => true,
+    //         'pld' => [
+    //             'total_active_staff' => (int) $query->total_active_staff,
+    //             'male'               => (int) $query->male,
+    //             'female'             => (int) $query->female,
+    //         ]
+    //     ]);
+    // }
 
+public function getActiveStaffByGender()
+{
+    $query = DB::table('old_staff as os')
+        ->join('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
+        ->where('os.status', 'active')
+        ->select(
+            DB::raw("COUNT(DISTINCT os.sid) as total_active_staff"),
+            DB::raw("COUNT(DISTINCT CASE WHEN sb.sex = 'M' THEN os.sid END) as male"),
+            DB::raw("COUNT(DISTINCT CASE WHEN sb.sex = 'F' THEN os.sid END) as female")
+        )
+        ->first();
+
+    return response()->json([
+        'status' => true,
+        'pld' => [
+            'total_active_staff' => (int) $query->total_active_staff,
+            'male'               => (int) $query->male,
+            'female'             => (int) $query->female,
+        ]
+    ]);
+}
 
 
 
@@ -27917,15 +27939,13 @@ public function getActiveLearnersByGender()
     // }
 
 
-    public function getAllSchoolsInfo()
+public function getAllSchoolsInfo()
 {
     $start = request()->input('start', 0);
     $count = request()->input('count', 20);
 
-    // Fetch DISTINCT schools with pagination and alphabetical order
-    $schools = school::select('school.*')
-        ->distinct('sid')
-        ->orderBy('name', 'asc')
+    // Fetch schools with pagination and alphabetical order
+    $schools = school::orderBy('name', 'asc')
         ->skip($start)
         ->take($count)
         ->get();
@@ -27938,10 +27958,11 @@ public function getActiveLearnersByGender()
         // Fetch web data if available
         $webData = school_web_data::where('user_id', $user_id)->first();
 
-        // Count active learners
+        // ✅ Count active learners without duplicates
         $activeLearners = old_student::where('schid', $user_id)
             ->where('status', 'active')
-            ->count();
+            ->distinct('sid')   // ensures no duplicate student counted
+            ->count('sid');     // count unique sid only
 
         // Count alumni
         $alumniCount = alumni::where('schid', $user_id)->count();
@@ -27949,7 +27970,8 @@ public function getActiveLearnersByGender()
         // Count active staff
         $activeStaff = old_staff::where('schid', $user_id)
             ->where('status', 'active')
-            ->count();
+            ->distinct('sid')   // just in case staff also repeats
+            ->count('sid');
 
         // Fetch list of classes + arms from sch_cls
         $classArms = sch_cls::where('schid', $user_id)
@@ -27960,7 +27982,7 @@ public function getActiveLearnersByGender()
             })
             ->toArray();
 
-        // Count total classes
+        // Count total classes (all rows in sch_cls for the school)
         $totalClasses = sch_cls::where('schid', $user_id)->count();
 
         // Proper numbering code like ABJCE/000001
@@ -27983,11 +28005,11 @@ public function getActiveLearnersByGender()
                 'longitude'      => $school->longi,
                 'created_at'     => $school->created_at,
                 'updated_at'     => $school->updated_at,
-                'active_learners'=> $activeLearners,
+                'active_learners' => $activeLearners,
                 'alumni'         => $alumniCount,
                 'active_staff'   => $activeStaff,
-                'classes'        => $classArms,
-                'total_classes'  => $totalClasses,
+                'classes'        => $classArms,    // grouped by cls_id → list of arms
+                'total_classes'  => $totalClasses, // count of all arms
             ],
             'w' => $webData ? $webData->toArray() : null,
         ];
