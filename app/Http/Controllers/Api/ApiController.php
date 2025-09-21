@@ -8363,9 +8363,11 @@ class ApiController extends Controller
     {
         $ostd = [];
         if ($clsa == '-1') {
-            $ostd = old_student::where("schid", $schid)->where("ssn", $ssn)->where('status', 'active')->where("clsm", $clsm)->get();
+            $ostd = old_student::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where('status', 'active')->where("clsm", $clsm)->get();
         } else {
-            $ostd = old_student::where("schid", $schid)->where("ssn", $ssn)->where('status', 'active')->where("clsm", $clsm)->where("clsa", $clsa)->get();
+
+
+            $ostd = old_student::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where('status', 'active')->where("clsm", $clsm)->where("clsa", $clsa)->get();
         }
 
         $stdPld = [];
@@ -27600,28 +27602,49 @@ class ApiController extends Controller
      *     )
      * )
      */
-    public function getActiveLearnersByGender()
-    {
-        $query = DB::table('old_student as os')
-            ->join('student_basic_data as sb', 'os.sid', '=', 'sb.user_id')
-            ->where('os.status', 'active')
-            ->select(
-                DB::raw("COUNT(*) as total_active"),
-                DB::raw("SUM(CASE WHEN sb.sex = 'M' THEN 1 ELSE 0 END) as male"),
-                DB::raw("SUM(CASE WHEN sb.sex = 'F' THEN 1 ELSE 0 END) as female")
-            )
-            ->first();
+    // public function getActiveLearnersByGender()
+    // {
+    //     $query = DB::table('old_student as os')
+    //         ->join('student_basic_data as sb', 'os.sid', '=', 'sb.user_id')
+    //         ->where('os.status', 'active')
+    //         ->select(
+    //             DB::raw("COUNT(*) as total_active"),
+    //             DB::raw("SUM(CASE WHEN sb.sex = 'M' THEN 1 ELSE 0 END) as male"),
+    //             DB::raw("SUM(CASE WHEN sb.sex = 'F' THEN 1 ELSE 0 END) as female")
+    //         )
+    //         ->first();
 
-        return response()->json([
-            'status' => true,
-            'pld' => [
-                'total_active' => (int) $query->total_active,
-                'male'         => (int) $query->male,
-                'female'       => (int) $query->female,
-            ]
-        ]);
-    }
+    //     return response()->json([
+    //         'status' => true,
+    //         'pld' => [
+    //             'total_active' => (int) $query->total_active,
+    //             'male'         => (int) $query->male,
+    //             'female'       => (int) $query->female,
+    //         ]
+    //     ]);
+    // }
 
+public function getActiveLearnersByGender()
+{
+    $query = DB::table('old_student as os')
+        ->join('student_basic_data as sb', 'os.sid', '=', 'sb.user_id')
+        ->where('os.status', 'active')
+        ->select(
+            DB::raw("COUNT(DISTINCT os.sid) as total_active"),
+            DB::raw("SUM(CASE WHEN sb.sex = 'M' THEN 1 ELSE 0 END) as male"),
+            DB::raw("SUM(CASE WHEN sb.sex = 'F' THEN 1 ELSE 0 END) as female")
+        )
+        ->first();
+
+    return response()->json([
+        'status' => true,
+        'pld' => [
+            'total_active' => (int) $query->total_active,
+            'male'         => (int) $query->male,
+            'female'       => (int) $query->female,
+        ]
+    ]);
+}
 
 
 
@@ -27812,86 +27835,173 @@ class ApiController extends Controller
      * )
      */
 
+    // public function getAllSchoolsInfo()
+    // {
+    //     $start = request()->input('start', 0);
+    //     $count = request()->input('count', 20);
+
+    //     // Fetch schools with pagination and alphabetical order
+    //     $schools = school::orderBy('name', 'asc')
+    //         ->skip($start)
+    //         ->take($count)
+    //         ->get();
+
+    //     $pld = [];
+
+    //     foreach ($schools as $school) {
+    //         $user_id = $school->sid;
+
+    //         // Fetch web data if available
+    //         $webData = school_web_data::where('user_id', $user_id)->first();
+
+    //         // Count active learners
+    //         $activeLearners = old_student::where('schid', $user_id)
+    //             ->where('status', 'active')
+    //             ->count();
+
+    //         // Count alumni
+    //         $alumniCount = alumni::where('schid', $user_id)->count();
+
+    //         // Count active staff
+    //         $activeStaff = old_staff::where('schid', $user_id)
+    //             ->where('status', 'active')
+    //             ->count();
+
+    //         // Fetch list of classes + arms from sch_cls
+    //         $classArms = sch_cls::where('schid', $user_id)
+    //             ->get(['cls_id', 'name'])
+    //             ->groupBy('cls_id')
+    //             ->map(function ($items) {
+    //                 return $items->pluck('name')->toArray(); // arms only
+    //             })
+    //             ->toArray();
+
+    //         // Count total classes (all rows in sch_cls for the school)
+    //         $totalClasses = sch_cls::where('schid', $user_id)->count();
+
+    //         // Proper numbering code like ABJCE/000001
+    //         $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
+
+    //         $pld[] = [
+    //             's' => [
+    //                 'sid'            => $school->sid,
+    //                 'school_id'      => $schoolCode,
+    //                 'name'           => $school->name,
+    //                 'count'          => $school->count,
+    //                 's_web'          => $school->s_web,
+    //                 's_info'         => $school->s_info,
+    //                 'sbd'            => $school->sbd,
+    //                 'sch3'           => $school->sch3,
+    //                 'cssn'           => $school->cssn,
+    //                 'ctrm'           => $school->ctrm,
+    //                 'ctrmn'          => $school->ctrmn,
+    //                 'lattitude'      => $school->latt,
+    //                 'longitude'      => $school->longi,
+    //                 'created_at'     => $school->created_at,
+    //                 'updated_at'     => $school->updated_at,
+    //                 'active_learners' => $activeLearners,
+    //                 'alumni'         => $alumniCount,
+    //                 'active_staff'   => $activeStaff,
+    //                 'classes'        => $classArms,    // grouped by cls_id → list of arms
+    //                 'total_classes'  => $totalClasses, // count of all arms
+    //             ],
+    //             'w' => $webData ? $webData->toArray() : null,
+    //         ];
+    //     }
+
+    //     return response()->json([
+    //         "status"  => true,
+    //         "message" => "Success",
+    //         "pld"     => $pld,
+    //     ]);
+    // }
+
+
     public function getAllSchoolsInfo()
-    {
-        $start = request()->input('start', 0);
-        $count = request()->input('count', 20);
+{
+    $start = request()->input('start', 0);
+    $count = request()->input('count', 20);
 
-        // Fetch schools with pagination and alphabetical order
-        $schools = school::orderBy('name', 'asc')
-            ->skip($start)
-            ->take($count)
-            ->get();
+    // Fetch DISTINCT schools with pagination and alphabetical order
+    $schools = school::select('school.*')
+        ->distinct('sid')
+        ->orderBy('name', 'asc')
+        ->skip($start)
+        ->take($count)
+        ->get();
 
-        $pld = [];
+    $pld = [];
 
-        foreach ($schools as $school) {
-            $user_id = $school->sid;
+    foreach ($schools as $school) {
+        $user_id = $school->sid;
 
-            // Fetch web data if available
-            $webData = school_web_data::where('user_id', $user_id)->first();
+        // Fetch web data if available
+        $webData = school_web_data::where('user_id', $user_id)->first();
 
-            // Count active learners
-            $activeLearners = old_student::where('schid', $user_id)
-                ->where('status', 'active')
-                ->count();
+        // Count active learners
+        $activeLearners = old_student::where('schid', $user_id)
+            ->where('status', 'active')
+            ->count();
 
-            // Count alumni
-            $alumniCount = alumni::where('schid', $user_id)->count();
+        // Count alumni
+        $alumniCount = alumni::where('schid', $user_id)->count();
 
-            // Count active staff
-            $activeStaff = old_staff::where('schid', $user_id)
-                ->where('status', 'active')
-                ->count();
+        // Count active staff
+        $activeStaff = old_staff::where('schid', $user_id)
+            ->where('status', 'active')
+            ->count();
 
-            // Fetch list of classes + arms from sch_cls
-            $classArms = sch_cls::where('schid', $user_id)
-                ->get(['cls_id', 'name'])
-                ->groupBy('cls_id')
-                ->map(function ($items) {
-                    return $items->pluck('name')->toArray(); // arms only
-                })
-                ->toArray();
+        // Fetch list of classes + arms from sch_cls
+        $classArms = sch_cls::where('schid', $user_id)
+            ->get(['cls_id', 'name'])
+            ->groupBy('cls_id')
+            ->map(function ($items) {
+                return $items->pluck('name')->toArray(); // arms only
+            })
+            ->toArray();
 
-            // Count total classes (all rows in sch_cls for the school)
-            $totalClasses = sch_cls::where('schid', $user_id)->count();
+        // Count total classes
+        $totalClasses = sch_cls::where('schid', $user_id)->count();
 
-            // Proper numbering code like ABJCE/000001
-            $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
+        // Proper numbering code like ABJCE/000001
+        $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
 
-            $pld[] = [
-                's' => [
-                    'sid'            => $school->sid,
-                    'school_id'      => $schoolCode,
-                    'name'           => $school->name,
-                    'count'          => $school->count,
-                    's_web'          => $school->s_web,
-                    's_info'         => $school->s_info,
-                    'sbd'            => $school->sbd,
-                    'sch3'           => $school->sch3,
-                    'cssn'           => $school->cssn,
-                    'ctrm'           => $school->ctrm,
-                    'ctrmn'          => $school->ctrmn,
-                    'lattitude'      => $school->latt,
-                    'longitude'      => $school->longi,
-                    'created_at'     => $school->created_at,
-                    'updated_at'     => $school->updated_at,
-                    'active_learners' => $activeLearners,
-                    'alumni'         => $alumniCount,
-                    'active_staff'   => $activeStaff,
-                    'classes'        => $classArms,    // grouped by cls_id → list of arms
-                    'total_classes'  => $totalClasses, // count of all arms
-                ],
-                'w' => $webData ? $webData->toArray() : null,
-            ];
-        }
-
-        return response()->json([
-            "status"  => true,
-            "message" => "Success",
-            "pld"     => $pld,
-        ]);
+        $pld[] = [
+            's' => [
+                'sid'            => $school->sid,
+                'school_id'      => $schoolCode,
+                'name'           => $school->name,
+                'count'          => $school->count,
+                's_web'          => $school->s_web,
+                's_info'         => $school->s_info,
+                'sbd'            => $school->sbd,
+                'sch3'           => $school->sch3,
+                'cssn'           => $school->cssn,
+                'ctrm'           => $school->ctrm,
+                'ctrmn'          => $school->ctrmn,
+                'lattitude'      => $school->latt,
+                'longitude'      => $school->longi,
+                'created_at'     => $school->created_at,
+                'updated_at'     => $school->updated_at,
+                'active_learners'=> $activeLearners,
+                'alumni'         => $alumniCount,
+                'active_staff'   => $activeStaff,
+                'classes'        => $classArms,
+                'total_classes'  => $totalClasses,
+            ],
+            'w' => $webData ? $webData->toArray() : null,
+        ];
     }
+
+    return response()->json([
+        "status"  => true,
+        "message" => "Success",
+        "pld"     => $pld,
+    ]);
+}
+
+
+
 
 /**
  * @OA\Post(
