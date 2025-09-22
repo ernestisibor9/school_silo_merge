@@ -28107,4 +28107,134 @@ public function getAllSchoolsInfo()
         ]);
     }
 
+
+
+
+
+/**
+ * @OA\Get(
+ *     path="/api/getExternalExpendituresByAdmin/{ssn}/{trm}",
+ *     summary="Get external expenditures (Admin)",
+ *     description="Retrieve external expenditures filtered by School (SSN) and Term (TRM). Returns paginated records with totals per record and the overall total.",
+ *     operationId="getExternalExpendituresByAdmin",
+ *     tags={"Accounting"},
+ *     security={{"bearerAuth":{}}},
+ *
+ *     @OA\Parameter(
+ *         name="ssn",
+ *         in="path",
+ *         required=true,
+ *         description="School SSN (set to 0 for all schools)",
+ *         @OA\Schema(type="string", example="SCH12345")
+ *     ),
+ *     @OA\Parameter(
+ *         name="trm",
+ *         in="path",
+ *         required=true,
+ *         description="Term (set to 0 for all terms)",
+ *         @OA\Schema(type="string", example="TRM2024")
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="start",
+ *         in="query",
+ *         required=false,
+ *         description="Pagination start index",
+ *         @OA\Schema(type="integer", default=0, example=0)
+ *     ),
+ *     @OA\Parameter(
+ *         name="count",
+ *         in="query",
+ *         required=false,
+ *         description="Number of records to fetch",
+ *         @OA\Schema(type="integer", default=20, example=20)
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful response",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 description="List of expenditures with totals",
+ *                 @OA\Items(
+ *                     @OA\Property(property="id", type="integer", example=1),
+ *                     @OA\Property(property="ssn", type="string", example="SCH12345"),
+ *                     @OA\Property(property="trm", type="string", example="TRM2024"),
+ *                     @OA\Property(property="time", type="string", format="date", example="2025-01-10"),
+ *                     @OA\Property(property="vendor", type="string", example="Vendor A"),
+ *                     @OA\Property(property="pv", type="string", example="PV123"),
+ *                     @OA\Property(property="mode", type="string", example="Cash"),
+ *                     @OA\Property(property="unit", type="number", example=500),
+ *                     @OA\Property(property="qty", type="integer", example=10),
+ *                     @OA\Property(property="item", type="string", example="Textbook"),
+ *                     @OA\Property(property="total", type="number", example=5000)
+ *                 )
+ *             ),
+ *             @OA\Property(property="overall_total", type="number", example=25000)
+ *         )
+ *     )
+ * )
+ */
+
+    public function getExternalExpendituresByAdmin($ssn, $trm)
+{
+    $start = request()->input('start', 0);
+    $count = request()->input('count', 20);
+
+    $query = ext_expenditure::query();
+
+    // Base filters
+    if ($ssn !== '0') {
+        $query->where('ssn', $ssn);
+    }
+
+    if ($trm !== '0') {
+        $query->where('trm', $trm);
+    }
+
+    // Filters
+    $fields = ['time', 'vendor', 'pv', 'mode', 'unit', 'qty', 'item'];
+    foreach ($fields as $field) {
+        $qValue = request()->input($field, null);
+        if ($qValue !== null && $qValue !== '-1') {
+            if ($field === 'time') {
+                if (strpos($qValue, '-') !== false) {
+                    $compo = explode("-", $qValue);
+                    if (count($compo) == 2) {
+                        $frm = $compo[0];
+                        $to = $compo[1];
+                        $query->whereBetween($field, [$frm, $to]);
+                    }
+                }
+            } else {
+                $query->where($field, $qValue);
+            }
+        }
+    }
+
+    // Pagination
+    $pld = $query->skip($start)->take($count)->get();
+
+    // ✅ Add total = unit × qty inside each record
+    $pld->transform(function ($item) {
+        $item->total = $item->unit * $item->qty;
+        return $item;
+    });
+
+    // ✅ Overall total (all schools, all records with filters)
+    $overallTotal = (clone $query)->selectRaw('SUM(unit * qty) as total')->value('total');
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => $pld,
+        "overall_total" => $overallTotal ?? 0,
+    ]);
+}
+
+
 }

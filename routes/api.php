@@ -285,6 +285,8 @@ Route::group([
 
     Route::get('/getClassArms/{schid}/{cls_id}', [ApiController::class, 'getClassArms']);
 
+    Route::get('getExternalExpendituresByAdmin/{ssn}/{trm}', [ApiController::class, 'getExternalExpendituresByAdmin']);
+
 
     Route::get('getOldStaffInfo/{uid}', [ApiController::class, 'getOldStaffInfo']);
     Route::get('getOldStaffStat/{schid}/{ssn}/{trm}/{clsm}/{role}', [ApiController::class, 'getOldStaffStat']);
