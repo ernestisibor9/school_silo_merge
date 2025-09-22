@@ -28237,4 +28237,121 @@ public function getAllSchoolsInfo()
 }
 
 
+
+
+
+
+    /**
+     * @OA\Get(
+     *     path="/api/getInternalExpendituresByAdmin/{ssn}/{trm}",
+     *     tags={"Accounting"},
+     *       security={{"bearerAuth":{}}},
+     *     summary="Get all expenditures by School, Session and Term",
+     *     description="Use this endpoint to get all expenditures by School",
+     *
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="path",
+     *         required=true,
+     *         description="Session ID",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Term ID",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         required=false,
+     *         description="Index to start at",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         required=false,
+     *         description="No of records to retrieve",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="amt",
+     *         in="query",
+     *         required=false,
+     *         description="Filter by amount",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="time",
+     *         in="query",
+     *         required=false,
+     *         description="Filter by time",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="mode",
+     *         in="query",
+     *         required=false,
+     *         description="Filter by mode",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
+     *     @OA\Response(response="401", description="Unauthorized"),
+     * )
+     */
+public function getInternalExpendituresByAdmin($ssn, $trm)
+{
+    $start = request()->input('start', 0); // Default start
+    $count = request()->input('count', 20); // Default count
+
+    $query = in_expenditure::query();
+
+    // Filter by session and term
+    if ($ssn !== '0') {
+        $query->where('ssn', $ssn);
+    }
+
+    if ($trm !== '0') {
+        $query->where('trm', $trm);
+    }
+
+    // Handle filters for amt, time, mode, purp, ext, name
+    $fields = ['time', 'mode', 'purp', 'ext', 'name', 'amt'];
+    foreach ($fields as $field) {
+        $qValue = request()->input($field, null);
+        if ($qValue !== null && $qValue !== '-1') {
+            if ($field === 'time') {
+                if (strpos($qValue, '-') !== false) {
+                    $compo = explode("-", $qValue);
+                    if (count($compo) == 2) {
+                        $frm = $compo[0];
+                        $to = $compo[1];
+                        $query->whereBetween($field, [$frm, $to]);
+                    }
+                }
+            } else {
+                $query->where($field, $qValue);
+            }
+        }
+    }
+
+    // Clone query to calculate total amt without pagination
+    $overallTotal = (clone $query)->sum('amt');
+
+    // Apply pagination
+    $pld = $query->skip($start)->take($count)->get();
+
+    // Respond
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => $pld,
+        "overall_total" => $overallTotal ?? 0, // ✅ sum of all amt
+    ]);
+}
+
+
 }
