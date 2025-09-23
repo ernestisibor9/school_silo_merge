@@ -28180,61 +28180,35 @@ class ApiController extends Controller
      * )
      */
 
-    public function getExternalExpendituresByAdmin($ssn, $trm)
-    {
-        $start = request()->input('start', 0);
-        $count = request()->input('count', 20);
+public function getExternalExpendituresByAdmin($ssn, $trm)
+{
+    $query = ext_expenditure::query()
+        ->join('school', 'ext_expenditure.schid', '=', 'school.sid') // join on schid
+        ->select(
+            'ext_expenditure.schid',
+            'school.name as school_name',
+            \DB::raw('SUM(ext_expenditure.unit * ext_expenditure.qty) as total_expenditure')
+        )
+        ->groupBy('ext_expenditure.schid', 'school.name')
+        ->orderBy('school.name', 'asc');
 
-        $query = ext_expenditure::query();
-
-        // Base filters
-        if ($ssn !== '0') {
-            $query->where('ssn', $ssn);
-        }
-
-        if ($trm !== '0') {
-            $query->where('trm', $trm);
-        }
-
-        // Filters
-        $fields = ['time', 'vendor', 'pv', 'mode', 'unit', 'qty', 'item'];
-        foreach ($fields as $field) {
-            $qValue = request()->input($field, null);
-            if ($qValue !== null && $qValue !== '-1') {
-                if ($field === 'time') {
-                    if (strpos($qValue, '-') !== false) {
-                        $compo = explode("-", $qValue);
-                        if (count($compo) == 2) {
-                            $frm = $compo[0];
-                            $to = $compo[1];
-                            $query->whereBetween($field, [$frm, $to]);
-                        }
-                    }
-                } else {
-                    $query->where($field, $qValue);
-                }
-            }
-        }
-
-        // Pagination
-        $pld = $query->skip($start)->take($count)->get();
-
-        // ✅ Add total = unit × qty inside each record
-        $pld->transform(function ($item) {
-            $item->total = $item->unit * $item->qty;
-            return $item;
-        });
-
-        // ✅ Overall total (all schools, all records with filters)
-        $overallTotal = (clone $query)->selectRaw('SUM(unit * qty) as total')->value('total');
-
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $pld,
-            "overall_total" => $overallTotal ?? 0,
-        ]);
+    // Filters
+    if ($ssn !== '0') {
+        $query->where('ext_expenditure.ssn', $ssn);
     }
+
+    if ($trm !== '0') {
+        $query->where('ext_expenditure.trm', $trm);
+    }
+
+    $pld = $query->get();
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => $pld,
+    ]);
+}
 
 
 
