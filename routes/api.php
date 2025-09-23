@@ -291,8 +291,9 @@ Route::group([
 
     Route::get('getVendorsByAdmin', [ApiController::class, 'getVendorsByAdmin']);
 
+    Route::get('getExpensesByAdmin', [ApiController::class, 'getExpensesByAdmin']);
 
-
+    Route::get('getExternalExpenditureStatByAdmin/{ssn}/{trm}', [ApiController::class, 'getExternalExpenditureStatByAdmin']);
 
     Route::get('getOldStaffInfo/{uid}', [ApiController::class, 'getOldStaffInfo']);
     Route::get('getOldStaffStat/{schid}/{ssn}/{trm}/{clsm}/{role}', [ApiController::class, 'getOldStaffStat']);

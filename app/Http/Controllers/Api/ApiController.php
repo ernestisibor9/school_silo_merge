@@ -27624,27 +27624,27 @@ class ApiController extends Controller
     //     ]);
     // }
 
-public function getActiveLearnersByGender()
-{
-    $query = DB::table('old_student as os')
-        ->join('student_basic_data as sb', 'os.sid', '=', 'sb.user_id')
-        ->where('os.status', 'active')
-        ->select(
-            DB::raw("COUNT(DISTINCT os.sid) as total_active"),
-            DB::raw("COUNT(DISTINCT CASE WHEN sb.sex = 'M' THEN os.sid END) as male"),
-            DB::raw("COUNT(DISTINCT CASE WHEN sb.sex = 'F' THEN os.sid END) as female")
-        )
-        ->first();
+    public function getActiveLearnersByGender()
+    {
+        $query = DB::table('old_student as os')
+            ->join('student_basic_data as sb', 'os.sid', '=', 'sb.user_id')
+            ->where('os.status', 'active')
+            ->select(
+                DB::raw("COUNT(DISTINCT os.sid) as total_active"),
+                DB::raw("COUNT(DISTINCT CASE WHEN sb.sex = 'M' THEN os.sid END) as male"),
+                DB::raw("COUNT(DISTINCT CASE WHEN sb.sex = 'F' THEN os.sid END) as female")
+            )
+            ->first();
 
-    return response()->json([
-        'status' => true,
-        'pld' => [
-            'total_active' => (int) $query->total_active,
-            'male'         => (int) $query->male,
-            'female'       => (int) $query->female,
-        ]
-    ]);
-}
+        return response()->json([
+            'status' => true,
+            'pld' => [
+                'total_active' => (int) $query->total_active,
+                'male'         => (int) $query->male,
+                'female'       => (int) $query->female,
+            ]
+        ]);
+    }
 
 
 
@@ -27737,27 +27737,27 @@ public function getActiveLearnersByGender()
     //     ]);
     // }
 
-public function getActiveStaffByGender()
-{
-    $query = DB::table('old_staff as os')
-        ->join('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
-        ->where('os.status', 'active')
-        ->select(
-            DB::raw("COUNT(DISTINCT os.sid) as total_active_staff"),
-            DB::raw("COUNT(DISTINCT CASE WHEN sb.sex = 'M' THEN os.sid END) as male"),
-            DB::raw("COUNT(DISTINCT CASE WHEN sb.sex = 'F' THEN os.sid END) as female")
-        )
-        ->first();
+    public function getActiveStaffByGender()
+    {
+        $query = DB::table('old_staff as os')
+            ->join('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
+            ->where('os.status', 'active')
+            ->select(
+                DB::raw("COUNT(DISTINCT os.sid) as total_active_staff"),
+                DB::raw("COUNT(DISTINCT CASE WHEN sb.sex = 'M' THEN os.sid END) as male"),
+                DB::raw("COUNT(DISTINCT CASE WHEN sb.sex = 'F' THEN os.sid END) as female")
+            )
+            ->first();
 
-    return response()->json([
-        'status' => true,
-        'pld' => [
-            'total_active_staff' => (int) $query->total_active_staff,
-            'male'               => (int) $query->male,
-            'female'             => (int) $query->female,
-        ]
-    ]);
-}
+        return response()->json([
+            'status' => true,
+            'pld' => [
+                'total_active_staff' => (int) $query->total_active_staff,
+                'male'               => (int) $query->male,
+                'female'             => (int) $query->female,
+            ]
+        ]);
+    }
 
 
 
@@ -27939,146 +27939,146 @@ public function getActiveStaffByGender()
     // }
 
 
-public function getAllSchoolsInfo()
-{
-    $start = request()->input('start', 0);
-    $count = request()->input('count', 20);
+    public function getAllSchoolsInfo()
+    {
+        $start = request()->input('start', 0);
+        $count = request()->input('count', 20);
 
-    // Fetch schools with pagination and alphabetical order
-    $schools = school::orderBy('name', 'asc')
-        ->skip($start)
-        ->take($count)
-        ->get();
+        // Fetch schools with pagination and alphabetical order
+        $schools = school::orderBy('name', 'asc')
+            ->skip($start)
+            ->take($count)
+            ->get();
 
-    $pld = [];
+        $pld = [];
 
-    foreach ($schools as $school) {
-        $user_id = $school->sid;
+        foreach ($schools as $school) {
+            $user_id = $school->sid;
 
-        // Fetch web data if available
-        $webData = school_web_data::where('user_id', $user_id)->first();
+            // Fetch web data if available
+            $webData = school_web_data::where('user_id', $user_id)->first();
 
-        // ✅ Count active learners without duplicates
-        $activeLearners = old_student::where('schid', $user_id)
-            ->where('status', 'active')
-            ->distinct('sid')   // ensures no duplicate student counted
-            ->count('sid');     // count unique sid only
+            // ✅ Count active learners without duplicates
+            $activeLearners = old_student::where('schid', $user_id)
+                ->where('status', 'active')
+                ->distinct('sid')   // ensures no duplicate student counted
+                ->count('sid');     // count unique sid only
 
-        // Count alumni
-        $alumniCount = alumni::where('schid', $user_id)->count();
+            // Count alumni
+            $alumniCount = alumni::where('schid', $user_id)->count();
 
-        // Count active staff
-        $activeStaff = old_staff::where('schid', $user_id)
-            ->where('status', 'active')
-            ->distinct('sid')   // just in case staff also repeats
-            ->count('sid');
+            // Count active staff
+            $activeStaff = old_staff::where('schid', $user_id)
+                ->where('status', 'active')
+                ->distinct('sid')   // just in case staff also repeats
+                ->count('sid');
 
-        // Fetch list of classes + arms from sch_cls
-        $classArms = sch_cls::where('schid', $user_id)
-            ->get(['cls_id', 'name'])
-            ->groupBy('cls_id')
-            ->map(function ($items) {
-                return $items->pluck('name')->toArray(); // arms only
-            })
-            ->toArray();
+            // Fetch list of classes + arms from sch_cls
+            $classArms = sch_cls::where('schid', $user_id)
+                ->get(['cls_id', 'name'])
+                ->groupBy('cls_id')
+                ->map(function ($items) {
+                    return $items->pluck('name')->toArray(); // arms only
+                })
+                ->toArray();
 
-        // Count total classes (all rows in sch_cls for the school)
-        $totalClasses = sch_cls::where('schid', $user_id)->count();
+            // Count total classes (all rows in sch_cls for the school)
+            $totalClasses = sch_cls::where('schid', $user_id)->count();
 
-        // Proper numbering code like ABJCE/000001
-        $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
+            // Proper numbering code like ABJCE/000001
+            $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
 
-        $pld[] = [
-            's' => [
-                'sid'            => $school->sid,
-                'school_id'      => $schoolCode,
-                'name'           => $school->name,
-                'count'          => $school->count,
-                's_web'          => $school->s_web,
-                's_info'         => $school->s_info,
-                'sbd'            => $school->sbd,
-                'sch3'           => $school->sch3,
-                'cssn'           => $school->cssn,
-                'ctrm'           => $school->ctrm,
-                'ctrmn'          => $school->ctrmn,
-                'lattitude'      => $school->latt,
-                'longitude'      => $school->longi,
-                'created_at'     => $school->created_at,
-                'updated_at'     => $school->updated_at,
-                'active_learners' => $activeLearners,
-                'alumni'         => $alumniCount,
-                'active_staff'   => $activeStaff,
-                'classes'        => $classArms,    // grouped by cls_id → list of arms
-                'total_classes'  => $totalClasses, // count of all arms
-            ],
-            'w' => $webData ? $webData->toArray() : null,
-        ];
+            $pld[] = [
+                's' => [
+                    'sid'            => $school->sid,
+                    'school_id'      => $schoolCode,
+                    'name'           => $school->name,
+                    'count'          => $school->count,
+                    's_web'          => $school->s_web,
+                    's_info'         => $school->s_info,
+                    'sbd'            => $school->sbd,
+                    'sch3'           => $school->sch3,
+                    'cssn'           => $school->cssn,
+                    'ctrm'           => $school->ctrm,
+                    'ctrmn'          => $school->ctrmn,
+                    'lattitude'      => $school->latt,
+                    'longitude'      => $school->longi,
+                    'created_at'     => $school->created_at,
+                    'updated_at'     => $school->updated_at,
+                    'active_learners' => $activeLearners,
+                    'alumni'         => $alumniCount,
+                    'active_staff'   => $activeStaff,
+                    'classes'        => $classArms,    // grouped by cls_id → list of arms
+                    'total_classes'  => $totalClasses, // count of all arms
+                ],
+                'w' => $webData ? $webData->toArray() : null,
+            ];
+        }
+
+        return response()->json([
+            "status"  => true,
+            "message" => "Success",
+            "pld"     => $pld,
+        ]);
     }
 
-    return response()->json([
-        "status"  => true,
-        "message" => "Success",
-        "pld"     => $pld,
-    ]);
-}
 
 
 
-
-/**
- * @OA\Post(
- *     path="/api/updateLocation/{schid}",
- *     summary="Update school location (latitude & longitude)",
- *     description="Allows a school to update its latitude and longitude by providing the sid.",
- *     tags={"Api"},
- *     security={{"bearerAuth":{}}},
- *
- *     @OA\Parameter(
- *         name="schid",
- *         in="path",
- *         description="School ID (schid)",
- *         required=true,
- *         @OA\Schema(type="integer", example=12)
- *     ),
- *
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"latt", "longi"},
- *             @OA\Property(property="latt", type="number", format="float", example=6.5244, description="Latitude (-90 to 90)"),
- *             @OA\Property(property="longi", type="number", format="float", example=3.3792, description="Longitude (-180 to 180)")
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Location updated successfully",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Location updated successfully"),
- *             @OA\Property(
- *                 property="data",
- *                 type="object",
- *                 @OA\Property(property="sid", type="integer", example=11),
- *                 @OA\Property(property="name", type="string", example="HHCJ NURSERY AND PRIMARY SCHOOL"),
- *                 @OA\Property(property="latt", type="string", example="6.5244000"),
- *                 @OA\Property(property="longi", type="string", example="3.3792000"),
- *                 @OA\Property(property="updated_at", type="string", format="date-time", example="2025-09-18T10:45:00.000000Z"),
- *                 @OA\Property(property="created_at", type="string", format="date-time", example="2024-09-09T21:53:24.000000Z")
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=404,
- *         description="School not found",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="School not found")
- *         )
- *     )
- * )
- */
+    /**
+     * @OA\Post(
+     *     path="/api/updateLocation/{schid}",
+     *     summary="Update school location (latitude & longitude)",
+     *     description="Allows a school to update its latitude and longitude by providing the sid.",
+     *     tags={"Api"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="path",
+     *         description="School ID (schid)",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=12)
+     *     ),
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"latt", "longi"},
+     *             @OA\Property(property="latt", type="number", format="float", example=6.5244, description="Latitude (-90 to 90)"),
+     *             @OA\Property(property="longi", type="number", format="float", example=3.3792, description="Longitude (-180 to 180)")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Location updated successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Location updated successfully"),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="object",
+     *                 @OA\Property(property="sid", type="integer", example=11),
+     *                 @OA\Property(property="name", type="string", example="HHCJ NURSERY AND PRIMARY SCHOOL"),
+     *                 @OA\Property(property="latt", type="string", example="6.5244000"),
+     *                 @OA\Property(property="longi", type="string", example="3.3792000"),
+     *                 @OA\Property(property="updated_at", type="string", format="date-time", example="2025-09-18T10:45:00.000000Z"),
+     *                 @OA\Property(property="created_at", type="string", format="date-time", example="2024-09-09T21:53:24.000000Z")
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="School not found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="School not found")
+     *         )
+     *     )
+     * )
+     */
 
     public function updateLocation(Request $request, $schid)
     {
@@ -28111,130 +28111,130 @@ public function getAllSchoolsInfo()
 
 
 
-/**
- * @OA\Get(
- *     path="/api/getExternalExpendituresByAdmin/{ssn}/{trm}",
- *     summary="Get external expenditures (Admin)",
- *     description="Retrieve external expenditures filtered by School (SSN) and Term (TRM). Returns paginated records with totals per record and the overall total.",
- *     operationId="getExternalExpendituresByAdmin",
- *     tags={"Accounting"},
- *     security={{"bearerAuth":{}}},
- *
- *     @OA\Parameter(
- *         name="ssn",
- *         in="path",
- *         required=true,
- *         description="School SSN (set to 0 for all schools)",
- *         @OA\Schema(type="string", example="SCH12345")
- *     ),
- *     @OA\Parameter(
- *         name="trm",
- *         in="path",
- *         required=true,
- *         description="Term (set to 0 for all terms)",
- *         @OA\Schema(type="string", example="TRM2024")
- *     ),
- *
- *     @OA\Parameter(
- *         name="start",
- *         in="query",
- *         required=false,
- *         description="Pagination start index",
- *         @OA\Schema(type="integer", default=0, example=0)
- *     ),
- *     @OA\Parameter(
- *         name="count",
- *         in="query",
- *         required=false,
- *         description="Number of records to fetch",
- *         @OA\Schema(type="integer", default=20, example=20)
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Successful response",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Success"),
- *             @OA\Property(
- *                 property="pld",
- *                 type="array",
- *                 description="List of expenditures with totals",
- *                 @OA\Items(
- *                     @OA\Property(property="id", type="integer", example=1),
- *                     @OA\Property(property="ssn", type="string", example="SCH12345"),
- *                     @OA\Property(property="trm", type="string", example="TRM2024"),
- *                     @OA\Property(property="time", type="string", format="date", example="2025-01-10"),
- *                     @OA\Property(property="vendor", type="string", example="Vendor A"),
- *                     @OA\Property(property="pv", type="string", example="PV123"),
- *                     @OA\Property(property="mode", type="string", example="Cash"),
- *                     @OA\Property(property="unit", type="number", example=500),
- *                     @OA\Property(property="qty", type="integer", example=10),
- *                     @OA\Property(property="item", type="string", example="Textbook"),
- *                     @OA\Property(property="total", type="number", example=5000)
- *                 )
- *             ),
- *             @OA\Property(property="overall_total", type="number", example=25000)
- *         )
- *     )
- * )
- */
+    /**
+     * @OA\Get(
+     *     path="/api/getExternalExpendituresByAdmin/{ssn}/{trm}",
+     *     summary="Get external expenditures (Admin)",
+     *     description="Retrieve external expenditures filtered by School (SSN) and Term (TRM). Returns paginated records with totals per record and the overall total.",
+     *     operationId="getExternalExpendituresByAdmin",
+     *     tags={"Accounting"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="path",
+     *         required=true,
+     *         description="School SSN (set to 0 for all schools)",
+     *         @OA\Schema(type="string", example="SCH12345")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Term (set to 0 for all terms)",
+     *         @OA\Schema(type="string", example="TRM2024")
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         required=false,
+     *         description="Pagination start index",
+     *         @OA\Schema(type="integer", default=0, example=0)
+     *     ),
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         required=false,
+     *         description="Number of records to fetch",
+     *         @OA\Schema(type="integer", default=20, example=20)
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful response",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 description="List of expenditures with totals",
+     *                 @OA\Items(
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="ssn", type="string", example="SCH12345"),
+     *                     @OA\Property(property="trm", type="string", example="TRM2024"),
+     *                     @OA\Property(property="time", type="string", format="date", example="2025-01-10"),
+     *                     @OA\Property(property="vendor", type="string", example="Vendor A"),
+     *                     @OA\Property(property="pv", type="string", example="PV123"),
+     *                     @OA\Property(property="mode", type="string", example="Cash"),
+     *                     @OA\Property(property="unit", type="number", example=500),
+     *                     @OA\Property(property="qty", type="integer", example=10),
+     *                     @OA\Property(property="item", type="string", example="Textbook"),
+     *                     @OA\Property(property="total", type="number", example=5000)
+     *                 )
+     *             ),
+     *             @OA\Property(property="overall_total", type="number", example=25000)
+     *         )
+     *     )
+     * )
+     */
 
     public function getExternalExpendituresByAdmin($ssn, $trm)
-{
-    $start = request()->input('start', 0);
-    $count = request()->input('count', 20);
+    {
+        $start = request()->input('start', 0);
+        $count = request()->input('count', 20);
 
-    $query = ext_expenditure::query();
+        $query = ext_expenditure::query();
 
-    // Base filters
-    if ($ssn !== '0') {
-        $query->where('ssn', $ssn);
-    }
+        // Base filters
+        if ($ssn !== '0') {
+            $query->where('ssn', $ssn);
+        }
 
-    if ($trm !== '0') {
-        $query->where('trm', $trm);
-    }
+        if ($trm !== '0') {
+            $query->where('trm', $trm);
+        }
 
-    // Filters
-    $fields = ['time', 'vendor', 'pv', 'mode', 'unit', 'qty', 'item'];
-    foreach ($fields as $field) {
-        $qValue = request()->input($field, null);
-        if ($qValue !== null && $qValue !== '-1') {
-            if ($field === 'time') {
-                if (strpos($qValue, '-') !== false) {
-                    $compo = explode("-", $qValue);
-                    if (count($compo) == 2) {
-                        $frm = $compo[0];
-                        $to = $compo[1];
-                        $query->whereBetween($field, [$frm, $to]);
+        // Filters
+        $fields = ['time', 'vendor', 'pv', 'mode', 'unit', 'qty', 'item'];
+        foreach ($fields as $field) {
+            $qValue = request()->input($field, null);
+            if ($qValue !== null && $qValue !== '-1') {
+                if ($field === 'time') {
+                    if (strpos($qValue, '-') !== false) {
+                        $compo = explode("-", $qValue);
+                        if (count($compo) == 2) {
+                            $frm = $compo[0];
+                            $to = $compo[1];
+                            $query->whereBetween($field, [$frm, $to]);
+                        }
                     }
+                } else {
+                    $query->where($field, $qValue);
                 }
-            } else {
-                $query->where($field, $qValue);
             }
         }
+
+        // Pagination
+        $pld = $query->skip($start)->take($count)->get();
+
+        // ✅ Add total = unit × qty inside each record
+        $pld->transform(function ($item) {
+            $item->total = $item->unit * $item->qty;
+            return $item;
+        });
+
+        // ✅ Overall total (all schools, all records with filters)
+        $overallTotal = (clone $query)->selectRaw('SUM(unit * qty) as total')->value('total');
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld,
+            "overall_total" => $overallTotal ?? 0,
+        ]);
     }
-
-    // Pagination
-    $pld = $query->skip($start)->take($count)->get();
-
-    // ✅ Add total = unit × qty inside each record
-    $pld->transform(function ($item) {
-        $item->total = $item->unit * $item->qty;
-        return $item;
-    });
-
-    // ✅ Overall total (all schools, all records with filters)
-    $overallTotal = (clone $query)->selectRaw('SUM(unit * qty) as total')->value('total');
-
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => $pld,
-        "overall_total" => $overallTotal ?? 0,
-    ]);
-}
 
 
 
@@ -28302,56 +28302,56 @@ public function getAllSchoolsInfo()
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-public function getInternalExpendituresByAdmin($ssn, $trm)
-{
-    $start = request()->input('start', 0); // Default start
-    $count = request()->input('count', 20); // Default count
+    public function getInternalExpendituresByAdmin($ssn, $trm)
+    {
+        $start = request()->input('start', 0); // Default start
+        $count = request()->input('count', 20); // Default count
 
-    $query = in_expenditure::query();
+        $query = in_expenditure::query();
 
-    // Filter by session and term
-    if ($ssn !== '0') {
-        $query->where('ssn', $ssn);
-    }
+        // Filter by session and term
+        if ($ssn !== '0') {
+            $query->where('ssn', $ssn);
+        }
 
-    if ($trm !== '0') {
-        $query->where('trm', $trm);
-    }
+        if ($trm !== '0') {
+            $query->where('trm', $trm);
+        }
 
-    // Handle filters for amt, time, mode, purp, ext, name
-    $fields = ['time', 'mode', 'purp', 'ext', 'name', 'amt'];
-    foreach ($fields as $field) {
-        $qValue = request()->input($field, null);
-        if ($qValue !== null && $qValue !== '-1') {
-            if ($field === 'time') {
-                if (strpos($qValue, '-') !== false) {
-                    $compo = explode("-", $qValue);
-                    if (count($compo) == 2) {
-                        $frm = $compo[0];
-                        $to = $compo[1];
-                        $query->whereBetween($field, [$frm, $to]);
+        // Handle filters for amt, time, mode, purp, ext, name
+        $fields = ['time', 'mode', 'purp', 'ext', 'name', 'amt'];
+        foreach ($fields as $field) {
+            $qValue = request()->input($field, null);
+            if ($qValue !== null && $qValue !== '-1') {
+                if ($field === 'time') {
+                    if (strpos($qValue, '-') !== false) {
+                        $compo = explode("-", $qValue);
+                        if (count($compo) == 2) {
+                            $frm = $compo[0];
+                            $to = $compo[1];
+                            $query->whereBetween($field, [$frm, $to]);
+                        }
                     }
+                } else {
+                    $query->where($field, $qValue);
                 }
-            } else {
-                $query->where($field, $qValue);
             }
         }
+
+        // Clone query to calculate total amt without pagination
+        $overallTotal = (clone $query)->sum('amt');
+
+        // Apply pagination
+        $pld = $query->skip($start)->take($count)->get();
+
+        // Respond
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld,
+            "overall_total" => $overallTotal ?? 0, // ✅ sum of all amt
+        ]);
     }
-
-    // Clone query to calculate total amt without pagination
-    $overallTotal = (clone $query)->sum('amt');
-
-    // Apply pagination
-    $pld = $query->skip($start)->take($count)->get();
-
-    // Respond
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => $pld,
-        "overall_total" => $overallTotal ?? 0, // ✅ sum of all amt
-    ]);
-}
 
 
 
@@ -28398,6 +28398,94 @@ public function getInternalExpendituresByAdmin($ssn, $trm)
             "pld" => $pld,
         ]);
     }
+    /**
+     * @OA\Get(
+     *     path="/api/getExpensesByAdmin",
+     *     tags={"Accounting"},
+     *   security={{"bearerAuth":{}}},
+     *     summary="Get all expenses by School",
+     *     description="Use this endpoint to get all expenses by School",
+     *
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         required=false,
+     *         description="Index to start at",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         required=false,
+     *         description="No of records to retrieve",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
+     *     @OA\Response(response="401", description="Unauthorized"),
+     * )
+     */
+    public function getExpensesByAdmin()
+    {
+        $start = 0;
+        $count = 20;
+        if (request()->has('start') && request()->has('count')) {
+            $start = request()->input('start');
+            $count = request()->input('count');
+        }
+        $pld = expense::skip($start)->take($count)->get();
+        // Respond
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld,
+        ]);
+    }
 
+
+
+        /**
+     * @OA\Get(
+     *     path="/api/getExternalExpenditureStatByAdmin/{ssn}/{trm}",
+     *     tags={"Accounting"},
+     *   security={{"bearerAuth":{}}},
+     *     summary="Get how many expenditure are available",
+     *     description="Use this endpoint to get how many expenditure are available",
+     *
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="path",
+     *         required=true,
+     *         description="Session ID",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Term ID",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
+     *     @OA\Response(response="401", description="Unauthorized"),
+     * )
+     */
+    public function getExternalExpenditureStatByAdmin($ssn, $trm)
+    {
+        $query = ext_expenditure::query();
+        if ($ssn !== '0') {
+            $query->where('ssn', $ssn);
+        }
+        if ($trm !== '0') {
+            $query->where('trm', $trm);
+        }
+        $total = $query->count();
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => [
+                "total" => $total,
+            ],
+        ]);
+    }
 
 }

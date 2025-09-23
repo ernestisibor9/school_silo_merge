@@ -23589,6 +23589,102 @@
                     }
                 ]
             }
+        },
+        "/api/getExpensesByAdmin": {
+            "get": {
+                "tags": [
+                    "Accounting"
+                ],
+                "summary": "Get all expenses by School",
+                "description": "Use this endpoint to get all expenses by School",
+                "operationId": "7520b85529afeff3a25c289c300f6f20",
+                "parameters": [
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Index to start at",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "No of records to retrieve",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/getExternalExpenditureStatByAdmin/{ssn}/{trm}": {
+            "get": {
+                "tags": [
+                    "Accounting"
+                ],
+                "summary": "Get how many expenditure are available",
+                "description": "Use this endpoint to get how many expenditure are available",
+                "operationId": "3f36e80f5002372eaba7cbf61b7dc6d6",
+                "parameters": [
+                    {
+                        "name": "ssn",
+                        "in": "path",
+                        "description": "Session ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "path",
+                        "description": "Term ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
