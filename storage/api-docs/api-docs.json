@@ -23541,6 +23541,54 @@
                     }
                 ]
             }
+        },
+        "/api/getVendorsByAdmin": {
+            "get": {
+                "tags": [
+                    "Accounting"
+                ],
+                "summary": "Get all Vendors",
+                "description": "Use this endpoint to get all Vendors by School",
+                "operationId": "656a5b4eb0429e35f0e4f3d8f2fffd46",
+                "parameters": [
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Index to start at",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "No of records to retrieve",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {

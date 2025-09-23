@@ -28354,4 +28354,50 @@ public function getInternalExpendituresByAdmin($ssn, $trm)
 }
 
 
+
+
+    /**
+     * @OA\Get(
+     *     path="/api/getVendorsByAdmin",
+     *     tags={"Accounting"},
+     *     security={{"bearerAuth":{}}},
+     *     summary="Get all Vendors",
+     *     description="Use this endpoint to get all Vendors by School",
+     *
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         required=false,
+     *         description="Index to start at",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         required=false,
+     *         description="No of records to retrieve",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
+     *     @OA\Response(response="401", description="Unauthorized"),
+     * )
+     */
+    public function getVendorsByAdmin()
+    {
+        $start = 0;
+        $count = 20;
+        if (request()->has('start') && request()->has('count')) {
+            $start = request()->input('start');
+            $count = request()->input('count');
+        }
+        $pld = vendor::skip($start)->take($count)->get();
+        // Respond
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld,
+        ]);
+    }
+
+
 }
