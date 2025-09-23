@@ -28182,33 +28182,59 @@ class ApiController extends Controller
 
 public function getExternalExpendituresByAdmin($ssn, $trm)
 {
-    $query = ext_expenditure::query()
-        ->join('school', 'ext_expenditure.schid', '=', 'school.sid') // join on schid
+    $baseQuery = ext_expenditure::query()
+        ->join('school', 'ext_expenditure.schid', '=', 'school.sid');
+
+    // Filters
+    if ($ssn !== '0') {
+        $baseQuery->where('ext_expenditure.ssn', $ssn);
+    }
+
+    if ($trm !== '0') {
+        $baseQuery->where('ext_expenditure.trm', $trm);
+    }
+
+    // 1. Total expenditure per school
+    $schools = (clone $baseQuery)
         ->select(
             'ext_expenditure.schid',
             'school.name as school_name',
             \DB::raw('SUM(ext_expenditure.unit * ext_expenditure.qty) as total_expenditure')
         )
         ->groupBy('ext_expenditure.schid', 'school.name')
-        ->orderBy('school.name', 'asc');
+        ->orderBy('school.name', 'asc')
+        ->get();
 
-    // Filters
-    if ($ssn !== '0') {
-        $query->where('ext_expenditure.ssn', $ssn);
-    }
+    // 2. Expenditure details (name/vendor/item per school)
+    $expenditures = (clone $baseQuery)
+        ->select(
+            'ext_expenditure.schid',
+            'ext_expenditure.name as expenditure_name',
+            'ext_expenditure.vendor',
+            'ext_expenditure.item',
+            \DB::raw('SUM(ext_expenditure.unit * ext_expenditure.qty) as amount')
+        )
+        ->groupBy('ext_expenditure.schid', 'ext_expenditure.name', 'ext_expenditure.vendor', 'ext_expenditure.item')
+        ->get();
 
-    if ($trm !== '0') {
-        $query->where('ext_expenditure.trm', $trm);
-    }
-
-    $pld = $query->get();
+    // 3. Attach breakdown
+    $result = $schools->map(function ($school) use ($expenditures) {
+        $schoolExpenditures = $expenditures->where('schid', $school->schid)->values();
+        return [
+            'schid' => $school->schid,
+            'school_name' => $school->school_name,
+            'total_expenditure' => $school->total_expenditure,
+            'expenditures' => $schoolExpenditures, // breakdown list
+        ];
+    });
 
     return response()->json([
         "status" => true,
         "message" => "Success",
-        "pld" => $pld,
+        "pld" => $result,
     ]);
 }
+
 
 
 
@@ -28276,56 +28302,58 @@ public function getExternalExpendituresByAdmin($ssn, $trm)
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    public function getInternalExpendituresByAdmin($ssn, $trm)
-    {
-        $start = request()->input('start', 0); // Default start
-        $count = request()->input('count', 20); // Default count
+public function getInternalExpendituresByAdmin($ssn, $trm)
+{
+    $baseQuery = in_expenditure::query()
+        ->join('school', 'in_expenditure.schid', '=', 'school.sid');
 
-        $query = in_expenditure::query();
-
-        // Filter by session and term
-        if ($ssn !== '0') {
-            $query->where('ssn', $ssn);
-        }
-
-        if ($trm !== '0') {
-            $query->where('trm', $trm);
-        }
-
-        // Handle filters for amt, time, mode, purp, ext, name
-        $fields = ['time', 'mode', 'purp', 'ext', 'name', 'amt'];
-        foreach ($fields as $field) {
-            $qValue = request()->input($field, null);
-            if ($qValue !== null && $qValue !== '-1') {
-                if ($field === 'time') {
-                    if (strpos($qValue, '-') !== false) {
-                        $compo = explode("-", $qValue);
-                        if (count($compo) == 2) {
-                            $frm = $compo[0];
-                            $to = $compo[1];
-                            $query->whereBetween($field, [$frm, $to]);
-                        }
-                    }
-                } else {
-                    $query->where($field, $qValue);
-                }
-            }
-        }
-
-        // Clone query to calculate total amt without pagination
-        $overallTotal = (clone $query)->sum('amt');
-
-        // Apply pagination
-        $pld = $query->skip($start)->take($count)->get();
-
-        // Respond
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $pld,
-            "overall_total" => $overallTotal ?? 0, // ✅ sum of all amt
-        ]);
+    // Apply filters
+    if ($ssn !== '0') {
+        $baseQuery->where('in_expenditure.ssn', $ssn);
     }
+
+    if ($trm !== '0') {
+        $baseQuery->where('in_expenditure.trm', $trm);
+    }
+
+    // 1. Get total expenditure per school
+    $schools = (clone $baseQuery)
+        ->select(
+            'in_expenditure.schid',
+            'school.name as school_name',
+            \DB::raw('SUM(in_expenditure.amt) as total_expenditure')
+        )
+        ->groupBy('in_expenditure.schid', 'school.name')
+        ->orderBy('school.name', 'asc')
+        ->get();
+
+    // 2. Get breakdown (expenditure name + amount per school)
+    $expenditures = (clone $baseQuery)
+        ->select(
+            'in_expenditure.schid',
+            'in_expenditure.purp as expenditure_name',
+            \DB::raw('SUM(in_expenditure.amt) as amount')
+        )
+        ->groupBy('in_expenditure.schid', 'in_expenditure.purp')
+        ->get();
+
+    // 3. Attach breakdown to each school
+    $result = $schools->map(function ($school) use ($expenditures) {
+        $schoolExpenditures = $expenditures->where('schid', $school->schid)->values();
+        return [
+            'schid' => $school->schid,
+            'school_name' => $school->school_name,
+            'total_expenditure' => $school->total_expenditure,
+            'expenditures' => $schoolExpenditures, // list of expenditure names + amounts
+        ];
+    });
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => $result,
+    ]);
+}
 
 
 
