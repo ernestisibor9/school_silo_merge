@@ -27537,7 +27537,8 @@ public function getSchoolCounts()
         'YEAR 12',
         'JSS 3 PR',
         'SSS 2 PW',
-        'SSS 3 MOCK'
+        'SSS 3 MOCK',
+        'TAHFEEZ UPPER CLASS'
     ];
 
     // List of nursery/primary classes
@@ -27573,7 +27574,14 @@ public function getSchoolCounts()
         'PRIMARY 3',
         'PRIMARY 4',
         'PRIMARY 5',
-        'PRIMARY 6'
+        'PRIMARY 6',
+        'YEAR 1',
+        'YEAR 2',
+        'YEAR 3',
+        'YEAR 4',
+        'YEAR 5',
+        'YEAR 6',
+        'TAHFEEZ LOWER CLASS'
     ];
 
     // Get IDs of secondary classes
