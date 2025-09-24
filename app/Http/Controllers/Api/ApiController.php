@@ -28767,9 +28767,10 @@ public function resetDefaultPasswordAdmin(Request $request)
      * @OA\Get(
      *     path="/api/getExternalExpendituresByFilterAdmin/{ssn}/{trm}",
      *     tags={"Accounting"},
+     *  security={{"bearerAuth":{}}},
      *     summary="Get all expenditures by School, Session and Term",
      *     description="Use this endpoint to get all expenditures by School",
-     *   security={{"bearerAuth":{}}},
+     *
      *     @OA\Parameter(
      *         name="ssn",
      *         in="path",
@@ -28851,12 +28852,15 @@ public function resetDefaultPasswordAdmin(Request $request)
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    public function getExternalExpendituresByFilterAdmin($schid, $ssn, $trm)
+    public function getExternalExpendituresByFilterAdmin($ssn, $trm)
     {
         $start = request()->input('start', 0); // Default start
         $count = request()->input('count', 20); // Default count
 
         $query = ext_expenditure::query();
+
+        // Base filters
+        // $query->where('schid', $schid);
 
         if ($ssn !== '0') {
             $query->where('ssn', $ssn);

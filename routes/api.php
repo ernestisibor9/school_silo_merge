@@ -297,7 +297,8 @@ Route::group([
 
     Route::get('getAllSchoolsAdmin', [ApiController::class, 'getAllSchoolsAdmin']);
 
-        Route::get('getExternalExpendituresByFilterAdmin/{ssn}/{trm}', [ApiController::class, 'getExternalExpendituresByFilter']);
+    Route::get('getExternalExpendituresByFilterAdmin/{ssn}/{trm}', [ApiController::class, 'getExternalExpendituresByFilterAdmin']);
+
 
     Route::get('getExternalExpenditureStatByAdmin/{ssn}/{trm}', [ApiController::class, 'getExternalExpenditureStatByAdmin']);
 

@@ -23908,6 +23908,135 @@
                     }
                 ]
             }
+        },
+        "/api/getExternalExpendituresByFilterAdmin/{ssn}/{trm}": {
+            "get": {
+                "tags": [
+                    "Accounting"
+                ],
+                "summary": "Get all expenditures by School, Session and Term",
+                "description": "Use this endpoint to get all expenditures by School",
+                "operationId": "5ac6bd3a26195e04433d0f390a1bd74a",
+                "parameters": [
+                    {
+                        "name": "ssn",
+                        "in": "path",
+                        "description": "Session ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "path",
+                        "description": "Term ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Index to start at",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "No of records to retrieve",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "vendor",
+                        "in": "query",
+                        "description": "Filter by vendor",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "item",
+                        "in": "query",
+                        "description": "Filter by expense heading",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "time",
+                        "in": "query",
+                        "description": "Filter by time",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "pv",
+                        "in": "query",
+                        "description": "Filter by pv",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "mode",
+                        "in": "query",
+                        "description": "Filter by mode",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "unit",
+                        "in": "query",
+                        "description": "Filter by unit",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "qty",
+                        "in": "query",
+                        "description": "Filter by qty",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
