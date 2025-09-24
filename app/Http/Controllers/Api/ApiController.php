@@ -28758,4 +28758,144 @@ public function resetDefaultPasswordAdmin(Request $request)
     ], 404);
 }
 
+
+
+
+
+
+    /**
+     * @OA\Get(
+     *     path="/api/getExternalExpendituresByFilterAdmin/{ssn}/{trm}",
+     *     tags={"Accounting"},
+     *     summary="Get all expenditures by School, Session and Term",
+     *     description="Use this endpoint to get all expenditures by School",
+     *   security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="path",
+     *         required=true,
+     *         description="Session ID",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Term ID",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         required=false,
+     *         description="Index to start at",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         required=false,
+     *         description="No of records to retrieve",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="vendor",
+     *         in="query",
+     *         required=false,
+     *         description="Filter by vendor",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="item",
+     *         in="query",
+     *         required=false,
+     *         description="Filter by expense heading",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="time",
+     *         in="query",
+     *         required=false,
+     *         description="Filter by time",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="pv",
+     *         in="query",
+     *         required=false,
+     *         description="Filter by pv",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="mode",
+     *         in="query",
+     *         required=false,
+     *         description="Filter by mode",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="unit",
+     *         in="query",
+     *         required=false,
+     *         description="Filter by unit",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="qty",
+     *         in="query",
+     *         required=false,
+     *         description="Filter by qty",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
+     *     @OA\Response(response="401", description="Unauthorized"),
+     * )
+     */
+    public function getExternalExpendituresByFilterAdmin($schid, $ssn, $trm)
+    {
+        $start = request()->input('start', 0); // Default start
+        $count = request()->input('count', 20); // Default count
+
+        $query = ext_expenditure::query();
+
+        if ($ssn !== '0') {
+            $query->where('ssn', $ssn);
+        }
+
+        if ($trm !== '0') {
+            $query->where('trm', $trm);
+        }
+
+        // Filter and sort for fields: time, vendor, pv, mode, unit, qty
+        $fields = ['time', 'vendor', 'pv', 'mode', 'unit', 'qty', 'item'];
+        foreach ($fields as $field) {
+            $qValue = request()->input($field, null);
+            if ($qValue !== null && $qValue !== '-1') {
+                if ($field === 'time') {
+                    if (strpos($qValue, '-') !== false) {
+                        $compo = explode("-", $qValue);
+                        if (count($compo) == 2) {
+                            $frm = $compo[0];
+                            $to = $compo[1];
+                            $query->where($field, '>=', $frm);
+                            $query->where($field, '<=', $to);
+                        }
+                    }
+                } else {
+                    $query->where($field, $qValue);
+                }
+            }
+        }
+
+        // Pagination
+        $pld = $query->skip($start)->take($count)->get();
+
+        // Respond
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld,
+        ]);
+    }
+
 }

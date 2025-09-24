@@ -297,6 +297,8 @@ Route::group([
 
     Route::get('getAllSchoolsAdmin', [ApiController::class, 'getAllSchoolsAdmin']);
 
+        Route::get('getExternalExpendituresByFilterAdmin/{ssn}/{trm}', [ApiController::class, 'getExternalExpendituresByFilter']);
+
     Route::get('getExternalExpenditureStatByAdmin/{ssn}/{trm}', [ApiController::class, 'getExternalExpenditureStatByAdmin']);
 
     Route::get('getOldStaffInfo/{uid}', [ApiController::class, 'getOldStaffInfo']);
