@@ -91,6 +91,8 @@ Route::get('getCummulativeBroadsheet/{schid}/{ssn}/{clsm}/{clsa}', [ApiControlle
 Route::get('/getComment/{stid}/{schid}/{clsm}/{sesn}', [ApiController::class, 'getComment']);
 Route::get('/getAllComment/{schid}/{clsm}/{clsa}/{ssn}', [ApiController::class, 'getAllComment']);
 
+Route::get('getOldStudent/{schid}/{ssn}/{stid}', [ApiController::class, 'getOldStudent']);
+
 
 
 //--- Only for mess handling
@@ -280,7 +282,7 @@ Route::group([
     Route::get('getInternalExpenditure/{eid}', [ApiController::class, 'getInternalExpenditure']);
     Route::get('getOldStudentInfo/{uid}', [ApiController::class, 'getOldStudentInfo']);
     Route::get('getOldStudentsStat/{schid}/{ssn}/{trm}/{clsm}/{clsa}', [ApiController::class, 'getOldStudentsStat']);
-    Route::get('getOldStudent/{schid}/{ssn}/{stid}', [ApiController::class, 'getOldStudent']);
+    // Route::get('getOldStudent/{schid}/{ssn}/{stid}', [ApiController::class, 'getOldStudent']);
     Route::get('getOldStudents/{schid}/{ssn}/{trm}/{clsm}/{clsa}', [ApiController::class, 'getOldStudents']);
 
     Route::get('/getClassArms/{schid}/{cls_id}', [ApiController::class, 'getClassArms']);
@@ -292,6 +294,8 @@ Route::group([
     Route::get('getVendorsByAdmin', [ApiController::class, 'getVendorsByAdmin']);
 
     Route::get('getExpensesByAdmin', [ApiController::class, 'getExpensesByAdmin']);
+
+    Route::get('getAllSchoolsAdmin', [ApiController::class, 'getAllSchoolsAdmin']);
 
     Route::get('getExternalExpenditureStatByAdmin/{ssn}/{trm}', [ApiController::class, 'getExternalExpenditureStatByAdmin']);
 
@@ -355,6 +359,7 @@ Route::group([
     Route::post('setAnnouncements', [ApiController::class, 'setAnnouncements']);
     Route::post('sendMail', [ApiController::class, 'sendMail']);
     Route::post('resetDefaultPassword', [ApiController::class, 'resetDefaultPassword']);
+    Route::post('resetDefaultPasswordAdmin', [ApiController::class, 'resetDefaultPasswordAdmin']);
 
     Route::get('getSchoolsByPartner/{pid}', [ApiController::class, 'getSchoolsByPartner']);
     Route::get('searchSchools', [ApiController::class, 'searchSchools']);

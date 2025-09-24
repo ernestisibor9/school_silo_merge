@@ -28194,14 +28194,15 @@ public function getExternalExpendituresByAdmin($ssn, $trm)
         $baseQuery->where('ext_expenditure.trm', $trm);
     }
 
-    // 1. Total expenditure per school
+    // 1. Total expenditure per school (include sch3)
     $schools = (clone $baseQuery)
         ->select(
             'ext_expenditure.schid',
             'school.name as school_name',
+            'school.sch3',
             \DB::raw('SUM(ext_expenditure.unit * ext_expenditure.qty) as total_expenditure')
         )
-        ->groupBy('ext_expenditure.schid', 'school.name')
+        ->groupBy('ext_expenditure.schid', 'school.name', 'school.sch3')
         ->orderBy('school.name', 'asc')
         ->get();
 
@@ -28217,14 +28218,18 @@ public function getExternalExpendituresByAdmin($ssn, $trm)
         ->groupBy('ext_expenditure.schid', 'ext_expenditure.name', 'ext_expenditure.vendor', 'ext_expenditure.item')
         ->get();
 
-    // 3. Attach breakdown
-    $result = $schools->map(function ($school) use ($expenditures) {
+    // 3. Attach breakdown + generate school_id
+    $serial = 1; // global counter
+    $result = $schools->map(function ($school) use ($expenditures, &$serial) {
         $schoolExpenditures = $expenditures->where('schid', $school->schid)->values();
+
         return [
+            'school_id' => $school->sch3 . str_pad($serial++, 4, '0', STR_PAD_LEFT), // e.g. AMB0001
             'schid' => $school->schid,
             'school_name' => $school->school_name,
+            'sch3' => $school->sch3,
             'total_expenditure' => $school->total_expenditure,
-            'expenditures' => $schoolExpenditures, // breakdown list
+            'expenditures' => $schoolExpenditures,
         ];
     });
 
@@ -28316,14 +28321,15 @@ public function getInternalExpendituresByAdmin($ssn, $trm)
         $baseQuery->where('in_expenditure.trm', $trm);
     }
 
-    // 1. Get total expenditure per school
+    // 1. Get total expenditure per school (including sch3)
     $schools = (clone $baseQuery)
         ->select(
             'in_expenditure.schid',
             'school.name as school_name',
+            'school.sch3',
             \DB::raw('SUM(in_expenditure.amt) as total_expenditure')
         )
-        ->groupBy('in_expenditure.schid', 'school.name')
+        ->groupBy('in_expenditure.schid', 'school.name', 'school.sch3')
         ->orderBy('school.name', 'asc')
         ->get();
 
@@ -28337,12 +28343,19 @@ public function getInternalExpendituresByAdmin($ssn, $trm)
         ->groupBy('in_expenditure.schid', 'in_expenditure.purp')
         ->get();
 
-    // 3. Attach breakdown to each school
-    $result = $schools->map(function ($school) use ($expenditures) {
+    // 3. Attach breakdown + generate custom school_id
+    $result = $schools->map(function ($school, $index) use ($expenditures) {
         $schoolExpenditures = $expenditures->where('schid', $school->schid)->values();
+
+        // Generate custom school_id (sch3 + serial)
+        $serial = str_pad($index + 1, 4, '0', STR_PAD_LEFT); // e.g., 0001, 0002
+        $customSchoolId = $school->sch3 . $serial;
+
         return [
+            'school_id' => $customSchoolId, // ✅ new custom ID
             'schid' => $school->schid,
             'school_name' => $school->school_name,
+            'sch3' => $school->sch3,
             'total_expenditure' => $school->total_expenditure,
             'expenditures' => $schoolExpenditures, // list of expenditure names + amounts
         ];
@@ -28354,7 +28367,6 @@ public function getInternalExpendituresByAdmin($ssn, $trm)
         "pld" => $result,
     ]);
 }
-
 
 
 
@@ -28384,22 +28396,51 @@ public function getInternalExpendituresByAdmin($ssn, $trm)
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    public function getVendorsByAdmin()
-    {
-        $start = 0;
-        $count = 20;
-        if (request()->has('start') && request()->has('count')) {
-            $start = request()->input('start');
-            $count = request()->input('count');
-        }
-        $pld = vendor::skip($start)->take($count)->get();
-        // Respond
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $pld,
-        ]);
+public function getVendorsByAdmin()
+{
+    $start = 0;
+    $count = 20;
+
+    if (request()->has('start') && request()->has('count')) {
+        $start = request()->input('start');
+        $count = request()->input('count');
     }
+
+    // Join with school to get sch3
+    $vendors = vendor::query()
+        ->join('school', 'vendor.schid', '=', 'school.sid')
+        ->select(
+            'vendor.*',
+            'school.sch3',
+            'school.name as school_name'
+        )
+        ->skip($start)
+        ->take($count)
+        ->get();
+
+    // Generate custom school_id (SCH3 + padded number)
+    $serial = 1;
+    $pld = $vendors->map(function ($vendor) use (&$serial) {
+        return [
+            'vendor_id' => $vendor->id,
+            'vendor_name' => $vendor->name,
+            'schid' => $vendor->schid,
+            'school_name' => $vendor->school_name,
+            'sch3' => $vendor->sch3,
+            'school_id' => $vendor->sch3 . str_pad($serial++, 4, '0', STR_PAD_LEFT),
+            'created_at' => $vendor->created_at,
+            'updated_at' => $vendor->updated_at,
+        ];
+    });
+
+    // Respond
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => $pld,
+    ]);
+}
+
     /**
      * @OA\Get(
      *     path="/api/getExpensesByAdmin",
@@ -28426,26 +28467,55 @@ public function getInternalExpendituresByAdmin($ssn, $trm)
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    public function getExpensesByAdmin()
-    {
-        $start = 0;
-        $count = 20;
-        if (request()->has('start') && request()->has('count')) {
-            $start = request()->input('start');
-            $count = request()->input('count');
-        }
-        $pld = expense::skip($start)->take($count)->get();
-        // Respond
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $pld,
-        ]);
+public function getExpensesByAdmin()
+{
+    $start = 0;
+    $count = 20;
+
+    if (request()->has('start') && request()->has('count')) {
+        $start = request()->input('start');
+        $count = request()->input('count');
     }
 
+    // Join with school table
+    $expenses = expense::query()
+        ->join('school', 'expense.schid', '=', 'school.sid')
+        ->select(
+            'expense.*',
+            'school.sch3',
+            'school.name as school_name'
+        )
+        ->skip($start)
+        ->take($count)
+        ->get();
+
+    // Generate custom school_id (sch3 + padded serial)
+    $serial = 1;
+    $pld = $expenses->map(function ($exp) use (&$serial) {
+        return [
+            'expense_id' => $exp->id,
+            'expense_name' => $exp->name ?? null, // in case expense has a name field
+            'amount' => $exp->amount ?? null,     // if there's an amount column
+            'schid' => $exp->schid,
+            'school_name' => $exp->school_name,
+            'sch3' => $exp->sch3,
+            'school_id' => $exp->sch3 . str_pad($serial++, 4, '0', STR_PAD_LEFT),
+            'created_at' => $exp->created_at,
+            'updated_at' => $exp->updated_at,
+        ];
+    });
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => $pld,
+    ]);
+}
 
 
-        /**
+
+
+    /**
      * @OA\Get(
      *     path="/api/getExternalExpenditureStatByAdmin/{ssn}/{trm}",
      *     tags={"Accounting"},
@@ -28489,5 +28559,203 @@ public function getInternalExpendituresByAdmin($ssn, $trm)
             ],
         ]);
     }
+
+
+
+    /**
+ * @OA\Get(
+ *     path="/api/getAllSchoolsAdmin",
+ *     summary="Get all schools in alphabetical order",
+ *     description="Fetches a paginated list of schools ordered alphabetically by name",
+ *     tags={"Admin"},
+ *    security={{"bearerAuth":{}}},
+ *
+ *     @OA\Parameter(
+ *         name="start",
+ *         in="query",
+ *         required=false,
+ *         description="Pagination start index (default: 0)",
+ *         @OA\Schema(type="integer", example=0)
+ *     ),
+ *     @OA\Parameter(
+ *         name="count",
+ *         in="query",
+ *         required=false,
+ *         description="Number of records to return (default: 20)",
+ *         @OA\Schema(type="integer", example=20)
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Schools fetched successfully",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Schools fetched successfully"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(property="sid", type="integer", example=10),
+ *                     @OA\Property(property="name", type="string", example="HOLY GHOST COLLEGE"),
+ *                     @OA\Property(property="count", type="integer", example=11),
+ *                     @OA\Property(property="s_web", type="integer", example=1),
+ *                     @OA\Property(property="s_info", type="integer", example=0),
+ *                     @OA\Property(property="sbd", type="string", example="holygc"),
+ *                     @OA\Property(property="sch3", type="string", example="HGC"),
+ *                     @OA\Property(property="cssn", type="integer", example=2025),
+ *                     @OA\Property(property="ctrm", type="integer", example=1),
+ *                     @OA\Property(property="ctrmn", type="string", example="First Term"),
+ *                     @OA\Property(property="latt", type="string", nullable=true, example="6.5244000"),
+ *                     @OA\Property(property="longi", type="string", nullable=true, example="3.3799000"),
+ *                     @OA\Property(property="created_at", type="string", format="date-time", example="2024-09-09 15:54:13"),
+ *                     @OA\Property(property="updated_at", type="string", format="date-time", example="2025-09-18 22:05:06")
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=400,
+ *         description="Invalid request"
+ *     )
+ * )
+ */
+
+public function getAllSchoolsAdmin(Request $request)
+{
+    $start = $request->input('start', 0);
+    $count = $request->input('count', 20);
+
+    $schools = school::orderBy('name', 'asc')
+        ->skip($start)
+        ->take($count)
+        ->get([
+            'sid',
+            'name',
+            'count',
+            's_web',
+            's_info',
+            'sbd',
+            'sch3',
+            'cssn',
+            'ctrm',
+            'ctrmn',
+            'latt',
+            'longi',
+            'created_at',
+            'updated_at'
+        ]);
+
+    // Attach school_id field dynamically
+    $serial = 1;
+    $pld = $schools->map(function ($school) use (&$serial) {
+        return [
+            'sid'        => $school->sid,
+            'name'       => $school->name,
+            'count'      => $school->count,
+            's_web'      => $school->s_web,
+            's_info'     => $school->s_info,
+            'sbd'        => $school->sbd,
+            'sch3'       => $school->sch3,
+            'cssn'       => $school->cssn,
+            'ctrm'       => $school->ctrm,
+            'ctrmn'      => $school->ctrmn,
+            'latt'       => $school->latt,
+            'longi'      => $school->longi,
+            'created_at' => $school->created_at,
+            'updated_at' => $school->updated_at,
+            // Custom School ID like AMB0001, HGC0002
+            'school_id'  => $school->sch3 . str_pad($serial++, 4, '0', STR_PAD_LEFT),
+        ];
+    });
+
+    return response()->json([
+        'status'  => true,
+        'message' => 'Schools fetched successfully',
+        'pld'     => $pld
+    ]);
+}
+
+
+
+/**
+ * @OA\Post(
+ *     path="/api/resetDefaultPasswordAdmin",
+ *     tags={"Admin"},
+ *   security={{"bearerAuth":{}}},
+ *     summary="Reset all user passwords for a school to default (123456)",
+ *     description="This endpoint allows an admin to reset the password of all users under a specific school.
+ *                  The new default password will be **123456**.",
+ *     operationId="resetDefaultPasswordAdmin",
+ *
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             required={"schid"},
+ *             @OA\Property(
+ *                 property="schid",
+ *                 type="integer",
+ *                 example=12,
+ *                 description="The school ID whose users' passwords should be reset"
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Success - all users for the given school had their passwords reset",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="All user passwords for this school have been reset to default (123456).")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="No users found for this school",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="No users found for this school.")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation error (schid missing or invalid)",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="message", type="string", example="The given data was invalid.")
+ *         )
+ *     )
+ * )
+ */
+
+public function resetDefaultPasswordAdmin(Request $request)
+{
+    // Data validation
+    $request->validate([
+        "schid" => "required|integer", // ✅ school id required
+    ]);
+
+    // Find users under this school
+    $users = User::where("id", $request->schid)->get();
+
+    if ($users->count() > 0) {
+        foreach ($users as $usr) {
+            $usr->update([
+                "password" => bcrypt("123456"), // ✅ reset to default
+            ]);
+        }
+
+        return response()->json([
+            "status" => true,
+            "message" => "All user passwords for this school have been reset to default (123456)."
+        ]);
+    }
+
+    return response()->json([
+        "status" => false,
+        "message" => "No users found for this school.",
+    ], 404);
+}
 
 }
