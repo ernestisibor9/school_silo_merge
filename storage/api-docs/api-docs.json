@@ -23544,6 +23544,399 @@
                     }
                 ]
             }
+        },
+        "/api/getVendorsByAdmin": {
+            "get": {
+                "tags": [
+                    "Accounting"
+                ],
+                "summary": "Get a list of vendors with school details",
+                "description": "Fetch vendors joined with school information. Each school has a custom school_id in the format `SCH3/0001`.",
+                "operationId": "656a5b4eb0429e35f0e4f3d8f2fffd46",
+                "parameters": [
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Pagination start offset (default: 0)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 0
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "Number of records to return (default: 20)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 20
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "vendor_id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "vendor_name": {
+                                                        "type": "string",
+                                                        "example": "ABC Suppliers"
+                                                    },
+                                                    "schid": {
+                                                        "type": "integer",
+                                                        "example": 12
+                                                    },
+                                                    "school_name": {
+                                                        "type": "string",
+                                                        "example": "Ambassador High School"
+                                                    },
+                                                    "sch3": {
+                                                        "type": "string",
+                                                        "example": "AMB"
+                                                    },
+                                                    "school_id": {
+                                                        "type": "string",
+                                                        "example": "AMB/0001"
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2025-09-25T12:34:56"
+                                                    },
+                                                    "updated_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2025-09-25T12:34:56"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request parameters"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/getExpensesByAdmin": {
+            "get": {
+                "tags": [
+                    "Accounting"
+                ],
+                "summary": "Get all expenses with school info",
+                "description": "Retrieve a paginated list of expenses joined with school details.\n     *                  Each expense includes a custom school_id in the format SCH3/0001 (e.g., AMB/0001).",
+                "operationId": "7520b85529afeff3a25c289c300f6f20",
+                "parameters": [
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Index to start retrieving records (default: 0)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 0
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "Number of records to retrieve (default: 20)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 20
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "expense_id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "expense_name": {
+                                                        "type": "string",
+                                                        "example": "Stationery"
+                                                    },
+                                                    "amount": {
+                                                        "type": "number",
+                                                        "format": "float",
+                                                        "example": 5000
+                                                    },
+                                                    "schid": {
+                                                        "type": "integer",
+                                                        "example": 12
+                                                    },
+                                                    "school_name": {
+                                                        "type": "string",
+                                                        "example": "Ambassador High School"
+                                                    },
+                                                    "sch3": {
+                                                        "type": "string",
+                                                        "example": "AMB"
+                                                    },
+                                                    "school_id": {
+                                                        "type": "string",
+                                                        "example": "AMB/0001"
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2025-09-25T10:22:30Z"
+                                                    },
+                                                    "updated_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2025-09-25T10:22:30Z"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/getExternalExpenditureStatByAdmin/{ssn}/{trm}": {
+            "get": {
+                "tags": [
+                    "Accounting"
+                ],
+                "summary": "Get how many expenditure are available",
+                "description": "Use this endpoint to get how many expenditure are available",
+                "operationId": "3f36e80f5002372eaba7cbf61b7dc6d6",
+                "parameters": [
+                    {
+                        "name": "ssn",
+                        "in": "path",
+                        "description": "Session ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "path",
+                        "description": "Term ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/getExternalExpendituresByFilterByAdmin/{ssn}/{trm}": {
+            "get": {
+                "tags": [
+                    "Accounting"
+                ],
+                "summary": "Get all expenditures by School, Session and Term",
+                "description": "Use this endpoint to get all expenditures by School",
+                "operationId": "baf6df8c364f3e6400dac7cf97f9b508",
+                "parameters": [
+                    {
+                        "name": "ssn",
+                        "in": "path",
+                        "description": "Session ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "path",
+                        "description": "Term ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Index to start at",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "No of records to retrieve",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "vendor",
+                        "in": "query",
+                        "description": "Filter by vendor",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "item",
+                        "in": "query",
+                        "description": "Filter by expense heading",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "time",
+                        "in": "query",
+                        "description": "Filter by time",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "pv",
+                        "in": "query",
+                        "description": "Filter by pv",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "mode",
+                        "in": "query",
+                        "description": "Filter by mode",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "unit",
+                        "in": "query",
+                        "description": "Filter by unit",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "qty",
+                        "in": "query",
+                        "description": "Filter by qty",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
