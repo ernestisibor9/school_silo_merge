@@ -7152,149 +7152,292 @@ class ApiController extends Controller
     // }
 
 
-    public function getOldStudentsAndSubject($schid, $ssn, $trm, $clsm, $clsa, $stf)
-    {
-        // Fetch students based on class and arm
-        $ostd = old_student::where("schid", $schid)
-            ->where("status", "active")
-            ->where("ssn", $ssn)
-            ->where("trm", $trm)
-            ->where("clsm", $clsm);
+    // public function getOldStudentsAndSubject($schid, $ssn, $trm, $clsm, $clsa, $stf)
+    // {
+    //     // Fetch students based on class and arm
+    //     $ostd = old_student::where("schid", $schid)
+    //         ->where("status", "active")
+    //         ->where("ssn", $ssn)
+    //         ->where("trm", $trm)
+    //         ->where("clsm", $clsm);
 
-        if ($clsa != '-1') {
-            $ostd = $ostd->where("clsa", $clsa);
-        }
+    //     if ($clsa != '-1') {
+    //         $ostd = $ostd->where("clsa", $clsa);
+    //     }
 
-        // 👉 Ensure unique students by sid
-        $ostd = $ostd->get()->unique('sid')->values();
+    //     // 👉 Ensure unique students by sid
+    //     $ostd = $ostd->get()->unique('sid')->values();
 
-        $stdPld = [];
-        $allSubjects = []; // Track unique subjects for cls-sbj
+    //     $stdPld = [];
+    //     $allSubjects = []; // Track unique subjects for cls-sbj
 
-        foreach ($ostd as $std) {
-            $user_id = $std->sid;
+    //     foreach ($ostd as $std) {
+    //         $user_id = $std->sid;
 
-            // Get all subjects assigned to the student
-            $studentSubjects = student_subj::where('stid', $user_id)->get();
+    //         // Get all subjects assigned to the student
+    //         $studentSubjects = student_subj::where('stid', $user_id)->get();
 
-            $mySbjs = [];
-            $scores = [];
-            $totalScore = 0;
-            $scoreCount = 0;
-            $studentSubjectIds = [];
+    //         $mySbjs = [];
+    //         $scores = [];
+    //         $totalScore = 0;
+    //         $scoreCount = 0;
+    //         $studentSubjectIds = [];
 
-            foreach ($studentSubjects as $sbj) {
-                if (in_array($sbj->sbj, $studentSubjectIds)) {
-                    continue;
-                }
-                $studentSubjectIds[] = $sbj->sbj;
+    //         foreach ($studentSubjects as $sbj) {
+    //             if (in_array($sbj->sbj, $studentSubjectIds)) {
+    //                 continue;
+    //             }
+    //             $studentSubjectIds[] = $sbj->sbj;
 
-                // Save only subject ID
+    //             // Save only subject ID
+    //             $mySbjs[] = (string) $sbj->sbj;
+
+    //             // Track unique subjects for class-wide subjects list
+    //             if (!isset($allSubjects[$sbj->sbj])) {
+    //                 $allSubjects[$sbj->sbj] = (string) $sbj->sbj;
+    //             }
+
+    //             // Fetch scores
+    //             $subjectScores = std_score::where('stid', $user_id)
+    //                 ->where('sbj', $sbj->sbj)
+    //                 ->where('schid', $schid)
+    //                 ->where('ssn', $ssn)
+    //                 ->where('trm', $trm)
+    //                 ->where('clsid', $clsm)
+    //                 ->get()
+    //                 ->map(fn($s) => $s->toArray())
+    //                 ->values();
+
+    //             foreach ($subjectScores as $s) {
+    //                 if (!empty($s['scr']) && is_numeric($s['scr'])) {
+    //                     $totalScore += $s['scr'];
+    //                     $scoreCount++;
+    //                 }
+    //             }
+
+    //             $scores[] = [
+    //                 'sbid' => (string) $sbj->sbj,
+    //                 'scores' => $subjectScores,
+    //             ];
+    //         }
+
+    //         $avgScore = $scoreCount > 0 ? round($totalScore / $scoreCount, 2) : 0;
+    //         $grade = $this->gradeFromAvg2($avgScore);
+
+    //         // Check for psychological evaluation
+    //         $psy = false;
+    //         if ($stf == "-2") {
+    //             $psy = student_psy::where("schid", $schid)
+    //                 ->where("ssn", $ssn)
+    //                 ->where("trm", $trm)
+    //                 ->where("clsm", $clsm)
+    //                 ->where("stid", $user_id)
+    //                 ->exists();
+    //         }
+
+    //         // Fetch student result info
+    //         $res = "0";
+    //         $rinfoModel = student_res::where("schid", $schid)
+    //             ->where("ssn", $ssn)
+    //             ->where("trm", $trm)
+    //             ->where("clsm", $clsm)
+    //             ->where("clsa", $clsa)
+    //             ->where("stid", $user_id)
+    //             ->first();
+
+    //         $rinfo = new \stdClass(); // Ensure object
+    //         if ($rinfoModel) {
+    //             $res = $rinfoModel->stat;
+    //             $rinfo = [
+    //                 'uid' => $rinfoModel->uid,
+    //                 'stat' => $rinfoModel->stat,
+    //                 'com' => $rinfoModel->com,
+    //                 'stid' => $rinfoModel->stid,
+    //                 'schid' => $rinfoModel->schid,
+    //                 'ssn' => $rinfoModel->ssn,
+    //                 'trm' => $rinfoModel->trm,
+    //                 'clsm' => $rinfoModel->clsm,
+    //                 'clsa' => $rinfoModel->clsa,
+    //                 'pos' => $rinfoModel->pos,
+    //                 'avg' => $rinfoModel->avg,
+    //                 'cavg' => $rinfoModel->cavg,
+    //                 'created_at' => $rinfoModel->created_at,
+    //                 'updated_at' => $rinfoModel->updated_at,
+    //                 'grade' => isset($rinfoModel->avg) ? $this->gradeFromAvg2($rinfoModel->avg) : null,
+    //             ];
+    //         }
+
+    //         // Build student payload
+    //         $stdPld[] = [
+    //             'std' => $std->toArray(),
+    //             'sbj' => $mySbjs,
+    //             'scr' => $scores,
+    //             'avg_score' => $avgScore,
+    //             'grade' => $grade,
+    //             'psy' => $psy,
+    //             'res' => $res,
+    //             'rinfo' => $rinfo,
+    //         ];
+    //     }
+
+    //     // Prepare class subjects list
+    //     $clsSbj = array_values($allSubjects);
+
+    //     $pld = [
+    //         'std-pld' => $stdPld,
+    //         'cls-sbj' => $clsSbj,
+    //     ];
+
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => $pld,
+    //     ]);
+    // }
+
+public function getOldStudentsAndSubject($schid, $ssn, $trm, $clsm, $clsa, $stf)
+{
+    // Fetch students based on class and arm
+    $ostd = old_student::where("schid", $schid)
+        ->where("status", "active")
+        ->where("ssn", $ssn)
+        ->where("trm", $trm)
+        ->where("clsm", $clsm);
+
+    if ($clsa != '-1') {
+        $ostd = $ostd->where("clsa", $clsa);
+    }
+
+    $ostd = $ostd->get()->unique('sid')->values();
+
+    $stdPld = [];
+    $allSubjects = []; // Track unique subjects for cls-sbj
+
+    foreach ($ostd as $std) {
+        $user_id = $std->sid;
+
+        // Get all subjects assigned to the student
+        $studentSubjects = student_subj::where('stid', $user_id)->get();
+
+        $mySbjs = [];
+        $scores = [];
+        $totalScore = 0;
+        $scoreCount = 0;
+
+        foreach ($studentSubjects as $sbj) {
+            // Skip duplicates
+            if (isset($allSubjects[$sbj->sbj])) {
                 $mySbjs[] = (string) $sbj->sbj;
-
-                // Track unique subjects for class-wide subjects list
-                if (!isset($allSubjects[$sbj->sbj])) {
-                    $allSubjects[$sbj->sbj] = (string) $sbj->sbj;
-                }
-
-                // Fetch scores
-                $subjectScores = std_score::where('stid', $user_id)
-                    ->where('sbj', $sbj->sbj)
-                    ->where('schid', $schid)
-                    ->where('ssn', $ssn)
-                    ->where('trm', $trm)
-                    ->where('clsid', $clsm)
-                    ->get()
-                    ->map(fn($s) => $s->toArray())
-                    ->values();
-
-                foreach ($subjectScores as $s) {
-                    if (!empty($s['scr']) && is_numeric($s['scr'])) {
-                        $totalScore += $s['scr'];
-                        $scoreCount++;
-                    }
-                }
-
-                $scores[] = [
-                    'sbid' => (string) $sbj->sbj,
-                    'scores' => $subjectScores,
-                ];
+                continue;
             }
 
-            $avgScore = $scoreCount > 0 ? round($totalScore / $scoreCount, 2) : 0;
-            $grade = $this->gradeFromAvg2($avgScore);
+            $mySbjs[] = (string) $sbj->sbj;
 
-            // Check for psychological evaluation
-            $psy = false;
-            if ($stf == "-2") {
-                $psy = student_psy::where("schid", $schid)
-                    ->where("ssn", $ssn)
-                    ->where("trm", $trm)
-                    ->where("clsm", $clsm)
-                    ->where("stid", $user_id)
-                    ->exists();
-            }
-
-            // Fetch student result info
-            $res = "0";
-            $rinfoModel = student_res::where("schid", $schid)
-                ->where("ssn", $ssn)
-                ->where("trm", $trm)
-                ->where("clsm", $clsm)
-                ->where("clsa", $clsa)
-                ->where("stid", $user_id)
+            // Fetch subject info
+            $subjInfo = subj::select('id', 'name', 'created_at', 'updated_at')
+                ->where('id', $sbj->sbj)
                 ->first();
 
-            $rinfo = new \stdClass(); // Ensure object
-            if ($rinfoModel) {
-                $res = $rinfoModel->stat;
-                $rinfo = [
-                    'uid' => $rinfoModel->uid,
-                    'stat' => $rinfoModel->stat,
-                    'com' => $rinfoModel->com,
-                    'stid' => $rinfoModel->stid,
-                    'schid' => $rinfoModel->schid,
-                    'ssn' => $rinfoModel->ssn,
-                    'trm' => $rinfoModel->trm,
-                    'clsm' => $rinfoModel->clsm,
-                    'clsa' => $rinfoModel->clsa,
-                    'pos' => $rinfoModel->pos,
-                    'avg' => $rinfoModel->avg,
-                    'cavg' => $rinfoModel->cavg,
-                    'created_at' => $rinfoModel->created_at,
-                    'updated_at' => $rinfoModel->updated_at,
-                    'grade' => isset($rinfoModel->avg) ? $this->gradeFromAvg2($rinfoModel->avg) : null,
-                ];
+            if ($subjInfo) {
+                $allSubjects[$sbj->sbj] = $subjInfo;
             }
 
-            // Build student payload
-            $stdPld[] = [
-                'std' => $std->toArray(),
-                'sbj' => $mySbjs,
-                'scr' => $scores,
-                'avg_score' => $avgScore,
-                'grade' => $grade,
-                'psy' => $psy,
-                'res' => $res,
-                'rinfo' => $rinfo,
+            // Fetch scores
+            $subjectScores = std_score::where('stid', $user_id)
+                ->where('sbj', $sbj->sbj)
+                ->where('schid', $schid)
+                ->where('ssn', $ssn)
+                ->where('trm', $trm)
+                ->where('clsid', $clsm)
+                ->get()
+                ->map(fn($s) => $s->toArray())
+                ->values();
+
+            foreach ($subjectScores as $s) {
+                if (!empty($s['scr']) && is_numeric($s['scr'])) {
+                    $totalScore += $s['scr'];
+                    $scoreCount++;
+                }
+            }
+
+            $scores[] = [
+                'sbid' => (string) $sbj->sbj,
+                'scores' => $subjectScores,
             ];
         }
 
-        // Prepare class subjects list
-        $clsSbj = array_values($allSubjects);
+        $avgScore = $scoreCount > 0 ? round($totalScore / $scoreCount, 2) : 0;
+        $grade = $this->gradeFromAvg2($avgScore);
 
-        $pld = [
-            'std-pld' => $stdPld,
-            'cls-sbj' => $clsSbj,
+        // Check for psychological evaluation
+        $psy = false;
+        if ($stf == "-2") {
+            $psy = student_psy::where("schid", $schid)
+                ->where("ssn", $ssn)
+                ->where("trm", $trm)
+                ->where("clsm", $clsm)
+                ->where("stid", $user_id)
+                ->exists();
+        }
+
+        // Fetch student result info
+        $res = "0";
+        $rinfoModel = student_res::where("schid", $schid)
+            ->where("ssn", $ssn)
+            ->where("trm", $trm)
+            ->where("clsm", $clsm)
+            ->where("clsa", $clsa)
+            ->where("stid", $user_id)
+            ->first();
+
+        $rinfo = new \stdClass();
+        if ($rinfoModel) {
+            $res = $rinfoModel->stat;
+            $rinfo = [
+                'uid' => $rinfoModel->uid,
+                'stat' => $rinfoModel->stat,
+                'com' => $rinfoModel->com,
+                'stid' => $rinfoModel->stid,
+                'schid' => $rinfoModel->schid,
+                'ssn' => $rinfoModel->ssn,
+                'trm' => $rinfoModel->trm,
+                'clsm' => $rinfoModel->clsm,
+                'clsa' => $rinfoModel->clsa,
+                'pos' => $rinfoModel->pos,
+                'avg' => $rinfoModel->avg,
+                'cavg' => $rinfoModel->cavg,
+                'created_at' => $rinfoModel->created_at,
+                'updated_at' => $rinfoModel->updated_at,
+                'grade' => isset($rinfoModel->avg) ? $this->gradeFromAvg2($rinfoModel->avg) : null,
+            ];
+        }
+
+        $stdPld[] = [
+            'std' => $std->toArray(),
+            'sbj' => $mySbjs,
+            'scr' => $scores,
+            'avg_score' => $avgScore,
+            'grade' => $grade,
+            'psy' => $psy,
+            'res' => $res,
+            'rinfo' => $rinfo,
         ];
-
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $pld,
-        ]);
     }
 
+    // Prepare class subjects list with name
+    $clsSbj = array_values($allSubjects);
+
+    $pld = [
+        'std-pld' => $stdPld,
+        'cls-sbj' => $clsSbj,
+    ];
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => $pld,
+    ]);
+}
 
 
 
