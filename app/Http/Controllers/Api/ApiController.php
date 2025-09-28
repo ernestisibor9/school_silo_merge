@@ -7155,11 +7155,12 @@ class ApiController extends Controller
     public function getOldStudentsAndSubject($schid, $ssn, $trm, $clsm, $clsa, $stf)
     {
         // Fetch students based on class and arm
-        $ostd = old_student::where("schid", $schid)
-            ->where("status", "active")
-            ->where("ssn", $ssn)
-            ->where("trm", $trm)
-            ->where("clsm", $clsm);
+$ostd = old_student::where("schid", $schid)
+    ->where("status", "active")
+    ->where("ssn", $ssn)
+    ->where("clsm", $clsm)
+    ->where("trm", $trm); // 🔹 filter by term
+
 
         if ($clsa != '-1') {
             $ostd = $ostd->where("clsa", $clsa);
@@ -28337,66 +28338,74 @@ public function getCummulativeBroadsheet($schid, $ssn, $clsm, $clsa)
      * )
      */
 
-    public function getExternalExpendituresByAdmin($ssn, $trm)
-    {
-        $baseQuery = ext_expenditure::query()
-            ->join('school', 'ext_expenditure.schid', '=', 'school.sid');
+public function getExternalExpendituresByAdmin($ssn, $trm)
+{
+    $baseQuery = ext_expenditure::query()
+        ->join('school', 'ext_expenditure.schid', '=', 'school.sid');
 
-        // Filters
-        if ($ssn !== '0') {
-            $baseQuery->where('ext_expenditure.ssn', $ssn);
-        }
-
-        if ($trm !== '0') {
-            $baseQuery->where('ext_expenditure.trm', $trm);
-        }
-
-        // 1. Total expenditure per school (include sch3)
-        $schools = (clone $baseQuery)
-            ->select(
-                'ext_expenditure.schid',
-                'school.name as school_name',
-                'school.sch3',
-                \DB::raw('SUM(ext_expenditure.unit * ext_expenditure.qty) as total_expenditure')
-            )
-            ->groupBy('ext_expenditure.schid', 'school.name', 'school.sch3')
-            ->orderBy('school.name', 'asc')
-            ->get();
-
-        // 2. Expenditure details (name/vendor/item per school)
-        $expenditures = (clone $baseQuery)
-            ->select(
-                'ext_expenditure.schid',
-                'ext_expenditure.name as expenditure_name',
-                'ext_expenditure.vendor',
-                'ext_expenditure.item',
-                \DB::raw('SUM(ext_expenditure.unit * ext_expenditure.qty) as amount')
-            )
-            ->groupBy('ext_expenditure.schid', 'ext_expenditure.name', 'ext_expenditure.vendor', 'ext_expenditure.item')
-            ->get();
-
-        // 3. Attach breakdown + generate school_id
-        $serial = 1; // global counter
-        $result = $schools->map(function ($school) use ($expenditures, &$serial) {
-            $schoolExpenditures = $expenditures->where('schid', $school->schid)->values();
-
-            return [
-                // e.g. AMS/0001 instead of AMB0001
-                'school_id' => $school->sch3 . '/' . str_pad($serial++, 4, '0', STR_PAD_LEFT),
-                'schid' => $school->schid,
-                'school_name' => $school->school_name,
-                'sch3' => $school->sch3,
-                'total_expenditure' => $school->total_expenditure,
-                'expenditures' => $schoolExpenditures,
-            ];
-        });
-
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $result,
-        ]);
+    // Filters
+    if ($ssn !== '0') {
+        $baseQuery->where('ext_expenditure.ssn', $ssn);
     }
+
+    if ($trm !== '0') {
+        $baseQuery->where('ext_expenditure.trm', $trm);
+    }
+
+    // ✅ Overall total count (all matching records before grouping)
+    $totalRecords = (clone $baseQuery)->count();
+
+    // 1. Total expenditure + record count per school
+    $schools = (clone $baseQuery)
+        ->select(
+            'ext_expenditure.schid',
+            'school.name as school_name',
+            'school.sch3',
+            \DB::raw('SUM(ext_expenditure.unit * ext_expenditure.qty) as total_expenditure'),
+            \DB::raw('COUNT(ext_expenditure.id) as record_count')
+        )
+        ->groupBy('ext_expenditure.schid', 'school.name', 'school.sch3')
+        ->orderBy('school.name', 'asc')
+        ->get();
+
+    // 2. Expenditure details (name/vendor/item per school)
+    $expenditures = (clone $baseQuery)
+        ->select(
+            'ext_expenditure.schid',
+            'ext_expenditure.name as expenditure_name',
+            'ext_expenditure.vendor',
+            'ext_expenditure.item',
+            \DB::raw('SUM(ext_expenditure.unit * ext_expenditure.qty) as amount')
+        )
+        ->groupBy('ext_expenditure.schid', 'ext_expenditure.name', 'ext_expenditure.vendor', 'ext_expenditure.item')
+        ->get();
+
+    // 3. Attach breakdown + generate school_id
+    $serial = 1;
+    $result = $schools->map(function ($school) use ($expenditures, &$serial) {
+        $schoolExpenditures = $expenditures->where('schid', $school->schid)->values();
+
+        return [
+            'school_id' => $school->sch3 . '/' . str_pad($serial++, 4, '0', STR_PAD_LEFT),
+            'schid' => $school->schid,
+            'school_name' => $school->school_name,
+            'sch3' => $school->sch3,
+            'total_expenditure' => $school->total_expenditure,
+            'record_count' => $school->record_count,
+            'expenditures' => $schoolExpenditures,
+        ];
+    });
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => [
+            "total_count" => $totalRecords, // ✅ overall count inside pld
+            "schools" => $result            // ✅ keep school-level results grouped here
+        ]
+    ]);
+}
+
 
 
 
@@ -28464,65 +28473,136 @@ public function getCummulativeBroadsheet($schid, $ssn, $clsm, $clsa)
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    public function getInternalExpendituresByAdmin($ssn, $trm)
-    {
-        $baseQuery = in_expenditure::query()
-            ->join('school', 'in_expenditure.schid', '=', 'school.sid');
+    // public function getInternalExpendituresByAdmin($ssn, $trm)
+    // {
+    //     $baseQuery = in_expenditure::query()
+    //         ->join('school', 'in_expenditure.schid', '=', 'school.sid');
 
-        // Apply filters
-        if ($ssn !== '0') {
-            $baseQuery->where('in_expenditure.ssn', $ssn);
-        }
+    //     // Apply filters
+    //     if ($ssn !== '0') {
+    //         $baseQuery->where('in_expenditure.ssn', $ssn);
+    //     }
 
-        if ($trm !== '0') {
-            $baseQuery->where('in_expenditure.trm', $trm);
-        }
+    //     if ($trm !== '0') {
+    //         $baseQuery->where('in_expenditure.trm', $trm);
+    //     }
 
-        // 1. Get total expenditure per school (including sch3)
-        $schools = (clone $baseQuery)
-            ->select(
-                'in_expenditure.schid',
-                'school.sid',
-                'school.name as school_name',
-                'school.sch3',
-                \DB::raw('SUM(in_expenditure.amt) as total_expenditure')
-            )
-            ->groupBy('in_expenditure.schid', 'school.sid', 'school.name', 'school.sch3')
-            ->orderBy('school.name', 'asc')
-            ->get();
+    //     // 1. Get total expenditure per school (including sch3)
+    //     $schools = (clone $baseQuery)
+    //         ->select(
+    //             'in_expenditure.schid',
+    //             'school.sid',
+    //             'school.name as school_name',
+    //             'school.sch3',
+    //             \DB::raw('SUM(in_expenditure.amt) as total_expenditure')
+    //         )
+    //         ->groupBy('in_expenditure.schid', 'school.sid', 'school.name', 'school.sch3')
+    //         ->orderBy('school.name', 'asc')
+    //         ->get();
 
-        // 2. Get breakdown (expenditure name + amount per school)
-        $expenditures = (clone $baseQuery)
-            ->select(
-                'in_expenditure.schid',
-                'in_expenditure.purp as expenditure_name',
-                \DB::raw('SUM(in_expenditure.amt) as amount')
-            )
-            ->groupBy('in_expenditure.schid', 'in_expenditure.purp')
-            ->get();
+    //     // 2. Get breakdown (expenditure name + amount per school)
+    //     $expenditures = (clone $baseQuery)
+    //         ->select(
+    //             'in_expenditure.schid',
+    //             'in_expenditure.purp as expenditure_name',
+    //             \DB::raw('SUM(in_expenditure.amt) as amount')
+    //         )
+    //         ->groupBy('in_expenditure.schid', 'in_expenditure.purp')
+    //         ->get();
 
-        // 3. Attach breakdown + generate school_id
-        $serial = 1; // global counter
-        $result = $schools->map(function ($school) use ($expenditures, &$serial) {
-            $schoolExpenditures = $expenditures->where('schid', $school->schid)->values();
+    //     // 3. Attach breakdown + generate school_id
+    //     $serial = 1; // global counter
+    //     $result = $schools->map(function ($school) use ($expenditures, &$serial) {
+    //         $schoolExpenditures = $expenditures->where('schid', $school->schid)->values();
 
-            return [
-                // e.g. AMS/0001 instead of AMB0001
-                'school_id' => $school->sch3 . '/' . str_pad($serial++, 4, '0', STR_PAD_LEFT),
-                'schid' => $school->schid,
-                'school_name' => $school->school_name,
-                'sch3' => $school->sch3,
-                'total_expenditure' => $school->total_expenditure,
-                'expenditures' => $schoolExpenditures,
-            ];
-        });
+    //         return [
+    //             // e.g. AMS/0001 instead of AMB0001
+    //             'school_id' => $school->sch3 . '/' . str_pad($serial++, 4, '0', STR_PAD_LEFT),
+    //             'schid' => $school->schid,
+    //             'school_name' => $school->school_name,
+    //             'sch3' => $school->sch3,
+    //             'total_expenditure' => $school->total_expenditure,
+    //             'expenditures' => $schoolExpenditures,
+    //         ];
+    //     });
 
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $result,
-        ]);
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => $result,
+    //     ]);
+    // }
+
+
+public function getInternalExpendituresByAdmin($ssn, $trm)
+{
+    $baseQuery = in_expenditure::query()
+        ->join('school', 'in_expenditure.schid', '=', 'school.sid');
+
+    // Apply filters
+    if ($ssn !== '0') {
+        $baseQuery->where('in_expenditure.ssn', $ssn);
     }
+
+    if ($trm !== '0') {
+        $baseQuery->where('in_expenditure.trm', $trm);
+    }
+
+    // ✅ Get overall total count of all records
+    $totalRecords = (clone $baseQuery)->count();
+
+    // 1. Get total expenditure + record count per school
+    $schools = (clone $baseQuery)
+        ->select(
+            'in_expenditure.schid',
+            'school.sid',
+            'school.name as school_name',
+            'school.sch3',
+            \DB::raw('SUM(in_expenditure.amt) as total_expenditure'),
+            \DB::raw('COUNT(in_expenditure.id) as record_count')
+        )
+        ->groupBy('in_expenditure.schid', 'school.sid', 'school.name', 'school.sch3')
+        ->orderBy('school.name', 'asc')
+        ->get();
+
+    // 2. Get expenditure breakdown per school
+    $expenditures = (clone $baseQuery)
+        ->select(
+            'in_expenditure.schid',
+            'in_expenditure.purp as expenditure_name',
+            \DB::raw('SUM(in_expenditure.amt) as amount')
+        )
+        ->groupBy('in_expenditure.schid', 'in_expenditure.purp')
+        ->get();
+
+    // 3. Attach breakdown + generate school_id
+    $serial = 1;
+    $result = $schools->map(function ($school) use ($expenditures, &$serial) {
+        $schoolExpenditures = $expenditures->where('schid', $school->schid)->values();
+
+        return [
+            'school_id' => $school->sch3 . '/' . str_pad($serial++, 4, '0', STR_PAD_LEFT),
+            'schid' => $school->schid,
+            'school_name' => $school->school_name,
+            'sch3' => $school->sch3,
+            'total_expenditure' => $school->total_expenditure,
+            'record_count' => $school->record_count,
+            'expenditures' => $schoolExpenditures,
+        ];
+    });
+
+    // ✅ Include both overall total and per-school data inside pld
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => [
+            "total_count" => $totalRecords,
+            "schools" => $result
+        ],
+    ]);
+}
+
+
 
 
 
