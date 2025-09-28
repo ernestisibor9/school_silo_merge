@@ -23937,6 +23937,77 @@
                     }
                 ]
             }
+        },
+        "/api/getInternalExpenditureStatByAdmin/{ssn}/{trm}": {
+            "get": {
+                "tags": [
+                    "Accounting"
+                ],
+                "summary": "Get internal expenditure statistics by admin",
+                "description": "Fetch the total number of internal expenditure records, optionally filtered by session (ssn) and term (trm).",
+                "operationId": "getInternalExpenditureStatByAdmin",
+                "parameters": [
+                    {
+                        "name": "ssn",
+                        "in": "path",
+                        "description": "Session ID (use 0 to fetch for all sessions)",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "2024"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "path",
+                        "description": "Term ID (use 0 to fetch for all terms)",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "1"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "total": {
+                                                    "type": "integer",
+                                                    "example": 45
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {

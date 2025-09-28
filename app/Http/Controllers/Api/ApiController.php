@@ -7155,11 +7155,11 @@ class ApiController extends Controller
     public function getOldStudentsAndSubject($schid, $ssn, $trm, $clsm, $clsa, $stf)
     {
         // Fetch students based on class and arm
-$ostd = old_student::where("schid", $schid)
-    ->where("status", "active")
-    ->where("ssn", $ssn)
-    ->where("clsm", $clsm)
-    ->where("trm", $trm); // 🔹 filter by term
+        $ostd = old_student::where("schid", $schid)
+            ->where("status", "active")
+            ->where("ssn", $ssn)
+            ->where("clsm", $clsm)
+            ->where("trm", $trm); // 🔹 filter by term
 
 
         if ($clsa != '-1') {
@@ -8471,124 +8471,124 @@ $ostd = old_student::where("schid", $schid)
 
 
     public function getOldStudentsAndSubjectHistory($schid, $ssn, $trm, $clsm, $clsa, $stf)
-{
-    $ostd = [];
-    if ($clsa == '-1') {
-        $ostd = old_student::where("schid", $schid)
-            ->where("ssn", $ssn)
-            ->where("trm", $trm)
-            ->where('status', 'active')
-            ->where("clsm", $clsm)
-            ->get();
-    } else {
-        $ostd = old_student::where("schid", $schid)
-            ->where("ssn", $ssn)
-            ->where("trm", $trm)
-            ->where('status', 'active')
-            ->where("clsm", $clsm)
-            ->where("clsa", $clsa)
-            ->get();
-    }
+    {
+        $ostd = [];
+        if ($clsa == '-1') {
+            $ostd = old_student::where("schid", $schid)
+                ->where("ssn", $ssn)
+                ->where("trm", $trm)
+                ->where('status', 'active')
+                ->where("clsm", $clsm)
+                ->get();
+        } else {
+            $ostd = old_student::where("schid", $schid)
+                ->where("ssn", $ssn)
+                ->where("trm", $trm)
+                ->where('status', 'active')
+                ->where("clsm", $clsm)
+                ->where("clsa", $clsa)
+                ->get();
+        }
 
-    $stdPld = [];
-    $relevantSubjects = [];
-    $clsSbj = [];
+        $stdPld = [];
+        $relevantSubjects = [];
+        $clsSbj = [];
 
-    foreach ($ostd as $std) {
-        $user_id = $std->sid;
-        $mySbjs = [];
+        foreach ($ostd as $std) {
+            $user_id = $std->sid;
+            $mySbjs = [];
 
-        // Get all scores where score > 0
-        $allScores = std_score::where('stid', $user_id)
-            ->where("schid", $schid)
-            ->where("ssn", $ssn)
-            ->where("trm", $trm)
-            ->where("clsid", $clsm)
-            ->whereNotNull('scr')
-            ->where('scr', '>', 0)
-            ->get();
+            // Get all scores where score > 0
+            $allScores = std_score::where('stid', $user_id)
+                ->where("schid", $schid)
+                ->where("ssn", $ssn)
+                ->where("trm", $trm)
+                ->where("clsid", $clsm)
+                ->whereNotNull('scr')
+                ->where('scr', '>', 0)
+                ->get();
 
-        foreach ($allScores as $scr) {
-            if (!in_array($scr->sbj, $mySbjs)) {
-                $mySbjs[] = $scr->sbj;
-            }
-            if (!in_array($scr->sbj, $relevantSubjects)) {
-                $schSbj = subj::select('id', 'name', 'created_at', 'updated_at')
-                    ->where('id', $scr->sbj)
-                    ->first();
-                if ($schSbj) {
-                    $clsSbj[] = $schSbj;
-                    $relevantSubjects[] = $scr->sbj;
+            foreach ($allScores as $scr) {
+                if (!in_array($scr->sbj, $mySbjs)) {
+                    $mySbjs[] = $scr->sbj;
+                }
+                if (!in_array($scr->sbj, $relevantSubjects)) {
+                    $schSbj = subj::select('id', 'name', 'created_at', 'updated_at')
+                        ->where('id', $scr->sbj)
+                        ->first();
+                    if ($schSbj) {
+                        $clsSbj[] = $schSbj;
+                        $relevantSubjects[] = $scr->sbj;
+                    }
                 }
             }
-        }
 
-        // Organize scores by subject
-        $subjectScores = [];
-        foreach ($mySbjs as $sbid) {
-            $subjectScores[$sbid] = [];
-        }
+            // Organize scores by subject
+            $subjectScores = [];
+            foreach ($mySbjs as $sbid) {
+                $subjectScores[$sbid] = [];
+            }
 
-        foreach ($allScores as $scr) {
-            $subjectScores[$scr->sbj][] = $scr;
-        }
+            foreach ($allScores as $scr) {
+                $subjectScores[$scr->sbj][] = $scr;
+            }
 
-        $scores = [];
-        foreach ($mySbjs as $sbid) {
-            $scores[] = [
-                'sbid' => $sbid,
-                'scores' => $subjectScores[$sbid]
+            $scores = [];
+            foreach ($mySbjs as $sbid) {
+                $scores[] = [
+                    'sbid' => $sbid,
+                    'scores' => $subjectScores[$sbid]
+                ];
+            }
+
+            $psy = false;
+            $res = "0";
+            $rinfo = [];
+
+            if ($stf == "-2") {
+                $psy = student_psy::where("schid", $schid)
+                    ->where("ssn", $ssn)
+                    ->where("trm", $trm)
+                    ->where("clsm", $clsm)
+                    ->where("stid", $user_id)
+                    ->exists();
+
+                $rinfo = student_res::where("schid", $schid)
+                    ->where("ssn", $ssn)
+                    ->where("trm", $trm)
+                    ->where("clsm", $clsm)
+                    ->where("stid", $user_id)
+                    ->first();
+
+                if ($rinfo) {
+                    $res = $rinfo->stat;
+                }
+            }
+
+            $stdPld[] = [
+                'std' => $std,
+                'sbj' => $mySbjs,
+                'scr' => $scores,
+                'psy' => $psy,
+                'res' => $res,
+                'rinfo' => $rinfo,
             ];
         }
 
-        $psy = false;
-        $res = "0";
-        $rinfo = [];
+        // Remove duplicate subjects
+        $clsSbj = collect($clsSbj)->unique('id')->values();
 
-        if ($stf == "-2") {
-            $psy = student_psy::where("schid", $schid)
-                ->where("ssn", $ssn)
-                ->where("trm", $trm)
-                ->where("clsm", $clsm)
-                ->where("stid", $user_id)
-                ->exists();
-
-            $rinfo = student_res::where("schid", $schid)
-                ->where("ssn", $ssn)
-                ->where("trm", $trm)
-                ->where("clsm", $clsm)
-                ->where("stid", $user_id)
-                ->first();
-
-            if ($rinfo) {
-                $res = $rinfo->stat;
-            }
-        }
-
-        $stdPld[] = [
-            'std' => $std,
-            'sbj' => $mySbjs,
-            'scr' => $scores,
-            'psy' => $psy,
-            'res' => $res,
-            'rinfo' => $rinfo,
+        $pld = [
+            'std-pld' => $stdPld,
+            'cls-sbj' => $clsSbj
         ];
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld,
+        ]);
     }
-
-    // Remove duplicate subjects
-    $clsSbj = collect($clsSbj)->unique('id')->values();
-
-    $pld = [
-        'std-pld' => $stdPld,
-        'cls-sbj' => $clsSbj
-    ];
-
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => $pld,
-    ]);
-}
 
 
 
@@ -25140,210 +25140,219 @@ $ostd = old_student::where("schid", $schid)
 
 
 
-public function getCummulativeBroadsheet($schid, $ssn, $clsm, $clsa)
-{
-    // ✅ Ensure one row per student (avoid duplicates across terms)
-    $students = old_student::where('schid', $schid)
-        ->where('ssn', $ssn)
-        ->where('clsm', $clsm)
-        ->when($clsa != '-1', fn($q) => $q->where('clsa', $clsa))
-        ->selectRaw('MIN(uid) as uid, sid, schid, fname, lname, mname, suid, clsm, clsa')
-        ->groupBy('sid', 'schid', 'fname', 'lname', 'mname', 'suid', 'clsm', 'clsa')
-        ->get();
+    public function getCummulativeBroadsheet($schid, $ssn, $clsm, $clsa)
+    {
+        // ✅ Ensure one row per student (avoid duplicates across terms)
+        $students = old_student::where('schid', $schid)
+            ->where('ssn', $ssn)
+            ->where('clsm', $clsm)
+            ->when($clsa != '-1', fn($q) => $q->where('clsa', $clsa))
+            ->selectRaw('MIN(uid) as uid, sid, schid, fname, lname, mname, suid, clsm, clsa')
+            ->groupBy('sid', 'schid', 'fname', 'lname', 'mname', 'suid', 'clsm', 'clsa')
+            ->get();
 
-    // ✅ Unique student IDs
-    $allClassStudentIds = $students->pluck('sid')->unique()->values();
+        // ✅ Unique student IDs
+        $allClassStudentIds = $students->pluck('sid')->unique()->values();
 
-    // ✅ Class/Arm names
-    $className = cls::where('id', $clsm)->value('name') ?? "CLS-$clsm";
-    $armName = $clsa !== '-1'
-        ? sch_cls::where('cls_id', $clsm)
+        // ✅ Class/Arm names
+        $className = cls::where('id', $clsm)->value('name') ?? "CLS-$clsm";
+        $armName = $clsa !== '-1'
+            ? sch_cls::where('cls_id', $clsm)
             ->where('schid', $schid)
             ->where('id', $clsa)
             ->value('name')
-        : null;
+            : null;
 
-    // ✅ Subjects for class
-    $subjects = class_subj::where('schid', $schid)
-        ->where('clsid', $clsm)
-        ->pluck('subj_id')
-        ->toArray();
-
-    $subjectPositions = [];
-    $subjectAverages = [];
-
-    // ✅ Process each subject
-    foreach ($subjects as $sbj) {
-        $subjectScores = std_score::select(
-            'stid',
-            DB::raw("SUM(CASE WHEN trm = 1 THEN scr ELSE 0 END) as t1"),
-            DB::raw("SUM(CASE WHEN trm = 2 THEN scr ELSE 0 END) as t2"),
-            DB::raw("SUM(CASE WHEN trm = 3 THEN scr ELSE 0 END) as t3")
-        )
-            ->where('schid', $schid)
-            ->where('ssn', $ssn)
+        // ✅ Subjects for class
+        $subjects = class_subj::where('schid', $schid)
             ->where('clsid', $clsm)
-            ->where('sbj', $sbj)
-            ->whereIn('stid', $allClassStudentIds)
-            ->groupBy('stid')
-            ->get()
-            ->map(function ($item) {
-                $total = 0;
-                $count = 0;
-                if ($item->t1 > 0) { $total += $item->t1; $count++; }
-                if ($item->t2 > 0) { $total += $item->t2; $count++; }
-                if ($item->t3 > 0) { $total += $item->t3; $count++; }
-                $avg = $count > 0 ? round($total / $count, 2) : 0;
-                return ['stid' => $item->stid, 'average' => $avg];
-            })
-            ->filter(fn($row) => $row['average'] > 0) // ⛔ remove students with 0.00 avg
-            ->sortByDesc('average')
-            ->values();
+            ->pluck('subj_id')
+            ->toArray();
 
-        // ✅ Ranking
-        $rank = [];
-        $position = 1;
-        $lastAvg = null;
-        $sameRankCount = 0;
+        $subjectPositions = [];
+        $subjectAverages = [];
 
-        foreach ($subjectScores as $row) {
-            if ($row['average'] === $lastAvg) {
-                $sameRankCount++;
+        // ✅ Process each subject
+        foreach ($subjects as $sbj) {
+            $subjectScores = std_score::select(
+                'stid',
+                DB::raw("SUM(CASE WHEN trm = 1 THEN scr ELSE 0 END) as t1"),
+                DB::raw("SUM(CASE WHEN trm = 2 THEN scr ELSE 0 END) as t2"),
+                DB::raw("SUM(CASE WHEN trm = 3 THEN scr ELSE 0 END) as t3")
+            )
+                ->where('schid', $schid)
+                ->where('ssn', $ssn)
+                ->where('clsid', $clsm)
+                ->where('sbj', $sbj)
+                ->whereIn('stid', $allClassStudentIds)
+                ->groupBy('stid')
+                ->get()
+                ->map(function ($item) {
+                    $total = 0;
+                    $count = 0;
+                    if ($item->t1 > 0) {
+                        $total += $item->t1;
+                        $count++;
+                    }
+                    if ($item->t2 > 0) {
+                        $total += $item->t2;
+                        $count++;
+                    }
+                    if ($item->t3 > 0) {
+                        $total += $item->t3;
+                        $count++;
+                    }
+                    $avg = $count > 0 ? round($total / $count, 2) : 0;
+                    return ['stid' => $item->stid, 'average' => $avg];
+                })
+                ->filter(fn($row) => $row['average'] > 0) // ⛔ remove students with 0.00 avg
+                ->sortByDesc('average')
+                ->values();
+
+            // ✅ Ranking
+            $rank = [];
+            $position = 1;
+            $lastAvg = null;
+            $sameRankCount = 0;
+
+            foreach ($subjectScores as $row) {
+                if ($row['average'] === $lastAvg) {
+                    $sameRankCount++;
+                } else {
+                    $position += $sameRankCount;
+                    $sameRankCount = 1;
+                }
+                $rank[$row['stid']] = $position;
+                $lastAvg = $row['average'];
+            }
+
+            foreach ($subjectScores as $row) {
+                $subjectAverages[$row['stid']][$sbj] = $row['average'];
+                $subjectPositions[$row['stid']][$sbj] = $rank[$row['stid']] ?? null;
+            }
+        }
+
+        // ✅ Final averages
+        $finalAverages = [];
+        foreach ($students as $std) {
+            $stid = $std->sid;
+            $subjectsTaken = student_subj::where('stid', $stid)->pluck('sbj')->toArray();
+
+            $total = 0;
+            $count = 0;
+            foreach ($subjectsTaken as $sbj) {
+                $avg = $subjectAverages[$stid][$sbj] ?? 0;
+                if ($avg > 0) {
+                    $total += $avg;
+                    $count++;
+                }
+            }
+
+            if ($count > 0) { // ⛔ Exclude students with no subjects or all zero scores
+                $finalAverages[$stid] = round($total / $count, 2);
+            }
+        }
+
+        // ✅ Overall ranking
+        $overallSorted = collect($finalAverages)->sortDesc();
+        $overallPosition = [];
+        $rank = 1;
+        $last = null;
+        $tieCount = 0;
+
+        foreach ($overallSorted as $stid => $avg) {
+            if ($avg === $last) {
+                $tieCount++;
             } else {
-                $position += $sameRankCount;
-                $sameRankCount = 1;
+                $rank += $tieCount;
+                $tieCount = 1;
             }
-            $rank[$row['stid']] = $position;
-            $lastAvg = $row['average'];
+            $overallPosition[$stid] = $rank;
+            $last = $avg;
         }
 
-        foreach ($subjectScores as $row) {
-            $subjectAverages[$row['stid']][$sbj] = $row['average'];
-            $subjectPositions[$row['stid']][$sbj] = $rank[$row['stid']] ?? null;
-        }
-    }
+        // ✅ Final output
+        $final = [];
 
-    // ✅ Final averages
-    $finalAverages = [];
-    foreach ($students as $std) {
-        $stid = $std->sid;
-        $subjectsTaken = student_subj::where('stid', $stid)->pluck('sbj')->toArray();
+        foreach ($students as $std) {
+            $stid = $std->sid;
 
-        $total = 0;
-        $count = 0;
-        foreach ($subjectsTaken as $sbj) {
-            $avg = $subjectAverages[$stid][$sbj] ?? 0;
-            if ($avg > 0) {
-                $total += $avg;
+            // skip students with no average
+            if (!isset($finalAverages[$stid])) continue;
+
+            $name = strtoupper(trim($std->lname . ' ' . $std->fname));
+            $subjectsTaken = student_subj::where('stid', $stid)->pluck('sbj')->toArray();
+
+            $subjectsInfo = [];
+            $count = 0;
+
+            foreach ($subjectsTaken as $sbj) {
+                $avg = $subjectAverages[$stid][$sbj] ?? 0;
+                if ($avg <= 0) continue;
+
+                $pos = $subjectPositions[$stid][$sbj] ?? null;
                 $count++;
+
+                $subjectsInfo[] = [
+                    'subject_id' => $sbj,
+                    'subject_name' => subj::find($sbj)?->name ?? 'Subject',
+                    'yearly_average' => number_format($avg, 2),
+                    'subject_position' => $pos,
+                ];
             }
-        }
 
-        if ($count > 0) { // ⛔ Exclude students with no subjects or all zero scores
-            $finalAverages[$stid] = round($total / $count, 2);
-        }
-    }
+            // ✅ Psychomotor
+            $psy = student_psy::where('stid', $stid)
+                ->where('schid', $schid)
+                ->where('ssn', $ssn)
+                ->where('trm', 2)
+                ->where('clsm', $clsm)
+                ->when($clsa !== '-1', fn($q) => $q->where('clsa', (int)$clsa))
+                ->first();
 
-    // ✅ Overall ranking
-    $overallSorted = collect($finalAverages)->sortDesc();
-    $overallPosition = [];
-    $rank = 1;
-    $last = null;
-    $tieCount = 0;
+            $psychomotor = $psy ? [
+                'punc' => $psy->punc,
+                'hon'  => $psy->hon,
+                'pol'  => $psy->pol,
+                'neat' => $psy->neat,
+                'pers' => $psy->pers,
+                'rel'  => $psy->rel,
+                'dil'  => $psy->dil,
+                'cre'  => $psy->cre,
+                'pat'  => $psy->pat,
+                'verb' => $psy->verb,
+                'gam'  => $psy->gam,
+                'musc' => $psy->musc,
+                'drw'  => $psy->drw,
+                'wrt'  => $psy->wrt,
+            ] : [];
 
-    foreach ($overallSorted as $stid => $avg) {
-        if ($avg === $last) {
-            $tieCount++;
-        } else {
-            $rank += $tieCount;
-            $tieCount = 1;
-        }
-        $overallPosition[$stid] = $rank;
-        $last = $avg;
-    }
-
-    // ✅ Final output
-    $final = [];
-
-    foreach ($students as $std) {
-        $stid = $std->sid;
-
-        // skip students with no average
-        if (!isset($finalAverages[$stid])) continue;
-
-        $name = strtoupper(trim($std->lname . ' ' . $std->fname));
-        $subjectsTaken = student_subj::where('stid', $stid)->pluck('sbj')->toArray();
-
-        $subjectsInfo = [];
-        $count = 0;
-
-        foreach ($subjectsTaken as $sbj) {
-            $avg = $subjectAverages[$stid][$sbj] ?? 0;
-            if ($avg <= 0) continue;
-
-            $pos = $subjectPositions[$stid][$sbj] ?? null;
-            $count++;
-
-            $subjectsInfo[] = [
-                'subject_id' => $sbj,
-                'subject_name' => subj::find($sbj)?->name ?? 'Subject',
-                'yearly_average' => number_format($avg, 2),
-                'subject_position' => $pos,
+            $finalAvg = $finalAverages[$stid] ?? 0;
+            $final[] = [
+                'uid' => $std->uid,
+                'sid' => $stid,
+                'name' => $name,
+                'learner_id' => $std->suid ?? $std->sid,
+                'class_name' => $className,
+                'class_arm_name' => $armName ?? 'N/A',
+                'clsm' => $clsm,
+                'clsa' => $clsa,
+                'final_average' => number_format($finalAvg, 2),
+                'overall_position' => $overallPosition[$stid] ?? null,
+                'no_of_subjects' => $count,
+                'subjects' => $subjectsInfo,
+                'psychomotor' => $psychomotor
             ];
         }
 
-        // ✅ Psychomotor
-        $psy = student_psy::where('stid', $stid)
-            ->where('schid', $schid)
-            ->where('ssn', $ssn)
-            ->where('trm', 2)
-            ->where('clsm', $clsm)
-            ->when($clsa !== '-1', fn($q) => $q->where('clsa', (int)$clsa))
-            ->first();
+        $final = collect($final)->sortBy('overall_position')->values()->all();
 
-        $psychomotor = $psy ? [
-            'punc' => $psy->punc,
-            'hon'  => $psy->hon,
-            'pol'  => $psy->pol,
-            'neat' => $psy->neat,
-            'pers' => $psy->pers,
-            'rel'  => $psy->rel,
-            'dil'  => $psy->dil,
-            'cre'  => $psy->cre,
-            'pat'  => $psy->pat,
-            'verb' => $psy->verb,
-            'gam'  => $psy->gam,
-            'musc' => $psy->musc,
-            'drw'  => $psy->drw,
-            'wrt'  => $psy->wrt,
-        ] : [];
-
-        $finalAvg = $finalAverages[$stid] ?? 0;
-        $final[] = [
-            'uid' => $std->uid,
-            'sid' => $stid,
-            'name' => $name,
-            'learner_id' => $std->suid ?? $std->sid,
-            'class_name' => $className,
-            'class_arm_name' => $armName ?? 'N/A',
-            'clsm' => $clsm,
-            'clsa' => $clsa,
-            'final_average' => number_format($finalAvg, 2),
-            'overall_position' => $overallPosition[$stid] ?? null,
-            'no_of_subjects' => $count,
-            'subjects' => $subjectsInfo,
-            'psychomotor' => $psychomotor
-        ];
+        return response()->json([
+            'status' => true,
+            'message' => 'Success',
+            'pld' => $final
+        ]);
     }
-
-    $final = collect($final)->sortBy('overall_position')->values()->all();
-
-    return response()->json([
-        'status' => true,
-        'message' => 'Success',
-        'pld' => $final
-    ]);
-}
 
 
 
@@ -28338,76 +28347,67 @@ public function getCummulativeBroadsheet($schid, $ssn, $clsm, $clsa)
      * )
      */
 
-public function getExternalExpendituresByAdmin($ssn, $trm)
-{
-    $baseQuery = ext_expenditure::query()
-        ->join('school', 'ext_expenditure.schid', '=', 'school.sid');
+    public function getExternalExpendituresByAdmin($ssn, $trm)
+    {
+        $baseQuery = ext_expenditure::query()
+            ->join('school', 'ext_expenditure.schid', '=', 'school.sid');
 
-    // Filters
-    if ($ssn !== '0') {
-        $baseQuery->where('ext_expenditure.ssn', $ssn);
+        // Apply filters
+        if ($ssn !== '0') {
+            $baseQuery->where('ext_expenditure.ssn', $ssn);
+        }
+
+        if ($trm !== '0') {
+            $baseQuery->where('ext_expenditure.trm', $trm);
+        }
+
+        // 1. Total expenditure per school (include sch3)
+        $schools = (clone $baseQuery)
+            ->select(
+                'ext_expenditure.schid',
+                'school.name as school_name',
+                'school.sch3',
+                \DB::raw('SUM(ext_expenditure.unit * ext_expenditure.qty) as total_expenditure')
+            )
+            ->groupBy('ext_expenditure.schid', 'school.name', 'school.sch3')
+            ->orderBy('school.name', 'asc')
+            ->get();
+
+        // 2. Expenditure details (name/vendor/item per school)
+        $expenditures = (clone $baseQuery)
+            ->select(
+                'ext_expenditure.schid',
+                'ext_expenditure.name as expenditure_name',
+                'ext_expenditure.vendor',
+                'ext_expenditure.item',
+                \DB::raw('SUM(ext_expenditure.unit * ext_expenditure.qty) as amount')
+            )
+            ->groupBy('ext_expenditure.schid', 'ext_expenditure.name', 'ext_expenditure.vendor', 'ext_expenditure.item')
+            ->get();
+
+        // 3. Attach breakdown + generate school_id
+        $serial = 1; // global counter
+
+        $result = $schools->map(function ($school) use ($expenditures, &$serial) {
+            $schoolExpenditures = $expenditures->where('schid', $school->schid)->values();
+
+            return [
+                // e.g. AMS/0001 instead of AMB0001
+                'school_id'        => $school->sch3 . '/' . str_pad($serial++, 4, '0', STR_PAD_LEFT),
+                'schid'            => $school->schid,
+                'school_name'      => $school->school_name,
+                'sch3'             => $school->sch3,
+                'total_expenditure' => $school->total_expenditure,
+                'expenditures'     => $schoolExpenditures,
+            ];
+        });
+
+        return response()->json([
+            "status"  => true,
+            "message" => "Success",
+            "pld"     => $result,
+        ]);
     }
-
-    if ($trm !== '0') {
-        $baseQuery->where('ext_expenditure.trm', $trm);
-    }
-
-    // ✅ Overall total count (all matching records before grouping)
-    $totalRecords = (clone $baseQuery)->count();
-
-    // 1. Total expenditure + record count per school
-    $schools = (clone $baseQuery)
-        ->select(
-            'ext_expenditure.schid',
-            'school.name as school_name',
-            'school.sch3',
-            \DB::raw('SUM(ext_expenditure.unit * ext_expenditure.qty) as total_expenditure'),
-            \DB::raw('COUNT(ext_expenditure.id) as record_count')
-        )
-        ->groupBy('ext_expenditure.schid', 'school.name', 'school.sch3')
-        ->orderBy('school.name', 'asc')
-        ->get();
-
-    // 2. Expenditure details (name/vendor/item per school)
-    $expenditures = (clone $baseQuery)
-        ->select(
-            'ext_expenditure.schid',
-            'ext_expenditure.name as expenditure_name',
-            'ext_expenditure.vendor',
-            'ext_expenditure.item',
-            \DB::raw('SUM(ext_expenditure.unit * ext_expenditure.qty) as amount')
-        )
-        ->groupBy('ext_expenditure.schid', 'ext_expenditure.name', 'ext_expenditure.vendor', 'ext_expenditure.item')
-        ->get();
-
-    // 3. Attach breakdown + generate school_id
-    $serial = 1;
-    $result = $schools->map(function ($school) use ($expenditures, &$serial) {
-        $schoolExpenditures = $expenditures->where('schid', $school->schid)->values();
-
-        return [
-            'school_id' => $school->sch3 . '/' . str_pad($serial++, 4, '0', STR_PAD_LEFT),
-            'schid' => $school->schid,
-            'school_name' => $school->school_name,
-            'sch3' => $school->sch3,
-            'total_expenditure' => $school->total_expenditure,
-            'record_count' => $school->record_count,
-            'expenditures' => $schoolExpenditures,
-        ];
-    });
-
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => [
-            "total_count" => $totalRecords, // ✅ overall count inside pld
-            "schools" => $result            // ✅ keep school-level results grouped here
-        ]
-    ]);
-}
-
-
-
 
 
 
@@ -28534,73 +28534,72 @@ public function getExternalExpendituresByAdmin($ssn, $trm)
     // }
 
 
-public function getInternalExpendituresByAdmin($ssn, $trm)
-{
-    $baseQuery = in_expenditure::query()
-        ->join('school', 'in_expenditure.schid', '=', 'school.sid');
+    public function getInternalExpendituresByAdmin($ssn, $trm)
+    {
+        $baseQuery = in_expenditure::query()
+            ->join('school', 'in_expenditure.schid', '=', 'school.sid');
 
-    // Apply filters
-    if ($ssn !== '0') {
-        $baseQuery->where('in_expenditure.ssn', $ssn);
+        // Apply filters
+        if ($ssn !== '0') {
+            $baseQuery->where('in_expenditure.ssn', $ssn);
+        }
+        if ($trm !== '0') {
+            $baseQuery->where('in_expenditure.trm', $trm);
+        }
+
+        // 1. Get total expenditure per school (including sch3)
+        $schools = (clone $baseQuery)
+            ->select(
+                'in_expenditure.schid',
+                'school.sid',
+                'school.name as school_name',
+                'school.sch3',
+                \DB::raw('SUM(in_expenditure.amt) as total_expenditure')
+            )
+            ->groupBy(
+                'in_expenditure.schid',
+                'school.sid',
+                'school.name',
+                'school.sch3'
+            )
+            ->orderBy('school.name', 'asc')
+            ->get();
+
+        // 2. Get breakdown (expenditure name + amount per school)
+        $expenditures = (clone $baseQuery)
+            ->select(
+                'in_expenditure.schid',
+                'in_expenditure.purp as expenditure_name',
+                \DB::raw('SUM(in_expenditure.amt) as amount')
+            )
+            ->groupBy('in_expenditure.schid', 'in_expenditure.purp')
+            ->get();
+
+        // 3. Attach breakdown + generate school_id
+        $serial = 1; // global counter
+
+        $result = $schools->map(function ($school) use ($expenditures, &$serial) {
+            $schoolExpenditures = $expenditures
+                ->where('schid', $school->schid)
+                ->values();
+
+            return [
+                // e.g. AMS/0001 instead of AMB0001
+                'school_id'        => $school->sch3 . '/' . str_pad($serial++, 4, '0', STR_PAD_LEFT),
+                'schid'            => $school->schid,
+                'school_name'      => $school->school_name,
+                'sch3'             => $school->sch3,
+                'total_expenditure' => $school->total_expenditure,
+                'expenditures'     => $schoolExpenditures,
+            ];
+        });
+
+        return response()->json([
+            "status"  => true,
+            "message" => "Success",
+            "pld"     => $result,
+        ]);
     }
-
-    if ($trm !== '0') {
-        $baseQuery->where('in_expenditure.trm', $trm);
-    }
-
-    // ✅ Get overall total count of all records
-    $totalRecords = (clone $baseQuery)->count();
-
-    // 1. Get total expenditure + record count per school
-    $schools = (clone $baseQuery)
-        ->select(
-            'in_expenditure.schid',
-            'school.sid',
-            'school.name as school_name',
-            'school.sch3',
-            \DB::raw('SUM(in_expenditure.amt) as total_expenditure'),
-            \DB::raw('COUNT(in_expenditure.id) as record_count')
-        )
-        ->groupBy('in_expenditure.schid', 'school.sid', 'school.name', 'school.sch3')
-        ->orderBy('school.name', 'asc')
-        ->get();
-
-    // 2. Get expenditure breakdown per school
-    $expenditures = (clone $baseQuery)
-        ->select(
-            'in_expenditure.schid',
-            'in_expenditure.purp as expenditure_name',
-            \DB::raw('SUM(in_expenditure.amt) as amount')
-        )
-        ->groupBy('in_expenditure.schid', 'in_expenditure.purp')
-        ->get();
-
-    // 3. Attach breakdown + generate school_id
-    $serial = 1;
-    $result = $schools->map(function ($school) use ($expenditures, &$serial) {
-        $schoolExpenditures = $expenditures->where('schid', $school->schid)->values();
-
-        return [
-            'school_id' => $school->sch3 . '/' . str_pad($serial++, 4, '0', STR_PAD_LEFT),
-            'schid' => $school->schid,
-            'school_name' => $school->school_name,
-            'sch3' => $school->sch3,
-            'total_expenditure' => $school->total_expenditure,
-            'record_count' => $school->record_count,
-            'expenditures' => $schoolExpenditures,
-        ];
-    });
-
-    // ✅ Include both overall total and per-school data inside pld
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => [
-            "total_count" => $totalRecords,
-            "schools" => $result
-        ],
-    ]);
-}
 
 
 
@@ -28812,7 +28811,7 @@ public function getInternalExpendituresByAdmin($ssn, $trm)
     }
 
 
-        /**
+    /**
      * @OA\Get(
      *     path="/api/getExternalExpenditureStatByAdmin/{ssn}/{trm}",
      *     tags={"Accounting"},
@@ -28860,7 +28859,7 @@ public function getInternalExpendituresByAdmin($ssn, $trm)
 
 
 
-        /**
+    /**
      * @OA\Get(
      *     path="/api/getExternalExpendituresByFilterByAdmin/{ssn}/{trm}",
      *     tags={"Accounting"},
@@ -28992,6 +28991,71 @@ public function getInternalExpendituresByAdmin($ssn, $trm)
             "status" => true,
             "message" => "Success",
             "pld" => $pld,
+        ]);
+    }
+
+
+    /**
+ * @OA\Get(
+ *     path="/api/getInternalExpenditureStatByAdmin/{ssn}/{trm}",
+ *     summary="Get internal expenditure statistics by admin",
+ *     description="Fetch the total number of internal expenditure records, optionally filtered by session (ssn) and term (trm).",
+ *     operationId="getInternalExpenditureStatByAdmin",
+ *     tags={"Accounting"},
+ *    security={{"bearerAuth":{}}},
+ *
+ *     @OA\Parameter(
+ *         name="ssn",
+ *         in="path",
+ *         required=true,
+ *         description="Session ID (use 0 to fetch for all sessions)",
+ *         @OA\Schema(type="string", example="2024")
+ *     ),
+ *     @OA\Parameter(
+ *         name="trm",
+ *         in="path",
+ *         required=true,
+ *         description="Term ID (use 0 to fetch for all terms)",
+ *         @OA\Schema(type="string", example="1")
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful response",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="object",
+ *                 @OA\Property(property="total", type="integer", example=45)
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=400,
+ *         description="Invalid request"
+ *     )
+ * )
+ */
+
+        public function getInternalExpenditureStatByAdmin($ssn, $trm)
+    {
+        $query = in_expenditure::query();
+        if ($ssn !== '0') {
+            $query->where('ssn', $ssn);
+        }
+        if ($trm !== '0') {
+            $query->where('trm', $trm);
+        }
+        $total = $query->count();
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => [
+                "total" => $total,
+            ],
         ]);
     }
 
