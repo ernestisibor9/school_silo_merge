@@ -28807,26 +28807,28 @@ public function getSchoolCounts()
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-        public function getExternalExpenditureStatByAdmin($ssn, $trm)
-    {
-        $query = ext_expenditure::query();
-        if ($ssn !== '0') {
-            $query->where('ssn', $ssn);
-        }
-        if ($trm !== '0') {
-            $query->where('trm', $trm);
-        }
-        $total = $query->count();
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => [
-                "total" => $total,
-            ],
-        ]);
+public function getExternalExpenditureStatByAdmin($ssn, $trm)
+{
+    $query = ext_expenditure::query();
+
+    if ($ssn !== '0') {
+        $query->where('ssn', $ssn);
+    }
+    if ($trm !== '0') {
+        $query->where('trm', $trm);
     }
 
+    // Count distinct schools
+    $total = $query->distinct('schid')->count('schid');
 
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => [
+            "total" => $total,
+        ],
+    ]);
+}
 
 
 
@@ -29011,25 +29013,28 @@ public function getSchoolCounts()
  * )
  */
 
-        public function getInternalExpenditureStatByAdmin($ssn, $trm)
-    {
-        $query = in_expenditure::query();
-        if ($ssn !== '0') {
-            $query->where('ssn', $ssn);
-        }
-        if ($trm !== '0') {
-            $query->where('trm', $trm);
-        }
-        $total = $query->count();
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => [
-                "total" => $total,
-            ],
-        ]);
+public function getInternalExpenditureStatByAdmin($ssn, $trm)
+{
+    $query = in_expenditure::query();
+
+    if ($ssn !== '0') {
+        $query->where('ssn', $ssn);
+    }
+    if ($trm !== '0') {
+        $query->where('trm', $trm);
     }
 
+    // Count distinct schools (schid)
+    $total = $query->distinct('schid')->count('schid');
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => [
+            "total" => $total,
+        ],
+    ]);
+}
 
 
 
