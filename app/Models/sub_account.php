@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class sub_account extends Model
 {
     use HasFactory;
-    
+
     protected $guarded = [];
-    
+
 }

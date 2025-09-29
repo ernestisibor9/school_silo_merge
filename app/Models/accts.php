@@ -8,12 +8,12 @@ class accts extends Model
 {
     protected $table = 'accts';
     protected $fillable = [
-        'schid','clsid','anum','bnk','aname'
+        'schid','clsid','anum','bnk','aname', 'pay_head_id'
     ];
     /*protected $hidden = [
         'password',
     ];*/
-    
+
         public function subAccounts()
     {
         return $this->hasMany(sub_account::class, 'acct_id', 'id');
