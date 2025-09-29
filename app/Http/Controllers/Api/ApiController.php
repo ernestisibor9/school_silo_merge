@@ -29116,4 +29116,139 @@ public function resetDefaultPasswordAdmin(Request $request)
 }
 
 
+
+
+/**
+ * @OA\Get(
+ *     path="/api/getAllClasses",
+ *     tags={"Api"},
+ *   security={{"bearerAuth":{}}},
+ *     summary="Fetch all classes",
+ *     description="Returns a list of all available classes ordered by ID",
+ *     @OA\Response(
+ *         response=200,
+ *         description="Classes fetched successfully",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Classes fetched successfully"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(property="id", type="integer", example=1),
+ *                     @OA\Property(property="name", type="string", example="Kg")
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=500,
+ *         description="Error fetching classes",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="Error fetching classes"),
+ *             @OA\Property(property="error", type="string", example="SQLSTATE[42S02]: Base table or view not found: 1146 Table 'school.cls' doesn't exist")
+ *         )
+ *     )
+ * )
+ */
+public function getAllClasses()
+{
+    try {
+        $classes = cls::orderBy('id', 'asc')->get(['id', 'name']);
+
+        return response()->json([
+            "status" => true,
+            "message" => "Classes fetched successfully",
+            "pld" => $classes
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            "status" => false,
+            "message" => "Error fetching classes",
+            "error" => $e->getMessage()
+        ], 500);
+    }
+}
+
+
+
+
+/**
+ * @OA\Get(
+ *     path="/api/getClassesBySchool/{schid}",
+ *     summary="Get all classes by school",
+ *     description="Fetches all classes assigned to a given school ID (schid).",
+ *     tags={"Api"},
+ *   security={{"bearerAuth":{}}},
+ *
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="path",
+ *         required=true,
+ *         description="School ID",
+ *         @OA\Schema(type="integer", example=12)
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Classes fetched successfully",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Classes fetched successfully"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     @OA\Property(property="id", type="integer", example=11),
+ *                     @OA\Property(property="name", type="string", example="JSS 1"),
+ *                     @OA\Property(property="schid", type="integer", example=12)
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=500,
+ *         description="Error fetching classes",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="Error fetching classes"),
+ *             @OA\Property(property="error", type="string", example="SQLSTATE[HY000]: General error ...")
+ *         )
+ *     )
+ * )
+ */
+
+public function getClassesBySchool($schid)
+{
+    try {
+        $classes = \DB::table('school_class')
+            ->join('cls', 'school_class.clsid', '=', 'cls.id')
+            ->where('school_class.schid', $schid)
+            ->orderBy('cls.id', 'asc')
+            ->get([
+                'cls.id',
+                'cls.name',
+                'school_class.schid'
+            ]);
+
+        return response()->json([
+            "status" => true,
+            "message" => "Classes fetched successfully",
+            "pld" => $classes
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            "status" => false,
+            "message" => "Error fetching classes",
+            "error" => $e->getMessage()
+        ], 500);
+    }
+}
+
+
 }

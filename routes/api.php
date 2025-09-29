@@ -299,10 +299,14 @@ Route::group([
 
     Route::get('getExternalExpendituresByFilterByAdmin/{ssn}/{trm}', [ApiController::class, 'getExternalExpendituresByFilterByAdmin']);
 
+    Route::get('getAllClasses', [ApiController::class, 'getAllClasses']);
+
+    Route::get('getClassesBySchool/{schid}', [ApiController::class, 'getClassesBySchool']);
+
 
     Route::get('getExternalExpenditureStatByAdmin/{ssn}/{trm}', [ApiController::class, 'getExternalExpenditureStatByAdmin']);
 
-        Route::get('getInternalExpenditureStatByAdmin/{ssn}/{trm}', [ApiController::class, 'getInternalExpenditureStatByAdmin']);
+    Route::get('getInternalExpenditureStatByAdmin/{ssn}/{trm}', [ApiController::class, 'getInternalExpenditureStatByAdmin']);
 
     Route::get('getOldStaffInfo/{uid}', [ApiController::class, 'getOldStaffInfo']);
     Route::get('getOldStaffStat/{schid}/{ssn}/{trm}/{clsm}/{role}', [ApiController::class, 'getOldStaffStat']);
