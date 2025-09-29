@@ -27646,102 +27646,72 @@ class ApiController extends Controller
      * )
      */
 
-    public function getSchoolCounts()
-    {
-        // List of secondary classes
-        $secondaryClasses = [
-            'JSS 1',
-            'JSS 2',
-            'JSS 3',
-            'SSS 1',
-            'SSS 2',
-            'SSS 3',
-            'BASIC 7',
-            'BASIC 8',
-            'BASIC 9',
-            'YEAR 7',
-            'YEAR 8',
-            'YEAR 9',
-            'YEAR 10',
-            'YEAR 11',
-            'YEAR 12',
-            'JSS 3 PR',
-            'SSS 2 PW',
-            'SSS 3 MOCK',
-            'TAHFEEZ UPPER CLASS'
-        ];
+public function getSchoolCounts()
+{
+    // List of secondary classes
+    $secondaryClasses = [
+        'JSS 1','JSS 2','JSS 3','SSS 1','SSS 2','SSS 3',
+        'BASIC 7','BASIC 8','BASIC 9',
+        'YEAR 7','YEAR 8','YEAR 9','YEAR 10','YEAR 11','YEAR 12',
+        'JSS 3 PR','SSS 2 PW','SSS 3 MOCK','TAHFEEZ UPPER CLASS'
+    ];
 
-        // List of nursery/primary classes
-        $nurseryClasses = [
-            'Kg',
-            'NUR 1',
-            'NUR 2',
-            'NUR 3',
-            'PRI 1',
-            'PRI 2',
-            'PRI 3',
-            'PRI 4',
-            'PRI 5',
-            'PRI 6',
-            'BASIC 1',
-            'BASIC 2',
-            'BASIC 3',
-            'BASIC 4',
-            'BASIC 5',
-            'BASIC 6',
-            'PRE-BASIC',
-            'PRE-PRIMARY',
-            'CRECHE',
-            'PRE-NURSERY',
-            'SPECIAL PRE-NURSERY',
-            'NURSERY 1',
-            'NURSERY 2',
-            'NURSERY 3 / PRE-PRIMARY',
-            'ECCD 1',
-            'ECCD 2',
-            'PRIMARY 1',
-            'PRIMARY 2',
-            'PRIMARY 3',
-            'PRIMARY 4',
-            'PRIMARY 5',
-            'PRIMARY 6',
-            'YEAR 1',
-            'YEAR 2',
-            'YEAR 3',
-            'YEAR 4',
-            'YEAR 5',
-            'YEAR 6',
-            'TAHFEEZ LOWER CLASS'
-        ];
+    // List of nursery/primary classes
+    $nurseryClasses = [
+        'Kg','NUR 1','NUR 2','NUR 3',
+        'PRI 1','PRI 2','PRI 3','PRI 4','PRI 5','PRI 6',
+        'BASIC 1','BASIC 2','BASIC 3','BASIC 4','BASIC 5','BASIC 6',
+        'PRE-BASIC','PRE-PRIMARY','CRECHE','PRE-NURSERY','SPECIAL PRE-NURSERY',
+        'NURSERY 1','NURSERY 2','NURSERY 3 / PRE-PRIMARY',
+        'ECCD 1','ECCD 2',
+        'PRIMARY 1','PRIMARY 2','PRIMARY 3','PRIMARY 4','PRIMARY 5','PRIMARY 6',
+        'YEAR 1','YEAR 2','YEAR 3','YEAR 4','YEAR 5','YEAR 6',
+        'TAHFEEZ LOWER CLASS'
+    ];
 
-        // Get IDs of secondary classes
-        $secondaryClsIds = cls::whereIn('name', $secondaryClasses)->pluck('id');
+    // Get IDs of secondary classes
+    $secondaryClsIds = cls::whereIn('name', $secondaryClasses)->pluck('id');
 
-        // Get IDs of nursery/primary classes
-        $nurseryClsIds = cls::whereIn('name', $nurseryClasses)->pluck('id');
+    // Get IDs of nursery/primary classes
+    $nurseryClsIds = cls::whereIn('name', $nurseryClasses)->pluck('id');
 
-        // Count secondary schools
-        $secondarySchools = school_class::whereIn('clsid', $secondaryClsIds)
-            ->distinct('schid')
-            ->count('schid');
+    // Get all schools
+    $allSchoolIds = school_class::distinct()->pluck('schid');
 
-        // Count nursery/primary schools
-        $nurserySchools = school_class::whereIn('clsid', $nurseryClsIds)
-            ->distinct('schid')
-            ->count('schid');
+    $secondarySchools = 0;
+    $nurserySchools = 0;
 
-        // Count all schools
-        $totalSchools = school_class::distinct('schid')->count('schid');
+    foreach ($allSchoolIds as $schid) {
+        // If school has at least one secondary class → count it
+        $hasSecondary = school_class::where('schid', $schid)
+            ->whereIn('clsid', $secondaryClsIds)
+            ->exists();
 
-        return response()->json([
-            'status' => true,
-            'pld' => [
-                'total_schools'     => $totalSchools,
-                'secondary_schools' => $secondarySchools,
-                'nursery_schools'   => $nurserySchools,
-            ]
-        ]);
+        if ($hasSecondary) {
+            $secondarySchools++;
+        }
+
+        // If school has at least one nursery/primary class → count it
+        $hasNursery = school_class::where('schid', $schid)
+            ->whereIn('clsid', $nurseryClsIds)
+            ->exists();
+
+        if ($hasNursery) {
+            $nurserySchools++;
+        }
     }
+
+    $totalSchools = $secondarySchools + $nurserySchools;
+
+    return response()->json([
+        'status' => true,
+        'pld' => [
+            'total_schools'     => $totalSchools,
+            'secondary_schools' => $secondarySchools,
+            'nursery_schools'   => $nurserySchools,
+        ]
+    ]);
+}
 
 
 
@@ -28836,7 +28806,7 @@ class ApiController extends Controller
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    public function getExternalExpenditureStatByAdmin($ssn, $trm)
+        public function getExternalExpenditureStatByAdmin($ssn, $trm)
     {
         $query = ext_expenditure::query();
         if ($ssn !== '0') {
@@ -29058,6 +29028,86 @@ class ApiController extends Controller
             ],
         ]);
     }
+
+
+
+
+
+/**
+ * @OA\Post(
+ *     path="/api/resetDefaultPasswordAdmin",
+ *     summary="Reset school user's password to default",
+ *     description="Resets the password of the user account linked to a specific school. The new default password will be '123456'.",
+ *     tags={"Admin"},
+ *    security={{"bearerAuth":{}}},
+ *
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             required={"schid"},
+ *             @OA\Property(
+ *                 property="schid",
+ *                 type="integer",
+ *                 example=12,
+ *                 description="The ID of the school (sid in the school table)"
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Password reset successfully",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Password for school 'HOLY GHOST COLLEGE' has been reset to default (123456).")
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=404,
+ *         description="School not found or no user account exists",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="School not found.")
+ *         )
+ *     )
+ * )
+ */
+public function resetDefaultPasswordAdmin(Request $request)
+{
+    // Validate request
+    $request->validate([
+        "schid" => "required|integer", // school id
+    ]);
+
+    // Find the school first
+    $school = school::where("sid", $request->schid)->first();
+    if (!$school) {
+        return response()->json([
+            "status" => false,
+            "message" => "School not found.",
+        ], 404);
+    }
+
+    // Find the user linked to this school
+    $user = User::where("id", $school->sid)->first();
+
+    if ($user) {
+        $user->update([
+            "password" => bcrypt("123456"),
+        ]);
+
+        return response()->json([
+            "status" => true,
+            "message" => "Password for school '{$school->name}' has been reset to default (123456)."
+        ]);
+    }
+
+    return response()->json([
+        "status" => false,
+        "message" => "No user account found for this school.",
+    ], 404);
+}
 
 
 }

@@ -24008,6 +24008,83 @@
                     }
                 ]
             }
+        },
+        "/api/resetDefaultPasswordAdmin": {
+            "post": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Reset school user's password to default",
+                "description": "Resets the password of the user account linked to a specific school. The new default password will be '123456'.",
+                "operationId": "286e4c3c120ea0cd5cb52f305219f12e",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "schid"
+                                ],
+                                "properties": {
+                                    "schid": {
+                                        "description": "The ID of the school (sid in the school table)",
+                                        "type": "integer",
+                                        "example": 12
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Password reset successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Password for school 'HOLY GHOST COLLEGE' has been reset to default (123456)."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "School not found or no user account exists",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "School not found."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
