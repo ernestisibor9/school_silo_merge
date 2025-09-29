@@ -140,12 +140,12 @@ class ApiController extends Controller
      * )
      */
 
+
     public function registerSchool(Request $request)
     {
         //Data validation
         $request->validate([
-            // "email" => "required|email|unique:users,email",
-            "email" => "required|email",
+            "email" => "required|email|unique:users,email",
             "password" => "required",
             "name" => "required",
             "sbd" => "required",
