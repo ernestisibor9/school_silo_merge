@@ -145,7 +145,7 @@ class ApiController extends Controller
         //Data validation
         $request->validate([
             // "email" => "required|email|unique:users,email",
-            "email" => "required|email|unique:users,email,NULL,id,deleted_at,NULL",
+        "email" => "required|email|unique:users,email,NULL,id,deleted_at,NULL",
             "password" => "required",
             "name" => "required",
             "sbd" => "required",
@@ -213,7 +213,6 @@ class ApiController extends Controller
                 "token" => $token,
             ]);
         }
-        Log::info('Duplicate found:', ['usr' => $usr]);
         return response()->json([
             "status" => false,
             "message" => "Account already exists",
