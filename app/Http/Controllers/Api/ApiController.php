@@ -13604,91 +13604,188 @@ $host = preg_replace('/^api\./', '', $request->getHost());
 
 
     //Paystack Webhook (POST, formdata)
-    public function paystackConf(Request $request)
-    {
-        Log::info('------------ARRIVED-----------');
-        $payload = json_decode($request->input('payload'), true);
-        if ($payload['event'] == "charge.success") {
-            $ref = $payload['data']['reference'];
-            $pld = payment_refs::where("ref", "=", $ref)->first();
-            if (!$pld) { // Its unique
-                $payinfo = explode('-', $ref);
-                $amt = $payinfo[2];
-                $schid = $payinfo[1];
-                $typ = $payinfo[3];
-                $stid = $payinfo[4];
-                $ssnid = $payinfo[5];
-                $trmid = $payinfo[6];
-                $clsid = $payinfo[7];
-                $nm = $payload['data']['metadata']['name'];
-                $tm = $payload['data']['metadata']['time'];
-                $exp = $payload['data']['metadata']['exp'];
-                $eml = $payload['data']['metadata']['eml'];
-                $lid = $payload['data']['metadata']['lid'];
+    // public function paystackConf(Request $request)
+    // {
+    //     Log::info('------------ARRIVED-----------');
+    //     $payload = json_decode($request->input('payload'), true);
+    //     if ($payload['event'] == "charge.success") {
+    //         $ref = $payload['data']['reference'];
+    //         $pld = payment_refs::where("ref", "=", $ref)->first();
+    //         if (!$pld) { // Its unique
+    //             $payinfo = explode('-', $ref);
+    //             $amt = $payinfo[2];
+    //             $schid = $payinfo[1];
+    //             $typ = $payinfo[3];
+    //             $stid = $payinfo[4];
+    //             $ssnid = $payinfo[5];
+    //             $trmid = $payinfo[6];
+    //             $clsid = $payinfo[7];
+    //             $nm = $payload['data']['metadata']['name'];
+    //             $tm = $payload['data']['metadata']['time'];
+    //             $exp = $payload['data']['metadata']['exp'];
+    //             $eml = $payload['data']['metadata']['eml'];
+    //             $lid = $payload['data']['metadata']['lid'];
 
-                $what = '';
-                if ($typ == '0') { //School-Student Payment
-                    payments::create([
-                        'schid' => $schid,
-                        'stid' => $stid,
-                        'ssnid' => $ssnid,
-                        'trmid' => $trmid,
-                        'clsid' => $clsid,
-                        'name' => $nm,
-                        'exp' => $exp,
-                        'amt' => $amt,
-                        'lid' => $lid,
-                    ]);
-                    $what = 'School Fees';
-                }
-                if ($typ == '1') { //Application Fee Paid
-                    //WARN: ClassID will be a placeholder in this case, so dont use it
-                    student::where('sid', $stid)->update([
-                        "rfee" => '1'
-                    ]);
-                    $what = 'Application Fee';
-                }
-                if ($typ == '2') { //Acceptance Fee Paid
-                    $uid = $stid . $schid . $clsid;
-                    afeerec::updateOrCreate(
-                        ["uid" => $uid,],
-                        [
-                            "stid" => $stid,
-                            "schid" => $schid,
-                            "clsid" => $clsid,
-                            "amt" => intval($amt),
-                        ]
-                    );
-                    $what = 'Acceptance Fee';
-                }
-                // Wrap the email sending logic in a try-catch block
-                try {
-                    $data = [
-                        'name' => $nm,
-                        'subject' => 'Payment Received',
-                        'body' => 'Your ' . $what . ' payment was received',
-                        'link' => env('PORTAL_URL') . '/studentLogin' . '/' . $schid,
-                    ];
-                    Mail::to($eml)->send(new SSSMails($data));
-                } catch (\Exception $e) {
-                    // Log the email error, but don't stop the process
-                    Log::error('Failed to send email: ' . $e->getMessage());
-                }
+    //             $what = '';
+    //             if ($typ == '0') { //School-Student Payment
+    //                 payments::create([
+    //                     'schid' => $schid,
+    //                     'stid' => $stid,
+    //                     'ssnid' => $ssnid,
+    //                     'trmid' => $trmid,
+    //                     'clsid' => $clsid,
+    //                     'name' => $nm,
+    //                     'exp' => $exp,
+    //                     'amt' => $amt,
+    //                     'lid' => $lid,
+    //                 ]);
+    //                 $what = 'School Fees';
+    //             }
+    //             if ($typ == '1') { //Application Fee Paid
+    //                 //WARN: ClassID will be a placeholder in this case, so dont use it
+    //                 student::where('sid', $stid)->update([
+    //                     "rfee" => '1'
+    //                 ]);
+    //                 $what = 'Application Fee';
+    //             }
+    //             if ($typ == '2') { //Acceptance Fee Paid
+    //                 $uid = $stid . $schid . $clsid;
+    //                 afeerec::updateOrCreate(
+    //                     ["uid" => $uid,],
+    //                     [
+    //                         "stid" => $stid,
+    //                         "schid" => $schid,
+    //                         "clsid" => $clsid,
+    //                         "amt" => intval($amt),
+    //                     ]
+    //                 );
+    //                 $what = 'Acceptance Fee';
+    //             }
+    //             // Wrap the email sending logic in a try-catch block
+    //             try {
+    //                 $data = [
+    //                     'name' => $nm,
+    //                     'subject' => 'Payment Received',
+    //                     'body' => 'Your ' . $what . ' payment was received',
+    //                     'link' => env('PORTAL_URL') . '/studentLogin' . '/' . $schid,
+    //                 ];
+    //                 Mail::to($eml)->send(new SSSMails($data));
+    //             } catch (\Exception $e) {
+    //                 // Log the email error, but don't stop the process
+    //                 Log::error('Failed to send email: ' . $e->getMessage());
+    //             }
 
-                payment_refs::create([
-                    "ref" => $ref,
-                    "amt" => $amt,
-                    "time" => $tm,
+    //             payment_refs::create([
+    //                 "ref" => $ref,
+    //                 "amt" => $amt,
+    //                 "time" => $tm,
+    //             ]);
+    //             Log::info('SUCCESS');
+    //         } else {
+    //             Log::info('PLD EXISTS' . json_encode($pld));
+    //         }
+    //     } else {
+    //         Log::info('EVENTS BAD ' . $payload['event']);
+    //     }
+    //     return response()->json(['status' => 'success'], 200);
+    // }
+
+
+public function paystackConf(Request $request)
+{
+    Log::info('------------ARRIVED-----------');
+
+    // ✅ Correct way: get raw body
+    $payload = json_decode($request->getContent(), true);
+
+    if (isset($payload['event']) && $payload['event'] == "charge.success") {
+        $ref = $payload['data']['reference'];
+
+        $pld = payment_refs::where("ref", "=", $ref)->first();
+        if (!$pld) {
+            $payinfo = explode('-', $ref);
+
+            $amt   = $payinfo[2];
+            $schid = $payinfo[1];
+            $typ   = $payinfo[3];
+            $stid  = $payinfo[4];
+            $ssnid = $payinfo[5];
+            $trmid = $payinfo[6];
+            $clsid = $payinfo[7];
+
+            $nm  = $payload['data']['metadata']['name'] ?? '';
+            $tm  = $payload['data']['metadata']['time'] ?? now()->timestamp;
+            $exp = $payload['data']['metadata']['exp'] ?? '';
+            $eml = $payload['data']['metadata']['eml'] ?? '';
+            $lid = $payload['data']['metadata']['lid'] ?? '';
+
+            $what = '';
+            if ($typ == '0') { // School Fees
+                payments::create([
+                    'schid' => $schid,
+                    'stid'  => $stid,
+                    'ssnid' => $ssnid,
+                    'trmid' => $trmid,
+                    'clsid' => $clsid,
+                    'name'  => $nm,
+                    'exp'   => $exp,
+                    'amt'   => $amt,
+                    'lid'   => $lid,
                 ]);
-                Log::info('SUCCESS');
-            } else {
-                Log::info('PLD EXISTS' . json_encode($pld));
+                $what = 'School Fees';
             }
+
+            if ($typ == '1') { // Application Fee
+                student::where('sid', $stid)->update(["rfee" => '1']);
+                $what = 'Application Fee';
+            }
+
+            if ($typ == '2') { // Acceptance Fee
+                $uid = $stid . $schid . $clsid;
+                afeerec::updateOrCreate(
+                    ["uid" => $uid],
+                    [
+                        "stid" => $stid,
+                        "schid" => $schid,
+                        "clsid" => $clsid,
+                        "amt" => intval($amt),
+                    ]
+                );
+                $what = 'Acceptance Fee';
+            }
+
+            // Send confirmation email
+            try {
+                $data = [
+                    'name' => $nm,
+                    'subject' => 'Payment Received',
+                    'body' => 'Your ' . $what . ' payment was received',
+                    'link' => env('PORTAL_URL') . '/studentLogin' . '/' . $schid,
+                ];
+                Mail::to($eml)->send(new SSSMails($data));
+            } catch (\Exception $e) {
+                Log::error('Failed to send email: ' . $e->getMessage());
+            }
+
+            // Store payment ref
+            payment_refs::create([
+                "ref" => $ref,
+                "amt" => $amt,
+                "time" => $tm,
+            ]);
+
+            Log::info('SUCCESS: Payment recorded for ' . $nm);
         } else {
-            Log::info('EVENTS BAD ' . $payload['event']);
+            Log::info('PLD EXISTS: ' . json_encode($pld));
         }
-        return response()->json(['status' => 'success'], 200);
+    } else {
+        Log::info('EVENTS BAD or Missing event key');
     }
+
+    return response()->json(['status' => 'success'], 200);
+}
+
+
 
     //--VENDORS
 
