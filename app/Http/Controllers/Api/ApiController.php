@@ -12510,99 +12510,6 @@ class ApiController extends Controller
 
 
 
-
-    /**
-     * @OA\Post(
-     *     path="/api/initializePayment",
-     *     summary="Initialize a payment with Paystack",
-     *     tags={"Payments"},
-     *     security={{ "bearerAuth":{} }},
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"email", "amount", "schid", "clsid", "subaccount_code", "transaction_charge"},
-     *             @OA\Property(property="email", type="string", format="email", example="user@example.com"),
-     *             @OA\Property(property="amount", type="integer", example=5000, description="Amount in Naira"),
-     *             @OA\Property(property="schid", type="integer", example=1, description="School ID"),
-     *             @OA\Property(property="clsid", type="integer", example=2, description="Class ID"),
-     *             @OA\Property(property="subaccount_code", type="string", example="ACCT_123ABC", description="Subaccount code"),
-     *             @OA\Property(property="transaction_charge", type="integer", example=500, description="Transaction charge in Naira")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Payment Initialized Successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Payment Initialized Successfully"),
-     *             @OA\Property(property="data", type="object", example={"authorization_url": "https://paystack.com/pay/xyz"})
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=400,
-     *         description="Payment Initialization Failed",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Payment Initialization Failed"),
-     *             @OA\Property(property="error", type="string", example="Invalid subaccount code")
-     *         )
-     *     )
-     * )
-     */
-
-
-    // public function initializePayment(Request $request)
-    // {
-    //     $request->validate([
-    //         'email' => 'required|email',
-    //         'amount' => 'required|numeric|min:100',
-    //         'schid' => 'required',
-    //         'clsid' => 'required',
-    //         'subaccount_code' => 'required', // The subaccount receiving the money
-    //         'transaction_charge' => 'required|numeric|min:0'
-    //     ]);
-
-    //     $amountInKobo = $request->amount * 100;
-
-    //     $payload = [
-    //         'email' => $request->email,
-    //         'amount' => $amountInKobo,
-    //         'callback_url' => 'https://api.schoolsstest.top/api/payment/callback',
-    //         'metadata' => [
-    //             'school_id' => $request->schid,
-    //             'class_id' => $request->clsid,
-    //         ],
-    //         'subaccount' => $request->subaccount_code,  // paystack will send money to this subaccount
-    //         'bearer' => 'account',  //
-    //         'currency' => 'NGN',
-    //         'channels' => ['card', 'bank', 'ussd'],
-    //         'transaction_charge' => $request->transaction_charge,
-    //     ];
-
-    //     $response = Http::withHeaders([
-    //         'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
-    //         'Content-Type' => 'application/json',
-    //     ])->post('https://api.paystack.co/transaction/initialize', $payload);
-
-    //     if ($response->successful()) {
-    //         Log::info('Paystack Response:', $response->json());
-    //         return response()->json([
-    //             "status" => true,
-    //             "message" => "Payment Initialized Successfully",
-    //             "data" => $response->json(),
-    //         ]);
-    //     } else {
-    //         Log::error('Paystack Error:', ['response' => $response->body()]);
-    //         return response()->json([
-    //             "status" => false,
-    //             "message" => "Payment Initialization Failed",
-    //             "error" => $response->body(),
-    //         ], 400);
-    //     }
-    // }
-
-
-
     public function createSplit(array $subaccounts, int $totalAmount)
     {
         // Convert shares to kobo
@@ -12636,6 +12543,68 @@ class ApiController extends Controller
         throw new \Exception('Error creating split: ' . $response->body());
     }
 
+
+
+    /**
+ * @OA\Post(
+ *     path="/api/initializePayment",
+ *     summary="Initialize a Paystack payment with multiple subaccounts",
+ *     description="This endpoint initializes a Paystack transaction and dynamically creates a split for multiple subaccounts. The frontend should call this endpoint with the student's email, amount, school ID, class ID, and subaccounts array.",
+ *     tags={"Payments"},
+ *     operationId="initializePayment22",
+ *     security={{"bearerAuth": {}}},
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="email", type="string", format="email", example="student@example.com"),
+ *             @OA\Property(property="amount", type="number", format="float", example=7000),
+ *             @OA\Property(property="schid", type="integer", example=12),
+ *             @OA\Property(property="clsid", type="integer", example=3),
+ *             @OA\Property(
+ *                 property="subaccount_code",
+ *                 type="array",
+ *                 description="Array of subaccounts and their share amounts in Naira",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(property="subaccount", type="string", example="ACCT_hugfsgnkclmoaqh"),
+ *                     @OA\Property(property="share", type="number", example=5000)
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Payment initialized successfully",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Payment Initialized Successfully"),
+ *             @OA\Property(property="data", type="object", description="Paystack transaction response object")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=400,
+ *         description="Payment initialization failed",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="Payment Initialization Failed"),
+ *             @OA\Property(property="error", type="string", example="Error message from Paystack")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=500,
+ *         description="Server error",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="Server Error: Unable to initialize payment"),
+ *             @OA\Property(property="error", type="string", example="Exception message")
+ *         )
+ *     )
+ * )
+ */
 
     public function initializePayment(Request $request)
     {

@@ -9053,124 +9053,9 @@
                 "tags": [
                     "Payments"
                 ],
-                "summary": "Initialize a payment with Paystack",
-                "operationId": "304f696bb3313a7b468fbb55c276116c",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "email",
-                                    "amount",
-                                    "schid",
-                                    "clsid",
-                                    "subaccount_code",
-                                    "transaction_charge"
-                                ],
-                                "properties": {
-                                    "email": {
-                                        "type": "string",
-                                        "format": "email",
-                                        "example": "user@example.com"
-                                    },
-                                    "amount": {
-                                        "description": "Amount in Naira",
-                                        "type": "integer",
-                                        "example": 5000
-                                    },
-                                    "schid": {
-                                        "description": "School ID",
-                                        "type": "integer",
-                                        "example": 1
-                                    },
-                                    "clsid": {
-                                        "description": "Class ID",
-                                        "type": "integer",
-                                        "example": 2
-                                    },
-                                    "subaccount_code": {
-                                        "description": "Subaccount code",
-                                        "type": "string",
-                                        "example": "ACCT_123ABC"
-                                    },
-                                    "transaction_charge": {
-                                        "description": "Transaction charge in Naira",
-                                        "type": "integer",
-                                        "example": 500
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Payment Initialized Successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Payment Initialized Successfully"
-                                        },
-                                        "data": {
-                                            "type": "object",
-                                            "example": {
-                                                "authorization_url": "https://paystack.com/pay/xyz"
-                                            }
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Payment Initialization Failed",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Payment Initialization Failed"
-                                        },
-                                        "error": {
-                                            "type": "string",
-                                            "example": "Invalid subaccount code"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/api/payment/initialize": {
-            "post": {
-                "tags": [
-                    "Payments"
-                ],
-                "summary": "Initialize payment with Paystack and split across multiple subaccounts",
-                "operationId": "initializePayment",
+                "summary": "Initialize a Paystack payment with multiple subaccounts",
+                "description": "This endpoint initializes a Paystack transaction and dynamically creates a split for multiple subaccounts. The frontend should call this endpoint with the student's email, amount, school ID, class ID, and subaccounts array.",
+                "operationId": "initializePayment22",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -9184,6 +9069,7 @@
                                     },
                                     "amount": {
                                         "type": "number",
+                                        "format": "float",
                                         "example": 7000
                                     },
                                     "schid": {
@@ -9195,12 +9081,13 @@
                                         "example": 3
                                     },
                                     "subaccount_code": {
+                                        "description": "Array of subaccounts and their share amounts in Naira",
                                         "type": "array",
                                         "items": {
                                             "properties": {
                                                 "subaccount": {
                                                     "type": "string",
-                                                    "example": "SUB_tuition123"
+                                                    "example": "ACCT_hugfsgnkclmoaqh"
                                                 },
                                                 "share": {
                                                     "type": "number",
@@ -9218,10 +9105,76 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Payment initialized successfully"
+                        "description": "Payment initialized successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Payment Initialized Successfully"
+                                        },
+                                        "data": {
+                                            "description": "Paystack transaction response object",
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "400": {
-                        "description": "Payment initialization failed"
+                        "description": "Payment initialization failed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Payment Initialization Failed"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Error message from Paystack"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Server Error: Unable to initialize payment"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Exception message"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
