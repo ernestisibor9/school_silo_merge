@@ -12614,6 +12614,7 @@ public function initializePayment(Request $request)
         'schid' => 'required|integer',
         'clsid' => 'required|integer',
         'subaccount_code' => 'required|array|min:1', // multiple subaccounts
+        'ref' => 'required|string', // ✅ frontend-generated ref
     ]);
 
     $email = $request->email;
@@ -12621,39 +12622,25 @@ public function initializePayment(Request $request)
     $schid = $request->schid;
     $clsid = $request->clsid;
     $subaccounts = $request->subaccount_code;
+    $ref = $request->ref; // ✅ take ref from frontend
 
     try {
         // Create split code
         $splitCode = $this->createSplit($subaccounts, $amount);
 
-        // Dynamically generate identifiers for the payment
-        $stid = $request->input('stid', 0);      // Student ID
-        $ssnid = $request->input('ssnid', 0);    // Session ID
-        $trmid = $request->input('trmid', 0);    // Term ID
-        $typ   = $request->input('typ', 0);      // Payment type
-        $nm    = $request->input('name', '');    // Student name
-        $exp   = $request->input('exp', '');     // Academic session
-        $lid   = $request->input('lid', '');     // Some ID
-
-        // Get host and remove 'api.' prefix if present
-$host = preg_replace('/^api\./', '', $request->getHost());
-
-        // Generate unique reference
-        $ref = "{$host}-{$schid}-{$amount}-{$typ}-{$stid}-{$ssnid}-{$trmid}-{$clsid}-" . uniqid();
-
         // Metadata for webhook
         $metadata = [
-            'name' => $nm,
-            'stid' => $stid,
-            'ssnid' => $ssnid,
-            'trmid' => $trmid,
+            'name' => $request->input('name', ''),
+            'stid' => $request->input('stid', 0),
+            'ssnid' => $request->input('ssnid', 0),
+            'trmid' => $request->input('trmid', 0),
             'schid' => $schid,
             'clsid' => $clsid,
-            'typ' => $typ,
+            'typ' => $request->input('typ', 0),
             'eml' => $email,
             'time' => now()->timestamp,
-            'exp' => $exp,
-            'lid' => $lid,
+            'exp' => $request->input('exp', ''),
+            'lid' => $request->input('lid', ''),
         ];
 
         // Prepare transaction payload
@@ -12661,7 +12648,7 @@ $host = preg_replace('/^api\./', '', $request->getHost());
             'email' => $email,
             'amount' => $amount * 100, // convert to kobo
             'currency' => 'NGN',
-            'reference' => $ref,
+            'reference' => $ref, // ✅ use frontend ref
             'callback_url' => url('/api/payment/callback'),
             'metadata' => $metadata,
             'split_code' => $splitCode,
