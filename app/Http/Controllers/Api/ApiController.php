@@ -12545,69 +12545,66 @@ class ApiController extends Controller
 
 
 
-/**
+    /**
  * @OA\Post(
  *     path="/api/initializePayment",
- *     summary="Initialize a payment with Paystack",
- *     description="This endpoint initializes a payment using Paystack with multiple subaccounts and a frontend-provided reference.",
+ *     summary="Initialize a Paystack payment with multiple subaccounts",
+ *     description="This endpoint initializes a Paystack transaction and dynamically creates a split for multiple subaccounts. The frontend should call this endpoint with the student's email, amount, school ID, class ID, and subaccounts array.",
  *     tags={"Payments"},
- *    security={{"bearerAuth": {}}},
+ *     operationId="initializePayment22",
+ *     security={{"bearerAuth": {}}},
  *     @OA\RequestBody(
  *         required=true,
  *         @OA\JsonContent(
- *             required={"email","amount","schid","clsid","subaccount_code","ref"},
+ *             type="object",
  *             @OA\Property(property="email", type="string", format="email", example="student@example.com"),
- *             @OA\Property(property="amount", type="number", example=5000, description="Amount in Naira"),
- *             @OA\Property(property="schid", type="integer", example=101, description="School ID"),
- *             @OA\Property(property="clsid", type="integer", example=12, description="Class ID"),
+ *             @OA\Property(property="amount", type="number", format="float", example=7000),
+ *             @OA\Property(property="schid", type="integer", example=12),
+ *             @OA\Property(property="clsid", type="integer", example=3),
  *             @OA\Property(
  *                 property="subaccount_code",
  *                 type="array",
- *                 @OA\Items(type="string", example="ACCT_subacct123"),
- *                 description="Array of Paystack subaccount codes"
- *             ),
- *             @OA\Property(property="ref", type="string", example="schoolsilomerge.top-6338-1009885-0-6925-2025-1-16-3670", description="Frontend-generated transaction reference"),
- *             @OA\Property(property="stid", type="integer", example=5678, description="Student ID"),
- *             @OA\Property(property="ssnid", type="integer", example=2025, description="Session ID"),
- *             @OA\Property(property="trmid", type="integer", example=2, description="Term ID"),
- *             @OA\Property(property="typ", type="integer", example=0, description="Payment type (0=School Fees, 1=Application Fee, 2=Acceptance Fee)"),
- *             @OA\Property(property="name", type="string", example="John Doe"),
- *             @OA\Property(property="exp", type="string", example="2024/2025", description="Academic session"),
- *             @OA\Property(property="lid", type="string", example="LID12345", description="Some internal identifier")
+ *                 description="Array of subaccounts and their share amounts in Naira",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(property="subaccount", type="string", example="ACCT_hugfsgnkclmoaqh"),
+ *                     @OA\Property(property="share", type="number", example=5000)
+ *                 )
+ *             )
  *         )
  *     ),
  *     @OA\Response(
  *         response=200,
  *         description="Payment initialized successfully",
  *         @OA\JsonContent(
+ *             type="object",
  *             @OA\Property(property="status", type="boolean", example=true),
  *             @OA\Property(property="message", type="string", example="Payment Initialized Successfully"),
- *             @OA\Property(
- *                 property="data",
- *                 type="object",
- *                 @OA\Property(property="status", type="boolean", example=true),
- *                 @OA\Property(property="message", type="string", example="Authorization URL created"),
- *                 @OA\Property(
- *                     property="data",
- *                     type="object",
- *                     @OA\Property(property="authorization_url", type="string", example="https://checkout.paystack.com/abcd1234"),
- *                     @OA\Property(property="access_code", type="string", example="abcd1234"),
- *                     @OA\Property(property="reference", type="string", example="schoolsilomerge.top-6338-1009885-0-6925-2025-1-16-3670")
- *                 )
- *             )
+ *             @OA\Property(property="data", type="object", description="Paystack transaction response object")
  *         )
  *     ),
  *     @OA\Response(
  *         response=400,
- *         description="Payment Initialization Failed"
+ *         description="Payment initialization failed",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="Payment Initialization Failed"),
+ *             @OA\Property(property="error", type="string", example="Error message from Paystack")
+ *         )
  *     ),
  *     @OA\Response(
  *         response=500,
- *         description="Server Error: Unable to initialize payment"
+ *         description="Server error",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="Server Error: Unable to initialize payment"),
+ *             @OA\Property(property="error", type="string", example="Exception message")
+ *         )
  *     )
  * )
  */
-
 
 public function initializePayment(Request $request)
 {
@@ -12617,7 +12614,6 @@ public function initializePayment(Request $request)
         'schid' => 'required|integer',
         'clsid' => 'required|integer',
         'subaccount_code' => 'required|array|min:1', // multiple subaccounts
-        'ref' => 'required|string', // ✅ frontend-generated ref
     ]);
 
     $email = $request->email;
@@ -12625,25 +12621,39 @@ public function initializePayment(Request $request)
     $schid = $request->schid;
     $clsid = $request->clsid;
     $subaccounts = $request->subaccount_code;
-    $ref = $request->ref; // ✅ take ref from frontend
 
     try {
         // Create split code
         $splitCode = $this->createSplit($subaccounts, $amount);
 
+        // Dynamically generate identifiers for the payment
+        $stid = $request->input('stid', 0);      // Student ID
+        $ssnid = $request->input('ssnid', 0);    // Session ID
+        $trmid = $request->input('trmid', 0);    // Term ID
+        $typ   = $request->input('typ', 0);      // Payment type
+        $nm    = $request->input('name', '');    // Student name
+        $exp   = $request->input('exp', '');     // Academic session
+        $lid   = $request->input('lid', '');     // Some ID
+
+        // Get host and remove 'api.' prefix if present
+$host = preg_replace('/^api\./', '', $request->getHost());
+
+        // Generate unique reference
+        $ref = "{$host}-{$schid}-{$amount}-{$typ}-{$stid}-{$ssnid}-{$trmid}-{$clsid}-" . uniqid();
+
         // Metadata for webhook
         $metadata = [
-            'name' => $request->input('name', ''),
-            'stid' => $request->input('stid', 0),
-            'ssnid' => $request->input('ssnid', 0),
-            'trmid' => $request->input('trmid', 0),
+            'name' => $nm,
+            'stid' => $stid,
+            'ssnid' => $ssnid,
+            'trmid' => $trmid,
             'schid' => $schid,
             'clsid' => $clsid,
-            'typ' => $request->input('typ', 0),
+            'typ' => $typ,
             'eml' => $email,
             'time' => now()->timestamp,
-            'exp' => $request->input('exp', ''),
-            'lid' => $request->input('lid', ''),
+            'exp' => $exp,
+            'lid' => $lid,
         ];
 
         // Prepare transaction payload
@@ -12651,7 +12661,7 @@ public function initializePayment(Request $request)
             'email' => $email,
             'amount' => $amount * 100, // convert to kobo
             'currency' => 'NGN',
-            'reference' => $ref, // ✅ use frontend ref
+            'reference' => $ref,
             'callback_url' => url('/api/payment/callback'),
             'metadata' => $metadata,
             'split_code' => $splitCode,

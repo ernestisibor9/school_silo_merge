@@ -9053,22 +9053,14 @@
                 "tags": [
                     "Payments"
                 ],
-                "summary": "Initialize a payment with Paystack",
-                "description": "This endpoint initializes a payment using Paystack with multiple subaccounts and a frontend-provided reference.",
-                "operationId": "0d7c9d6f368d5830e82819d07009908f",
+                "summary": "Initialize a Paystack payment with multiple subaccounts",
+                "description": "This endpoint initializes a Paystack transaction and dynamically creates a split for multiple subaccounts. The frontend should call this endpoint with the student's email, amount, school ID, class ID, and subaccounts array.",
+                "operationId": "initializePayment22",
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
-                                "required": [
-                                    "email",
-                                    "amount",
-                                    "schid",
-                                    "clsid",
-                                    "subaccount_code",
-                                    "ref"
-                                ],
                                 "properties": {
                                     "email": {
                                         "type": "string",
@@ -9076,66 +9068,34 @@
                                         "example": "student@example.com"
                                     },
                                     "amount": {
-                                        "description": "Amount in Naira",
                                         "type": "number",
-                                        "example": 5000
+                                        "format": "float",
+                                        "example": 7000
                                     },
                                     "schid": {
-                                        "description": "School ID",
-                                        "type": "integer",
-                                        "example": 101
-                                    },
-                                    "clsid": {
-                                        "description": "Class ID",
                                         "type": "integer",
                                         "example": 12
                                     },
+                                    "clsid": {
+                                        "type": "integer",
+                                        "example": 3
+                                    },
                                     "subaccount_code": {
-                                        "description": "Array of Paystack subaccount codes",
+                                        "description": "Array of subaccounts and their share amounts in Naira",
                                         "type": "array",
                                         "items": {
-                                            "type": "string",
-                                            "example": "ACCT_subacct123"
+                                            "properties": {
+                                                "subaccount": {
+                                                    "type": "string",
+                                                    "example": "ACCT_hugfsgnkclmoaqh"
+                                                },
+                                                "share": {
+                                                    "type": "number",
+                                                    "example": 5000
+                                                }
+                                            },
+                                            "type": "object"
                                         }
-                                    },
-                                    "ref": {
-                                        "description": "Frontend-generated transaction reference",
-                                        "type": "string",
-                                        "example": "schoolsilomerge.top-6338-1009885-0-6925-2025-1-16-3670"
-                                    },
-                                    "stid": {
-                                        "description": "Student ID",
-                                        "type": "integer",
-                                        "example": 5678
-                                    },
-                                    "ssnid": {
-                                        "description": "Session ID",
-                                        "type": "integer",
-                                        "example": 2025
-                                    },
-                                    "trmid": {
-                                        "description": "Term ID",
-                                        "type": "integer",
-                                        "example": 2
-                                    },
-                                    "typ": {
-                                        "description": "Payment type (0=School Fees, 1=Application Fee, 2=Acceptance Fee)",
-                                        "type": "integer",
-                                        "example": 0
-                                    },
-                                    "name": {
-                                        "type": "string",
-                                        "example": "John Doe"
-                                    },
-                                    "exp": {
-                                        "description": "Academic session",
-                                        "type": "string",
-                                        "example": "2024/2025"
-                                    },
-                                    "lid": {
-                                        "description": "Some internal identifier",
-                                        "type": "string",
-                                        "example": "LID12345"
                                     }
                                 },
                                 "type": "object"
@@ -9159,33 +9119,7 @@
                                             "example": "Payment Initialized Successfully"
                                         },
                                         "data": {
-                                            "properties": {
-                                                "status": {
-                                                    "type": "boolean",
-                                                    "example": true
-                                                },
-                                                "message": {
-                                                    "type": "string",
-                                                    "example": "Authorization URL created"
-                                                },
-                                                "data": {
-                                                    "properties": {
-                                                        "authorization_url": {
-                                                            "type": "string",
-                                                            "example": "https://checkout.paystack.com/abcd1234"
-                                                        },
-                                                        "access_code": {
-                                                            "type": "string",
-                                                            "example": "abcd1234"
-                                                        },
-                                                        "reference": {
-                                                            "type": "string",
-                                                            "example": "schoolsilomerge.top-6338-1009885-0-6925-2025-1-16-3670"
-                                                        }
-                                                    },
-                                                    "type": "object"
-                                                }
-                                            },
+                                            "description": "Paystack transaction response object",
                                             "type": "object"
                                         }
                                     },
@@ -9195,10 +9129,52 @@
                         }
                     },
                     "400": {
-                        "description": "Payment Initialization Failed"
+                        "description": "Payment initialization failed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Payment Initialization Failed"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Error message from Paystack"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "500": {
-                        "description": "Server Error: Unable to initialize payment"
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Server Error: Unable to initialize payment"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Exception message"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
