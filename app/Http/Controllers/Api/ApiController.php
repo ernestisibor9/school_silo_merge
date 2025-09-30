@@ -12551,6 +12551,7 @@ class ApiController extends Controller
  *     summary="Initialize a payment with Paystack",
  *     description="This endpoint initializes a payment using Paystack with multiple subaccounts and a frontend-provided reference.",
  *     tags={"Payments"},
+ *    security={{"bearerAuth": {}}},
  *     @OA\RequestBody(
  *         required=true,
  *         @OA\JsonContent(
