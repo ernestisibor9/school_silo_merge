@@ -12310,6 +12310,7 @@ class ApiController extends Controller
             'anum' => 'required',
             'bnk'  => 'required',
             'aname' => 'required',
+            'pay_head_id'  => 'nullable|exists:payhead,id',
         ]);
 
         $data = [
@@ -12318,6 +12319,7 @@ class ApiController extends Controller
             'anum' => $request->anum,
             'bnk' => $request->bnk,
             'aname' => $request->aname,
+            'pay_head_id' => $request->pay_head_id ?? null,
         ];
 
         if ($request->has('id')) {
@@ -12362,6 +12364,7 @@ class ApiController extends Controller
                     'acct_id' => $acct->id,
                     'schid' => $request->schid,
                     'clsid' => $request->clsid,
+                    'pay_head_id' => $request->pay_head_id ?? null,
                     'subaccount_code' => $data['data']['subaccount_code'],
                     'percentage_charge' => $percentage_charge,
                 ]);
