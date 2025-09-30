@@ -12636,7 +12636,7 @@ public function initializePayment(Request $request)
         $lid   = $request->input('lid', '');     // Some ID
 
         // Get host and remove 'api.' prefix if present
-        $host = preg_replace('/^api\./', '', $request->getHost());
+$host = preg_replace('/^api\./', '', $request->getHost());
 
         // Generate unique reference
         $ref = "{$host}-{$schid}-{$amount}-{$typ}-{$stid}-{$ssnid}-{$trmid}-{$clsid}-" . uniqid();
