@@ -9054,7 +9054,7 @@
                     "Payments"
                 ],
                 "summary": "Initialize a payment with Paystack",
-                "operationId": "0d7c9d6f368d5830e82819d07009908f",
+                "operationId": "304f696bb3313a7b468fbb55c276116c",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -9155,6 +9155,73 @@
                                 }
                             }
                         }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/payment/initialize": {
+            "post": {
+                "tags": [
+                    "Payments"
+                ],
+                "summary": "Initialize payment with Paystack and split across multiple subaccounts",
+                "operationId": "initializePayment",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "student@example.com"
+                                    },
+                                    "amount": {
+                                        "type": "number",
+                                        "example": 7000
+                                    },
+                                    "schid": {
+                                        "type": "integer",
+                                        "example": 12
+                                    },
+                                    "clsid": {
+                                        "type": "integer",
+                                        "example": 3
+                                    },
+                                    "subaccount_code": {
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "subaccount": {
+                                                    "type": "string",
+                                                    "example": "SUB_tuition123"
+                                                },
+                                                "share": {
+                                                    "type": "number",
+                                                    "example": 5000
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Payment initialized successfully"
+                    },
+                    "400": {
+                        "description": "Payment initialization failed"
                     }
                 },
                 "security": [

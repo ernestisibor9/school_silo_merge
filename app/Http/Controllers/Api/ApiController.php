@@ -12551,55 +12551,172 @@ class ApiController extends Controller
      */
 
 
-    public function initializePayment(Request $request)
-    {
-        $request->validate([
-            'email' => 'required|email',
-            'amount' => 'required|numeric|min:100',
-            'schid' => 'required',
-            'clsid' => 'required',
-            'subaccount_code' => 'required', // The subaccount receiving the money
-            'transaction_charge' => 'required|numeric|min:0'
+    // public function initializePayment(Request $request)
+    // {
+    //     $request->validate([
+    //         'email' => 'required|email',
+    //         'amount' => 'required|numeric|min:100',
+    //         'schid' => 'required',
+    //         'clsid' => 'required',
+    //         'subaccount_code' => 'required', // The subaccount receiving the money
+    //         'transaction_charge' => 'required|numeric|min:0'
+    //     ]);
+
+    //     $amountInKobo = $request->amount * 100;
+
+    //     $payload = [
+    //         'email' => $request->email,
+    //         'amount' => $amountInKobo,
+    //         'callback_url' => 'https://api.schoolsstest.top/api/payment/callback',
+    //         'metadata' => [
+    //             'school_id' => $request->schid,
+    //             'class_id' => $request->clsid,
+    //         ],
+    //         'subaccount' => $request->subaccount_code,  // paystack will send money to this subaccount
+    //         'bearer' => 'account',  //
+    //         'currency' => 'NGN',
+    //         'channels' => ['card', 'bank', 'ussd'],
+    //         'transaction_charge' => $request->transaction_charge,
+    //     ];
+
+    //     $response = Http::withHeaders([
+    //         'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
+    //         'Content-Type' => 'application/json',
+    //     ])->post('https://api.paystack.co/transaction/initialize', $payload);
+
+    //     if ($response->successful()) {
+    //         Log::info('Paystack Response:', $response->json());
+    //         return response()->json([
+    //             "status" => true,
+    //             "message" => "Payment Initialized Successfully",
+    //             "data" => $response->json(),
+    //         ]);
+    //     } else {
+    //         Log::error('Paystack Error:', ['response' => $response->body()]);
+    //         return response()->json([
+    //             "status" => false,
+    //             "message" => "Payment Initialization Failed",
+    //             "error" => $response->body(),
+    //         ], 400);
+    //     }
+    // }
+
+
+
+public function createSplit(array $subaccounts)
+{
+    // Example $subaccounts array:
+    // [
+    //    ['subaccount' => 'SUB_tuition123', 'share' => 5000],
+    //    ['subaccount' => 'SUB_transport456', 'share' => 2000]
+    // ]
+
+    $response = Http::withToken(env('PAYSTACK_SECRET'))
+        ->post('https://api.paystack.co/split', [
+            'name' => 'Invoice Split ' . uniqid(),
+            'type' => 'flat', // "flat" or "percentage"
+            'currency' => 'NGN',
+            'subaccounts' => $subaccounts,
+            'bearer_type' => 'subaccount', // subaccounts bear fees
+            'bearer_subaccount' => $subaccounts[0]['subaccount'], // main bearer
         ]);
 
-        $amountInKobo = $request->amount * 100;
-
-        $payload = [
-            'email' => $request->email,
-            'amount' => $amountInKobo,
-            'callback_url' => 'https://api.schoolsstest.top/api/payment/callback',
-            'metadata' => [
-                'school_id' => $request->schid,
-                'class_id' => $request->clsid,
-            ],
-            'subaccount' => $request->subaccount_code,  // paystack will send money to this subaccount
-            'bearer' => 'account',  //
-            'currency' => 'NGN',
-            'channels' => ['card', 'bank', 'ussd'],
-            'transaction_charge' => $request->transaction_charge,
-        ];
-
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
-            'Content-Type' => 'application/json',
-        ])->post('https://api.paystack.co/transaction/initialize', $payload);
-
-        if ($response->successful()) {
-            Log::info('Paystack Response:', $response->json());
-            return response()->json([
-                "status" => true,
-                "message" => "Payment Initialized Successfully",
-                "data" => $response->json(),
-            ]);
-        } else {
-            Log::error('Paystack Error:', ['response' => $response->body()]);
-            return response()->json([
-                "status" => false,
-                "message" => "Payment Initialization Failed",
-                "error" => $response->body(),
-            ], 400);
-        }
+    if ($response->successful()) {
+        return $response->json()['data']['split_code'];
     }
+
+    throw new \Exception('Error creating split: ' . $response->body());
+}
+
+
+
+
+/**
+ * @OA\Post(
+ *     path="/api/payment/initialize",
+ *     summary="Initialize payment with Paystack and split across multiple subaccounts",
+ *     tags={"Payments"},
+ *     operationId="initializePayment",
+ *     security={{"bearerAuth": {}}},
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="email", type="string", format="email", example="student@example.com"),
+ *             @OA\Property(property="amount", type="number", example=7000),
+ *             @OA\Property(property="schid", type="integer", example=12),
+ *             @OA\Property(property="clsid", type="integer", example=3),
+ *             @OA\Property(
+ *                 property="subaccount_code",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(property="subaccount", type="string", example="SUB_tuition123"),
+ *                     @OA\Property(property="share", type="number", example=5000)
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Payment initialized successfully"
+ *     ),
+ *     @OA\Response(
+ *         response=400,
+ *         description="Payment initialization failed"
+ *     )
+ * )
+ */
+    public function initializePayment(Request $request)
+{
+    $request->validate([
+        'email' => 'required|email',
+        'amount' => 'required|numeric|min:100',
+        'schid' => 'required',
+        'clsid' => 'required',
+        'subaccount_code' => 'required|array', // multiple subaccounts
+    ]);
+
+    // Build split
+    $subaccounts = $request->subaccount_code;
+    // Example: [
+    //    ['subaccount' => 'SUB_tuition123', 'share' => 5000],
+    //    ['subaccount' => 'SUB_transport456', 'share' => 2000]
+    // ]
+
+    $splitCode = $this->createSplit($subaccounts);
+
+    $payload = [
+        'email' => $request->email,
+        'amount' => $request->amount * 100,
+        'currency' => 'NGN',
+        'callback_url' => 'https://api.schoolsstest.top/api/payment/callback',
+        'metadata' => [
+            'school_id' => $request->schid,
+            'class_id' => $request->clsid,
+        ],
+        'split_code' => $splitCode, // Use split code instead of single subaccount
+        'channels' => ['card', 'bank', 'ussd'],
+    ];
+
+    $response = Http::withToken(env('PAYSTACK_SECRET'))
+        ->post('https://api.paystack.co/transaction/initialize', $payload);
+
+    if ($response->successful()) {
+        return response()->json([
+            "status" => true,
+            "message" => "Payment Initialized Successfully",
+            "data" => $response->json(),
+        ]);
+    }
+
+    return response()->json([
+        "status" => false,
+        "message" => "Payment Initialization Failed",
+        "error" => $response->body(),
+    ], 400);
+}
+
 
 
 
