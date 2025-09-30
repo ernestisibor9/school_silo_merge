@@ -12635,8 +12635,11 @@ public function initializePayment(Request $request)
         $exp   = $request->input('exp', '');     // Academic session
         $lid   = $request->input('lid', '');     // Some ID
 
+        // Get host and remove 'api.' prefix if present
+        $host = preg_replace('/^api\./', '', $request->getHost());
+
         // Generate unique reference
-        $ref = "{$request->getHost()}-{$schid}-{$amount}-{$typ}-{$stid}-{$ssnid}-{$trmid}-{$clsid}-" . uniqid();
+        $ref = "{$host}-{$schid}-{$amount}-{$typ}-{$stid}-{$ssnid}-{$trmid}-{$clsid}-" . uniqid();
 
         // Metadata for webhook
         $metadata = [
@@ -12692,7 +12695,6 @@ public function initializePayment(Request $request)
         ], 500);
     }
 }
-
 
 
     /**
