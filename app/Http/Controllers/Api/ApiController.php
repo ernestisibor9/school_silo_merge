@@ -12545,66 +12545,68 @@ class ApiController extends Controller
 
 
 
-    /**
+/**
  * @OA\Post(
  *     path="/api/initializePayment",
- *     summary="Initialize a Paystack payment with multiple subaccounts",
- *     description="This endpoint initializes a Paystack transaction and dynamically creates a split for multiple subaccounts. The frontend should call this endpoint with the student's email, amount, school ID, class ID, and subaccounts array.",
+ *     summary="Initialize a payment with Paystack",
+ *     description="This endpoint initializes a payment using Paystack with multiple subaccounts and a frontend-provided reference.",
  *     tags={"Payments"},
- *     operationId="initializePayment22",
- *     security={{"bearerAuth": {}}},
  *     @OA\RequestBody(
  *         required=true,
  *         @OA\JsonContent(
- *             type="object",
+ *             required={"email","amount","schid","clsid","subaccount_code","ref"},
  *             @OA\Property(property="email", type="string", format="email", example="student@example.com"),
- *             @OA\Property(property="amount", type="number", format="float", example=7000),
- *             @OA\Property(property="schid", type="integer", example=12),
- *             @OA\Property(property="clsid", type="integer", example=3),
+ *             @OA\Property(property="amount", type="number", example=5000, description="Amount in Naira"),
+ *             @OA\Property(property="schid", type="integer", example=101, description="School ID"),
+ *             @OA\Property(property="clsid", type="integer", example=12, description="Class ID"),
  *             @OA\Property(
  *                 property="subaccount_code",
  *                 type="array",
- *                 description="Array of subaccounts and their share amounts in Naira",
- *                 @OA\Items(
- *                     type="object",
- *                     @OA\Property(property="subaccount", type="string", example="ACCT_hugfsgnkclmoaqh"),
- *                     @OA\Property(property="share", type="number", example=5000)
- *                 )
- *             )
+ *                 @OA\Items(type="string", example="ACCT_subacct123"),
+ *                 description="Array of Paystack subaccount codes"
+ *             ),
+ *             @OA\Property(property="ref", type="string", example="schoolsilomerge.top-6338-1009885-0-6925-2025-1-16-3670", description="Frontend-generated transaction reference"),
+ *             @OA\Property(property="stid", type="integer", example=5678, description="Student ID"),
+ *             @OA\Property(property="ssnid", type="integer", example=2025, description="Session ID"),
+ *             @OA\Property(property="trmid", type="integer", example=2, description="Term ID"),
+ *             @OA\Property(property="typ", type="integer", example=0, description="Payment type (0=School Fees, 1=Application Fee, 2=Acceptance Fee)"),
+ *             @OA\Property(property="name", type="string", example="John Doe"),
+ *             @OA\Property(property="exp", type="string", example="2024/2025", description="Academic session"),
+ *             @OA\Property(property="lid", type="string", example="LID12345", description="Some internal identifier")
  *         )
  *     ),
  *     @OA\Response(
  *         response=200,
  *         description="Payment initialized successfully",
  *         @OA\JsonContent(
- *             type="object",
  *             @OA\Property(property="status", type="boolean", example=true),
  *             @OA\Property(property="message", type="string", example="Payment Initialized Successfully"),
- *             @OA\Property(property="data", type="object", description="Paystack transaction response object")
+ *             @OA\Property(
+ *                 property="data",
+ *                 type="object",
+ *                 @OA\Property(property="status", type="boolean", example=true),
+ *                 @OA\Property(property="message", type="string", example="Authorization URL created"),
+ *                 @OA\Property(
+ *                     property="data",
+ *                     type="object",
+ *                     @OA\Property(property="authorization_url", type="string", example="https://checkout.paystack.com/abcd1234"),
+ *                     @OA\Property(property="access_code", type="string", example="abcd1234"),
+ *                     @OA\Property(property="reference", type="string", example="schoolsilomerge.top-6338-1009885-0-6925-2025-1-16-3670")
+ *                 )
+ *             )
  *         )
  *     ),
  *     @OA\Response(
  *         response=400,
- *         description="Payment initialization failed",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="Payment Initialization Failed"),
- *             @OA\Property(property="error", type="string", example="Error message from Paystack")
- *         )
+ *         description="Payment Initialization Failed"
  *     ),
  *     @OA\Response(
  *         response=500,
- *         description="Server error",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="Server Error: Unable to initialize payment"),
- *             @OA\Property(property="error", type="string", example="Exception message")
- *         )
+ *         description="Server Error: Unable to initialize payment"
  *     )
  * )
  */
+
 
 public function initializePayment(Request $request)
 {
