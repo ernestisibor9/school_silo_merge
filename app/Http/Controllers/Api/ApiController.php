@@ -12606,67 +12606,92 @@ class ApiController extends Controller
  * )
  */
 
-    public function initializePayment(Request $request)
-    {
-        $request->validate([
-            'email' => 'required|email',
-            'amount' => 'required|numeric|min:100',
-            'schid' => 'required|integer',
-            'clsid' => 'required|integer',
-            'subaccount_code' => 'required|array|min:1', // multiple subaccounts
-        ]);
+public function initializePayment(Request $request)
+{
+    $request->validate([
+        'email' => 'required|email',
+        'amount' => 'required|numeric|min:100',
+        'schid' => 'required|integer',
+        'clsid' => 'required|integer',
+        'subaccount_code' => 'required|array|min:1', // multiple subaccounts
+    ]);
 
-        $email = $request->email;
-        $amount = $request->amount;
-        $schid = $request->schid;
-        $clsid = $request->clsid;
-        $subaccounts = $request->subaccount_code;
+    $email = $request->email;
+    $amount = $request->amount;
+    $schid = $request->schid;
+    $clsid = $request->clsid;
+    $subaccounts = $request->subaccount_code;
 
-        try {
-            // Create split code
-            $splitCode = $this->createSplit($subaccounts, $amount);
+    try {
+        // Create split code
+        $splitCode = $this->createSplit($subaccounts, $amount);
 
-            // Prepare transaction payload
-            $payload = [
-                'email' => $email,
-                'amount' => $amount * 100, // convert to kobo
-                'currency' => 'NGN',
-                'callback_url' => url('/api/payment/callback'),
-                'metadata' => [
-                    'school_id' => $schid,
-                    'class_id' => $clsid,
-                ],
-                'split_code' => $splitCode,
-                'channels' => ['card', 'bank', 'ussd'],
-            ];
+        // Dynamically generate identifiers for the payment
+        $stid = $request->input('stid', 0);      // Student ID
+        $ssnid = $request->input('ssnid', 0);    // Session ID
+        $trmid = $request->input('trmid', 0);    // Term ID
+        $typ   = $request->input('typ', 0);      // Payment type
+        $nm    = $request->input('name', '');    // Student name
+        $exp   = $request->input('exp', '');     // Academic session
+        $lid   = $request->input('lid', '');     // Some ID
 
-            $response = Http::withToken(env('PAYSTACK_SECRET'))
-                ->post('https://api.paystack.co/transaction/initialize', $payload);
+        // Generate unique reference
+        $ref = "{$request->getHost()}-{$schid}-{$amount}-{$typ}-{$stid}-{$ssnid}-{$trmid}-{$clsid}-" . uniqid();
 
-            if ($response->successful()) {
-                return response()->json([
-                    "status" => true,
-                    "message" => "Payment Initialized Successfully",
-                    "data" => $response->json(),
-                ]);
-            }
+        // Metadata for webhook
+        $metadata = [
+            'name' => $nm,
+            'stid' => $stid,
+            'ssnid' => $ssnid,
+            'trmid' => $trmid,
+            'schid' => $schid,
+            'clsid' => $clsid,
+            'typ' => $typ,
+            'eml' => $email,
+            'time' => now()->timestamp,
+            'exp' => $exp,
+            'lid' => $lid,
+        ];
 
-            Log::error('Paystack Transaction Error: ' . $response->body());
+        // Prepare transaction payload
+        $payload = [
+            'email' => $email,
+            'amount' => $amount * 100, // convert to kobo
+            'currency' => 'NGN',
+            'reference' => $ref,
+            'callback_url' => url('/api/payment/callback'),
+            'metadata' => $metadata,
+            'split_code' => $splitCode,
+            'channels' => ['card', 'bank', 'ussd'],
+        ];
+
+        $response = Http::withToken(env('PAYSTACK_SECRET'))
+            ->post('https://api.paystack.co/transaction/initialize', $payload);
+
+        if ($response->successful()) {
             return response()->json([
-                "status" => false,
-                "message" => "Payment Initialization Failed",
-                "error" => $response->body(),
-            ], 400);
-
-        } catch (\Exception $e) {
-            Log::error('Initialize Payment Exception: ' . $e->getMessage());
-            return response()->json([
-                "status" => false,
-                "message" => "Server Error: Unable to initialize payment",
-                "error" => $e->getMessage()
-            ], 500);
+                "status" => true,
+                "message" => "Payment Initialized Successfully",
+                "data" => $response->json(),
+            ]);
         }
+
+        Log::error('Paystack Transaction Error: ' . $response->body());
+        return response()->json([
+            "status" => false,
+            "message" => "Payment Initialization Failed",
+            "error" => $response->body(),
+        ], 400);
+
+    } catch (\Exception $e) {
+        Log::error('Initialize Payment Exception: ' . $e->getMessage());
+        return response()->json([
+            "status" => false,
+            "message" => "Server Error: Unable to initialize payment",
+            "error" => $e->getMessage()
+        ], 500);
     }
+}
 
 
 
