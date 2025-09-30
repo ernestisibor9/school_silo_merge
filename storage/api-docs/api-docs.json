@@ -9200,7 +9200,12 @@
                     "500": {
                         "description": "Server Error: Unable to initialize payment"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/getAccountStat/{schid}": {

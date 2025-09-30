@@ -107,6 +107,8 @@ Route::post('setStudentSubject', [ApiController::class, 'setStudentSubject']);
 Route::post('setClassSubject', [ApiController::class, 'setClassSubject']);
 Route::get('getSubjects', [ApiController::class, 'getSubjs']);
 
+ Route::post('initializePayment', [ApiController::class, 'initializePayment']);
+
 Route::group([
     'middleware' => ['auth:api'],
 ], function () {
@@ -164,7 +166,7 @@ Route::group([
     Route::post('setStudentRes', [ApiController::class, 'setStudentRes']);
     Route::post('setResultMeta', [ApiController::class, 'setResultMeta']);
     Route::post('setStudentSubjPos', [ApiController::class, 'setStudentSubjPos']);
-    Route::post('initializePayment', [ApiController::class, 'initializePayment']);
+
     Route::post('setAcceptanceAcct', [ApiController::class, 'setAcceptanceAcct']);
     Route::post('setApplicationAcct', [ApiController::class, 'setApplicationAcct']);
     Route::post('setChangePassword', [ApiController::class, 'setChangePassword']);
