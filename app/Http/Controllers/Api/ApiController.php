@@ -12524,7 +12524,7 @@ public function createSplit(array $subaccounts, int $totalAmount)
     $response = Http::withToken(env('PAYSTACK_SECRET'))
         ->post('https://api.paystack.co/split', [
             'name'              => 'Invoice Split ' . uniqid(),
-            'type'              => 'flat',          // flat split (fixed naira/kobo amounts)
+            'type'              => 'percentage',          // flat split (fixed naira/kobo amounts)
             'currency'          => 'NGN',
             'subaccounts'       => $subaccounts,
             'bearer_type'       => 'account',       // main account pays Paystack fees
