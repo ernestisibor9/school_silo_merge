@@ -12512,27 +12512,26 @@ class ApiController extends Controller
 
 public function createSplit(array $subaccounts, int $totalAmount)
 {
-    $totalAmountKobo = $totalAmount * 100;
-
-    // Convert subaccount shares to kobo (flat)
+    // IMPORTANT: Do NOT multiply shares again, frontend already sends them
     foreach ($subaccounts as &$acc) {
-        $acc['share'] = max(1, intval($acc['share'] * 100));
+        $acc['share'] = max(1, intval($acc['share']));
+        // keep as-is, Paystack wants raw kobo/naira-based flat numbers
     }
 
-    // Make the first subaccount the default beneficiary
+    // Make the first subaccount the default fee bearer
     $bearerSubaccount = $subaccounts[0]['subaccount'];
 
     $response = Http::withToken(env('PAYSTACK_SECRET'))
         ->post('https://api.paystack.co/split', [
-            'name'        => 'Invoice Split ' . uniqid(),
-            'type'        => 'flat',
-            'currency'    => 'NGN',
-            'subaccounts' => $subaccounts,
-            'bearer_type' => 'account',           // 👈 Paystack fee comes ONLY from main account
+            'name'              => 'Invoice Split ' . uniqid(),
+            'type'              => 'flat',          // flat split (fixed naira/kobo amounts)
+            'currency'          => 'NGN',
+            'subaccounts'       => $subaccounts,
+            'bearer_type'       => 'account',       // main account pays Paystack fees
             'bearer_subaccount' => $bearerSubaccount,
         ]);
 
-    if ($response->successful()) {
+    if ($response->successful() && isset($response->json()['data']['split_code'])) {
         return $response->json()['data']['split_code'];
     }
 
