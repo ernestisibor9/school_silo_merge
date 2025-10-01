@@ -12529,14 +12529,14 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): st
     }
 
     // Prepare payload for Paystack
-        $payload = [
-            'name'        => "Split-{$schid}-{$clsid}-" . uniqid(),
-            'type'        => 'percentage',
-            'currency'    => 'NGN',
-            'subaccounts' => $subaccounts,
-            'bearer_type' => 'subaccount',   // subaccounts bear the fee
-        ];
-
+    $payload = [
+        'name'        => "Split-{$schid}-{$clsid}-" . uniqid(),
+        'type'        => 'percentage',
+        'currency'    => 'NGN',
+        'subaccounts' => $subaccounts,
+        'bearer_type' => 'subaccount',   // ✅ let subaccount bear the fee
+        'bearer_subaccount' => $subaccounts[0]['subaccount'], // ✅ pick first subaccount as fee payer
+    ];
 
     $response = Http::withToken(env('PAYSTACK_SECRET'))
         ->post('https://api.paystack.co/split', $payload);
