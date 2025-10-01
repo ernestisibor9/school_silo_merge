@@ -29,6 +29,7 @@ use App\Models\school_app_fee;
 use App\Models\silo_user;
 use App\Models\pay;
 use App\Models\payhead;
+use App\Models\subaccount_split;
 
 use App\Models\clspay;
 use App\Models\auto_comment_template;
@@ -12514,7 +12515,7 @@ class ApiController extends Controller
 public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): string
 {
     // Check DB if split_code already exists for this class
-    $existing = \DB::table('sub_account_splits')
+    $existing = \DB::table('subaccount_splits')
         ->where('schid', $schid)
         ->where('clsid', $clsid)
         ->first();
@@ -12544,7 +12545,7 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): st
         $splitCode = $response->json()['data']['split_code'];
 
         // Save for reuse
-        \DB::table('sub_account_splits')->insert([  // ✅ fixed table name
+        \DB::table('subaccount_splits')->insert([  // ✅ fixed table name
             'schid'      => $schid,
             'clsid'      => $clsid,
             'split_code' => $splitCode,

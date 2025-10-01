@@ -9,11 +9,5 @@ class subaccount_split extends Model
 {
     use HasFactory;
 
-       protected $table = 'sub_account_splits';
-
-    protected $fillable = [
-        'schid',
-        'clsid',
-        'split_code',
-    ];
+    protected $fillable = [ 'schid', 'clsid', 'split_code', ];
 }
