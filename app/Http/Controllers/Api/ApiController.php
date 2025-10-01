@@ -12529,23 +12529,25 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): st
         $acc['share'] = floatval($acc['share']); // keep decimals
     }
 
-    $bearerSubaccount = $subaccounts[0]['subaccount'];
+    $payload = [
+        'name'        => "Split-{$schid}-{$clsid}-" . uniqid(),
+        'type'        => 'percentage',
+        'currency'    => 'NGN',
+        'subaccounts' => $subaccounts,
+        'bearer_type' => 'account',  // account pays fee
+    ];
+
+    // ✅ Only add bearer_subaccount if bearer_type is subaccount
+    // $payload['bearer_subaccount'] = $subaccounts[0]['subaccount'];
 
     $response = Http::withToken(env('PAYSTACK_SECRET'))
-        ->post('https://api.paystack.co/split', [
-            'name'              => "Split-{$schid}-{$clsid}-" . uniqid(),
-            'type'              => 'percentage',   // since frontend sends shares as % (50,50)
-            'currency'          => 'NGN',
-            'subaccounts'       => $subaccounts,
-            'bearer_type'       => 'account',       // or 'subaccount' if one of them should pay fees
-            'bearer_subaccount' => $bearerSubaccount,
-        ]);
+        ->post('https://api.paystack.co/split', $payload);
 
     if ($response->successful() && isset($response->json()['data']['split_code'])) {
         $splitCode = $response->json()['data']['split_code'];
 
         // Save for reuse
-        \DB::table('subaccount_splits')->insert([  // ✅ fixed table name
+        \DB::table('subaccount_splits')->insert([
             'schid'      => $schid,
             'clsid'      => $clsid,
             'split_code' => $splitCode,
@@ -12559,6 +12561,7 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): st
     Log::error('Paystack Split Error: ' . $response->body());
     throw new \Exception('Error creating split: ' . $response->body());
 }
+
 
 
 public function handleCallback(Request $request)
