@@ -12515,33 +12515,17 @@ class ApiController extends Controller
  */
 public function createSplit(array $subaccounts, int $totalAmount)
 {
-    $totalAmountKobo = $totalAmount * 100;
-
-    // Convert subaccount shares to kobo
+    // Convert shares to kobo
     foreach ($subaccounts as &$acc) {
         $acc['share'] = max(1, intval($acc['share'] * 100));
     }
 
-    $totalShares = array_sum(array_column($subaccounts, 'share'));
-
-    // Dynamic buffer for Paystack fees: 1.5% + 100 kobo
-    $feeBuffer = max(200, intval($totalAmountKobo * 0.015) + 100);
-
-    // Scale down shares proportionally if totalShares + feeBuffer exceeds totalAmountKobo
-    if ($totalShares + $feeBuffer > $totalAmountKobo) {
-        $factor = ($totalAmountKobo - $feeBuffer) / max($totalShares, 1);
-        foreach ($subaccounts as &$acc) {
-            $acc['share'] = max(1, intval($acc['share'] * $factor));
-        }
-    }
-
-    // Remove subaccounts whose share is too small after scaling
+    // Remove subaccounts whose share is zero or negative
     $subaccounts = array_filter($subaccounts, fn($acc) => $acc['share'] > 0);
 
-    // If no valid subaccounts remain, fallback to single payment
     if (empty($subaccounts)) {
-        Log::warning("Amount too small for requested split. Proceeding with single payment.");
-        return null; // caller should handle null split_code
+        Log::warning("No valid subaccounts for split. Proceeding with single payment.");
+        return null; // fallback to single payment
     }
 
     // Create split on Paystack
@@ -12550,8 +12534,8 @@ public function createSplit(array $subaccounts, int $totalAmount)
             'name'        => 'Invoice Split ' . uniqid(),
             'type'        => 'flat',
             'currency'    => 'NGN',
-            'subaccounts' => array_values($subaccounts), // reindex array
-            'bearer_type' => 'all',
+            'subaccounts' => array_values($subaccounts),
+            'bearer_type' => 'all', // fees already handled on frontend
         ]);
 
     if ($response->successful()) {
@@ -12561,6 +12545,7 @@ public function createSplit(array $subaccounts, int $totalAmount)
     Log::error('Paystack Split Error: ' . $response->body());
     throw new \Exception('Error creating split: ' . $response->body());
 }
+
 
 /**
  * @OA\Post(
@@ -12640,6 +12625,7 @@ public function createSplit(array $subaccounts, int $totalAmount)
  */
 public function initializePayment(Request $request)
 {
+    // Validate required fields
     $request->validate([
         'email'           => 'required|email',
         'amount'          => 'required|numeric|min:100',
@@ -12650,7 +12636,7 @@ public function initializePayment(Request $request)
     ]);
 
     $email       = $request->email;
-    $amount      = $request->amount;
+    $amount      = $request->amount; // exact amount after frontend fee deduction
     $schid       = $request->schid;
     $clsid       = $request->clsid;
     $subaccounts = $request->subaccount_code;
@@ -12660,18 +12646,18 @@ public function initializePayment(Request $request)
         $totalAmountKobo = $amount * 100;
         $splitCode = null;
 
-        // Try creating a split, fallback to single payment if it fails
+        // Attempt to create a split; fallback to single payment if it fails
         if (!empty($subaccounts)) {
             try {
                 $splitCode = $this->createSplit($subaccounts, $amount);
             } catch (\Exception $e) {
                 Log::warning("Split creation failed, proceeding with single payment: " . $e->getMessage());
-                $splitCode = null; // fallback
+                $splitCode = null;
             }
         }
 
-        // Build unique reference
-        $host = preg_replace('/^api\./', '', $request->getHost());
+        // Build unique transaction reference
+        $host  = preg_replace('/^api\./', '', $request->getHost());
         $typ   = $request->typ ?? 0;
         $stid  = $request->stid ?? 0;
         $ssnid = $request->ssnid ?? 0;
@@ -12697,6 +12683,7 @@ public function initializePayment(Request $request)
             'channels'     => ['card', 'bank', 'ussd'],
         ];
 
+        // Attach split code if available
         if ($splitCode) {
             $payload['split_code'] = $splitCode;
         }
@@ -12714,6 +12701,7 @@ public function initializePayment(Request $request)
             ]);
         }
 
+        // Log and return error if initialization fails
         Log::error('Paystack Transaction Error: ' . $response->body());
         return response()->json([
             'status'  => false,
