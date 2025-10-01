@@ -12533,11 +12533,15 @@ public function createSplit(array $subaccounts, int $totalAmount)
         foreach ($subaccounts as &$acc) {
             $acc['share'] = max(1, intval($acc['share'] * $factor));
         }
+    }
 
-        // If even after scaling shares are too small, throw exception
-        if (array_sum(array_column($subaccounts, 'share')) + $feeBuffer > $totalAmountKobo) {
-            throw new \Exception("Amount too small for the requested split. Proceed with single payment.");
-        }
+    // Remove subaccounts whose share is too small after scaling
+    $subaccounts = array_filter($subaccounts, fn($acc) => $acc['share'] > 0);
+
+    // If no valid subaccounts remain, fallback to single payment
+    if (empty($subaccounts)) {
+        Log::warning("Amount too small for requested split. Proceeding with single payment.");
+        return null; // caller should handle null split_code
     }
 
     // Create split on Paystack
@@ -12546,7 +12550,7 @@ public function createSplit(array $subaccounts, int $totalAmount)
             'name'        => 'Invoice Split ' . uniqid(),
             'type'        => 'flat',
             'currency'    => 'NGN',
-            'subaccounts' => $subaccounts,
+            'subaccounts' => array_values($subaccounts), // reindex array
             'bearer_type' => 'all',
         ]);
 
