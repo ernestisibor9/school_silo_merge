@@ -12510,39 +12510,46 @@ class ApiController extends Controller
 
 
 
-    public function createSplit(array $subaccounts, int $totalAmount)
-    {
-        // Convert shares to kobo
-        foreach ($subaccounts as &$acc) {
-            $acc['share'] = intval($acc['share'] * 100); // Naira -> Kobo
-        }
+/**
+ * Create a Paystack split for multiple subaccounts
+ */
+public function createSplit(array $subaccounts, int $totalAmount)
+{
+    $totalAmountKobo = $totalAmount * 100;
 
-        // Ensure total of shares does not exceed total amount
-        $totalShares = array_sum(array_column($subaccounts, 'share'));
-        $totalAmountKobo = $totalAmount * 100;
-
-        if ($totalShares > $totalAmountKobo) {
-            throw new \Exception('Sum of subaccount shares exceeds total transaction amount.');
-        }
-
-        $response = Http::withToken(env('PAYSTACK_SECRET'))
-            ->post('https://api.paystack.co/split', [
-                'name' => 'Invoice Split ' . uniqid(),
-                'type' => 'flat',
-                'currency' => 'NGN',
-                'subaccounts' => $subaccounts,
-                'bearer_type' => 'subaccount',
-                'bearer_subaccount' => $subaccounts[0]['subaccount'], // main bearer
-            ]);
-
-        if ($response->successful()) {
-            return $response->json()['data']['split_code'];
-        }
-
-        Log::error('Paystack Split Error: ' . $response->body());
-        throw new \Exception('Error creating split: ' . $response->body());
+    // Convert shares to kobo
+    foreach ($subaccounts as &$acc) {
+        $acc['share'] = intval($acc['share'] * 100); // Naira -> Kobo
     }
 
+    // Ensure total shares don't exceed total amount minus buffer for fees
+    $totalShares = array_sum(array_column($subaccounts, 'share'));
+    $feeBuffer = 200; // leave ~NGN 2 for Paystack fee buffer
+    if ($totalShares + $feeBuffer > $totalAmountKobo) {
+        // Reduce each share proportionally
+        $factor = ($totalAmountKobo - $feeBuffer) / $totalShares;
+        foreach ($subaccounts as &$acc) {
+            $acc['share'] = intval($acc['share'] * $factor);
+        }
+    }
+
+    // Create split on Paystack
+    $response = Http::withToken(env('PAYSTACK_SECRET'))
+        ->post('https://api.paystack.co/split', [
+            'name' => 'Invoice Split ' . uniqid(),
+            'type' => 'flat',
+            'currency' => 'NGN',
+            'subaccounts' => $subaccounts,
+            'bearer_type' => 'all', // distribute fees across all subaccounts
+        ]);
+
+    if ($response->successful()) {
+        return $response->json()['data']['split_code'];
+    }
+
+    Log::error('Paystack Split Error: ' . $response->body());
+    throw new \Exception('Error creating split: ' . $response->body());
+}
 
 
 /**
@@ -12618,6 +12625,9 @@ class ApiController extends Controller
  */
 
 
+/**
+ * Initialize a payment with Paystack
+ */
 public function initializePayment(Request $request)
 {
     $request->validate([
@@ -12643,7 +12653,7 @@ public function initializePayment(Request $request)
         // Remove 'api.' prefix from host
         $host = preg_replace('/^api\./', '', $request->getHost());
 
-        // Pull typ, stid, ssnid, trmid from request (not metadata) to avoid zeros
+        // Pull typ, stid, ssnid, trmid from request (not metadata)
         $typ   = $request->typ ?? 0;
         $stid  = $request->stid ?? 0;
         $ssnid = $request->ssnid ?? 0;
@@ -12665,7 +12675,7 @@ public function initializePayment(Request $request)
             'amount'       => $amount * 100, // convert to kobo
             'currency'     => 'NGN',
             'reference'    => $ref,
-'callback_url' => $this->getFrontendUrl('/studentPortal'),
+            'callback_url' => $this->getFrontendUrl('/studentPortal'), // redirect to frontend
             'metadata'     => $metadata,
             'split_code'   => $splitCode,
             'channels'     => ['card', 'bank', 'ussd'],
@@ -12699,7 +12709,6 @@ public function initializePayment(Request $request)
         ], 500);
     }
 }
-
 
 
 
