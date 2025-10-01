@@ -12514,9 +12514,8 @@ class ApiController extends Controller
 
 public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): string
 {
-    // Check DB if split_code already exists for this class
-    $existing = \DB::table('subaccount_splits')
-        ->where('schid', $schid)
+    // Check if split already exists
+    $existing = subaccount_split::where('schid', $schid)
         ->where('clsid', $clsid)
         ->first();
 
@@ -12524,21 +12523,19 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): st
         return $existing->split_code;
     }
 
-    // Prepare shares as percentages
+    // Ensure shares are floats
     foreach ($subaccounts as &$acc) {
-        $acc['share'] = floatval($acc['share']); // keep decimals
+        $acc['share'] = floatval($acc['share']);
     }
 
+    // Prepare payload for Paystack
     $payload = [
         'name'        => "Split-{$schid}-{$clsid}-" . uniqid(),
         'type'        => 'percentage',
         'currency'    => 'NGN',
         'subaccounts' => $subaccounts,
-        'bearer_type' => 'account',  // account pays fee
+        'bearer_type' => 'account', // main account pays fees
     ];
-
-    // ✅ Only add bearer_subaccount if bearer_type is subaccount
-    // $payload['bearer_subaccount'] = $subaccounts[0]['subaccount'];
 
     $response = Http::withToken(env('PAYSTACK_SECRET'))
         ->post('https://api.paystack.co/split', $payload);
@@ -12546,18 +12543,17 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): st
     if ($response->successful() && isset($response->json()['data']['split_code'])) {
         $splitCode = $response->json()['data']['split_code'];
 
-        // Save for reuse
-        \DB::table('subaccount_splits')->insert([
+        // Save to DB
+        subaccount_split::create([
             'schid'      => $schid,
             'clsid'      => $clsid,
             'split_code' => $splitCode,
-            'created_at' => now(),
-            'updated_at' => now(),
         ]);
 
         return $splitCode;
     }
 
+    // Log errors
     Log::error('Paystack Split Error: ' . $response->body());
     throw new \Exception('Error creating split: ' . $response->body());
 }
@@ -12619,17 +12615,22 @@ public function initializePayment(Request $request)
 
     try {
         $totalAmountKobo = $amount * 100;
-
         $splitCode = null;
         $singleSub = null;
 
-        // If only one subaccount → direct assignment
-        if (count($subaccounts) === 1) {
+        // Check if a split already exists for this school/class
+        if (count($subaccounts) > 1) {
+            $existingSplit = subaccount_split::where('schid', $schid)
+                                ->where('clsid', $clsid)
+                                ->first();
+            if ($existingSplit) {
+                $splitCode = $existingSplit->split_code;
+            } else {
+                // Create a new split if none exists
+                $splitCode = $this->createOrGetSplit($schid, $clsid, $subaccounts);
+            }
+        } elseif (count($subaccounts) === 1) {
             $singleSub = $subaccounts[0]['subaccount'];
-        }
-        // If multiple subaccounts → get/create split
-        elseif (count($subaccounts) > 1) {
-            $splitCode = $this->createOrGetSplit($schid, $clsid, $subaccounts);
         }
 
         // Build unique reference
@@ -12648,7 +12649,7 @@ public function initializePayment(Request $request)
             'time' => now()->timestamp,
         ]);
 
-        // ✅ Prepare Paystack payload
+        // Prepare Paystack payload
         $payload = [
             'email'        => $email,
             'amount'       => $totalAmountKobo,
@@ -12693,6 +12694,7 @@ public function initializePayment(Request $request)
         ], 500);
     }
 }
+
 
 
 private function getFrontendUrl(string $path = ''): string
