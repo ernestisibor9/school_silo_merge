@@ -12515,6 +12515,49 @@ class ApiController extends Controller
  */
 public function createSplit(array $subaccounts, int $totalAmount)
 {
+    // Convert shares from Naira → Kobo
+    foreach ($subaccounts as &$acc) {
+        $acc['share'] = intval($acc['share']) * 100; // strict conversion
+    }
+
+    // Remove invalid subaccounts
+    $subaccounts = array_filter($subaccounts, fn($acc) => $acc['share'] > 0);
+
+    if (empty($subaccounts)) {
+        Log::warning("No valid subaccounts for split. Proceeding with single payment.");
+        return null;
+    }
+
+    // Validate that total shares do not exceed transaction amount
+    $totalShares = array_sum(array_column($subaccounts, 'share'));
+    $totalAmountKobo = $totalAmount * 100;
+
+    if ($totalShares > $totalAmountKobo) {
+        throw new \Exception("Invalid split: total shares ({$totalShares}) exceed total amount ({$totalAmountKobo}).");
+    }
+
+    // Make the first subaccount the fee bearer (recommended by Paystack)
+    $bearerSubaccount = $subaccounts[0]['subaccount'];
+
+    // Create split on Paystack
+    $response = Http::withToken(env('PAYSTACK_SECRET'))
+        ->post('https://api.paystack.co/split', [
+            'name'              => 'Invoice Split ' . uniqid(),
+            'type'              => 'flat',
+            'currency'          => 'NGN',
+            'subaccounts'       => array_values($subaccounts),
+            'bearer_type'       => 'subaccount',
+            'bearer_subaccount' => $bearerSubaccount,
+        ]);
+
+    if ($response->successful()) {
+        return $response->json()['data']['split_code'];
+    }
+
+    Log::error('Paystack Split Error: ' . $response->body());
+    throw new \Exception('Error creating split: ' . $response->body());
+}
+{
     // Convert shares to kobo
     foreach ($subaccounts as &$acc) {
         $acc['share'] = max(1, intval($acc['share'] * 100));
