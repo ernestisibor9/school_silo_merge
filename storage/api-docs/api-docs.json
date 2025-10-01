@@ -9054,8 +9054,8 @@
                     "Payments"
                 ],
                 "summary": "Initialize a Paystack payment with multiple subaccounts",
-                "description": "This endpoint initializes a Paystack transaction and dynamically creates a split for multiple subaccounts. The frontend should call this endpoint with the student's email, amount, school ID, class ID, and subaccounts array.",
-                "operationId": "initializePayment22",
+                "description": "This endpoint initializes a Paystack transaction and dynamically creates a split for multiple subaccounts. The frontend should call this endpoint with the student's email, amount, school ID, class ID, subaccounts array, and metadata.",
+                "operationId": "initializePayment",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -9096,6 +9096,30 @@
                                             },
                                             "type": "object"
                                         }
+                                    },
+                                    "metadata": {
+                                        "description": "Additional metadata to attach to the payment",
+                                        "type": "object",
+                                        "example": {
+                                            "student_id": 123,
+                                            "session": "2025/2026"
+                                        }
+                                    },
+                                    "typ": {
+                                        "type": "integer",
+                                        "example": 0
+                                    },
+                                    "stid": {
+                                        "type": "integer",
+                                        "example": 0
+                                    },
+                                    "ssnid": {
+                                        "type": "integer",
+                                        "example": 0
+                                    },
+                                    "trmid": {
+                                        "type": "integer",
+                                        "example": 0
                                     }
                                 },
                                 "type": "object"
@@ -9121,6 +9145,10 @@
                                         "data": {
                                             "description": "Paystack transaction response object",
                                             "type": "object"
+                                        },
+                                        "ref": {
+                                            "type": "string",
+                                            "example": "schoolsilomerge.top-12-7000-0-0-0-0-3-654e2f3b7a"
                                         }
                                     },
                                     "type": "object"

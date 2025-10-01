@@ -12545,13 +12545,13 @@ class ApiController extends Controller
 
 
 
-    /**
+/**
  * @OA\Post(
  *     path="/api/initializePayment",
  *     summary="Initialize a Paystack payment with multiple subaccounts",
- *     description="This endpoint initializes a Paystack transaction and dynamically creates a split for multiple subaccounts. The frontend should call this endpoint with the student's email, amount, school ID, class ID, and subaccounts array.",
+ *     description="This endpoint initializes a Paystack transaction and dynamically creates a split for multiple subaccounts. The frontend should call this endpoint with the student's email, amount, school ID, class ID, subaccounts array, and metadata.",
  *     tags={"Payments"},
- *     operationId="initializePayment22",
+ *     operationId="initializePayment",
  *     security={{"bearerAuth": {}}},
  *     @OA\RequestBody(
  *         required=true,
@@ -12570,7 +12570,17 @@ class ApiController extends Controller
  *                     @OA\Property(property="subaccount", type="string", example="ACCT_hugfsgnkclmoaqh"),
  *                     @OA\Property(property="share", type="number", example=5000)
  *                 )
- *             )
+ *             ),
+ *             @OA\Property(
+ *                 property="metadata",
+ *                 type="object",
+ *                 description="Additional metadata to attach to the payment",
+ *                 example={"student_id": 123, "session": "2025/2026"}
+ *             ),
+ *             @OA\Property(property="typ", type="integer", example=0),
+ *             @OA\Property(property="stid", type="integer", example=0),
+ *             @OA\Property(property="ssnid", type="integer", example=0),
+ *             @OA\Property(property="trmid", type="integer", example=0)
  *         )
  *     ),
  *     @OA\Response(
@@ -12580,7 +12590,8 @@ class ApiController extends Controller
  *             type="object",
  *             @OA\Property(property="status", type="boolean", example=true),
  *             @OA\Property(property="message", type="string", example="Payment Initialized Successfully"),
- *             @OA\Property(property="data", type="object", description="Paystack transaction response object")
+ *             @OA\Property(property="data", type="object", description="Paystack transaction response object"),
+ *             @OA\Property(property="ref", type="string", example="schoolsilomerge.top-12-7000-0-0-0-0-3-654e2f3b7a")
  *         )
  *     ),
  *     @OA\Response(
@@ -12605,6 +12616,7 @@ class ApiController extends Controller
  *     )
  * )
  */
+
 
 public function initializePayment(Request $request)
 {
