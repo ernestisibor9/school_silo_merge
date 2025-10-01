@@ -12653,7 +12653,7 @@ public function initializePayment(Request $request)
             'amount'       => $amount * 100, // convert to kobo
             'currency'     => 'NGN',
             'reference'    => $ref,
-            'callback_url' => $this->getFrontendUrl('/api/payment/callback'),
+'callback_url' => $this->getFrontendUrl('/studentPortal'),
             'metadata'     => $metadata,
             'split_code'   => $splitCode,
             'channels'     => ['card', 'bank', 'ussd'],
