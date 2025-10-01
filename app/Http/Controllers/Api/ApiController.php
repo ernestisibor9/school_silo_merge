@@ -12517,35 +12517,37 @@ public function createSplit(array $subaccounts, int $totalAmount)
 {
     $totalAmountKobo = $totalAmount * 100;
 
-    // Convert shares to kobo
+    // Convert subaccount shares to kobo
     foreach ($subaccounts as &$acc) {
-        $acc['share'] = intval($acc['share'] * 100); // Naira -> Kobo
+        $acc['share'] = max(1, intval($acc['share'] * 100));
     }
 
-    // Calculate total shares
     $totalShares = array_sum(array_column($subaccounts, 'share'));
 
-    // Dynamically calculate a fee buffer based on Paystack fees (1.5% + 100 kobo)
-    $paystackFeeBuffer = max(200, intval($totalAmountKobo * 0.015) + 100);
+    // Dynamic buffer for Paystack fees: 1.5% + 100 kobo
+    $feeBuffer = max(200, intval($totalAmountKobo * 0.015) + 100);
 
-    // Ensure total shares + buffer does not exceed total amount
-    if ($totalShares + $paystackFeeBuffer > $totalAmountKobo) {
-        $factor = ($totalAmountKobo - $paystackFeeBuffer) / $totalShares;
-
+    // Scale down shares proportionally if totalShares + feeBuffer exceeds totalAmountKobo
+    if ($totalShares + $feeBuffer > $totalAmountKobo) {
+        $factor = ($totalAmountKobo - $feeBuffer) / max($totalShares, 1);
         foreach ($subaccounts as &$acc) {
-            // Reduce each share proportionally, ensure minimum of 1 kobo
             $acc['share'] = max(1, intval($acc['share'] * $factor));
+        }
+
+        // If even after scaling shares are too small, throw exception
+        if (array_sum(array_column($subaccounts, 'share')) + $feeBuffer > $totalAmountKobo) {
+            throw new \Exception("Amount too small for the requested split. Proceed with single payment.");
         }
     }
 
     // Create split on Paystack
     $response = Http::withToken(env('PAYSTACK_SECRET'))
         ->post('https://api.paystack.co/split', [
-            'name' => 'Invoice Split ' . uniqid(),
-            'type' => 'flat',
-            'currency' => 'NGN',
+            'name'        => 'Invoice Split ' . uniqid(),
+            'type'        => 'flat',
+            'currency'    => 'NGN',
             'subaccounts' => $subaccounts,
-            'bearer_type' => 'all', // distribute fees across all subaccounts
+            'bearer_type' => 'all',
         ]);
 
     if ($response->successful()) {
@@ -12555,7 +12557,6 @@ public function createSplit(array $subaccounts, int $totalAmount)
     Log::error('Paystack Split Error: ' . $response->body());
     throw new \Exception('Error creating split: ' . $response->body());
 }
-
 
 /**
  * @OA\Post(
@@ -12640,7 +12641,7 @@ public function initializePayment(Request $request)
         'amount'          => 'required|numeric|min:100',
         'schid'           => 'required|integer',
         'clsid'           => 'required|integer',
-        'subaccount_code' => 'required|array|min:1', // multiple subaccounts
+        'subaccount_code' => 'required|array|min:1',
         'metadata'        => 'required|array',
     ]);
 
@@ -12652,26 +12653,26 @@ public function initializePayment(Request $request)
     $metadata    = $request->metadata;
 
     try {
-        // Ensure amount is enough to cover fees
         $totalAmountKobo = $amount * 100;
-        $minimumFeeBuffer = 100; // minimum buffer in kobo
-        if ($totalAmountKobo <= $minimumFeeBuffer) {
-            throw new \Exception("Amount too small to cover transaction fees.");
+        $splitCode = null;
+
+        // Try creating a split, fallback to single payment if it fails
+        if (!empty($subaccounts)) {
+            try {
+                $splitCode = $this->createSplit($subaccounts, $amount);
+            } catch (\Exception $e) {
+                Log::warning("Split creation failed, proceeding with single payment: " . $e->getMessage());
+                $splitCode = null; // fallback
+            }
         }
 
-        // Create split code safely
-        $splitCode = $this->createSplit($subaccounts, $amount);
-
-        // Remove 'api.' prefix from host
+        // Build unique reference
         $host = preg_replace('/^api\./', '', $request->getHost());
-
-        // Pull typ, stid, ssnid, trmid from request (not metadata)
         $typ   = $request->typ ?? 0;
         $stid  = $request->stid ?? 0;
         $ssnid = $request->ssnid ?? 0;
         $trmid = $request->trmid ?? 0;
 
-        // Build unique reference
         $ref = "{$host}-{$schid}-{$amount}-{$typ}-{$stid}-{$ssnid}-{$trmid}-{$clsid}-" . uniqid();
 
         // Save pending transaction
@@ -12681,17 +12682,20 @@ public function initializePayment(Request $request)
             'time' => now()->timestamp,
         ]);
 
-        // Prepare payload for Paystack
+        // Prepare Paystack payload
         $payload = [
             'email'        => $email,
-            'amount'       => $totalAmountKobo, // in kobo
+            'amount'       => $totalAmountKobo,
             'currency'     => 'NGN',
             'reference'    => $ref,
             'callback_url' => $this->getFrontendUrl('/studentPortal'),
             'metadata'     => $metadata,
-            'split_code'   => $splitCode,
             'channels'     => ['card', 'bank', 'ussd'],
         ];
+
+        if ($splitCode) {
+            $payload['split_code'] = $splitCode;
+        }
 
         // Initialize transaction
         $response = Http::withToken(env('PAYSTACK_SECRET'))
@@ -12722,7 +12726,6 @@ public function initializePayment(Request $request)
         ], 500);
     }
 }
-
 
 
 
