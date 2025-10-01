@@ -12510,34 +12510,6 @@ class ApiController extends Controller
 
 
 
-public function createSplit(array $subaccounts, int $totalAmount)
-{
-    // IMPORTANT: Do NOT multiply shares again, frontend already sends them
-    foreach ($subaccounts as &$acc) {
-        $acc['share'] = max(1, intval($acc['share']));
-        // keep as-is, Paystack wants raw kobo/naira-based flat numbers
-    }
-
-    // Make the first subaccount the default fee bearer
-    $bearerSubaccount = $subaccounts[0]['subaccount'];
-
-    $response = Http::withToken(env('PAYSTACK_SECRET'))
-        ->post('https://api.paystack.co/split', [
-            'name'              => 'Invoice Split ' . uniqid(),
-            'type'              => 'percentage',          // flat split (fixed naira/kobo amounts)
-            'currency'          => 'NGN',
-            'subaccounts'       => $subaccounts,
-            'bearer_type'       => 'account',       // main account pays Paystack fees
-            'bearer_subaccount' => $bearerSubaccount,
-        ]);
-
-    if ($response->successful() && isset($response->json()['data']['split_code'])) {
-        return $response->json()['data']['split_code'];
-    }
-
-    Log::error('Paystack Split Error: ' . $response->body());
-    throw new \Exception('Error creating split: ' . $response->body());
-}
 
 
 public function handleCallback(Request $request)
@@ -12578,33 +12550,24 @@ public function handleCallback(Request $request)
 public function initializePayment(Request $request)
 {
     $request->validate([
-        'email'           => 'required|email',
-        'amount'          => 'required|numeric|min:100',
-        'schid'           => 'required|integer',
-        'clsid'           => 'required|integer',
-        'subaccount_code' => 'required|array|min:1',
-        'metadata'        => 'required|array',
+        'email'    => 'required|email',
+        'amount'   => 'required|numeric|min:100',
+        'schid'    => 'required|integer',
+        'clsid'    => 'required|integer',
+        'metadata' => 'required|array',
     ]);
 
-    $email       = $request->email;
-    $amount      = $request->amount; // in Naira
-    $schid       = $request->schid;
-    $clsid       = $request->clsid;
-    $subaccounts = $request->subaccount_code;
-    $metadata    = $request->metadata;
+    $email    = $request->email;
+    $amount   = $request->amount; // in Naira
+    $schid    = $request->schid;
+    $clsid    = $request->clsid;
+    $metadata = $request->metadata;
 
     try {
         $totalAmountKobo = $amount * 100;
 
-        // ✅ Create split safely (only if reasonable amount & subaccounts exist)
-        $splitCode = null;
-        if (!empty($subaccounts) && $amount > 500) {
-            // avoid errors when amount is too small
-            $splitCode = $this->createSplit($subaccounts, $amount);
-        }
-
         // Build unique reference
-        $host = preg_replace('/^api\./', '', $request->getHost());
+        $host  = preg_replace('/^api\./', '', $request->getHost());
         $typ   = $request->typ ?? 0;
         $stid  = $request->stid ?? 0;
         $ssnid = $request->ssnid ?? 0;
@@ -12619,7 +12582,7 @@ public function initializePayment(Request $request)
             'time' => now()->timestamp,
         ]);
 
-        // ✅ Prepare Paystack payload
+        // ✅ Prepare Paystack payload (no split_code here)
         $payload = [
             'email'        => $email,
             'amount'       => $totalAmountKobo,
@@ -12629,11 +12592,6 @@ public function initializePayment(Request $request)
             'metadata'     => $metadata,
             'channels'     => ['card', 'bank', 'ussd'],
         ];
-
-        // Only add split_code if it exists
-        if ($splitCode) {
-            $payload['split_code'] = $splitCode;
-        }
 
         $response = Http::withToken(env('PAYSTACK_SECRET'))
             ->post('https://api.paystack.co/transaction/initialize', $payload);
@@ -12663,6 +12621,7 @@ public function initializePayment(Request $request)
         ], 500);
     }
 }
+
 
 
 private function getFrontendUrl(string $path = ''): string
