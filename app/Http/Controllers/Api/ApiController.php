@@ -12631,13 +12631,13 @@ public function initializePayment(Request $request)
         // Remove 'api.' prefix from host
         $host = preg_replace('/^api\./', '', $request->getHost());
 
-        // Build unique reference using frontend metadata
-        // Fallback to 0 if any metadata key is missing
-        $typ   = $metadata['typ'] ?? 0;
-        $stid  = $metadata['stid'] ?? 0;
-        $ssnid = $metadata['ssnid'] ?? 0;
-        $trmid = $metadata['trmid'] ?? 0;
+        // Pull typ, stid, ssnid, trmid from request (not metadata) to avoid zeros
+        $typ   = $request->typ ?? 0;
+        $stid  = $request->stid ?? 0;
+        $ssnid = $request->ssnid ?? 0;
+        $trmid = $request->trmid ?? 0;
 
+        // Build unique reference
         $ref = "{$host}-{$schid}-{$amount}-{$typ}-{$stid}-{$ssnid}-{$trmid}-{$clsid}-" . uniqid();
 
         // Save pending transaction
@@ -12687,6 +12687,7 @@ public function initializePayment(Request $request)
         ], 500);
     }
 }
+
 
 
 
