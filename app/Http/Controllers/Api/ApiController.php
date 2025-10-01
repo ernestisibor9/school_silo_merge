@@ -12522,14 +12522,19 @@ public function createSplit(array $subaccounts, int $totalAmount)
         $acc['share'] = intval($acc['share'] * 100); // Naira -> Kobo
     }
 
-    // Ensure total shares don't exceed total amount minus buffer for fees
+    // Calculate total shares
     $totalShares = array_sum(array_column($subaccounts, 'share'));
-    $feeBuffer = 200; // leave ~NGN 2 for Paystack fee buffer
-    if ($totalShares + $feeBuffer > $totalAmountKobo) {
-        // Reduce each share proportionally
-        $factor = ($totalAmountKobo - $feeBuffer) / $totalShares;
+
+    // Dynamically calculate a fee buffer based on Paystack fees (1.5% + 100 kobo)
+    $paystackFeeBuffer = max(200, intval($totalAmountKobo * 0.015) + 100);
+
+    // Ensure total shares + buffer does not exceed total amount
+    if ($totalShares + $paystackFeeBuffer > $totalAmountKobo) {
+        $factor = ($totalAmountKobo - $paystackFeeBuffer) / $totalShares;
+
         foreach ($subaccounts as &$acc) {
-            $acc['share'] = intval($acc['share'] * $factor);
+            // Reduce each share proportionally, ensure minimum of 1 kobo
+            $acc['share'] = max(1, intval($acc['share'] * $factor));
         }
     }
 
