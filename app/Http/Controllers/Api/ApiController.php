@@ -12544,7 +12544,7 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): st
         $splitCode = $response->json()['data']['split_code'];
 
         // Save for reuse
-        \DB::table('sub_accounts_split')->insert([
+        \DB::table('sub_accounts_splits')->insert([
             'schid'      => $schid,
             'clsid'      => $clsid,
             'split_code' => $splitCode,
