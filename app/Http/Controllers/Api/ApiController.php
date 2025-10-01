@@ -12652,7 +12652,14 @@ public function initializePayment(Request $request)
     $metadata    = $request->metadata;
 
     try {
-        // Create split code if using subaccounts
+        // Ensure amount is enough to cover fees
+        $totalAmountKobo = $amount * 100;
+        $minimumFeeBuffer = 100; // minimum buffer in kobo
+        if ($totalAmountKobo <= $minimumFeeBuffer) {
+            throw new \Exception("Amount too small to cover transaction fees.");
+        }
+
+        // Create split code safely
         $splitCode = $this->createSplit($subaccounts, $amount);
 
         // Remove 'api.' prefix from host
@@ -12674,18 +12681,19 @@ public function initializePayment(Request $request)
             'time' => now()->timestamp,
         ]);
 
-        // Include all metadata for Paystack
+        // Prepare payload for Paystack
         $payload = [
             'email'        => $email,
-            'amount'       => $amount * 100, // convert to kobo
+            'amount'       => $totalAmountKobo, // in kobo
             'currency'     => 'NGN',
             'reference'    => $ref,
-            'callback_url' => $this->getFrontendUrl('/studentPortal'), // redirect to frontend
+            'callback_url' => $this->getFrontendUrl('/studentPortal'),
             'metadata'     => $metadata,
             'split_code'   => $splitCode,
             'channels'     => ['card', 'bank', 'ussd'],
         ];
 
+        // Initialize transaction
         $response = Http::withToken(env('PAYSTACK_SECRET'))
             ->post('https://api.paystack.co/transaction/initialize', $payload);
 
@@ -12714,7 +12722,6 @@ public function initializePayment(Request $request)
         ], 500);
     }
 }
-
 
 
 
