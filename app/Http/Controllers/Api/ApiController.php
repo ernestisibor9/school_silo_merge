@@ -12509,6 +12509,176 @@ class ApiController extends Controller
 
 
 
+
+public function createSplit(array $subaccounts, int $totalAmount)
+{
+    $totalAmountKobo = $totalAmount * 100;
+
+    // Convert subaccount shares to kobo (flat)
+    foreach ($subaccounts as &$acc) {
+        $acc['share'] = max(1, intval($acc['share'] * 100));
+    }
+
+    // Make the first subaccount the default beneficiary
+    $bearerSubaccount = $subaccounts[0]['subaccount'];
+
+    $response = Http::withToken(env('PAYSTACK_SECRET'))
+        ->post('https://api.paystack.co/split', [
+            'name'        => 'Invoice Split ' . uniqid(),
+            'type'        => 'flat',
+            'currency'    => 'NGN',
+            'subaccounts' => $subaccounts,
+            'bearer_type' => 'account',           // 👈 Paystack fee comes ONLY from main account
+            'bearer_subaccount' => $bearerSubaccount,
+        ]);
+
+    if ($response->successful()) {
+        return $response->json()['data']['split_code'];
+    }
+
+    Log::error('Paystack Split Error: ' . $response->body());
+    throw new \Exception('Error creating split: ' . $response->body());
+}
+
+
+public function handleCallback(Request $request)
+{
+    $reference = $request->query('reference');
+
+    if (!$reference) {
+        // Redirect to frontend error page dynamically
+        return redirect()->to(
+            $this->getFrontendUrl('/studentPortal?status=error')
+        );
+    }
+
+    // Verify payment with Paystack
+    $response = Http::withToken(env('PAYSTACK_SECRET'))
+        ->get("https://api.paystack.co/transaction/verify/{$reference}");
+
+    $data = $response->json();
+
+    if (
+        $response->ok() &&
+        isset($data['data']['status']) &&
+        $data['data']['status'] === 'success'
+    ) {
+        // Redirect to frontend success page dynamically
+        return redirect()->to(
+            $this->getFrontendUrl("/studentPortal?trxref={$reference}&reference={$reference}&status=success")
+        );
+    }
+
+    // Payment failed
+    return redirect()->to(
+        $this->getFrontendUrl("/studentPortal?trxref={$reference}&reference={$reference}&status=failed")
+    );
+}
+
+
+public function initializePayment(Request $request)
+{
+    $request->validate([
+        'email'           => 'required|email',
+        'amount'          => 'required|numeric|min:100',
+        'schid'           => 'required|integer',
+        'clsid'           => 'required|integer',
+        'subaccount_code' => 'required|array|min:1',
+        'metadata'        => 'required|array',
+    ]);
+
+    $email       = $request->email;
+    $amount      = $request->amount; // in Naira
+    $schid       = $request->schid;
+    $clsid       = $request->clsid;
+    $subaccounts = $request->subaccount_code;
+    $metadata    = $request->metadata;
+
+    try {
+        $totalAmountKobo = $amount * 100;
+
+        // ✅ Create split safely (only if reasonable amount & subaccounts exist)
+        $splitCode = null;
+        if (!empty($subaccounts) && $amount > 500) {
+            // avoid errors when amount is too small
+            $splitCode = $this->createSplit($subaccounts, $amount);
+        }
+
+        // Build unique reference
+        $host = preg_replace('/^api\./', '', $request->getHost());
+        $typ   = $request->typ ?? 0;
+        $stid  = $request->stid ?? 0;
+        $ssnid = $request->ssnid ?? 0;
+        $trmid = $request->trmid ?? 0;
+
+        $ref = "{$host}-{$schid}-{$amount}-{$typ}-{$stid}-{$ssnid}-{$trmid}-{$clsid}-" . uniqid();
+
+        // Save pending transaction
+        payment_refs::create([
+            'ref'  => $ref,
+            'amt'  => $amount,
+            'time' => now()->timestamp,
+        ]);
+
+        // ✅ Prepare Paystack payload
+        $payload = [
+            'email'        => $email,
+            'amount'       => $totalAmountKobo,
+            'currency'     => 'NGN',
+            'reference'    => $ref,
+            'callback_url' => $this->getFrontendUrl('/studentPortal'),
+            'metadata'     => $metadata,
+            'channels'     => ['card', 'bank', 'ussd'],
+        ];
+
+        // Only add split_code if it exists
+        if ($splitCode) {
+            $payload['split_code'] = $splitCode;
+        }
+
+        $response = Http::withToken(env('PAYSTACK_SECRET'))
+            ->post('https://api.paystack.co/transaction/initialize', $payload);
+
+        if ($response->successful()) {
+            return response()->json([
+                'status'  => true,
+                'message' => 'Payment Initialized Successfully',
+                'data'    => $response->json(),
+                'ref'     => $ref,
+            ]);
+        }
+
+        Log::error('Paystack Transaction Error: ' . $response->body());
+        return response()->json([
+            'status'  => false,
+            'message' => 'Payment Initialization Failed',
+            'error'   => $response->body(),
+        ], 400);
+
+    } catch (\Exception $e) {
+        Log::error('Initialize Payment Exception: ' . $e->getMessage());
+        return response()->json([
+            'status'  => false,
+            'message' => 'Server Error: Unable to initialize payment',
+            'error'   => $e->getMessage(),
+        ], 500);
+    }
+}
+
+
+private function getFrontendUrl(string $path = ''): string
+{
+    $host = request()->getHost();
+
+    // remove "api." subdomain if present
+    $frontendHost = preg_replace('/^api\./', '', $host);
+
+    return request()->getScheme() . '://' . $frontendHost . $path;
+}
+
+
+
+
     /**
      * @OA\Get(
      *     path="/api/getAccountStat/{schid}",
