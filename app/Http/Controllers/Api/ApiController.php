@@ -12523,9 +12523,9 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): st
         return $existing->split_code;
     }
 
-    // Otherwise, create new split
+    // Prepare shares as percentages
     foreach ($subaccounts as &$acc) {
-        $acc['share'] = max(1, intval($acc['share']));
+        $acc['share'] = floatval($acc['share']); // keep decimals
     }
 
     $bearerSubaccount = $subaccounts[0]['subaccount'];
@@ -12533,10 +12533,10 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): st
     $response = Http::withToken(env('PAYSTACK_SECRET'))
         ->post('https://api.paystack.co/split', [
             'name'              => "Split-{$schid}-{$clsid}-" . uniqid(),
-            'type'              => 'percentage',   // or 'flat' if you prefer fixed Naira amounts
+            'type'              => 'percentage',   // since frontend sends shares as % (50,50)
             'currency'          => 'NGN',
             'subaccounts'       => $subaccounts,
-            'bearer_type'       => 'account',
+            'bearer_type'       => 'account',       // or 'subaccount' if one of them should pay fees
             'bearer_subaccount' => $bearerSubaccount,
         ]);
 
@@ -12544,7 +12544,7 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): st
         $splitCode = $response->json()['data']['split_code'];
 
         // Save for reuse
-        \DB::table('sub_accounts_splits')->insert([
+        \DB::table('sub_account_splits')->insert([  // ✅ fixed table name
             'schid'      => $schid,
             'clsid'      => $clsid,
             'split_code' => $splitCode,
