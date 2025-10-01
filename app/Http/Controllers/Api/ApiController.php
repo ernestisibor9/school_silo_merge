@@ -12510,6 +12510,53 @@ class ApiController extends Controller
 
 
 
+public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): string
+{
+    // Check DB if split_code already exists for this class
+    $existing = \DB::table('sub_accounts')
+        ->where('schid', $schid)
+        ->where('clsid', $clsid)
+        ->first();
+
+    if ($existing && !empty($existing->split_code)) {
+        return $existing->split_code;
+    }
+
+    // Otherwise, create new split
+    foreach ($subaccounts as &$acc) {
+        $acc['share'] = max(1, intval($acc['share']));
+    }
+
+    $bearerSubaccount = $subaccounts[0]['subaccount'];
+
+    $response = Http::withToken(env('PAYSTACK_SECRET'))
+        ->post('https://api.paystack.co/split', [
+            'name'              => "Split-{$schid}-{$clsid}-" . uniqid(),
+            'type'              => 'percentage',   // or 'flat' if you prefer fixed Naira amounts
+            'currency'          => 'NGN',
+            'subaccounts'       => $subaccounts,
+            'bearer_type'       => 'account',
+            'bearer_subaccount' => $bearerSubaccount,
+        ]);
+
+    if ($response->successful() && isset($response->json()['data']['split_code'])) {
+        $splitCode = $response->json()['data']['split_code'];
+
+        // Save for reuse
+        \DB::table('sub_accounts_split')->insert([
+            'schid'      => $schid,
+            'clsid'      => $clsid,
+            'split_code' => $splitCode,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return $splitCode;
+    }
+
+    Log::error('Paystack Split Error: ' . $response->body());
+    throw new \Exception('Error creating split: ' . $response->body());
+}
 
 
 public function handleCallback(Request $request)
@@ -12550,21 +12597,35 @@ public function handleCallback(Request $request)
 public function initializePayment(Request $request)
 {
     $request->validate([
-        'email'    => 'required|email',
-        'amount'   => 'required|numeric|min:100',
-        'schid'    => 'required|integer',
-        'clsid'    => 'required|integer',
-        'metadata' => 'required|array',
+        'email'           => 'required|email',
+        'amount'          => 'required|numeric|min:100',
+        'schid'           => 'required|integer',
+        'clsid'           => 'required|integer',
+        'subaccount_code' => 'required|array|min:1',
+        'metadata'        => 'required|array',
     ]);
 
-    $email    = $request->email;
-    $amount   = $request->amount; // in Naira
-    $schid    = $request->schid;
-    $clsid    = $request->clsid;
-    $metadata = $request->metadata;
+    $email       = $request->email;
+    $amount      = $request->amount; // in Naira
+    $schid       = $request->schid;
+    $clsid       = $request->clsid;
+    $subaccounts = $request->subaccount_code;
+    $metadata    = $request->metadata;
 
     try {
         $totalAmountKobo = $amount * 100;
+
+        $splitCode = null;
+        $singleSub = null;
+
+        // If only one subaccount → direct assignment
+        if (count($subaccounts) === 1) {
+            $singleSub = $subaccounts[0]['subaccount'];
+        }
+        // If multiple subaccounts → get/create split
+        elseif (count($subaccounts) > 1) {
+            $splitCode = $this->createOrGetSplit($schid, $clsid, $subaccounts);
+        }
 
         // Build unique reference
         $host  = preg_replace('/^api\./', '', $request->getHost());
@@ -12582,7 +12643,7 @@ public function initializePayment(Request $request)
             'time' => now()->timestamp,
         ]);
 
-        // ✅ Prepare Paystack payload (no split_code here)
+        // ✅ Prepare Paystack payload
         $payload = [
             'email'        => $email,
             'amount'       => $totalAmountKobo,
@@ -12592,6 +12653,12 @@ public function initializePayment(Request $request)
             'metadata'     => $metadata,
             'channels'     => ['card', 'bank', 'ussd'],
         ];
+
+        if ($splitCode) {
+            $payload['split_code'] = $splitCode;
+        } elseif ($singleSub) {
+            $payload['subaccount'] = $singleSub;
+        }
 
         $response = Http::withToken(env('PAYSTACK_SECRET'))
             ->post('https://api.paystack.co/transaction/initialize', $payload);
@@ -12621,7 +12688,6 @@ public function initializePayment(Request $request)
         ], 500);
     }
 }
-
 
 
 private function getFrontendUrl(string $path = ''): string
