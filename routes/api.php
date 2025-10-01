@@ -109,6 +109,8 @@ Route::get('getSubjects', [ApiController::class, 'getSubjs']);
 
  Route::post('initializePayment', [ApiController::class, 'initializePayment']);
 
+Route::get('/payment/callback', [ApiController::class, 'handleCallback']);
+
 Route::group([
     'middleware' => ['auth:api'],
 ], function () {

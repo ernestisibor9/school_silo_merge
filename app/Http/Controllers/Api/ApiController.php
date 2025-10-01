@@ -12706,6 +12706,47 @@ public function initializePayment(Request $request)
 
 
 
+
+////////////////////////////////////////////////
+
+public function handleCallback(Request $request)
+{
+    $reference = $request->query('reference');
+
+    if (!$reference) {
+        return redirect()->to($this->getFrontendUrl('/payment-error'));
+    }
+
+    // ✅ Verify payment with Paystack
+    $response = Http::withToken(env('PAYSTACK_SECRET'))
+        ->get("https://api.paystack.co/transaction/verify/{$reference}");
+
+    $data = $response->json();
+
+    if ($response->ok() && isset($data['data']['status']) && $data['data']['status'] === 'success') {
+        // 👉 Redirect to frontend success page dynamically
+        return redirect()->to($this->getFrontendUrl("/payment-success?ref={$reference}"));
+    }
+
+    // ❌ Payment failed
+    return redirect()->to($this->getFrontendUrl("/payment-failed?ref={$reference}"));
+}
+
+/**
+ * Get frontend base URL dynamically (strip api. if exists)
+ */
+private function getFrontendUrl(string $path = ''): string
+{
+    $host = request()->getHost();
+    // remove "api." if present (so api.schoolsilomerge.top -> schoolsilomerge.top)
+    $frontendHost = preg_replace('/^api\./', '', $host);
+
+    return request()->getScheme() . '://' . $frontendHost . $path;
+}
+
+
+
+
     /**
      * @OA\Get(
      *     path="/api/getAccountStat/{schid}",
