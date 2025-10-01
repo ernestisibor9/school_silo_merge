@@ -12534,7 +12534,8 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): st
         'type'        => 'percentage',
         'currency'    => 'NGN',
         'subaccounts' => $subaccounts,
-        'bearer_type' => 'account', // main account pays fees
+        'bearer_type' => 'subaccount',   // ✅ let subaccount bear the fee
+        'bearer_subaccount' => $subaccounts[0]['subaccount'], // ✅ pick first subaccount as fee payer
     ];
 
     $response = Http::withToken(env('PAYSTACK_SECRET'))
