@@ -12669,7 +12669,9 @@ public function initializePayment(Request $request)
             'amount'      => $amount * 100, // convert to kobo
             'currency'    => 'NGN',
             'reference'   => $ref,
-            'callback_url'=> url('/api/payment/callback'),
+            // 'callback_url'=> url('/api/payment/callback'),
+                // ✅ Use dynamic frontend URL without "api."
+    'callback_url' => $this->getFrontendUrl('/api/payment/callback'),
             'metadata'    => $metadata,
             'split_code'  => $splitCode,
             'channels'    => ['card', 'bank', 'ussd'],
@@ -12738,7 +12740,7 @@ public function handleCallback(Request $request)
 private function getFrontendUrl(string $path = ''): string
 {
     $host = request()->getHost();
-    // remove "api." if present (so api.schoolsilomerge.top -> schoolsilomerge.top)
+    // remove "api." if present
     $frontendHost = preg_replace('/^api\./', '', $host);
 
     return request()->getScheme() . '://' . $frontendHost . $path;
