@@ -12609,72 +12609,54 @@ class ApiController extends Controller
 public function initializePayment(Request $request)
 {
     $request->validate([
-        'email' => 'required|email',
-        'amount' => 'required|numeric|min:100',
-        'schid' => 'required|integer',
-        'clsid' => 'required|integer',
+        'email'           => 'required|email',
+        'amount'          => 'required|numeric|min:100',
+        'schid'           => 'required|integer',
+        'clsid'           => 'required|integer',
         'subaccount_code' => 'required|array|min:1', // multiple subaccounts
+        'metadata'        => 'required|array',
     ]);
 
-    $email = $request->email;
-    $amount = $request->amount;
-    $schid = $request->schid;
-    $clsid = $request->clsid;
+    $email       = $request->email;
+    $amount      = $request->amount;
+    $schid       = $request->schid;
+    $clsid       = $request->clsid;
     $subaccounts = $request->subaccount_code;
+    $metadata    = $request->metadata;
 
     try {
-        // Create split code
+        // Create split code if using subaccounts
         $splitCode = $this->createSplit($subaccounts, $amount);
 
-        // Dynamically generate identifiers for the payment
-        $stid = $request->input('stid', 0);
-        $ssnid = $request->input('ssnid', 0);
-        $trmid = $request->input('trmid', 0);
-        $typ   = $request->input('typ', 0);
-        $nm    = $request->input('name', '');
-        $exp   = $request->input('exp', '');
-        $lid   = $request->input('lid', '');
-
-        // Get host and remove 'api.' prefix if present
+        // Remove 'api.' prefix from host
         $host = preg_replace('/^api\./', '', $request->getHost());
 
-        // Generate unique reference
+        // Build unique reference using frontend metadata
+        // Fallback to 0 if any metadata key is missing
+        $typ   = $metadata['typ'] ?? 0;
+        $stid  = $metadata['stid'] ?? 0;
+        $ssnid = $metadata['ssnid'] ?? 0;
+        $trmid = $metadata['trmid'] ?? 0;
+
         $ref = "{$host}-{$schid}-{$amount}-{$typ}-{$stid}-{$ssnid}-{$trmid}-{$clsid}-" . uniqid();
 
-        // ✅ Save pending transaction immediately
+        // Save pending transaction
         payment_refs::create([
-            "ref"  => $ref,
-            "amt"  => $amount,
-            "time" => now()->timestamp,
+            'ref'  => $ref,
+            'amt'  => $amount,
+            'time' => now()->timestamp,
         ]);
 
-        // Metadata for webhook
-        $metadata = [
-            'name'  => $nm,
-            'stid'  => $stid,
-            'ssnid' => $ssnid,
-            'trmid' => $trmid,
-            'schid' => $schid,
-            'clsid' => $clsid,
-            'typ'   => $typ,
-            'eml'   => $email,
-            'time'  => now()->timestamp,
-            'exp'   => $exp,
-            'lid'   => $lid,
-        ];
-
-        // Prepare transaction payload
+        // Include all metadata for Paystack
         $payload = [
-            'email'       => $email,
-            'amount'      => $amount * 100, // convert to kobo
-            'currency'    => 'NGN',
-            'reference'   => $ref,
-            // 'callback_url'=> url('/api/payment/callback'),
-                // ✅ Use dynamic frontend URL without "api."
-    'callback_url' => $this->getFrontendUrl('/api/payment/callback'),
-            'metadata'    => $metadata,
-            'split_code'  => $splitCode,
-            'channels'    => ['card', 'bank', 'ussd'],
+            'email'        => $email,
+            'amount'       => $amount * 100, // convert to kobo
+            'currency'     => 'NGN',
+            'reference'    => $ref,
+            'callback_url' => $this->getFrontendUrl('/api/payment/callback'),
+            'metadata'     => $metadata,
+            'split_code'   => $splitCode,
+            'channels'     => ['card', 'bank', 'ussd'],
         ];
 
         $response = Http::withToken(env('PAYSTACK_SECRET'))
@@ -12682,29 +12664,30 @@ public function initializePayment(Request $request)
 
         if ($response->successful()) {
             return response()->json([
-                "status" => true,
-                "message" => "Payment Initialized Successfully",
-                "data" => $response->json(),
-                "ref"  => $ref, // return ref also
+                'status'  => true,
+                'message' => 'Payment Initialized Successfully',
+                'data'    => $response->json(),
+                'ref'     => $ref,
             ]);
         }
 
         Log::error('Paystack Transaction Error: ' . $response->body());
         return response()->json([
-            "status" => false,
-            "message" => "Payment Initialization Failed",
-            "error" => $response->body(),
+            'status'  => false,
+            'message' => 'Payment Initialization Failed',
+            'error'   => $response->body(),
         ], 400);
 
     } catch (\Exception $e) {
         Log::error('Initialize Payment Exception: ' . $e->getMessage());
         return response()->json([
-            "status" => false,
-            "message" => "Server Error: Unable to initialize payment",
-            "error" => $e->getMessage()
+            'status'  => false,
+            'message' => 'Server Error: Unable to initialize payment',
+            'error'   => $e->getMessage(),
         ], 500);
     }
 }
+
 
 
 
@@ -12716,36 +12699,33 @@ public function handleCallback(Request $request)
     $reference = $request->query('reference');
 
     if (!$reference) {
-        return redirect()->to($this->getFrontendUrl('/payment-error'));
+        // Redirect to frontend error page dynamically
+        return redirect()->to($this->getFrontendUrl('/studentPortal?status=error'));
     }
 
-    // ✅ Verify payment with Paystack
+    // Verify payment with Paystack
     $response = Http::withToken(env('PAYSTACK_SECRET'))
         ->get("https://api.paystack.co/transaction/verify/{$reference}");
 
     $data = $response->json();
 
     if ($response->ok() && isset($data['data']['status']) && $data['data']['status'] === 'success') {
-        // 👉 Redirect to frontend success page dynamically
-        return redirect()->to($this->getFrontendUrl("/payment-success?ref={$reference}"));
+        // Redirect to frontend success page dynamically
+        return redirect()->to($this->getFrontendUrl("/studentPortal?trxref={$reference}&reference={$reference}&status=success"));
     }
 
-    // ❌ Payment failed
-    return redirect()->to($this->getFrontendUrl("/payment-failed?ref={$reference}"));
+    // Payment failed
+    return redirect()->to($this->getFrontendUrl("/studentPortal?trxref={$reference}&reference={$reference}&status=failed"));
 }
-
 /**
  * Get frontend base URL dynamically (strip api. if exists)
  */
 private function getFrontendUrl(string $path = ''): string
 {
     $host = request()->getHost();
-    // remove "api." if present
-    $frontendHost = preg_replace('/^api\./', '', $host);
-
+    $frontendHost = preg_replace('/^api\./', '', $host); // remove api.
     return request()->getScheme() . '://' . $frontendHost . $path;
 }
-
 
 
 
