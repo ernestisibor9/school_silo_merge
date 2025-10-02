@@ -12629,6 +12629,14 @@ public function initializePayment(Request $request)
             }
         }
 
+        // Convert share to Kobo before passing to Paystack
+        foreach ($subaccounts as &$acc) {
+            $acc['share'] = intval($acc['share']) * 100;
+        }
+
+        // ✅ Get or create split_code once and reuse later
+        $splitCode = $this->createOrGetSplit($schid, $clsid, $subaccounts);
+
         // Unique reference
         $host  = preg_replace('/^api\./', '', $request->getHost());
         $typ   = $request->typ ?? 0;
@@ -12662,24 +12670,12 @@ public function initializePayment(Request $request)
             'callback_url' => url('/payment/callback'),
             'metadata'     => $metadata,
             'channels'     => ['card', 'bank', 'ussd'],
+            'split_code'   => $splitCode,   // ✅ Use split_code instead of inline subaccounts
         ];
 
         // ✅ Add transaction_charge if provided (convert Naira → Kobo)
         if ($request->has('transaction_charge')) {
             $payload['transaction_charge'] = intval($request->transaction_charge) * 100;
-        }
-
-        // Dynamic flat split if subaccounts are provided
-        if (count($subaccounts) > 0) {
-            foreach ($subaccounts as &$acc) {
-                $acc['share'] = intval($acc['share']) * 100; // Naira → Kobo
-            }
-
-            $payload['split'] = [
-                'type'        => 'flat',
-                'bearer_type' => 'account',   // main account bears Paystack fees
-                'subaccounts' => $subaccounts,
-            ];
         }
 
         $response = Http::withToken(env('PAYSTACK_SECRET'))
