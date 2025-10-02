@@ -12653,6 +12653,11 @@ public function initializePayment(Request $request)
             'channels'     => ['card', 'bank', 'ussd'],
         ];
 
+        // ✅ Add transaction_charge if provided (convert Naira → Kobo)
+if ($request->has('transaction_charge')) {
+    $payload['transaction_charge'] = intval($request->transaction_charge) * 100;
+}
+
         // Dynamic flat split if subaccounts are provided
         if (count($subaccounts) > 0) {
             // Ensure shares are integers (kobo)
