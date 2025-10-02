@@ -8,9 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 class acceptance_acct extends Model
 {
     use HasFactory;
-    
+
     protected $guarded = [];
-    
+
     public function subAccounts()
     {
         return $this->hasMany(acceptance_sub_acct::class, 'acct_id', 'id');
