@@ -12640,14 +12640,6 @@ public function initializePayment(Request $request)
 
         $ref = "{$host}-{$schid}-{$amount}-{$typ}-{$stid}-{$ssnid}-{$trmid}-{$clsid}-" . uniqid();
 
-        // Save pending transaction in payment_refs — no payments table insertion
-        payment_refs::create([
-            'ref'      => $ref,
-            'amt'      => $amount,
-            'time'     => now()->timestamp,
-            'metadata' => json_encode($metadata),
-        ]);
-
         // Prepare Paystack payload
         $payload = [
             'email'        => $email,
@@ -12655,7 +12647,13 @@ public function initializePayment(Request $request)
             'currency'     => 'NGN',
             'reference'    => $ref,
             'callback_url' => $this->getFrontendUrl('/studentPortal'),
-            'metadata'     => $metadata,
+            'metadata'     => array_merge($metadata, [
+                'stid'  => $stid,
+                'ssnid' => $ssnid,
+                'trmid' => $trmid,
+                'clsid' => $clsid,
+                'typ'   => $typ,
+            ]),
             'channels'     => ['card', 'bank', 'ussd'],
         ];
 
