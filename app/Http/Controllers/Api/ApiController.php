@@ -12657,7 +12657,7 @@ public function initializePayment(Request $request)
         if (count($subaccounts) > 0) {
             // Ensure shares are integers (kobo)
             foreach ($subaccounts as &$acc) {
-                $acc['share'] = intval($acc['share']);
+                 $acc['share'] = intval($acc['share']) * 100;
             }
 
             $payload['split'] = [
