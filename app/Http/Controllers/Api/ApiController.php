@@ -12578,11 +12578,40 @@ public function handleCallback(Request $request)
 
     $data = $response->json();
 
-    if (
-        $response->ok() &&
-        isset($data['data']['status']) &&
-        $data['data']['status'] === 'success'
-    ) {
+if ($response->ok() && isset($data['data']['status']) && $data['data']['status'] === 'success') {
+
+    // Check if payment already exists
+    $existingPayment = payments::where('ref', $reference)->first();
+
+    if (!$existingPayment) {
+        $pld = payment_refs::where('ref', $reference)->first();
+        if ($pld) {
+            $metadata = $data['data']['metadata'] ?? [];
+            $payinfo = explode('-', $reference);
+            $schid = $payinfo[1] ?? 0;
+            $amount = $pld->amt ?? 0;
+            $clsid = $payinfo[7] ?? 0;
+
+            payments::create([
+                'schid' => $schid,
+                'stid'  => $metadata['stid'] ?? 0,
+                'ssnid' => $metadata['ssnid'] ?? 0,
+                'trmid' => $metadata['trmid'] ?? 0,
+                'clsid' => $clsid,
+                'name'  => $metadata['name'] ?? '',
+                'exp'   => $metadata['exp'] ?? '',
+                'amt'   => $amount,
+                'lid'   => $metadata['lid'] ?? '',
+                'ref'   => $reference,
+            ]);
+        }
+    }
+
+    return redirect()->to(
+        $this->getFrontendUrl("/studentPortal?trxref={$reference}&reference={$reference}&status=success")
+    );
+}
+{
         // Redirect to frontend success page dynamically
         return redirect()->to(
             $this->getFrontendUrl("/studentPortal?trxref={$reference}&reference={$reference}&status=success")
