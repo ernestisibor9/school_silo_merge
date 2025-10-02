@@ -12522,11 +12522,6 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): st
         return $existing->split_code;
     }
 
-    // Validate and normalize shares (convert to integer kobo)
-    foreach ($subaccounts as &$acc) {
-        $acc['share'] = intval($acc['share']); // flat amount in kobo
-    }
-
     // Prepare payload for Paystack
     $payload = [
         'name'        => "Split-{$schid}-{$clsid}-" . uniqid(),
