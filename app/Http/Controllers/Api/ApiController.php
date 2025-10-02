@@ -12511,10 +12511,9 @@ class ApiController extends Controller
 
 
 
-
 public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): string
 {
-    // Check if split already exists
+    // Check if a split already exists for this school/class
     $existing = subaccount_split::where('schid', $schid)
         ->where('clsid', $clsid)
         ->first();
@@ -12523,40 +12522,47 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): st
         return $existing->split_code;
     }
 
-    // Ensure shares are floats
+    // Validate and normalize shares
     foreach ($subaccounts as &$acc) {
         $acc['share'] = floatval($acc['share']);
     }
 
     // Prepare payload for Paystack
     $payload = [
-        'name'        => "Split-{$schid}-{$clsid}-" . uniqid(),
-        'type'        => 'percentage',
-        'currency'    => 'NGN',
-        'subaccounts' => $subaccounts,
-        'bearer_type' => 'subaccount',   // ✅ let subaccount bear the fee
-        'bearer_subaccount' => $subaccounts[0]['subaccount'], // ✅ pick first subaccount as fee payer
+        'name'             => "Split-{$schid}-{$clsid}-" . uniqid(),
+        'type'             => 'percentage',
+        'currency'         => 'NGN',
+        'subaccounts'      => $subaccounts,
+        'bearer_type'      => 'subaccount',                   // subaccount bears fee
+        'bearer_subaccount'=> $subaccounts[0]['subaccount'],  // first subaccount pays fee
     ];
 
-    $response = Http::withToken(env('PAYSTACK_SECRET'))
-        ->post('https://api.paystack.co/split', $payload);
+    try {
+        $response = Http::withToken(env('PAYSTACK_SECRET'))
+            ->post('https://api.paystack.co/split', $payload);
 
-    if ($response->successful() && isset($response->json()['data']['split_code'])) {
-        $splitCode = $response->json()['data']['split_code'];
+        $respData = $response->json();
 
-        // Save to DB
-        subaccount_split::create([
-            'schid'      => $schid,
-            'clsid'      => $clsid,
-            'split_code' => $splitCode,
-        ]);
+        if ($response->successful() && isset($respData['data']['split_code'])) {
+            $splitCode = $respData['data']['split_code'];
 
-        return $splitCode;
+            // Save to DB
+            subaccount_split::create([
+                'schid'      => $schid,
+                'clsid'      => $clsid,
+                'split_code' => $splitCode,
+            ]);
+
+            return $splitCode;
+        }
+
+        // Log errors for debugging, but don't crash the app
+        Log::error('Paystack Split Error: ' . $response->body());
+        throw new \Exception('Error creating split: ' . $response->body());
+    } catch (\Exception $e) {
+        Log::error('Paystack Split Exception: ' . $e->getMessage());
+        throw new \Exception('Failed to create Paystack split: ' . $e->getMessage());
     }
-
-    // Log errors
-    Log::error('Paystack Split Error: ' . $response->body());
-    throw new \Exception('Error creating split: ' . $response->body());
 }
 
 
@@ -12566,56 +12572,28 @@ public function handleCallback(Request $request)
     $reference = $request->query('reference');
 
     if (!$reference) {
-        // Redirect to frontend error page dynamically
+        // No reference — redirect to error page
         return redirect()->to(
             $this->getFrontendUrl('/studentPortal?status=error')
         );
     }
 
-    // Verify payment with Paystack
+    // Optional: verify payment for frontend feedback
     $response = Http::withToken(env('PAYSTACK_SECRET'))
         ->get("https://api.paystack.co/transaction/verify/{$reference}");
 
     $data = $response->json();
 
     if ($response->ok() && isset($data['data']['status']) && $data['data']['status'] === 'success') {
-
-        // Check if payment already exists
-        $existingPayment = payments::where('ref', $reference)->first();
-
-        if (!$existingPayment) {
-            $pld = payment_refs::where('ref', $reference)->first();
-            if ($pld) {
-                $metadata = $data['data']['metadata'] ?? [];
-                $payinfo = explode('-', $reference);
-                $schid = $payinfo[1] ?? 0;
-                $amount = $pld->amt ?? 0;
-                $clsid = $payinfo[7] ?? 0;
-
-                payments::create([
-                    'schid' => $schid,
-                    'stid'  => $metadata['stid'] ?? 0,
-                    'ssnid' => $metadata['ssnid'] ?? 0,
-                    'trmid' => $metadata['trmid'] ?? 0,
-                    'clsid' => $clsid,
-                    'name'  => $metadata['name'] ?? '',
-                    'exp'   => $metadata['exp'] ?? '',
-                    'amt'   => $amount,
-                    'lid'   => $metadata['lid'] ?? '',
-                    'ref'   => $reference,
-                ]);
-            }
-        }
-
-        // Redirect to frontend success page
+        // Payment succeeded — rely on webhook for DB insertion
         return redirect()->to(
-            $this->getFrontendUrl("/studentPortal?trxref={$reference}&reference={$reference}&status=success")
+            $this->getFrontendUrl("/studentPortal?trxref={$reference}&status=success")
         );
     }
 
-    // Payment failed
+    // Payment failed — redirect to failure page
     return redirect()->to(
-        $this->getFrontendUrl("/studentPortal?trxref={$reference}&reference={$reference}&status=failed")
+        $this->getFrontendUrl("/studentPortal?trxref={$reference}&status=failed")
     );
 }
 
@@ -12643,17 +12621,12 @@ public function initializePayment(Request $request)
         $splitCode = null;
         $singleSub = null;
 
-        // Check if a split already exists for this school/class
+        // Handle split accounts
         if (count($subaccounts) > 1) {
             $existingSplit = subaccount_split::where('schid', $schid)
                                 ->where('clsid', $clsid)
                                 ->first();
-            if ($existingSplit) {
-                $splitCode = $existingSplit->split_code;
-            } else {
-                // Create a new split if none exists
-                $splitCode = $this->createOrGetSplit($schid, $clsid, $subaccounts);
-            }
+            $splitCode = $existingSplit ? $existingSplit->split_code : $this->createOrGetSplit($schid, $clsid, $subaccounts);
         } elseif (count($subaccounts) === 1) {
             $singleSub = $subaccounts[0]['subaccount'];
         }
@@ -12667,11 +12640,12 @@ public function initializePayment(Request $request)
 
         $ref = "{$host}-{$schid}-{$amount}-{$typ}-{$stid}-{$ssnid}-{$trmid}-{$clsid}-" . uniqid();
 
-        // Save pending transaction
+        // Save pending transaction in payment_refs — no payments table insertion
         payment_refs::create([
-            'ref'  => $ref,
-            'amt'  => $amount,
-            'time' => now()->timestamp,
+            'ref'      => $ref,
+            'amt'      => $amount,
+            'time'     => now()->timestamp,
+            'metadata' => json_encode($metadata),
         ]);
 
         // Prepare Paystack payload
@@ -12685,11 +12659,8 @@ public function initializePayment(Request $request)
             'channels'     => ['card', 'bank', 'ussd'],
         ];
 
-        if ($splitCode) {
-            $payload['split_code'] = $splitCode;
-        } elseif ($singleSub) {
-            $payload['subaccount'] = $singleSub;
-        }
+        if ($splitCode) $payload['split_code'] = $splitCode;
+        elseif ($singleSub) $payload['subaccount'] = $singleSub;
 
         $response = Http::withToken(env('PAYSTACK_SECRET'))
             ->post('https://api.paystack.co/transaction/initialize', $payload);

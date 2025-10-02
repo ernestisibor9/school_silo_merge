@@ -6,11 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class payment_refs extends Model
 {
-    protected $table = 'payment_refs'; 
+    protected $table = 'payment_refs';
     protected $primaryKey = 'ref';
     public $incrementing = false;
     protected $fillable = [
-        'ref', 'amt', 'time'
+        'ref', 'amt', 'time', 'metadata'
     ];
     /*protected $hidden = [
         'password',
