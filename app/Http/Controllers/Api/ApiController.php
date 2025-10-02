@@ -13711,17 +13711,17 @@ public function paystackConf(Request $request)
 
         if (!$pld) { // Unique reference
             $payinfo = explode('-', $ref);
-            $amt = $payinfo[2];
+            $amt   = $payinfo[2];
             $schid = $payinfo[1];
-            $typ = $payinfo[3];
-            $stid = $payinfo[4];
+            $typ   = $payinfo[3];
+            $stid  = $payinfo[4];
             $ssnid = $payinfo[5];
             $trmid = $payinfo[6];
             $clsid = $payinfo[7];
 
             $metadata = $payload['data']['metadata'];
-            $nm = $metadata['name'] ?? '';
-            $tm = $metadata['time'] ?? now()->timestamp;
+            $nm  = $metadata['name'] ?? '';
+            $tm  = $metadata['time'] ?? now()->timestamp;
             $exp = $metadata['exp'] ?? '';
             $eml = $metadata['eml'] ?? '';
             $lid = $metadata['lid'] ?? '';
@@ -13738,51 +13738,54 @@ public function paystackConf(Request $request)
                 afeerec::updateOrCreate(
                     ["uid" => $uid],
                     [
-                        "stid" => $stid,
+                        "stid"  => $stid,
                         "schid" => $schid,
                         "clsid" => $clsid,
-                        "amt" => intval($amt),
+                        "amt"   => intval($amt),
                     ]
                 );
             }
 
-            // If split exists, save each subaccount payment
+            // ✅ If split exists, save each subaccount payment separately
             if (!empty($payload['data']['split']['shares']['subaccounts'])) {
                 foreach ($payload['data']['split']['shares']['subaccounts'] as $sub) {
                     payments::create([
-                        'schid' => $schid,
-                        'stid'  => $stid,
-                        'ssnid' => $ssnid,
-                        'trmid' => $trmid,
-                        'clsid' => $clsid,
-                        'name'  => $nm . " ({$sub['subaccount_code']})",
-                        'exp'   => $exp,
-                        'amt'   => $sub['amount'] / 100, // convert kobo to Naira
-                        'lid'   => $lid,
+                        'schid'           => $schid,
+                        'stid'            => $stid,
+                        'ssnid'           => $ssnid,
+                        'trmid'           => $trmid,
+                        'clsid'           => $clsid,
+                        'name'            => $nm,
+                        'exp'             => $exp,
+                        'amt'             => $sub['amount'] / 100, // convert kobo to Naira
+                        'lid'             => $lid,
+                        'subaccount_code' => $sub['subaccount_code'], // ✅ added
+                        'main_ref'        => $ref, // ✅ added
                     ]);
                 }
             } else {
-                // If no split, save total payment
+                // ✅ If no split, save total payment
                 payments::create([
-                    'schid' => $schid,
-                    'stid'  => $stid,
-                    'ssnid' => $ssnid,
-                    'trmid' => $trmid,
-                    'clsid' => $clsid,
-                    'name'  => $nm,
-                    'exp'   => $exp,
-                    'amt'   => $amt,
-                    'lid'   => $lid,
+                    'schid'    => $schid,
+                    'stid'     => $stid,
+                    'ssnid'    => $ssnid,
+                    'trmid'    => $trmid,
+                    'clsid'    => $clsid,
+                    'name'     => $nm,
+                    'exp'      => $exp,
+                    'amt'      => $amt,
+                    'lid'      => $lid,
+                    'main_ref' => $ref, // ✅ added
                 ]);
             }
 
-            // Send email (optional, wrap in try-catch)
+            // Send email (optional)
             try {
                 $data = [
-                    'name' => $nm,
+                    'name'    => $nm,
                     'subject' => 'Payment Received',
-                    'body' => 'Your ' . $what . ' payment was received',
-                    'link' => env('PORTAL_URL') . '/studentLogin/' . $schid,
+                    'body'    => 'Your ' . $what . ' payment was received',
+                    'link'    => env('PORTAL_URL') . '/studentLogin/' . $schid,
                 ];
                 Mail::to($eml)->send(new SSSMails($data));
             } catch (\Exception $e) {
