@@ -12618,6 +12618,22 @@ public function initializePayment(Request $request)
     try {
         $totalAmountKobo = $amount * 100;
 
+        // 🔐 Validate subaccounts against DB
+        foreach ($subaccounts as $acc) {
+            $exists = \DB::table('sub_accounts')
+                ->where('schid', $schid)
+                ->where('clsid', $clsid)
+                ->where('subaccount_code', $acc['subaccount'])
+                ->exists();
+
+            if (!$exists) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => "Invalid subaccount: {$acc['subaccount']}",
+                ], 400);
+            }
+        }
+
         // Unique reference
         $host  = preg_replace('/^api\./', '', $request->getHost());
         $typ   = $request->typ ?? 0;
@@ -12654,15 +12670,14 @@ public function initializePayment(Request $request)
         ];
 
         // ✅ Add transaction_charge if provided (convert Naira → Kobo)
-if ($request->has('transaction_charge')) {
-    $payload['transaction_charge'] = intval($request->transaction_charge) * 100;
-}
+        if ($request->has('transaction_charge')) {
+            $payload['transaction_charge'] = intval($request->transaction_charge) * 100;
+        }
 
         // Dynamic flat split if subaccounts are provided
         if (count($subaccounts) > 0) {
-            // Ensure shares are integers (kobo)
             foreach ($subaccounts as &$acc) {
-                 $acc['share'] = intval($acc['share']) * 100;
+                $acc['share'] = intval($acc['share']) * 100; // Naira → Kobo
             }
 
             $payload['split'] = [
