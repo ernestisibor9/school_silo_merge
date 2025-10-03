@@ -12573,30 +12573,44 @@ public function handleCallback(Request $request)
     $reference = $request->query('reference');
 
     if (!$reference) {
-        // No reference — redirect to error page
-        return redirect()->to(
-            $this->getFrontendUrl('/studentPortal?status=error')
-        );
+        return $this->redirectToError();
     }
 
-    // Optional: verify payment for frontend feedback
+    // Verify payment
     $response = Http::withToken(env('PAYSTACK_SECRET'))
         ->get("https://api.paystack.co/transaction/verify/{$reference}");
 
     $data = $response->json();
 
-    if ($response->ok() && isset($data['data']['status']) && $data['data']['status'] === 'success') {
-        // Payment succeeded — rely on webhook for DB insertion
-        return redirect()->to(
-            $this->getFrontendUrl("/studentPortal?trxref={$reference}&status=success")
-        );
+    if (!$response->ok() || !isset($data['data']['status']) || $data['data']['status'] !== 'success') {
+        return $this->redirectToError();
     }
 
-    // Payment failed — redirect to failure page
-    return redirect()->to(
-        $this->getFrontendUrl("/studentPortal?trxref={$reference}&status=failed")
-    );
+    // Get school ID from metadata
+    $schid = $data['data']['metadata']['schid'] ?? null;
+    if (!$schid) {
+        return $this->redirectToError();
+    }
+
+    // Lookup school subdomain
+    $school = \DB::table('school')->where('sid', $schid)->first();
+    $subdomain = $school->sbd ?? null;
+
+    if (!$subdomain) {
+        return $this->redirectToError();
+    }
+
+    // Redirect to the school's subdomain + /studentPortal
+    $url = request()->getScheme() . "://{$subdomain}.schoolsilomerge.top/studentPortal";
+
+    return redirect()->to($url);
 }
+
+private function redirectToError(): \Illuminate\Http\RedirectResponse
+{
+    return redirect()->to(url('/studentPortal?status=error'));
+}
+
 
 
 public function initializePayment(Request $request)
@@ -12671,7 +12685,7 @@ public function initializePayment(Request $request)
             'amount'       => $totalAmountKobo,
             'currency'     => 'NGN',
             'reference'    => $ref,
-            'callback_url' => $this->getFrontendUrl('/studentPortal'),
+            'callback_url' => url('/payment/callback'),
             'metadata'     => $metadata,
             'channels'     => ['card', 'bank', 'ussd'],
             'split_code'   => $splitCode,
@@ -12711,15 +12725,19 @@ public function initializePayment(Request $request)
 }
 
 
-private function getFrontendUrl(string $path = ''): string
+private function getFrontendUrl(int $schid, string $path = ''): string
 {
-    $host = request()->getHost();
+    // Lookup school subdomain
+    $school = \DB::table('school')->where('sid', $schid)->first();
+    $subdomain = $school->sbd ?? 'www'; // fallback to www if missing
 
-    // remove "api." subdomain if present
-    $frontendHost = preg_replace('/^api\./', '', $host);
+    // Get request scheme
+    $scheme = request()->getScheme();
 
-    return request()->getScheme() . '://' . $frontendHost . $path;
+    // Return URL with subdomain and optional path
+    return "{$scheme}://{$subdomain}.schoolsilomerge.top{$path}";
 }
+
 
 
 
