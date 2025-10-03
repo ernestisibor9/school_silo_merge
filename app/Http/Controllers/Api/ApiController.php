@@ -12511,7 +12511,7 @@ class ApiController extends Controller
 
 
 
-public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): string
+public function createOrGetSplit(int $schid, int $clsid, array $subaccounts, string $splitType = 'percentage'): string
 {
     // Check if a split already exists for this school/class
     $existing = subaccount_split::where('schid', $schid)
@@ -12522,13 +12522,22 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): st
         return $existing->split_code;
     }
 
+    // Normalize subaccount shares based on split type
+    foreach ($subaccounts as &$acc) {
+        if ($splitType === 'flat') {
+            $acc['share'] = intval($acc['share']) * 100; // Convert Naira → Kobo
+        } else {
+            $acc['share'] = floatval($acc['share']); // Percentage
+        }
+    }
+
     // Prepare payload for Paystack
     $payload = [
         'name'        => "Split-{$schid}-{$clsid}-" . uniqid(),
-        'type'        => 'flat',            // FLAT split
+        'type'        => $splitType,
         'currency'    => 'NGN',
         'subaccounts' => $subaccounts,
-        'bearer_type' => 'account',         // main account bears Paystack fees
+        'bearer_type' => 'account', // Main account bears Paystack fees
     ];
 
     try {
@@ -12550,7 +12559,6 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): st
             return $splitCode;
         }
 
-        // Log errors if Paystack fails
         Log::error('Paystack Split Error: ' . $response->body());
         throw new \Exception('Error creating split: ' . $response->body());
     } catch (\Exception $e) {
@@ -12558,7 +12566,6 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): st
         throw new \Exception('Failed to create Paystack split: ' . $e->getMessage());
     }
 }
-
 
 
 public function handleCallback(Request $request)
@@ -12599,21 +12606,23 @@ public function initializePayment(Request $request)
         'amount'          => 'required|numeric|min:100',
         'schid'           => 'required|integer',
         'clsid'           => 'required|integer',
-        'subaccount_code' => 'required|array|min:1', // array of subaccounts with shares
+        'subaccount_code' => 'required|array|min:1',
         'metadata'        => 'required|array',
+        'type'            => 'nullable|string', // 'flat' or 'percentage'
     ]);
 
     $email       = $request->email;
-    $amount      = $request->amount; // in Naira
+    $amount      = $request->amount;
     $schid       = $request->schid;
     $clsid       = $request->clsid;
     $subaccounts = $request->subaccount_code;
     $metadata    = $request->metadata;
+    $splitType   = $request->type ?? 'percentage';
 
     try {
         $totalAmountKobo = $amount * 100;
 
-        // 🔐 Validate subaccounts against DB
+        // Validate subaccounts against DB
         foreach ($subaccounts as $acc) {
             $exists = \DB::table('sub_accounts')
                 ->where('schid', $schid)
@@ -12629,15 +12638,10 @@ public function initializePayment(Request $request)
             }
         }
 
-        // Convert share to Kobo before passing to Paystack
-        foreach ($subaccounts as &$acc) {
-            $acc['share'] = intval($acc['share']) * 100;
-        }
+        // Get or create split code
+        $splitCode = $this->createOrGetSplit($schid, $clsid, $subaccounts, $splitType);
 
-        // ✅ Get or create split_code once and reuse later
-        $splitCode = $this->createOrGetSplit($schid, $clsid, $subaccounts);
-
-        // Unique reference
+        // Build unique reference
         $host  = preg_replace('/^api\./', '', $request->getHost());
         $typ   = $request->typ ?? 0;
         $stid  = $request->stid ?? 0;
@@ -12646,7 +12650,7 @@ public function initializePayment(Request $request)
 
         $ref = "{$host}-{$schid}-{$amount}-{$typ}-{$stid}-{$ssnid}-{$trmid}-{$clsid}-" . uniqid();
 
-        // Merge metadata for webhook
+        // Merge metadata
         $metadata = array_merge($metadata, [
             'stid'  => $stid,
             'ssnid' => $ssnid,
@@ -12670,10 +12674,9 @@ public function initializePayment(Request $request)
             'callback_url' => url('/payment/callback'),
             'metadata'     => $metadata,
             'channels'     => ['card', 'bank', 'ussd'],
-            'split_code'   => $splitCode,   // ✅ Use split_code instead of inline subaccounts
+            'split_code'   => $splitCode,
         ];
 
-        // ✅ Add transaction_charge if provided (convert Naira → Kobo)
         if ($request->has('transaction_charge')) {
             $payload['transaction_charge'] = intval($request->transaction_charge) * 100;
         }
@@ -12706,7 +12709,6 @@ public function initializePayment(Request $request)
         ], 500);
     }
 }
-
 
 
 private function getFrontendUrl(string $path = ''): string
