@@ -12671,7 +12671,7 @@ public function initializePayment(Request $request)
             'amount'       => $totalAmountKobo,
             'currency'     => 'NGN',
             'reference'    => $ref,
-            'callback_url' => url('/payment/callback'),
+            'callback_url' => $this->getFrontendUrl('/studentPortal'),
             'metadata'     => $metadata,
             'channels'     => ['card', 'bank', 'ussd'],
             'split_code'   => $splitCode,
