@@ -12312,7 +12312,7 @@ class ApiController extends Controller
             'anum' => 'required',
             'bnk'  => 'required',
             'aname' => 'required',
-            'pay_head_id'  => 'nullable|exists:payhead,id',
+            'pay_head_id'  => 'nullable',
         ]);
 
         $data = [
