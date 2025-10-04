@@ -9048,170 +9048,6 @@
                 ]
             }
         },
-        "/api/initializePayment": {
-            "post": {
-                "tags": [
-                    "Payments"
-                ],
-                "summary": "Initialize a Paystack payment with multiple subaccounts",
-                "description": "This endpoint initializes a Paystack transaction and dynamically creates a split for multiple subaccounts. The frontend should call this endpoint with the student's email, amount, school ID, class ID, subaccounts array, and metadata.",
-                "operationId": "initializePayment",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "email": {
-                                        "type": "string",
-                                        "format": "email",
-                                        "example": "student@example.com"
-                                    },
-                                    "amount": {
-                                        "type": "number",
-                                        "format": "float",
-                                        "example": 7000
-                                    },
-                                    "schid": {
-                                        "type": "integer",
-                                        "example": 12
-                                    },
-                                    "clsid": {
-                                        "type": "integer",
-                                        "example": 3
-                                    },
-                                    "subaccount_code": {
-                                        "description": "Array of subaccounts and their share amounts in Naira",
-                                        "type": "array",
-                                        "items": {
-                                            "properties": {
-                                                "subaccount": {
-                                                    "type": "string",
-                                                    "example": "ACCT_hugfsgnkclmoaqh"
-                                                },
-                                                "share": {
-                                                    "type": "number",
-                                                    "example": 5000
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "metadata": {
-                                        "description": "Additional metadata to attach to the payment",
-                                        "type": "object",
-                                        "example": {
-                                            "student_id": 123,
-                                            "session": "2025/2026"
-                                        }
-                                    },
-                                    "typ": {
-                                        "type": "integer",
-                                        "example": 0
-                                    },
-                                    "stid": {
-                                        "type": "integer",
-                                        "example": 0
-                                    },
-                                    "ssnid": {
-                                        "type": "integer",
-                                        "example": 0
-                                    },
-                                    "trmid": {
-                                        "type": "integer",
-                                        "example": 0
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Payment initialized successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Payment Initialized Successfully"
-                                        },
-                                        "data": {
-                                            "description": "Paystack transaction response object",
-                                            "type": "object"
-                                        },
-                                        "ref": {
-                                            "type": "string",
-                                            "example": "schoolsilomerge.top-12-7000-0-0-0-0-3-654e2f3b7a"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Payment initialization failed",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Payment Initialization Failed"
-                                        },
-                                        "error": {
-                                            "type": "string",
-                                            "example": "Error message from Paystack"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Server error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Server Error: Unable to initialize payment"
-                                        },
-                                        "error": {
-                                            "type": "string",
-                                            "example": "Exception message"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
         "/api/getAccountStat/{schid}": {
             "get": {
                 "tags": [
@@ -24295,6 +24131,146 @@
                                 }
                             }
                         }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/getStudentsId/{schid}/{ssn}/{trm}/{clsm}/{clsa}": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get Old Students",
+                "description": "Fetch old students for a given school, session, term, class and class arm.\n *                  If a student's status is inactive, the `status` will be shown as `Alumni` and\n *                  `current_class` will be `Alumni`.",
+                "operationId": "388a4f72c2708697eff7789d1096bc85",
+                "parameters": [
+                    {
+                        "name": "schid",
+                        "in": "path",
+                        "description": "School ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 13
+                        }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "path",
+                        "description": "Session year",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "2024"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "path",
+                        "description": "Term ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "clsm",
+                        "in": "path",
+                        "description": "Class main ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 11
+                        }
+                    },
+                    {
+                        "name": "clsa",
+                        "in": "path",
+                        "description": "Class arm ID (use -1 to ignore filter)",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 2
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response with list of students",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "sid": {
+                                                        "type": "integer",
+                                                        "example": 1000
+                                                    },
+                                                    "fname": {
+                                                        "type": "string",
+                                                        "example": "VICTORIA"
+                                                    },
+                                                    "lname": {
+                                                        "type": "string",
+                                                        "example": "KENNETH"
+                                                    },
+                                                    "status": {
+                                                        "type": "string",
+                                                        "example": "Alumni"
+                                                    },
+                                                    "school_name": {
+                                                        "type": "string",
+                                                        "example": "Holy Grace College"
+                                                    },
+                                                    "class_id": {
+                                                        "type": "integer",
+                                                        "example": 11
+                                                    },
+                                                    "class_name": {
+                                                        "type": "string",
+                                                        "example": "SS 1"
+                                                    },
+                                                    "class_arm_id": {
+                                                        "type": "integer",
+                                                        "example": 2
+                                                    },
+                                                    "class_arm": {
+                                                        "type": "string",
+                                                        "example": "B"
+                                                    },
+                                                    "current_class": {
+                                                        "type": "string",
+                                                        "example": "Alumni"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No students found"
                     }
                 },
                 "security": [

@@ -289,6 +289,8 @@ Route::group([
     // Route::get('getOldStudent/{schid}/{ssn}/{stid}', [ApiController::class, 'getOldStudent']);
     Route::get('getOldStudents/{schid}/{ssn}/{trm}/{clsm}/{clsa}', [ApiController::class, 'getOldStudents']);
 
+    Route::get('getStudentsId/{schid}/{ssn}/{trm}/{clsm}/{clsa}', [ApiController::class, 'getStudentsId']);
+
     Route::get('/getClassArms/{schid}/{cls_id}', [ApiController::class, 'getClassArms']);
 
     Route::get('getExternalExpendituresByAdmin/{ssn}/{trm}', [ApiController::class, 'getExternalExpendituresByAdmin']);

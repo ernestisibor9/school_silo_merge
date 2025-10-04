@@ -29487,4 +29487,143 @@ public function getClassesBySchool($schid)
 }
 
 
+
+
+
+/**
+ * @OA\Get(
+ *     path="/api/getStudentsId/{schid}/{ssn}/{trm}/{clsm}/{clsa}",
+ *     summary="Get Old Students",
+ *     description="Fetch old students for a given school, session, term, class and class arm.
+ *                  If a student's status is inactive, the `status` will be shown as `Alumni` and
+ *                  `current_class` will be `Alumni`.",
+ *     tags={"Api"},
+ *     security={{"bearerAuth":{}}},
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="path",
+ *         required=true,
+ *         description="School ID",
+ *         @OA\Schema(type="integer", example=13)
+ *     ),
+ *     @OA\Parameter(
+ *         name="ssn",
+ *         in="path",
+ *         required=true,
+ *         description="Session year",
+ *         @OA\Schema(type="string", example="2024")
+ *     ),
+ *     @OA\Parameter(
+ *         name="trm",
+ *         in="path",
+ *         required=true,
+ *         description="Term ID",
+ *         @OA\Schema(type="integer", example=1)
+ *     ),
+ *     @OA\Parameter(
+ *         name="clsm",
+ *         in="path",
+ *         required=true,
+ *         description="Class main ID",
+ *         @OA\Schema(type="integer", example=11)
+ *     ),
+ *     @OA\Parameter(
+ *         name="clsa",
+ *         in="path",
+ *         required=true,
+ *         description="Class arm ID (use -1 to ignore filter)",
+ *         @OA\Schema(type="integer", example=2)
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful response with list of students",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(property="sid", type="integer", example=1000),
+ *                     @OA\Property(property="fname", type="string", example="VICTORIA"),
+ *                     @OA\Property(property="lname", type="string", example="KENNETH"),
+ *                     @OA\Property(property="status", type="string", example="Alumni"),
+ *                     @OA\Property(property="school_name", type="string", example="Holy Grace College"),
+ *                     @OA\Property(property="class_id", type="integer", example=11),
+ *                     @OA\Property(property="class_name", type="string", example="SS 1"),
+ *                     @OA\Property(property="class_arm_id", type="integer", example=2),
+ *                     @OA\Property(property="class_arm", type="string", example="B"),
+ *                     @OA\Property(property="current_class", type="string", example="Alumni")
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="No students found"
+ *     )
+ * )
+ */
+
+public function getStudentsId($schid, $ssn, $trm, $clsm, $clsa)
+{
+    $query = DB::table('old_student as os')
+        ->leftJoin('school as s', 'os.schid', '=', 's.sid')
+        ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')          // ✅ main class
+        ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')    // ✅ class arm
+        ->where("os.schid", $schid)
+        ->where("os.ssn", $ssn)
+        ->where("os.trm", $trm)
+        ->where("os.clsm", $clsm);
+
+    if ($clsa != '-1') {
+        $query->where("os.clsa", $clsa);
+    }
+
+    $students = $query->select(
+            'os.sid',
+            'os.fname',
+            'os.lname',
+            'os.status',
+            'os.suid as student_id',
+            's.name as school_name',
+            'c.id as class_id',       // ✅ class id
+            'c.name as class_name',   // ✅ class name
+            'sc.id as class_arm_id',  // ✅ class arm id
+            'sc.name as class_arm'    // ✅ class arm name
+        )
+        ->distinct('os.sid')
+        ->get();
+
+    $pld = $students->map(function ($student) {
+        // ✅ Alumni handling
+        $status = $student->status === 'inactive' ? 'Alumni' : $student->status;
+        $currentClass = $student->status === 'inactive' ? 'Alumni' : $student->class_name;
+
+        return [
+            "sid"           => $student->sid,
+            "fname"         => $student->fname,
+            "lname"         => $student->lname,
+            "status"        => $status,
+            "school_name"   => $student->school_name,
+            "student_id"    => $student->student_id,
+            "class_id"      => $student->class_id,       // ✅ added
+            "class_name"    => $student->class_name,
+            "class_arm_id"  => $student->class_arm_id,   // ✅ added
+            "class_arm"     => $student->class_arm,
+            "current_class" => $currentClass
+        ];
+    });
+
+    return response()->json([
+        "status"  => true,
+        "message" => "Success",
+        "pld"     => $pld,
+    ]);
+}
+
+
+
 }
