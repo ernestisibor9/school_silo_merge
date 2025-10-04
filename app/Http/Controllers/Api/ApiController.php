@@ -12685,7 +12685,7 @@ class ApiController extends Controller
                 'amount'       => $totalAmountKobo,
                 'currency'     => 'NGN',
                 'reference'    => $ref,
-                'callback_url' => $this->getFrontendUrl($schid, '/payment/callback'),
+                'callback_url' => $this->getFrontendUrl($schid, '/studentPortal'),
                 'metadata'     => $metadata,
                 'channels'     => ['card', 'bank', 'ussd'],
                 'split_code'   => $splitCode,
