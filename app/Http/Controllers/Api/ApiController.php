@@ -12511,218 +12511,217 @@ class ApiController extends Controller
 
 
 
-public function createOrGetSplit(int $schid, int $clsid, array $subaccounts, string $splitType = 'percentage'): string
-{
-    // Check if a split already exists for this school/class
-    $existing = subaccount_split::where('schid', $schid)
-        ->where('clsid', $clsid)
-        ->first();
+    public function createOrGetSplit(int $schid, int $clsid, array $subaccounts, string $splitType = 'percentage'): string
+    {
+        // Check if a split already exists for this school/class
+        $existing = subaccount_split::where('schid', $schid)
+            ->where('clsid', $clsid)
+            ->first();
 
-    if ($existing && !empty($existing->split_code)) {
-        return $existing->split_code;
-    }
-
-    // Normalize subaccount shares based on split type
-    foreach ($subaccounts as &$acc) {
-        if ($splitType === 'flat') {
-            $acc['share'] = intval($acc['share']) * 100; // Convert Naira → Kobo
-        } else {
-            $acc['share'] = floatval($acc['share']); // Percentage
-        }
-    }
-
-    // Prepare payload for Paystack
-    $payload = [
-        'name'        => "Split-{$schid}-{$clsid}-" . uniqid(),
-        'type'        => $splitType,
-        'currency'    => 'NGN',
-        'subaccounts' => $subaccounts,
-        'bearer_type' => 'account', // Main account bears Paystack fees
-    ];
-
-    try {
-        $response = Http::withToken(env('PAYSTACK_SECRET'))
-            ->post('https://api.paystack.co/split', $payload);
-
-        $respData = $response->json();
-
-        if ($response->successful() && isset($respData['data']['split_code'])) {
-            $splitCode = $respData['data']['split_code'];
-
-            // Save split to DB
-            subaccount_split::create([
-                'schid'      => $schid,
-                'clsid'      => $clsid,
-                'split_code' => $splitCode,
-            ]);
-
-            return $splitCode;
+        if ($existing && !empty($existing->split_code)) {
+            return $existing->split_code;
         }
 
-        Log::error('Paystack Split Error: ' . $response->body());
-        throw new \Exception('Error creating split: ' . $response->body());
-    } catch (\Exception $e) {
-        Log::error('Paystack Split Exception: ' . $e->getMessage());
-        throw new \Exception('Failed to create Paystack split: ' . $e->getMessage());
-    }
-}
-
-
-public function handleCallback(Request $request)
-{
-    $reference = $request->query('reference');
-
-    if (!$reference) {
-        return $this->redirectToError();
-    }
-
-    // Verify payment
-    $response = Http::withToken(env('PAYSTACK_SECRET'))
-        ->get("https://api.paystack.co/transaction/verify/{$reference}");
-
-    $data = $response->json();
-
-    if (!$response->ok() || !isset($data['data']['status']) || $data['data']['status'] !== 'success') {
-        return $this->redirectToError();
-    }
-
-    // Get school ID from metadata
-    $schid = $data['data']['metadata']['schid'] ?? null;
-    if (!$schid) {
-        return $this->redirectToError();
-    }
-
-    // Lookup school subdomain
-    $school = \DB::table('school')->where('sid', $schid)->first();
-    $subdomain = $school->sbd ?? null;
-
-    if (!$subdomain) {
-        return $this->redirectToError();
-    }
-
-    // Redirect to the school's subdomain + /studentPortal
-    $url = request()->getScheme() . "://{$subdomain}.schoolsilomerge.top/studentPortal";
-
-    return redirect()->to($url);
-}
-
-private function redirectToError(): \Illuminate\Http\RedirectResponse
-{
-    return redirect()->to(url('/studentPortal?status=error'));
-}
-
-
-
-public function initializePayment(Request $request)
-{
-    $request->validate([
-        'email'           => 'required|email',
-        'amount'          => 'required|numeric|min:100',
-        'schid'           => 'required|integer',
-        'clsid'           => 'required|integer',
-        'subaccount_code' => 'required|array|min:1',
-        'metadata'        => 'required|array',
-        'type'            => 'nullable|string', // 'flat' or 'percentage'
-    ]);
-
-    $email       = $request->email;
-    $amount      = $request->amount;
-    $schid       = $request->schid;
-    $clsid       = $request->clsid;
-    $subaccounts = $request->subaccount_code;
-    $metadata    = $request->metadata;
-    $splitType   = $request->type ?? 'percentage';
-
-    try {
-        $totalAmountKobo = $amount * 100;
-
-        // Validate subaccounts against DB
-        foreach ($subaccounts as $acc) {
-            $exists = \DB::table('sub_accounts')
-                ->where('schid', $schid)
-                ->where('clsid', $clsid)
-                ->where('subaccount_code', $acc['subaccount'])
-                ->exists();
-
-            if (!$exists) {
-                return response()->json([
-                    'status'  => false,
-                    'message' => "Invalid subaccount: {$acc['subaccount']}",
-                ], 400);
+        // Normalize subaccount shares based on split type
+        foreach ($subaccounts as &$acc) {
+            if ($splitType === 'flat') {
+                $acc['share'] = intval($acc['share']) * 100; // Convert Naira → Kobo
+            } else {
+                $acc['share'] = floatval($acc['share']); // Percentage
             }
         }
 
-        // Get or create split code
-        $splitCode = $this->createOrGetSplit($schid, $clsid, $subaccounts, $splitType);
-
-        // Build unique reference
-        $host  = preg_replace('/^api\./', '', $request->getHost());
-        $typ   = $request->typ ?? 0;
-        $stid  = $request->stid ?? 0;
-        $ssnid = $request->ssnid ?? 0;
-        $trmid = $request->trmid ?? 0;
-
-        $ref = "{$host}-{$schid}-{$amount}-{$typ}-{$stid}-{$ssnid}-{$trmid}-{$clsid}-" . uniqid();
-
-        // Merge metadata
-        $metadata = array_merge($metadata, [
-            'stid'  => $stid,
-            'ssnid' => $ssnid,
-            'trmid' => $trmid,
-            'clsid' => $clsid,
-            'schid' => $schid,
-            'typ'   => $typ,
-            'name'  => $metadata['name'] ?? '',
-            'exp'   => $metadata['exp'] ?? '',
-            'eml'   => $email,
-            'lid'   => $metadata['lid'] ?? '',
-            'time'  => now()->timestamp,
-        ]);
-
-        // Prepare Paystack payload
+        // Prepare payload for Paystack
         $payload = [
-            'email'        => $email,
-            'amount'       => $totalAmountKobo,
-            'currency'     => 'NGN',
-            'reference'    => $ref,
-            'callback_url' => url('/payment/callback'),
-            'metadata'     => $metadata,
-            'channels'     => ['card', 'bank', 'ussd'],
-            'split_code'   => $splitCode,
+            'name'        => "Split-{$schid}-{$clsid}-" . uniqid(),
+            'type'        => $splitType,
+            'currency'    => 'NGN',
+            'subaccounts' => $subaccounts,
+            'bearer_type' => 'account', // Main account bears Paystack fees
         ];
 
-        if ($request->has('transaction_charge')) {
-            $payload['transaction_charge'] = intval($request->transaction_charge) * 100;
+        try {
+            $response = Http::withToken(env('PAYSTACK_SECRET'))
+                ->post('https://api.paystack.co/split', $payload);
+
+            $respData = $response->json();
+
+            if ($response->successful() && isset($respData['data']['split_code'])) {
+                $splitCode = $respData['data']['split_code'];
+
+                // Save split to DB
+                subaccount_split::create([
+                    'schid'      => $schid,
+                    'clsid'      => $clsid,
+                    'split_code' => $splitCode,
+                ]);
+
+                return $splitCode;
+            }
+
+            Log::error('Paystack Split Error: ' . $response->body());
+            throw new \Exception('Error creating split: ' . $response->body());
+        } catch (\Exception $e) {
+            Log::error('Paystack Split Exception: ' . $e->getMessage());
+            throw new \Exception('Failed to create Paystack split: ' . $e->getMessage());
         }
-
-        $response = Http::withToken(env('PAYSTACK_SECRET'))
-            ->post('https://api.paystack.co/transaction/initialize', $payload);
-
-        if ($response->successful()) {
-            return response()->json([
-                'status'  => true,
-                'message' => 'Payment Initialized Successfully',
-                'data'    => $response->json(),
-                'ref'     => $ref,
-            ]);
-        }
-
-        Log::error('Paystack Transaction Error: ' . $response->body());
-        return response()->json([
-            'status'  => false,
-            'message' => 'Payment Initialization Failed',
-            'error'   => $response->body(),
-        ], 400);
-
-    } catch (\Exception $e) {
-        Log::error('Initialize Payment Exception: ' . $e->getMessage());
-        return response()->json([
-            'status'  => false,
-            'message' => 'Server Error: Unable to initialize payment',
-            'error'   => $e->getMessage(),
-        ], 500);
     }
-}
+
+
+    public function handleCallback(Request $request)
+    {
+        $reference = $request->query('reference');
+
+        if (!$reference) {
+            return $this->redirectToError();
+        }
+
+        // Verify payment
+        $response = Http::withToken(env('PAYSTACK_SECRET'))
+            ->get("https://api.paystack.co/transaction/verify/{$reference}");
+
+        $data = $response->json();
+
+        if (!$response->ok() || !isset($data['data']['status']) || $data['data']['status'] !== 'success') {
+            return $this->redirectToError();
+        }
+
+        // Get school ID from metadata
+        $schid = $data['data']['metadata']['schid'] ?? null;
+        if (!$schid) {
+            return $this->redirectToError();
+        }
+
+        // Lookup school subdomain
+        $school = \DB::table('school')->where('sid', $schid)->first();
+        $subdomain = $school->sbd ?? null;
+
+        if (!$subdomain) {
+            return $this->redirectToError();
+        }
+
+        // Redirect to the school's subdomain + /studentPortal
+        $url = request()->getScheme() . "://{$subdomain}.schoolsilomerge.top/studentPortal";
+
+        return redirect()->to($url);
+    }
+
+    private function redirectToError(): \Illuminate\Http\RedirectResponse
+    {
+        return redirect()->to(url('/studentPortal?status=error'));
+    }
+
+
+
+    public function initializePayment(Request $request)
+    {
+        $request->validate([
+            'email'           => 'required|email',
+            'amount'          => 'required|numeric|min:100',
+            'schid'           => 'required|integer',
+            'clsid'           => 'required|integer',
+            'subaccount_code' => 'required|array|min:1',
+            'metadata'        => 'required|array',
+            'type'            => 'nullable|string', // 'flat' or 'percentage'
+        ]);
+
+        $email       = $request->email;
+        $amount      = $request->amount;
+        $schid       = $request->schid;
+        $clsid       = $request->clsid;
+        $subaccounts = $request->subaccount_code;
+        $metadata    = $request->metadata;
+        $splitType   = $request->type ?? 'percentage';
+
+        try {
+            $totalAmountKobo = $amount * 100;
+
+            // Validate subaccounts against DB
+            foreach ($subaccounts as $acc) {
+                $exists = \DB::table('sub_accounts')
+                    ->where('schid', $schid)
+                    ->where('clsid', $clsid)
+                    ->where('subaccount_code', $acc['subaccount'])
+                    ->exists();
+
+                if (!$exists) {
+                    return response()->json([
+                        'status'  => false,
+                        'message' => "Invalid subaccount: {$acc['subaccount']}",
+                    ], 400);
+                }
+            }
+
+            // Get or create split code
+            $splitCode = $this->createOrGetSplit($schid, $clsid, $subaccounts, $splitType);
+
+            // Build unique reference
+            $host  = preg_replace('/^api\./', '', $request->getHost());
+            $typ   = $request->typ ?? 0;
+            $stid  = $request->stid ?? 0;
+            $ssnid = $request->ssnid ?? 0;
+            $trmid = $request->trmid ?? 0;
+
+            $ref = "{$host}-{$schid}-{$amount}-{$typ}-{$stid}-{$ssnid}-{$trmid}-{$clsid}-" . uniqid();
+
+            // Merge metadata
+            $metadata = array_merge($metadata, [
+                'stid'  => $stid,
+                'ssnid' => $ssnid,
+                'trmid' => $trmid,
+                'clsid' => $clsid,
+                'schid' => $schid,
+                'typ'   => $typ,
+                'name'  => $metadata['name'] ?? '',
+                'exp'   => $metadata['exp'] ?? '',
+                'eml'   => $email,
+                'lid'   => $metadata['lid'] ?? '',
+                'time'  => now()->timestamp,
+            ]);
+
+            // Prepare Paystack payload
+            $payload = [
+                'email'        => $email,
+                'amount'       => $totalAmountKobo,
+                'currency'     => 'NGN',
+                'reference'    => $ref,
+                'callback_url' => $this->getFrontendUrl($schid, '/payment/callback'),
+                'metadata'     => $metadata,
+                'channels'     => ['card', 'bank', 'ussd'],
+                'split_code'   => $splitCode,
+            ];
+
+            if ($request->has('transaction_charge')) {
+                $payload['transaction_charge'] = intval($request->transaction_charge) * 100;
+            }
+
+            $response = Http::withToken(env('PAYSTACK_SECRET'))
+                ->post('https://api.paystack.co/transaction/initialize', $payload);
+
+            if ($response->successful()) {
+                return response()->json([
+                    'status'  => true,
+                    'message' => 'Payment Initialized Successfully',
+                    'data'    => $response->json(),
+                    'ref'     => $ref,
+                ]);
+            }
+
+            Log::error('Paystack Transaction Error: ' . $response->body());
+            return response()->json([
+                'status'  => false,
+                'message' => 'Payment Initialization Failed',
+                'error'   => $response->body(),
+            ], 400);
+        } catch (\Exception $e) {
+            Log::error('Initialize Payment Exception: ' . $e->getMessage());
+            return response()->json([
+                'status'  => false,
+                'message' => 'Server Error: Unable to initialize payment',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
 
 
 private function getFrontendUrl(int $schid, string $path = ''): string
@@ -12734,10 +12733,12 @@ private function getFrontendUrl(int $schid, string $path = ''): string
     // Get request scheme
     $scheme = request()->getScheme();
 
-    // Return URL with subdomain and optional path
-    return "{$scheme}://{$subdomain}.schoolsilomerge.top{$path}";
-}
+    // Remove "api." if present (important fix)
+    $host = preg_replace('/^api\./', '', "{$subdomain}.schoolsilomerge.top");
 
+    // Return full URL
+    return "{$scheme}://{$host}{$path}";
+}
 
 
 
@@ -13720,115 +13721,115 @@ private function getFrontendUrl(int $schid, string $path = ''): string
     // }
 
 
-public function paystackConf(Request $request)
-{
-    Log::info('------------ARRIVED-----------');
-    $payload = json_decode($request->input('payload'), true);
+    public function paystackConf(Request $request)
+    {
+        Log::info('------------ARRIVED-----------');
+        $payload = json_decode($request->input('payload'), true);
 
-    if ($payload['event'] == "charge.success") {
-        $ref = $payload['data']['reference'];
-        $pld = payment_refs::where("ref", "=", $ref)->first();
+        if ($payload['event'] == "charge.success") {
+            $ref = $payload['data']['reference'];
+            $pld = payment_refs::where("ref", "=", $ref)->first();
 
-        if (!$pld) { // Unique reference
-            $payinfo = explode('-', $ref);
-            $amt   = $payinfo[2];
-            $schid = $payinfo[1];
-            $typ   = $payinfo[3];
-            $stid  = $payinfo[4];
-            $ssnid = $payinfo[5];
-            $trmid = $payinfo[6];
-            $clsid = $payinfo[7];
+            if (!$pld) { // Unique reference
+                $payinfo = explode('-', $ref);
+                $amt   = $payinfo[2];
+                $schid = $payinfo[1];
+                $typ   = $payinfo[3];
+                $stid  = $payinfo[4];
+                $ssnid = $payinfo[5];
+                $trmid = $payinfo[6];
+                $clsid = $payinfo[7];
 
-            $metadata = $payload['data']['metadata'];
-            $nm  = $metadata['name'] ?? '';
-            $tm  = $metadata['time'] ?? now()->timestamp;
-            $exp = $metadata['exp'] ?? '';
-            $eml = $metadata['eml'] ?? '';
-            $lid = $metadata['lid'] ?? '';
+                $metadata = $payload['data']['metadata'];
+                $nm  = $metadata['name'] ?? '';
+                $tm  = $metadata['time'] ?? now()->timestamp;
+                $exp = $metadata['exp'] ?? '';
+                $eml = $metadata['eml'] ?? '';
+                $lid = $metadata['lid'] ?? '';
 
-            $what = '';
-            if ($typ == '0') {
-                $what = 'School Fees';
-            } elseif ($typ == '1') {
-                $what = 'Application Fee';
-                student::where('sid', $stid)->update(["rfee" => '1']);
-            } elseif ($typ == '2') {
-                $what = 'Acceptance Fee';
-                $uid = $stid . $schid . $clsid;
-                afeerec::updateOrCreate(
-                    ["uid" => $uid],
-                    [
-                        "stid"  => $stid,
-                        "schid" => $schid,
-                        "clsid" => $clsid,
-                        "amt"   => intval($amt),
-                    ]
-                );
-            }
+                $what = '';
+                if ($typ == '0') {
+                    $what = 'School Fees';
+                } elseif ($typ == '1') {
+                    $what = 'Application Fee';
+                    student::where('sid', $stid)->update(["rfee" => '1']);
+                } elseif ($typ == '2') {
+                    $what = 'Acceptance Fee';
+                    $uid = $stid . $schid . $clsid;
+                    afeerec::updateOrCreate(
+                        ["uid" => $uid],
+                        [
+                            "stid"  => $stid,
+                            "schid" => $schid,
+                            "clsid" => $clsid,
+                            "amt"   => intval($amt),
+                        ]
+                    );
+                }
 
-            // ✅ If split exists, save each subaccount payment separately
-            if (!empty($payload['data']['split']['shares']['subaccounts'])) {
-                foreach ($payload['data']['split']['shares']['subaccounts'] as $sub) {
+                // ✅ If split exists, save each subaccount payment separately
+                if (!empty($payload['data']['split']['shares']['subaccounts'])) {
+                    foreach ($payload['data']['split']['shares']['subaccounts'] as $sub) {
+                        payments::create([
+                            'schid'           => $schid,
+                            'stid'            => $stid,
+                            'ssnid'           => $ssnid,
+                            'trmid'           => $trmid,
+                            'clsid'           => $clsid,
+                            'name'            => $nm,
+                            'exp'             => $exp,
+                            'amt'             => $sub['amount'] / 100, // convert kobo to Naira
+                            'lid'             => $lid,
+                            'subaccount_code' => $sub['subaccount_code'], // ✅ added
+                            'main_ref'        => $ref, // ✅ added
+                        ]);
+                    }
+                } else {
+                    // ✅ If no split, save total payment
                     payments::create([
-                        'schid'           => $schid,
-                        'stid'            => $stid,
-                        'ssnid'           => $ssnid,
-                        'trmid'           => $trmid,
-                        'clsid'           => $clsid,
-                        'name'            => $nm,
-                        'exp'             => $exp,
-                        'amt'             => $sub['amount'] / 100, // convert kobo to Naira
-                        'lid'             => $lid,
-                        'subaccount_code' => $sub['subaccount_code'], // ✅ added
-                        'main_ref'        => $ref, // ✅ added
+                        'schid'    => $schid,
+                        'stid'     => $stid,
+                        'ssnid'    => $ssnid,
+                        'trmid'    => $trmid,
+                        'clsid'    => $clsid,
+                        'name'     => $nm,
+                        'exp'      => $exp,
+                        'amt'      => $amt,
+                        'lid'      => $lid,
+                        'main_ref' => $ref, // ✅ added
                     ]);
                 }
-            } else {
-                // ✅ If no split, save total payment
-                payments::create([
-                    'schid'    => $schid,
-                    'stid'     => $stid,
-                    'ssnid'    => $ssnid,
-                    'trmid'    => $trmid,
-                    'clsid'    => $clsid,
-                    'name'     => $nm,
-                    'exp'      => $exp,
-                    'amt'      => $amt,
-                    'lid'      => $lid,
-                    'main_ref' => $ref, // ✅ added
+
+                // Send email (optional)
+                try {
+                    $data = [
+                        'name'    => $nm,
+                        'subject' => 'Payment Received',
+                        'body'    => 'Your ' . $what . ' payment was received',
+                        'link'    => env('PORTAL_URL') . '/studentLogin/' . $schid,
+                    ];
+                    Mail::to($eml)->send(new SSSMails($data));
+                } catch (\Exception $e) {
+                    Log::error('Failed to send email: ' . $e->getMessage());
+                }
+
+                // Save reference
+                payment_refs::create([
+                    "ref"  => $ref,
+                    "amt"  => $amt,
+                    "time" => $tm,
                 ]);
+
+                Log::info('SUCCESS');
+            } else {
+                Log::info('PLD EXISTS: ' . json_encode($pld));
             }
-
-            // Send email (optional)
-            try {
-                $data = [
-                    'name'    => $nm,
-                    'subject' => 'Payment Received',
-                    'body'    => 'Your ' . $what . ' payment was received',
-                    'link'    => env('PORTAL_URL') . '/studentLogin/' . $schid,
-                ];
-                Mail::to($eml)->send(new SSSMails($data));
-            } catch (\Exception $e) {
-                Log::error('Failed to send email: ' . $e->getMessage());
-            }
-
-            // Save reference
-            payment_refs::create([
-                "ref"  => $ref,
-                "amt"  => $amt,
-                "time" => $tm,
-            ]);
-
-            Log::info('SUCCESS');
         } else {
-            Log::info('PLD EXISTS: ' . json_encode($pld));
+            Log::info('EVENTS BAD: ' . $payload['event']);
         }
-    } else {
-        Log::info('EVENTS BAD: ' . $payload['event']);
-    }
 
-    return response()->json(['status' => 'success'], 200);
-}
+        return response()->json(['status' => 'success'], 200);
+    }
 
 
 
@@ -27883,72 +27884,117 @@ public function paystackConf(Request $request)
      * )
      */
 
-public function getSchoolCounts()
-{
-    // List of secondary classes
-    $secondaryClasses = [
-        'JSS 1','JSS 2','JSS 3','SSS 1','SSS 2','SSS 3',
-        'BASIC 7','BASIC 8','BASIC 9',
-        'YEAR 7','YEAR 8','YEAR 9','YEAR 10','YEAR 11','YEAR 12',
-        'JSS 3 PR','SSS 2 PW','SSS 3 MOCK','TAHFEEZ UPPER CLASS'
-    ];
+    public function getSchoolCounts()
+    {
+        // List of secondary classes
+        $secondaryClasses = [
+            'JSS 1',
+            'JSS 2',
+            'JSS 3',
+            'SSS 1',
+            'SSS 2',
+            'SSS 3',
+            'BASIC 7',
+            'BASIC 8',
+            'BASIC 9',
+            'YEAR 7',
+            'YEAR 8',
+            'YEAR 9',
+            'YEAR 10',
+            'YEAR 11',
+            'YEAR 12',
+            'JSS 3 PR',
+            'SSS 2 PW',
+            'SSS 3 MOCK',
+            'TAHFEEZ UPPER CLASS'
+        ];
 
-    // List of nursery/primary classes
-    $nurseryClasses = [
-        'Kg','NUR 1','NUR 2','NUR 3',
-        'PRI 1','PRI 2','PRI 3','PRI 4','PRI 5','PRI 6',
-        'BASIC 1','BASIC 2','BASIC 3','BASIC 4','BASIC 5','BASIC 6',
-        'PRE-BASIC','PRE-PRIMARY','CRECHE','PRE-NURSERY','SPECIAL PRE-NURSERY',
-        'NURSERY 1','NURSERY 2','NURSERY 3 / PRE-PRIMARY',
-        'ECCD 1','ECCD 2',
-        'PRIMARY 1','PRIMARY 2','PRIMARY 3','PRIMARY 4','PRIMARY 5','PRIMARY 6',
-        'YEAR 1','YEAR 2','YEAR 3','YEAR 4','YEAR 5','YEAR 6',
-        'TAHFEEZ LOWER CLASS'
-    ];
+        // List of nursery/primary classes
+        $nurseryClasses = [
+            'Kg',
+            'NUR 1',
+            'NUR 2',
+            'NUR 3',
+            'PRI 1',
+            'PRI 2',
+            'PRI 3',
+            'PRI 4',
+            'PRI 5',
+            'PRI 6',
+            'BASIC 1',
+            'BASIC 2',
+            'BASIC 3',
+            'BASIC 4',
+            'BASIC 5',
+            'BASIC 6',
+            'PRE-BASIC',
+            'PRE-PRIMARY',
+            'CRECHE',
+            'PRE-NURSERY',
+            'SPECIAL PRE-NURSERY',
+            'NURSERY 1',
+            'NURSERY 2',
+            'NURSERY 3 / PRE-PRIMARY',
+            'ECCD 1',
+            'ECCD 2',
+            'PRIMARY 1',
+            'PRIMARY 2',
+            'PRIMARY 3',
+            'PRIMARY 4',
+            'PRIMARY 5',
+            'PRIMARY 6',
+            'YEAR 1',
+            'YEAR 2',
+            'YEAR 3',
+            'YEAR 4',
+            'YEAR 5',
+            'YEAR 6',
+            'TAHFEEZ LOWER CLASS'
+        ];
 
-    // Get IDs of secondary classes
-    $secondaryClsIds = cls::whereIn('name', $secondaryClasses)->pluck('id');
+        // Get IDs of secondary classes
+        $secondaryClsIds = cls::whereIn('name', $secondaryClasses)->pluck('id');
 
-    // Get IDs of nursery/primary classes
-    $nurseryClsIds = cls::whereIn('name', $nurseryClasses)->pluck('id');
+        // Get IDs of nursery/primary classes
+        $nurseryClsIds = cls::whereIn('name', $nurseryClasses)->pluck('id');
 
-    // Get all schools
-    $allSchoolIds = school_class::distinct()->pluck('schid');
+        // Get all schools
+        $allSchoolIds = school_class::distinct()->pluck('schid');
 
-    $secondarySchools = 0;
-    $nurserySchools = 0;
+        $secondarySchools = 0;
+        $nurserySchools = 0;
 
-    foreach ($allSchoolIds as $schid) {
-        // If school has at least one secondary class → count it
-        $hasSecondary = school_class::where('schid', $schid)
-            ->whereIn('clsid', $secondaryClsIds)
-            ->exists();
+        foreach ($allSchoolIds as $schid) {
+            // If school has at least one secondary class → count it
+            $hasSecondary = school_class::where('schid', $schid)
+                ->whereIn('clsid', $secondaryClsIds)
+                ->exists();
 
-        if ($hasSecondary) {
-            $secondarySchools++;
+            if ($hasSecondary) {
+                $secondarySchools++;
+            }
+
+            // If school has at least one nursery/primary class → count it
+            $hasNursery = school_class::where('schid', $schid)
+                ->whereIn('clsid', $nurseryClsIds)
+                ->exists();
+
+            if ($hasNursery) {
+                $nurserySchools++;
+            }
         }
 
-        // If school has at least one nursery/primary class → count it
-        $hasNursery = school_class::where('schid', $schid)
-            ->whereIn('clsid', $nurseryClsIds)
-            ->exists();
+        $totalSchools = $secondarySchools + $nurserySchools;
 
-        if ($hasNursery) {
-            $nurserySchools++;
-        }
+        return response()->json([
+            'status' => true,
+            'pld' => [
+                'total_schools'     => $totalSchools,
+                'secondary_schools' => $secondarySchools,
+                'nursery_schools'   => $nurserySchools,
+            ]
+        ]);
     }
-
-    $totalSchools = $secondarySchools + $nurserySchools;
-
-    return response()->json([
-        'status' => true,
-        'pld' => [
-            'total_schools'     => $totalSchools,
-            'secondary_schools' => $secondarySchools,
-            'nursery_schools'   => $nurserySchools,
-        ]
-    ]);
-}
 
 
 
@@ -29043,28 +29089,28 @@ public function getSchoolCounts()
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-public function getExternalExpenditureStatByAdmin($ssn, $trm)
-{
-    $query = ext_expenditure::query();
+    public function getExternalExpenditureStatByAdmin($ssn, $trm)
+    {
+        $query = ext_expenditure::query();
 
-    if ($ssn !== '0') {
-        $query->where('ssn', $ssn);
+        if ($ssn !== '0') {
+            $query->where('ssn', $ssn);
+        }
+        if ($trm !== '0') {
+            $query->where('trm', $trm);
+        }
+
+        // Count distinct schools
+        $total = $query->distinct('schid')->count('schid');
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => [
+                "total" => $total,
+            ],
+        ]);
     }
-    if ($trm !== '0') {
-        $query->where('trm', $trm);
-    }
-
-    // Count distinct schools
-    $total = $query->distinct('schid')->count('schid');
-
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => [
-            "total" => $total,
-        ],
-    ]);
-}
 
 
 
@@ -29205,384 +29251,384 @@ public function getExternalExpenditureStatByAdmin($ssn, $trm)
 
 
     /**
- * @OA\Get(
- *     path="/api/getInternalExpenditureStatByAdmin/{ssn}/{trm}",
- *     summary="Get internal expenditure statistics by admin",
- *     description="Fetch the total number of internal expenditure records, optionally filtered by session (ssn) and term (trm).",
- *     operationId="getInternalExpenditureStatByAdmin",
- *     tags={"Accounting"},
- *    security={{"bearerAuth":{}}},
- *
- *     @OA\Parameter(
- *         name="ssn",
- *         in="path",
- *         required=true,
- *         description="Session ID (use 0 to fetch for all sessions)",
- *         @OA\Schema(type="string", example="2024")
- *     ),
- *     @OA\Parameter(
- *         name="trm",
- *         in="path",
- *         required=true,
- *         description="Term ID (use 0 to fetch for all terms)",
- *         @OA\Schema(type="string", example="1")
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Successful response",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Success"),
- *             @OA\Property(
- *                 property="pld",
- *                 type="object",
- *                 @OA\Property(property="total", type="integer", example=45)
- *             )
- *         )
- *     ),
- *     @OA\Response(
- *         response=400,
- *         description="Invalid request"
- *     )
- * )
- */
+     * @OA\Get(
+     *     path="/api/getInternalExpenditureStatByAdmin/{ssn}/{trm}",
+     *     summary="Get internal expenditure statistics by admin",
+     *     description="Fetch the total number of internal expenditure records, optionally filtered by session (ssn) and term (trm).",
+     *     operationId="getInternalExpenditureStatByAdmin",
+     *     tags={"Accounting"},
+     *    security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="path",
+     *         required=true,
+     *         description="Session ID (use 0 to fetch for all sessions)",
+     *         @OA\Schema(type="string", example="2024")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Term ID (use 0 to fetch for all terms)",
+     *         @OA\Schema(type="string", example="1")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful response",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 @OA\Property(property="total", type="integer", example=45)
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Invalid request"
+     *     )
+     * )
+     */
 
-public function getInternalExpenditureStatByAdmin($ssn, $trm)
-{
-    $query = in_expenditure::query();
+    public function getInternalExpenditureStatByAdmin($ssn, $trm)
+    {
+        $query = in_expenditure::query();
 
-    if ($ssn !== '0') {
-        $query->where('ssn', $ssn);
+        if ($ssn !== '0') {
+            $query->where('ssn', $ssn);
+        }
+        if ($trm !== '0') {
+            $query->where('trm', $trm);
+        }
+
+        // Count distinct schools (schid)
+        $total = $query->distinct('schid')->count('schid');
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => [
+                "total" => $total,
+            ],
+        ]);
     }
-    if ($trm !== '0') {
-        $query->where('trm', $trm);
-    }
-
-    // Count distinct schools (schid)
-    $total = $query->distinct('schid')->count('schid');
-
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => [
-            "total" => $total,
-        ],
-    ]);
-}
 
 
 
 
-/**
- * @OA\Post(
- *     path="/api/resetDefaultPasswordAdmin",
- *     summary="Reset school user's password to default",
- *     description="Resets the password of the user account linked to a specific school. The new default password will be '123456'.",
- *     tags={"Admin"},
- *    security={{"bearerAuth":{}}},
- *
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"schid"},
- *             @OA\Property(
- *                 property="schid",
- *                 type="integer",
- *                 example=12,
- *                 description="The ID of the school (sid in the school table)"
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Password reset successfully",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Password for school 'HOLY GHOST COLLEGE' has been reset to default (123456).")
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=404,
- *         description="School not found or no user account exists",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="School not found.")
- *         )
- *     )
- * )
- */
-public function resetDefaultPasswordAdmin(Request $request)
-{
-    // Validate request
-    $request->validate([
-        "schid" => "required|integer", // school id
-    ]);
+    /**
+     * @OA\Post(
+     *     path="/api/resetDefaultPasswordAdmin",
+     *     summary="Reset school user's password to default",
+     *     description="Resets the password of the user account linked to a specific school. The new default password will be '123456'.",
+     *     tags={"Admin"},
+     *    security={{"bearerAuth":{}}},
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"schid"},
+     *             @OA\Property(
+     *                 property="schid",
+     *                 type="integer",
+     *                 example=12,
+     *                 description="The ID of the school (sid in the school table)"
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Password reset successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Password for school 'HOLY GHOST COLLEGE' has been reset to default (123456).")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="School not found or no user account exists",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="School not found.")
+     *         )
+     *     )
+     * )
+     */
+    public function resetDefaultPasswordAdmin(Request $request)
+    {
+        // Validate request
+        $request->validate([
+            "schid" => "required|integer", // school id
+        ]);
 
-    // Find the school first
-    $school = school::where("sid", $request->schid)->first();
-    if (!$school) {
+        // Find the school first
+        $school = school::where("sid", $request->schid)->first();
+        if (!$school) {
+            return response()->json([
+                "status" => false,
+                "message" => "School not found.",
+            ], 404);
+        }
+
+        // Find the user linked to this school
+        $user = User::where("id", $school->sid)->first();
+
+        if ($user) {
+            $user->update([
+                "password" => bcrypt("123456"),
+            ]);
+
+            return response()->json([
+                "status" => true,
+                "message" => "Password for school '{$school->name}' has been reset to default (123456)."
+            ]);
+        }
+
         return response()->json([
             "status" => false,
-            "message" => "School not found.",
+            "message" => "No user account found for this school.",
         ], 404);
     }
 
-    // Find the user linked to this school
-    $user = User::where("id", $school->sid)->first();
-
-    if ($user) {
-        $user->update([
-            "password" => bcrypt("123456"),
-        ]);
-
-        return response()->json([
-            "status" => true,
-            "message" => "Password for school '{$school->name}' has been reset to default (123456)."
-        ]);
-    }
-
-    return response()->json([
-        "status" => false,
-        "message" => "No user account found for this school.",
-    ], 404);
-}
 
 
 
+    /**
+     * @OA\Get(
+     *     path="/api/getAllClasses",
+     *     tags={"Api"},
+     *   security={{"bearerAuth":{}}},
+     *     summary="Fetch all classes",
+     *     description="Returns a list of all available classes ordered by ID",
+     *     @OA\Response(
+     *         response=200,
+     *         description="Classes fetched successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Classes fetched successfully"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="name", type="string", example="Kg")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Error fetching classes",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Error fetching classes"),
+     *             @OA\Property(property="error", type="string", example="SQLSTATE[42S02]: Base table or view not found: 1146 Table 'school.cls' doesn't exist")
+     *         )
+     *     )
+     * )
+     */
+    public function getAllClasses()
+    {
+        try {
+            $classes = cls::orderBy('id', 'asc')->get(['id', 'name']);
 
-/**
- * @OA\Get(
- *     path="/api/getAllClasses",
- *     tags={"Api"},
- *   security={{"bearerAuth":{}}},
- *     summary="Fetch all classes",
- *     description="Returns a list of all available classes ordered by ID",
- *     @OA\Response(
- *         response=200,
- *         description="Classes fetched successfully",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Classes fetched successfully"),
- *             @OA\Property(
- *                 property="pld",
- *                 type="array",
- *                 @OA\Items(
- *                     type="object",
- *                     @OA\Property(property="id", type="integer", example=1),
- *                     @OA\Property(property="name", type="string", example="Kg")
- *                 )
- *             )
- *         )
- *     ),
- *     @OA\Response(
- *         response=500,
- *         description="Error fetching classes",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="Error fetching classes"),
- *             @OA\Property(property="error", type="string", example="SQLSTATE[42S02]: Base table or view not found: 1146 Table 'school.cls' doesn't exist")
- *         )
- *     )
- * )
- */
-public function getAllClasses()
-{
-    try {
-        $classes = cls::orderBy('id', 'asc')->get(['id', 'name']);
-
-        return response()->json([
-            "status" => true,
-            "message" => "Classes fetched successfully",
-            "pld" => $classes
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            "status" => false,
-            "message" => "Error fetching classes",
-            "error" => $e->getMessage()
-        ], 500);
-    }
-}
-
-
-
-
-/**
- * @OA\Get(
- *     path="/api/getClassesBySchool/{schid}",
- *     summary="Get all classes by school",
- *     description="Fetches all classes assigned to a given school ID (schid).",
- *     tags={"Api"},
- *   security={{"bearerAuth":{}}},
- *
- *     @OA\Parameter(
- *         name="schid",
- *         in="path",
- *         required=true,
- *         description="School ID",
- *         @OA\Schema(type="integer", example=12)
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Classes fetched successfully",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Classes fetched successfully"),
- *             @OA\Property(
- *                 property="pld",
- *                 type="array",
- *                 @OA\Items(
- *                     @OA\Property(property="id", type="integer", example=11),
- *                     @OA\Property(property="name", type="string", example="JSS 1"),
- *                     @OA\Property(property="schid", type="integer", example=12)
- *                 )
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=500,
- *         description="Error fetching classes",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="Error fetching classes"),
- *             @OA\Property(property="error", type="string", example="SQLSTATE[HY000]: General error ...")
- *         )
- *     )
- * )
- */
-
-public function getClassesBySchool($schid)
-{
-    try {
-        $classes = \DB::table('school_class')
-            ->join('cls', 'school_class.clsid', '=', 'cls.id')
-            ->where('school_class.schid', $schid)
-            ->orderBy('cls.id', 'asc')
-            ->get([
-                'cls.id',
-                'cls.name',
-                'school_class.schid'
+            return response()->json([
+                "status" => true,
+                "message" => "Classes fetched successfully",
+                "pld" => $classes
             ]);
-
-        return response()->json([
-            "status" => true,
-            "message" => "Classes fetched successfully",
-            "pld" => $classes
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            "status" => false,
-            "message" => "Error fetching classes",
-            "error" => $e->getMessage()
-        ], 500);
-    }
-}
-
-
-
-
-
-/**
- * @OA\Get(
- *     path="/api/getStudentsId/{schid}/{ssn}/{trm}/{clsm}/{clsa}",
- *     summary="Get Old Students",
- *     description="Fetch old students for a given school, session, term, class and class arm.
- *                  If a student's status is inactive, the `status` will be shown as `Alumni` and
- *                  `current_class` will be `Alumni`.",
- *     tags={"Api"},
- *     security={{"bearerAuth":{}}},
- *     @OA\Parameter(
- *         name="schid",
- *         in="path",
- *         required=true,
- *         description="School ID",
- *         @OA\Schema(type="integer", example=13)
- *     ),
- *     @OA\Parameter(
- *         name="ssn",
- *         in="path",
- *         required=true,
- *         description="Session year",
- *         @OA\Schema(type="string", example="2024")
- *     ),
- *     @OA\Parameter(
- *         name="trm",
- *         in="path",
- *         required=true,
- *         description="Term ID",
- *         @OA\Schema(type="integer", example=1)
- *     ),
- *     @OA\Parameter(
- *         name="clsm",
- *         in="path",
- *         required=true,
- *         description="Class main ID",
- *         @OA\Schema(type="integer", example=11)
- *     ),
- *     @OA\Parameter(
- *         name="clsa",
- *         in="path",
- *         required=true,
- *         description="Class arm ID (use -1 to ignore filter)",
- *         @OA\Schema(type="integer", example=2)
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Successful response with list of students",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Success"),
- *             @OA\Property(
- *                 property="pld",
- *                 type="array",
- *                 @OA\Items(
- *                     type="object",
- *                     @OA\Property(property="sid", type="integer", example=1000),
- *                     @OA\Property(property="fname", type="string", example="VICTORIA"),
- *                     @OA\Property(property="lname", type="string", example="KENNETH"),
- *                     @OA\Property(property="status", type="string", example="Alumni"),
- *                     @OA\Property(property="school_name", type="string", example="Holy Grace College"),
- *                     @OA\Property(property="class_id", type="integer", example=11),
- *                     @OA\Property(property="class_name", type="string", example="SS 1"),
- *                     @OA\Property(property="class_arm_id", type="integer", example=2),
- *                     @OA\Property(property="class_arm", type="string", example="B"),
- *                     @OA\Property(property="current_class", type="string", example="Alumni")
- *                 )
- *             )
- *         )
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="No students found"
- *     )
- * )
- */
-
-public function getStudentsId($schid, $ssn, $trm, $clsm, $clsa)
-{
-    $query = DB::table('old_student as os')
-        ->leftJoin('school as s', 'os.schid', '=', 's.sid')
-        ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')          // ✅ main class
-        ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')    // ✅ class arm
-        ->where("os.schid", $schid)
-        ->where("os.ssn", $ssn)
-        ->where("os.trm", $trm)
-        ->where("os.clsm", $clsm);
-
-    if ($clsa != '-1') {
-        $query->where("os.clsa", $clsa);
+        } catch (\Exception $e) {
+            return response()->json([
+                "status" => false,
+                "message" => "Error fetching classes",
+                "error" => $e->getMessage()
+            ], 500);
+        }
     }
 
-    $students = $query->select(
+
+
+
+    /**
+     * @OA\Get(
+     *     path="/api/getClassesBySchool/{schid}",
+     *     summary="Get all classes by school",
+     *     description="Fetches all classes assigned to a given school ID (schid).",
+     *     tags={"Api"},
+     *   security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="path",
+     *         required=true,
+     *         description="School ID",
+     *         @OA\Schema(type="integer", example=12)
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Classes fetched successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Classes fetched successfully"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="id", type="integer", example=11),
+     *                     @OA\Property(property="name", type="string", example="JSS 1"),
+     *                     @OA\Property(property="schid", type="integer", example=12)
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=500,
+     *         description="Error fetching classes",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Error fetching classes"),
+     *             @OA\Property(property="error", type="string", example="SQLSTATE[HY000]: General error ...")
+     *         )
+     *     )
+     * )
+     */
+
+    public function getClassesBySchool($schid)
+    {
+        try {
+            $classes = \DB::table('school_class')
+                ->join('cls', 'school_class.clsid', '=', 'cls.id')
+                ->where('school_class.schid', $schid)
+                ->orderBy('cls.id', 'asc')
+                ->get([
+                    'cls.id',
+                    'cls.name',
+                    'school_class.schid'
+                ]);
+
+            return response()->json([
+                "status" => true,
+                "message" => "Classes fetched successfully",
+                "pld" => $classes
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                "status" => false,
+                "message" => "Error fetching classes",
+                "error" => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+
+
+
+    /**
+     * @OA\Get(
+     *     path="/api/getStudentsId/{schid}/{ssn}/{trm}/{clsm}/{clsa}",
+     *     summary="Get Old Students",
+     *     description="Fetch old students for a given school, session, term, class and class arm.
+     *                  If a student's status is inactive, the `status` will be shown as `Alumni` and
+     *                  `current_class` will be `Alumni`.",
+     *     tags={"Api"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="path",
+     *         required=true,
+     *         description="School ID",
+     *         @OA\Schema(type="integer", example=13)
+     *     ),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="path",
+     *         required=true,
+     *         description="Session year",
+     *         @OA\Schema(type="string", example="2024")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Term ID",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Parameter(
+     *         name="clsm",
+     *         in="path",
+     *         required=true,
+     *         description="Class main ID",
+     *         @OA\Schema(type="integer", example=11)
+     *     ),
+     *     @OA\Parameter(
+     *         name="clsa",
+     *         in="path",
+     *         required=true,
+     *         description="Class arm ID (use -1 to ignore filter)",
+     *         @OA\Schema(type="integer", example=2)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful response with list of students",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="sid", type="integer", example=1000),
+     *                     @OA\Property(property="fname", type="string", example="VICTORIA"),
+     *                     @OA\Property(property="lname", type="string", example="KENNETH"),
+     *                     @OA\Property(property="status", type="string", example="Alumni"),
+     *                     @OA\Property(property="school_name", type="string", example="Holy Grace College"),
+     *                     @OA\Property(property="class_id", type="integer", example=11),
+     *                     @OA\Property(property="class_name", type="string", example="SS 1"),
+     *                     @OA\Property(property="class_arm_id", type="integer", example=2),
+     *                     @OA\Property(property="class_arm", type="string", example="B"),
+     *                     @OA\Property(property="current_class", type="string", example="Alumni")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="No students found"
+     *     )
+     * )
+     */
+
+    public function getStudentsId($schid, $ssn, $trm, $clsm, $clsa)
+    {
+        $query = DB::table('old_student as os')
+            ->leftJoin('school as s', 'os.schid', '=', 's.sid')
+            ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')          // ✅ main class
+            ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')    // ✅ class arm
+            ->where("os.schid", $schid)
+            ->where("os.ssn", $ssn)
+            ->where("os.trm", $trm)
+            ->where("os.clsm", $clsm);
+
+        if ($clsa != '-1') {
+            $query->where("os.clsa", $clsa);
+        }
+
+        $students = $query->select(
             'os.sid',
             'os.fname',
             'os.lname',
@@ -29594,33 +29640,167 @@ public function getStudentsId($schid, $ssn, $trm, $clsm, $clsa)
             'sc.id as class_arm_id',  // ✅ class arm id
             'sc.name as class_arm'    // ✅ class arm name
         )
-        ->distinct('os.sid')
-        ->get();
+            ->distinct('os.sid')
+            ->get();
 
-    $pld = $students->map(function ($student) {
-        // ✅ Alumni handling
-        $status = $student->status === 'inactive' ? 'Alumni' : $student->status;
-        $currentClass = $student->status === 'inactive' ? 'Alumni' : $student->class_name;
+        $pld = $students->map(function ($student) {
+            // ✅ Alumni handling
+            $status = $student->status === 'inactive' ? 'Alumni' : $student->status;
+            $currentClass = $student->status === 'inactive' ? 'Alumni' : $student->class_name;
 
-        return [
-            "sid"           => $student->sid,
-            "fname"         => $student->fname,
-            "lname"         => $student->lname,
-            "status"        => $status,
-            "school_name"   => $student->school_name,
-            "student_id"    => $student->student_id,
-            "class_id"      => $student->class_id,       // ✅ added
-            "class_name"    => $student->class_name,
-            "class_arm_id"  => $student->class_arm_id,   // ✅ added
-            "class_arm"     => $student->class_arm,
-            "current_class" => $currentClass
-        ];
-    });
+            return [
+                "sid"           => $student->sid,
+                "fname"         => $student->fname,
+                "lname"         => $student->lname,
+                "status"        => $status,
+                "school_name"   => $student->school_name,
+                "student_id"    => $student->student_id,
+                "class_id"      => $student->class_id,       // ✅ added
+                "class_name"    => $student->class_name,
+                "class_arm_id"  => $student->class_arm_id,   // ✅ added
+                "class_arm"     => $student->class_arm,
+                "current_class" => $currentClass
+            ];
+        });
+
+        return response()->json([
+            "status"  => true,
+            "message" => "Success",
+            "pld"     => $pld,
+        ]);
+    }
+
+/**
+ * @OA\Get(
+ *     path="/api/verifyStudent",
+ *     summary="Get Student by Student ID",
+ *     description="Fetch a student's details using their Student ID (e.g., HGC/2024/2/367). Returns personal info, school, class, and class arm.",
+ *     operationId="getStudentByStudentId",
+ *     tags={"Api"},
+ *     security={{"bearerAuth":{}}},
+ *
+ *     @OA\Parameter(
+ *         name="studentId",
+ *         in="query",
+ *         required=true,
+ *         description="Unique Student ID (e.g., HGC/2024/2/367)",
+ *         @OA\Schema(type="string", example="HGC/2024/2/367")
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful response with student details",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(property="sid", type="string", example="2376"),
+ *                     @OA\Property(property="fname", type="string", example="JOSHUA"),
+ *                     @OA\Property(property="lname", type="string", example="OKECHUKWU"),
+ *                     @OA\Property(property="status", type="string", example="active"),
+ *                     @OA\Property(property="school_name", type="string", example="HOLY GHOST COLLEGE"),
+ *                     @OA\Property(property="student_id", type="string", example="HGC/2024/2/367"),
+ *                     @OA\Property(property="class_id", type="integer", example=13),
+ *                     @OA\Property(property="class_name", type="string", example="JSS 3"),
+ *                     @OA\Property(property="class_arm_id", type="integer", example=5),
+ *                     @OA\Property(property="class_arm", type="string", example="A"),
+ *                     @OA\Property(property="current_class", type="string", example="JSS 3")
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=400,
+ *         description="Bad Request - studentId missing",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="studentId is required"),
+ *             @OA\Property(property="pld", type="array", @OA\Items(type="object"))
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=404,
+ *         description="Student not found",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="Student not found"),
+ *             @OA\Property(property="pld", type="array", @OA\Items(type="object"))
+ *         )
+ *     )
+ * )
+ */
+
+
+public function verifyStudent(Request $request)
+{
+    $studentId = $request->query('studentId'); // ✅ use query param instead of path param
+
+    if (!$studentId) {
+        return response()->json([
+            "status"  => false,
+            "message" => "studentId is required",
+            "pld"     => []
+        ], 400);
+    }
+
+    $student = DB::table('old_student as os')
+        ->leftJoin('school as s', 'os.schid', '=', 's.sid')
+        ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')        // main class
+        ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')  // class arm
+        ->where("os.suid", $studentId) // ✅ filter by student unique ID
+        ->select(
+            'os.sid',
+            'os.fname',
+            'os.lname',
+            'os.status',
+            'os.suid as student_id',
+            's.name as school_name',
+            'c.id as class_id',
+            'c.name as class_name',
+            'sc.id as class_arm_id',
+            'sc.name as class_arm'
+        )
+        ->first();
+
+    if (!$student) {
+        return response()->json([
+            "status"  => false,
+            "message" => "Student not found",
+            "pld"     => []
+        ], 404);
+    }
+
+    // ✅ Alumni handling
+    $status = $student->status === 'inactive' ? 'Alumni' : $student->status;
+    $currentClass = $student->status === 'inactive' ? 'Alumni' : $student->class_name;
+
+    $pld = [
+        "sid"           => (string) $student->sid,
+        "fname"         => $student->fname,
+        "lname"         => $student->lname,
+        "status"        => $status,
+        "school_name"   => $student->school_name,
+        "student_id"    => $student->student_id,
+        "class_id"      => $student->class_id,
+        "class_name"    => $student->class_name,
+        "class_arm_id"  => $student->class_arm_id,
+        "class_arm"     => $student->class_arm,
+        "current_class" => $currentClass
+    ];
 
     return response()->json([
         "status"  => true,
         "message" => "Success",
-        "pld"     => $pld,
+        "pld"     => [$pld],
     ]);
 }
 

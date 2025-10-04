@@ -24146,7 +24146,7 @@
                     "Api"
                 ],
                 "summary": "Get Old Students",
-                "description": "Fetch old students for a given school, session, term, class and class arm.\n *                  If a student's status is inactive, the `status` will be shown as `Alumni` and\n *                  `current_class` will be `Alumni`.",
+                "description": "Fetch old students for a given school, session, term, class and class arm.\n     *                  If a student's status is inactive, the `status` will be shown as `Alumni` and\n     *                  `current_class` will be `Alumni`.",
                 "operationId": "388a4f72c2708697eff7789d1096bc85",
                 "parameters": [
                     {
@@ -24271,6 +24271,159 @@
                     },
                     "404": {
                         "description": "No students found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/verifyStudent": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get Student by Student ID",
+                "description": "Fetch a student's details using their Student ID (e.g., HGC/2024/2/367). Returns personal info, school, class, and class arm.",
+                "operationId": "getStudentByStudentId",
+                "parameters": [
+                    {
+                        "name": "studentId",
+                        "in": "query",
+                        "description": "Unique Student ID (e.g., HGC/2024/2/367)",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "HGC/2024/2/367"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response with student details",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "sid": {
+                                                        "type": "string",
+                                                        "example": "2376"
+                                                    },
+                                                    "fname": {
+                                                        "type": "string",
+                                                        "example": "JOSHUA"
+                                                    },
+                                                    "lname": {
+                                                        "type": "string",
+                                                        "example": "OKECHUKWU"
+                                                    },
+                                                    "status": {
+                                                        "type": "string",
+                                                        "example": "active"
+                                                    },
+                                                    "school_name": {
+                                                        "type": "string",
+                                                        "example": "HOLY GHOST COLLEGE"
+                                                    },
+                                                    "student_id": {
+                                                        "type": "string",
+                                                        "example": "HGC/2024/2/367"
+                                                    },
+                                                    "class_id": {
+                                                        "type": "integer",
+                                                        "example": 13
+                                                    },
+                                                    "class_name": {
+                                                        "type": "string",
+                                                        "example": "JSS 3"
+                                                    },
+                                                    "class_arm_id": {
+                                                        "type": "integer",
+                                                        "example": 5
+                                                    },
+                                                    "class_arm": {
+                                                        "type": "string",
+                                                        "example": "A"
+                                                    },
+                                                    "current_class": {
+                                                        "type": "string",
+                                                        "example": "JSS 3"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request - studentId missing",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "studentId is required"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Student not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Student not found"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
