@@ -30042,104 +30042,107 @@ class ApiController extends Controller
      */
 
 
-    public function getStaffId($schid, $ssn, $trm)
-    {
-        // 🔹 Fetch staff with role names, ensuring unique SID
-        $staff = DB::table('old_staff as os')
-            ->leftJoin('staff as s', 'os.sid', '=', 's.sid')
-            ->leftJoin('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
-            ->leftJoin('school as sch', 'os.schid', '=', 'sch.sid')
-            ->leftJoin('staff_role as r1', 'os.role', '=', 'r1.id')
-            ->leftJoin('staff_role as r2', 'os.role2', '=', 'r2.id')
-            ->where('os.schid', $schid)
-            ->where('os.ssn', $ssn)
-            ->where('os.trm', $trm)
-            ->select(
-                'os.sid',
-                DB::raw('MIN(os.uid) as uid'),
-                DB::raw('MAX(os.status) as status'),
-                DB::raw('MAX(os.role) as role'),
-                DB::raw('MAX(os.role2) as role2'),
-                DB::raw('MAX(r1.name) as role_name'),
-                DB::raw('MAX(r2.name) as role2_name'),
-                DB::raw('MAX(s.sch3) as sch3'),
-                DB::raw('MAX(sb.dob) as dob'),   // ✅ Added DOB
-                DB::raw('MAX(sb.sex) as sex'),
-                DB::raw('MAX(sb.phn) as phn'),
-                DB::raw('MAX(sb.addr) as addr'),
-                DB::raw('MAX(sch.name) as school_name'),
-                DB::raw('MAX(os.fname) as fname'),
-                DB::raw('MAX(os.mname) as mname'),
-                DB::raw('MAX(os.lname) as lname'),
-                DB::raw('MAX(os.suid) as suid'),
-                DB::raw('MAX(os.created_at) as created_at')
-            )
-            ->groupBy('os.sid') // ✅ Ensures one record per staff
-            ->orderBy('os.sid', 'asc')
-            ->get();
+public function getStaffId($schid, $ssn, $trm)
+{
+    $staff = DB::table('old_staff as os')
+        ->leftJoin('staff as s', 'os.sid', '=', 's.sid')
+        ->leftJoin('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
+        ->leftJoin('school as sch', 'os.schid', '=', 'sch.sid')
+        ->leftJoin('staff_role as r1', 'os.role', '=', 'r1.id')
+        ->leftJoin('staff_role as r2', 'os.role2', '=', 'r2.id')
+        ->where('os.schid', $schid)
+        ->where('os.ssn', $ssn)
+        ->where('os.trm', $trm)
+        ->select(
+            'os.sid',
+            DB::raw('MIN(os.uid) as uid'),
+            DB::raw('MAX(os.status) as status'),
+            DB::raw('MAX(os.role) as role'),
+            DB::raw('MAX(os.role2) as role2'),
+            DB::raw('MAX(r1.name) as role_name'),
+            DB::raw('MAX(r2.name) as role2_name'),
+            DB::raw('MAX(s.sch3) as sch3'),
+            DB::raw('MAX(sb.dob) as dob'),
+            DB::raw('MAX(sb.sex) as sex'),
+            DB::raw('MAX(sb.phn) as phn'),
+            DB::raw('MAX(sb.addr) as addr'),
+            DB::raw('MAX(sch.name) as school_name'),
+            DB::raw('MAX(os.fname) as fname'),
+            DB::raw('MAX(os.mname) as mname'),
+            DB::raw('MAX(os.lname) as lname'),
+            DB::raw('MAX(os.suid) as suid'),
+            DB::raw('MAX(os.created_at) as created_at')
+        )
+        ->groupBy('os.sid')
+        ->orderBy('os.sid', 'asc')
+        ->get();
 
-        // 🔹 Start counter from next available number
-        $existingCount = DB::table('old_staff')
-            ->where('schid', $schid)
-            ->where('ssn', $ssn)
-            ->where('trm', $trm)
-            ->whereNotNull('suid')
-            ->distinct('sid')
-            ->count('sid');
+    $existingCount = DB::table('old_staff')
+        ->where('schid', $schid)
+        ->where('ssn', $ssn)
+        ->where('trm', $trm)
+        ->whereNotNull('suid')
+        ->distinct('sid')
+        ->count('sid');
 
-        $counter = $existingCount + 1;
+    $counter = $existingCount + 1;
 
-        $pld = $staff->map(function ($stf) use (&$counter, $schid, $ssn, $trm) {
-            $schoolCode = $stf->sch3 ?? 'SCH';
+    $pld = $staff->map(function ($stf) use (&$counter, $schid, $ssn, $trm) {
+        $schoolCode = $stf->sch3 ?? 'SCH';
 
-            // 🔹 Convert DOB from milliseconds → YYYY-MM-DD
-            $dob = null;
-            if (!empty($stf->dob) && is_numeric($stf->dob)) {
-                try {
-                    // divide by 1000 to convert from milliseconds to seconds
-                    $dob = \Carbon\Carbon::createFromTimestamp($stf->dob / 1000)->format('Y-m-d');
-                } catch (\Exception $e) {
-                    $dob = null;
-                }
+        // ✅ Convert DOB from milliseconds → YYYY-MM-DD
+        $dob = null;
+        if (!empty($stf->dob) && is_numeric($stf->dob)) {
+            try {
+                $dob = \Carbon\Carbon::createFromTimestamp($stf->dob / 1000)->format('Y-m-d');
+            } catch (\Exception $e) {
+                $dob = null;
             }
+        }
 
-            // 🔹 Only assign new suid if missing
-            if (empty($stf->suid)) {
-                $staffId = sprintf("%s/STAFF/%03d", $schoolCode, $counter);
-                DB::table('old_staff')
-                    ->where('sid', $stf->sid)
-                    ->where('schid', $schid)
-                    ->where('ssn', $ssn)
-                    ->where('trm', $trm)
-                    ->update(['suid' => $staffId]);
-                $counter++;
-            } else {
-                $staffId = $stf->suid;
-            }
+        // ✅ Check if staff is ex-staff
+        $isExStaff = DB::table('ex_staffs')->where('stid', $stf->sid)->exists();
 
-            return [
-                "sid"          => $stf->sid,
-                "full_name"    => trim("{$stf->fname} {$stf->mname} {$stf->lname}"),
-                "status"       => $stf->status,
-                "role"         => $stf->role_name ?? 'N/A',
-                "role2"        => $stf->role2_name ?? 'N/A',
-                "school_code"  => $schoolCode,
-                "school_name"  => $stf->school_name,
-                "staff_id"     => $staffId,
-                "dob"          => $dob ?: 'N/A', // ✅ Display formatted DOB
-                "sex"          => $stf->sex,
-                "phone"        => $stf->phn,
-                "address"      => $stf->addr,
-                "created_at"   => $stf->created_at,
-            ];
-        });
+        // ✅ Determine current status
+        $status = $isExStaff ? 'Ex Staff' : 'Staff';
 
-        return response()->json([
-            "status"  => true,
-            "message" => "Unique staff IDs generated successfully",
-            "pld"     => $pld
-        ]);
-    }
+        // ✅ Only assign new suid if missing
+        if (empty($stf->suid)) {
+            $staffId = sprintf("%s/STAFF/%03d", $schoolCode, $counter);
+            DB::table('old_staff')
+                ->where('sid', $stf->sid)
+                ->where('schid', $schid)
+                ->where('ssn', $ssn)
+                ->where('trm', $trm)
+                ->update(['suid' => $staffId]);
+            $counter++;
+        } else {
+            $staffId = $stf->suid;
+        }
+
+        return [
+            "sid"          => $stf->sid,
+            "full_name"    => trim("{$stf->fname} {$stf->mname} {$stf->lname}"),
+            "status"       => $status, // ✅ Now shows "Staff" or "Ex Staff"
+            "role"         => $stf->role_name ?? 'N/A',
+            "role2"        => $stf->role2_name ?? 'N/A',
+            "school_code"  => $schoolCode,
+            "school_name"  => $stf->school_name,
+            "staff_id"     => $staffId,
+            "dob"          => $dob ?: 'N/A',
+            "sex"          => $stf->sex,
+            "phone"        => $stf->phn,
+            "address"      => $stf->addr,
+            "created_at"   => $stf->created_at,
+        ];
+    });
+
+    return response()->json([
+        "status"  => true,
+        "message" => "Unique staff IDs generated successfully",
+        "pld"     => $pld
+    ]);
+}
 
 /**
  * @OA\Get(
@@ -30211,7 +30214,7 @@ class ApiController extends Controller
 
 public function verifyStaff(Request $request)
 {
-    $staffId = $request->query('staffId'); // ✅ use query param like ?staffId=SCS/STAFF/003
+    $staffId = $request->query('staffId'); // ✅ ?staffId=SCS/STAFF/003
 
     if (!$staffId) {
         return response()->json([
@@ -30228,7 +30231,7 @@ public function verifyStaff(Request $request)
         ->leftJoin('school as sch', 'os.schid', '=', 'sch.sid')
         ->leftJoin('staff_role as r1', 'os.role', '=', 'r1.id')
         ->leftJoin('staff_role as r2', 'os.role2', '=', 'r2.id')
-        ->where('os.suid', $staffId) // ✅ filter by unique staff ID
+        ->where('os.suid', $staffId) // ✅ Filter by unique staff ID
         ->select(
             'os.sid',
             'os.fname',
@@ -30256,6 +30259,10 @@ public function verifyStaff(Request $request)
         ], 404);
     }
 
+    // ✅ Check if staff is in ex_staffs table
+    $isExStaff = DB::table('ex_staffs')->where('stid', $staff->sid)->exists();
+    $currentStatus = $isExStaff ? 'Ex Staff' : 'Staff';
+
     // 🔹 Format date of birth (if numeric milliseconds)
     $dob = null;
     if (!empty($staff->dob) && is_numeric($staff->dob)) {
@@ -30273,7 +30280,7 @@ public function verifyStaff(Request $request)
     $pld = [
         "sid"          => (string) $staff->sid,
         "full_name"    => $fullName,
-        "status"       => $staff->status,
+        "status"       => $currentStatus, // ✅ Shows "Staff" or "Ex Staff"
         "school_name"  => $staff->school_name,
         "staff_id"     => $staff->staff_id,
         "role"         => $staff->role_name ?? 'N/A',
