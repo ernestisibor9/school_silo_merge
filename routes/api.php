@@ -107,9 +107,17 @@ Route::post('setStudentSubject', [ApiController::class, 'setStudentSubject']);
 Route::post('setClassSubject', [ApiController::class, 'setClassSubject']);
 Route::get('getSubjects', [ApiController::class, 'getSubjs']);
 
- Route::post('initializePayment', [ApiController::class, 'initializePayment']);
+Route::post('initializePayment', [ApiController::class, 'initializePayment']);
 
 Route::get('/payment/callback', [ApiController::class, 'handleCallback']);
+
+
+Route::get('getStudentsId/{schid}/{ssn}/{trm}/{clsm}/{clsa}', [ApiController::class, 'getStudentsId']);
+Route::get('getStaffId/{schid}/{ssn}/{trm}', [ApiController::class, 'getStaffId']);
+
+Route::get('verifyStudent', [ApiController::class, 'verifyStudent']);
+Route::get('verifyStaff', [ApiController::class, 'verifyStaff']);
+
 
 Route::group([
     'middleware' => ['auth:api'],
@@ -289,11 +297,11 @@ Route::group([
     // Route::get('getOldStudent/{schid}/{ssn}/{stid}', [ApiController::class, 'getOldStudent']);
     Route::get('getOldStudents/{schid}/{ssn}/{trm}/{clsm}/{clsa}', [ApiController::class, 'getOldStudents']);
 
-    Route::get('getStudentsId/{schid}/{ssn}/{trm}/{clsm}/{clsa}', [ApiController::class, 'getStudentsId']);
-     Route::get('getStaffId/{schid}/{ssn}/{trm}', [ApiController::class, 'getStaffId']);
+    // Route::get('getStudentsId/{schid}/{ssn}/{trm}/{clsm}/{clsa}', [ApiController::class, 'getStudentsId']);
+    // Route::get('getStaffId/{schid}/{ssn}/{trm}', [ApiController::class, 'getStaffId']);
 
-    Route::get('verifyStudent', [ApiController::class, 'verifyStudent']);
-    Route::get('verifyStaff', [ApiController::class, 'verifyStaff']);
+    // Route::get('verifyStudent', [ApiController::class, 'verifyStudent']);
+    // Route::get('verifyStaff', [ApiController::class, 'verifyStaff']);
 
     Route::get('/getClassArms/{schid}/{cls_id}', [ApiController::class, 'getClassArms']);
 
