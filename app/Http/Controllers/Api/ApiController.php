@@ -29613,130 +29613,77 @@ class ApiController extends Controller
      * )
      */
 
-    // public function getStudentsId($schid, $ssn, $trm, $clsm, $clsa)
-    // {
-    //     $query = DB::table('old_student as os')
-    //         ->leftJoin('school as s', 'os.schid', '=', 's.sid')
-    //         ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')          // ✅ main class
-    //         ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')    // ✅ class arm
-    //         ->where("os.schid", $schid)
-    //         ->where("os.ssn", $ssn)
-    //         ->where("os.trm", $trm)
-    //         ->where("os.clsm", $clsm);
+public function getStudentsId($schid, $ssn, $trm, $clsm, $clsa)
+{
+    $query = DB::table('old_student as os')
+        ->leftJoin('school as s', 'os.schid', '=', 's.sid')
+        ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')              // ✅ main class
+        ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')        // ✅ class arm
+        ->leftJoin('student_basic_data as bd', 'os.sid', '=', 'bd.user_id') // ✅ join by sid
+        ->leftJoin('school_web_data as swd', 'os.schid', '=', 'swd.user_id') // ✅ join school_web_data
+        ->where("os.schid", $schid)
+        ->where("os.ssn", $ssn)
+        ->where("os.trm", $trm)
+        ->where("os.clsm", $clsm);
 
-    //     if ($clsa != '-1') {
-    //         $query->where("os.clsa", $clsa);
-    //     }
-
-    //     $students = $query->select(
-    //         'os.sid',
-    //         'os.fname',
-    //         'os.lname',
-    //         'os.status',
-    //         'os.suid as student_id',
-    //         's.name as school_name',
-    //         'c.id as class_id',       // ✅ class id
-    //         'c.name as class_name',   // ✅ class name
-    //         'sc.id as class_arm_id',  // ✅ class arm id
-    //         'sc.name as class_arm'    // ✅ class arm name
-    //     )
-    //         ->distinct('os.sid')
-    //         ->get();
-
-    //     $pld = $students->map(function ($student) {
-    //         // ✅ Alumni handling
-    //         $status = $student->status === 'inactive' ? 'Alumni' : $student->status;
-    //         $currentClass = $student->status === 'inactive' ? 'Alumni' : $student->class_name;
-
-    //         return [
-    //             "sid"           => $student->sid,
-    //             "fname"         => $student->fname,
-    //             "lname"         => $student->lname,
-    //             "status"        => $status,
-    //             "school_name"   => $student->school_name,
-    //             "student_id"    => $student->student_id,
-    //             "class_id"      => $student->class_id,       // ✅ added
-    //             "class_name"    => $student->class_name,
-    //             "class_arm_id"  => $student->class_arm_id,   // ✅ added
-    //             "class_arm"     => $student->class_arm,
-    //             "current_class" => $currentClass
-    //         ];
-    //     });
-
-    //     return response()->json([
-    //         "status"  => true,
-    //         "message" => "Success",
-    //         "pld"     => $pld,
-    //     ]);
-    // }
-
-
-    public function getStudentsId($schid, $ssn, $trm, $clsm, $clsa)
-    {
-        $query = DB::table('old_student as os')
-            ->leftJoin('school as s', 'os.schid', '=', 's.sid')
-            ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')          // ✅ main class
-            ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')    // ✅ class arm
-            ->leftJoin('student_basic_data as bd', 'os.sid', '=', 'bd.user_id') // ✅ join by sid
-            ->where("os.schid", $schid)
-            ->where("os.ssn", $ssn)
-            ->where("os.trm", $trm)
-            ->where("os.clsm", $clsm);
-
-        if ($clsa != '-1') {
-            $query->where("os.clsa", $clsa);
-        }
-
-        $students = $query->select(
-            'os.sid',
-            'os.fname',
-            'os.lname',
-            'os.status',
-            'os.suid as student_id',
-            's.name as school_name',
-            'c.id as class_id',
-            'c.name as class_name',
-            'sc.id as class_arm_id',
-            'sc.name as class_arm',
-            'bd.dob' // ✅ added date of birth
-        )
-            ->distinct('os.sid')
-            ->get();
-
-        $pld = $students->map(function ($student) {
-            $status = $student->status === 'inactive' ? 'Alumni' : $student->status;
-            $currentClass = $student->status === 'inactive' ? 'Alumni' : $student->class_name;
-
-            // ✅ Convert numeric dob (milliseconds) to YYYY-MM-DD
-            $dob = null;
-            if (!empty($student->dob) && is_numeric($student->dob)) {
-                // Divide by 1000 because JavaScript timestamps are in milliseconds
-                $dob = date('Y-m-d', $student->dob / 1000);
-            }
-
-            return [
-                "sid"           => $student->sid,
-                "fname"         => $student->fname,
-                "lname"         => $student->lname,
-                "dob"           => $dob,
-                "status"        => $status,
-                "school_name"   => $student->school_name,
-                "student_id"    => $student->student_id,
-                "class_id"      => $student->class_id,
-                "class_name"    => $student->class_name,
-                "class_arm_id"  => $student->class_arm_id,
-                "class_arm"     => $student->class_arm,
-                "current_class" => $currentClass
-            ];
-        });
-
-        return response()->json([
-            "status"  => true,
-            "message" => "Success",
-            "pld"     => $pld,
-        ]);
+    if ($clsa != '-1') {
+        $query->where("os.clsa", $clsa);
     }
 
+    $students = $query->select(
+        'os.sid',
+        'os.fname',
+        'os.lname',
+        'os.status',
+        'os.suid as student_id',
+        's.name as school_name',
+        'swd.phn as school_phone', // ✅ get school phone
+        'c.id as class_id',
+        'c.name as class_name',
+        'sc.id as class_arm_id',
+        'sc.name as class_arm',
+        'bd.dob' // ✅ added date of birth
+    )
+    ->distinct('os.sid')
+    ->get();
+
+    $pld = $students->map(function ($student) {
+        $status = $student->status === 'inactive' ? 'Alumni' : $student->status;
+        $currentClass = $student->status === 'inactive' ? 'Alumni' : $student->class_name;
+
+        // ✅ Convert numeric dob (milliseconds) to YYYY-MM-DD
+        $dob = null;
+        if (!empty($student->dob) && is_numeric($student->dob)) {
+            try {
+                $dob = date('Y-m-d', $student->dob / 1000);
+            } catch (\Exception $e) {
+                $dob = null;
+            }
+        }
+
+        return [
+            "sid"           => $student->sid,
+            "fname"         => $student->fname,
+            "lname"         => $student->lname,
+            "dob"           => $dob,
+            "status"        => $status,
+            "school_name"   => $student->school_name,
+            "school_phone"  => $student->school_phone ?? 'N/A', // ✅ added to response
+            "student_id"    => $student->student_id,
+            "class_id"      => $student->class_id,
+            "class_name"    => $student->class_name,
+            "class_arm_id"  => $student->class_arm_id,
+            "class_arm"     => $student->class_arm,
+            "current_class" => $currentClass
+        ];
+    });
+
+    return response()->json([
+        "status"  => true,
+        "message" => "Success",
+        "pld"     => $pld,
+    ]);
+}
 
 
     /**
@@ -29808,72 +29755,7 @@ class ApiController extends Controller
      * )
      */
 
-
-    // public function verifyStudent(Request $request)
-    // {
-    //     $studentId = $request->query('studentId'); // ✅ use query param instead of path param
-
-    //     if (!$studentId) {
-    //         return response()->json([
-    //             "status"  => false,
-    //             "message" => "studentId is required",
-    //             "pld"     => []
-    //         ], 400);
-    //     }
-
-    //     $student = DB::table('old_student as os')
-    //         ->leftJoin('school as s', 'os.schid', '=', 's.sid')
-    //         ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')        // main class
-    //         ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')  // class arm
-    //         ->where("os.suid", $studentId) // ✅ filter by student unique ID
-    //         ->select(
-    //             'os.sid',
-    //             'os.fname',
-    //             'os.lname',
-    //             'os.status',
-    //             'os.suid as student_id',
-    //             's.name as school_name',
-    //             'c.id as class_id',
-    //             'c.name as class_name',
-    //             'sc.id as class_arm_id',
-    //             'sc.name as class_arm'
-    //         )
-    //         ->first();
-
-    //     if (!$student) {
-    //         return response()->json([
-    //             "status"  => false,
-    //             "message" => "Student not found",
-    //             "pld"     => []
-    //         ], 404);
-    //     }
-
-    //     // ✅ Alumni handling
-    //     $status = $student->status === 'inactive' ? 'Alumni' : $student->status;
-    //     $currentClass = $student->status === 'inactive' ? 'Alumni' : $student->class_name;
-
-    //     $pld = [
-    //         "sid"           => (string) $student->sid,
-    //         "fname"         => $student->fname,
-    //         "lname"         => $student->lname,
-    //         "status"        => $status,
-    //         "school_name"   => $student->school_name,
-    //         "student_id"    => $student->student_id,
-    //         "class_id"      => $student->class_id,
-    //         "class_name"    => $student->class_name,
-    //         "class_arm_id"  => $student->class_arm_id,
-    //         "class_arm"     => $student->class_arm,
-    //         "current_class" => $currentClass
-    //     ];
-
-    //     return response()->json([
-    //         "status"  => true,
-    //         "message" => "Success",
-    //         "pld"     => [$pld],
-    //     ]);
-    // }
-
-    public function verifyStudent(Request $request)
+public function verifyStudent(Request $request)
 {
     $studentId = $request->query('studentId'); // ✅ use query param instead of path param
 
@@ -29887,10 +29769,11 @@ class ApiController extends Controller
 
     $student = DB::table('old_student as os')
         ->leftJoin('school as s', 'os.schid', '=', 's.sid')
-        ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')          // main class
-        ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')    // class arm
-        ->leftJoin('student_basic_data as sb', 'os.sid', '=', 'sb.user_id') // ✅ join with basic data
-        ->where("os.suid", $studentId) // ✅ filter by unique student ID
+        ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id') // ✅ join to get school phone
+        ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')                  // main class
+        ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')            // class arm
+        ->leftJoin('student_basic_data as sb', 'os.sid', '=', 'sb.user_id') // join with basic data
+        ->where("os.suid", $studentId) // filter by unique student ID
         ->select(
             'os.sid',
             'os.fname',
@@ -29902,9 +29785,10 @@ class ApiController extends Controller
             'c.name as class_name',
             'sc.id as class_arm_id',
             'sc.name as class_arm',
-            'sb.dob',        // ✅ include date of birth
-            'sb.sex',        // ✅ include sex
-            'sb.addr'        // ✅ include address
+            'sb.dob',
+            'sb.sex',
+            'sb.addr',
+            'sw.phn as school_phone' // ✅ added school phone
         )
         ->first();
 
@@ -29917,7 +29801,7 @@ class ApiController extends Controller
         ], 404);
     }
 
-    // 🔹 Format DOB (convert from milliseconds to YYYY-MM-DD)
+    // 🔹 Convert DOB (milliseconds → YYYY-MM-DD)
     $dob = null;
     if (!empty($student->dob) && is_numeric($student->dob)) {
         try {
@@ -29938,13 +29822,14 @@ class ApiController extends Controller
         "lname"         => $student->lname,
         "status"        => $status,
         "school_name"   => $student->school_name,
+        "school_phone"  => $student->school_phone ?? 'N/A', // ✅ display phone number
         "student_id"    => $student->student_id,
         "class_id"      => $student->class_id,
         "class_name"    => $student->class_name,
         "class_arm_id"  => $student->class_arm_id,
         "class_arm"     => $student->class_arm,
         "current_class" => $currentClass,
-        "dob"           => $dob ?: 'N/A',     // ✅ formatted DOB
+        "dob"           => $dob ?: 'N/A',
         "sex"           => $student->sex ?? 'N/A',
         "address"       => $student->addr ?? 'N/A'
     ];
@@ -30048,6 +29933,7 @@ public function getStaffId($schid, $ssn, $trm)
         ->leftJoin('staff as s', 'os.sid', '=', 's.sid')
         ->leftJoin('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
         ->leftJoin('school as sch', 'os.schid', '=', 'sch.sid')
+        ->leftJoin('school_web_data as sw', 'sch.sid', '=', 'sw.user_id') // ✅ join to get school phone
         ->leftJoin('staff_role as r1', 'os.role', '=', 'r1.id')
         ->leftJoin('staff_role as r2', 'os.role2', '=', 'r2.id')
         ->where('os.schid', $schid)
@@ -30067,6 +29953,7 @@ public function getStaffId($schid, $ssn, $trm)
             DB::raw('MAX(sb.phn) as phn'),
             DB::raw('MAX(sb.addr) as addr'),
             DB::raw('MAX(sch.name) as school_name'),
+            DB::raw('MAX(sw.phn) as school_phone'), // ✅ get school phone number
             DB::raw('MAX(os.fname) as fname'),
             DB::raw('MAX(os.mname) as mname'),
             DB::raw('MAX(os.lname) as lname'),
@@ -30102,8 +29989,6 @@ public function getStaffId($schid, $ssn, $trm)
 
         // ✅ Check if staff is ex-staff
         $isExStaff = DB::table('ex_staffs')->where('stid', $stf->sid)->exists();
-
-        // ✅ Determine current status
         $status = $isExStaff ? 'Ex Staff' : 'Staff';
 
         // ✅ Only assign new suid if missing
@@ -30121,19 +30006,20 @@ public function getStaffId($schid, $ssn, $trm)
         }
 
         return [
-            "sid"          => $stf->sid,
-            "full_name"    => trim("{$stf->fname} {$stf->mname} {$stf->lname}"),
-            "status"       => $status, // ✅ Now shows "Staff" or "Ex Staff"
-            "role"         => $stf->role_name ?? 'N/A',
-            "role2"        => $stf->role2_name ?? 'N/A',
-            "school_code"  => $schoolCode,
-            "school_name"  => $stf->school_name,
-            "staff_id"     => $staffId,
-            "dob"          => $dob ?: 'N/A',
-            "sex"          => $stf->sex,
-            "phone"        => $stf->phn,
-            "address"      => $stf->addr,
-            "created_at"   => $stf->created_at,
+            "sid"           => $stf->sid,
+            "full_name"     => trim("{$stf->fname} {$stf->mname} {$stf->lname}"),
+            "status"        => $status,
+            "role"          => $stf->role_name ?? 'N/A',
+            "role2"         => $stf->role2_name ?? 'N/A',
+            "school_code"   => $schoolCode,
+            "school_name"   => $stf->school_name,
+            "school_phone"  => $stf->school_phone ?? 'N/A', // ✅ display school phone
+            "staff_id"      => $staffId,
+            "dob"           => $dob ?: 'N/A',
+            "sex"           => $stf->sex,
+            "phone"         => $stf->phn,
+            "address"       => $stf->addr,
+            "created_at"    => $stf->created_at,
         ];
     });
 
@@ -30143,6 +30029,7 @@ public function getStaffId($schid, $ssn, $trm)
         "pld"     => $pld
     ]);
 }
+
 
 /**
  * @OA\Get(
@@ -30229,6 +30116,7 @@ public function verifyStaff(Request $request)
         ->leftJoin('staff as s', 'os.sid', '=', 's.sid')
         ->leftJoin('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
         ->leftJoin('school as sch', 'os.schid', '=', 'sch.sid')
+        ->leftJoin('school_web_data as sw', 'sch.sid', '=', 'sw.user_id') // ✅ join to get school phone
         ->leftJoin('staff_role as r1', 'os.role', '=', 'r1.id')
         ->leftJoin('staff_role as r2', 'os.role2', '=', 'r2.id')
         ->where('os.suid', $staffId) // ✅ Filter by unique staff ID
@@ -30240,11 +30128,12 @@ public function verifyStaff(Request $request)
             'os.status',
             'os.suid as staff_id',
             'sch.name as school_name',
+            'sw.phn as school_phone', // ✅ added school phone number
             'r1.name as role_name',
             'r2.name as role2_name',
             'sb.dob',
             'sb.sex',
-            'sb.phn',
+            'sb.phn as staff_phone',
             'sb.addr',
             'os.created_at'
         )
@@ -30278,18 +30167,19 @@ public function verifyStaff(Request $request)
 
     // ✅ Build payload
     $pld = [
-        "sid"          => (string) $staff->sid,
-        "full_name"    => $fullName,
-        "status"       => $currentStatus, // ✅ Shows "Staff" or "Ex Staff"
-        "school_name"  => $staff->school_name,
-        "staff_id"     => $staff->staff_id,
-        "role"         => $staff->role_name ?? 'N/A',
-        "role2"        => $staff->role2_name ?? 'N/A',
-        "dob"          => $dob ?: 'N/A',
-        "sex"          => $staff->sex,
-        "phone"        => $staff->phn,
-        "address"      => $staff->addr,
-        "created_at"   => $staff->created_at,
+        "sid"           => (string) $staff->sid,
+        "full_name"     => $fullName,
+        "status"        => $currentStatus, // ✅ Shows "Staff" or "Ex Staff"
+        "school_name"   => $staff->school_name,
+        "school_phone"  => $staff->school_phone ?? 'N/A', // ✅ show school phone
+        "staff_id"      => $staff->staff_id,
+        "role"          => $staff->role_name ?? 'N/A',
+        "role2"         => $staff->role2_name ?? 'N/A',
+        "dob"           => $dob ?: 'N/A',
+        "sex"           => $staff->sex,
+        "phone"         => $staff->staff_phone,
+        "address"       => $staff->addr,
+        "created_at"    => $staff->created_at,
     ];
 
     return response()->json([
