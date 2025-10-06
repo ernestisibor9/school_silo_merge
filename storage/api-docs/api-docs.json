@@ -24432,6 +24432,329 @@
                     }
                 ]
             }
+        },
+        "/api/getStaffId/{schid}/{ssn}/{trm}": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get Staff IDs for a specific school, session, and term",
+                "description": "Generates and retrieves staff IDs including role names, contact details, and other related information for a specific school, session, and term.",
+                "operationId": "getStaffId",
+                "parameters": [
+                    {
+                        "name": "schid",
+                        "in": "path",
+                        "description": "School ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 13
+                        }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "path",
+                        "description": "Session ID or academic session reference",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "2025"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "path",
+                        "description": "Term identifier (e.g., 1, 2, 3)",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Staff IDs generated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Staff IDs generated successfully"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "sid": {
+                                                        "type": "integer",
+                                                        "example": 1926
+                                                    },
+                                                    "full_name": {
+                                                        "type": "string",
+                                                        "example": "Nwagbo Chikodili Veronica"
+                                                    },
+                                                    "status": {
+                                                        "type": "string",
+                                                        "example": "active"
+                                                    },
+                                                    "role": {
+                                                        "type": "string",
+                                                        "example": "Principal"
+                                                    },
+                                                    "role2": {
+                                                        "type": "string",
+                                                        "example": "Vice Principal Academics"
+                                                    },
+                                                    "school_code": {
+                                                        "type": "string",
+                                                        "example": "HRS"
+                                                    },
+                                                    "school_name": {
+                                                        "type": "string",
+                                                        "example": "Holy Redeemer School"
+                                                    },
+                                                    "staff_id": {
+                                                        "type": "string",
+                                                        "example": "HRS/STAFF/1"
+                                                    },
+                                                    "sex": {
+                                                        "type": "string",
+                                                        "example": "F"
+                                                    },
+                                                    "phone": {
+                                                        "type": "string",
+                                                        "example": "09168877900"
+                                                    },
+                                                    "address": {
+                                                        "type": "string",
+                                                        "example": "Nwagbo's compound, Obeagu village, Nri town"
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "example": "2024-11-22 00:43:47"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No staff records found for the given school, session, and term",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No staff found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Something went wrong while generating staff IDs"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/verifyStaff": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Verify Staff Details",
+                "description": "This endpoint verifies a staff member by their unique staff ID and returns staff details including personal information, school, and roles.",
+                "operationId": "30595bfaef0413224f22a68b190135d4",
+                "parameters": [
+                    {
+                        "name": "staffId",
+                        "in": "query",
+                        "description": "Unique Staff ID (e.g., SCS/STAFF/003)",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "SCS/STAFF/003"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Staff verified successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Staff verified successfully"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "sid": {
+                                                        "type": "string",
+                                                        "example": "45"
+                                                    },
+                                                    "full_name": {
+                                                        "type": "string",
+                                                        "example": "John A. Doe"
+                                                    },
+                                                    "status": {
+                                                        "type": "string",
+                                                        "example": "active"
+                                                    },
+                                                    "school_name": {
+                                                        "type": "string",
+                                                        "example": "Sunrise High School"
+                                                    },
+                                                    "staff_id": {
+                                                        "type": "string",
+                                                        "example": "SCS/STAFF/003"
+                                                    },
+                                                    "role": {
+                                                        "type": "string",
+                                                        "example": "Teacher"
+                                                    },
+                                                    "role2": {
+                                                        "type": "string",
+                                                        "example": "Head of Department"
+                                                    },
+                                                    "dob": {
+                                                        "type": "string",
+                                                        "example": "1985-07-15"
+                                                    },
+                                                    "sex": {
+                                                        "type": "string",
+                                                        "example": "Male"
+                                                    },
+                                                    "phone": {
+                                                        "type": "string",
+                                                        "example": "+2348012345678"
+                                                    },
+                                                    "address": {
+                                                        "type": "string",
+                                                        "example": "12 Victory Road, Lagos, Nigeria"
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2025-09-12 14:32:00"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Missing staffId parameter",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "staffId is required"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Staff not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Staff not found"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {

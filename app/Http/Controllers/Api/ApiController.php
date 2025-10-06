@@ -12724,21 +12724,21 @@ class ApiController extends Controller
     }
 
 
-private function getFrontendUrl(int $schid, string $path = ''): string
-{
-    // Lookup school subdomain
-    $school = \DB::table('school')->where('sid', $schid)->first();
-    $subdomain = $school->sbd ?? 'www'; // fallback to www if missing
+    private function getFrontendUrl(int $schid, string $path = ''): string
+    {
+        // Lookup school subdomain
+        $school = \DB::table('school')->where('sid', $schid)->first();
+        $subdomain = $school->sbd ?? 'www'; // fallback to www if missing
 
-    // Get request scheme
-    $scheme = request()->getScheme();
+        // Get request scheme
+        $scheme = request()->getScheme();
 
-    // Remove "api." if present (important fix)
-    $host = preg_replace('/^api\./', '', "{$subdomain}.schoolsilomerge.top");
+        // Remove "api." if present (important fix)
+        $host = preg_replace('/^api\./', '', "{$subdomain}.schoolsilomerge.top");
 
-    // Return full URL
-    return "{$scheme}://{$host}{$path}";
-}
+        // Return full URL
+        return "{$scheme}://{$host}{$path}";
+    }
 
 
 
@@ -29613,12 +29613,71 @@ private function getFrontendUrl(int $schid, string $path = ''): string
      * )
      */
 
+    // public function getStudentsId($schid, $ssn, $trm, $clsm, $clsa)
+    // {
+    //     $query = DB::table('old_student as os')
+    //         ->leftJoin('school as s', 'os.schid', '=', 's.sid')
+    //         ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')          // ✅ main class
+    //         ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')    // ✅ class arm
+    //         ->where("os.schid", $schid)
+    //         ->where("os.ssn", $ssn)
+    //         ->where("os.trm", $trm)
+    //         ->where("os.clsm", $clsm);
+
+    //     if ($clsa != '-1') {
+    //         $query->where("os.clsa", $clsa);
+    //     }
+
+    //     $students = $query->select(
+    //         'os.sid',
+    //         'os.fname',
+    //         'os.lname',
+    //         'os.status',
+    //         'os.suid as student_id',
+    //         's.name as school_name',
+    //         'c.id as class_id',       // ✅ class id
+    //         'c.name as class_name',   // ✅ class name
+    //         'sc.id as class_arm_id',  // ✅ class arm id
+    //         'sc.name as class_arm'    // ✅ class arm name
+    //     )
+    //         ->distinct('os.sid')
+    //         ->get();
+
+    //     $pld = $students->map(function ($student) {
+    //         // ✅ Alumni handling
+    //         $status = $student->status === 'inactive' ? 'Alumni' : $student->status;
+    //         $currentClass = $student->status === 'inactive' ? 'Alumni' : $student->class_name;
+
+    //         return [
+    //             "sid"           => $student->sid,
+    //             "fname"         => $student->fname,
+    //             "lname"         => $student->lname,
+    //             "status"        => $status,
+    //             "school_name"   => $student->school_name,
+    //             "student_id"    => $student->student_id,
+    //             "class_id"      => $student->class_id,       // ✅ added
+    //             "class_name"    => $student->class_name,
+    //             "class_arm_id"  => $student->class_arm_id,   // ✅ added
+    //             "class_arm"     => $student->class_arm,
+    //             "current_class" => $currentClass
+    //         ];
+    //     });
+
+    //     return response()->json([
+    //         "status"  => true,
+    //         "message" => "Success",
+    //         "pld"     => $pld,
+    //     ]);
+    // }
+
+
     public function getStudentsId($schid, $ssn, $trm, $clsm, $clsa)
     {
         $query = DB::table('old_student as os')
             ->leftJoin('school as s', 'os.schid', '=', 's.sid')
             ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')          // ✅ main class
             ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')    // ✅ class arm
+            ->leftJoin('student_basic_data as bd', 'os.sid', '=', 'bd.user_id') // ✅ join by sid
             ->where("os.schid", $schid)
             ->where("os.ssn", $ssn)
             ->where("os.trm", $trm)
@@ -29635,29 +29694,37 @@ private function getFrontendUrl(int $schid, string $path = ''): string
             'os.status',
             'os.suid as student_id',
             's.name as school_name',
-            'c.id as class_id',       // ✅ class id
-            'c.name as class_name',   // ✅ class name
-            'sc.id as class_arm_id',  // ✅ class arm id
-            'sc.name as class_arm'    // ✅ class arm name
+            'c.id as class_id',
+            'c.name as class_name',
+            'sc.id as class_arm_id',
+            'sc.name as class_arm',
+            'bd.dob' // ✅ added date of birth
         )
             ->distinct('os.sid')
             ->get();
 
         $pld = $students->map(function ($student) {
-            // ✅ Alumni handling
             $status = $student->status === 'inactive' ? 'Alumni' : $student->status;
             $currentClass = $student->status === 'inactive' ? 'Alumni' : $student->class_name;
+
+            // ✅ Convert numeric dob (milliseconds) to YYYY-MM-DD
+            $dob = null;
+            if (!empty($student->dob) && is_numeric($student->dob)) {
+                // Divide by 1000 because JavaScript timestamps are in milliseconds
+                $dob = date('Y-m-d', $student->dob / 1000);
+            }
 
             return [
                 "sid"           => $student->sid,
                 "fname"         => $student->fname,
                 "lname"         => $student->lname,
+                "dob"           => $dob,
                 "status"        => $status,
                 "school_name"   => $student->school_name,
                 "student_id"    => $student->student_id,
-                "class_id"      => $student->class_id,       // ✅ added
+                "class_id"      => $student->class_id,
                 "class_name"    => $student->class_name,
-                "class_arm_id"  => $student->class_arm_id,   // ✅ added
+                "class_arm_id"  => $student->class_arm_id,
                 "class_arm"     => $student->class_arm,
                 "current_class" => $currentClass
             ];
@@ -29670,77 +29737,143 @@ private function getFrontendUrl(int $schid, string $path = ''): string
         ]);
     }
 
-/**
- * @OA\Get(
- *     path="/api/verifyStudent",
- *     summary="Get Student by Student ID",
- *     description="Fetch a student's details using their Student ID (e.g., HGC/2024/2/367). Returns personal info, school, class, and class arm.",
- *     operationId="getStudentByStudentId",
- *     tags={"Api"},
- *     security={{"bearerAuth":{}}},
- *
- *     @OA\Parameter(
- *         name="studentId",
- *         in="query",
- *         required=true,
- *         description="Unique Student ID (e.g., HGC/2024/2/367)",
- *         @OA\Schema(type="string", example="HGC/2024/2/367")
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Successful response with student details",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Success"),
- *             @OA\Property(
- *                 property="pld",
- *                 type="array",
- *                 @OA\Items(
- *                     type="object",
- *                     @OA\Property(property="sid", type="string", example="2376"),
- *                     @OA\Property(property="fname", type="string", example="JOSHUA"),
- *                     @OA\Property(property="lname", type="string", example="OKECHUKWU"),
- *                     @OA\Property(property="status", type="string", example="active"),
- *                     @OA\Property(property="school_name", type="string", example="HOLY GHOST COLLEGE"),
- *                     @OA\Property(property="student_id", type="string", example="HGC/2024/2/367"),
- *                     @OA\Property(property="class_id", type="integer", example=13),
- *                     @OA\Property(property="class_name", type="string", example="JSS 3"),
- *                     @OA\Property(property="class_arm_id", type="integer", example=5),
- *                     @OA\Property(property="class_arm", type="string", example="A"),
- *                     @OA\Property(property="current_class", type="string", example="JSS 3")
- *                 )
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=400,
- *         description="Bad Request - studentId missing",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="studentId is required"),
- *             @OA\Property(property="pld", type="array", @OA\Items(type="object"))
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=404,
- *         description="Student not found",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="Student not found"),
- *             @OA\Property(property="pld", type="array", @OA\Items(type="object"))
- *         )
- *     )
- * )
- */
 
 
-public function verifyStudent(Request $request)
+    /**
+     * @OA\Get(
+     *     path="/api/verifyStudent",
+     *     summary="Get Student by Student ID",
+     *     description="Fetch a student's details using their Student ID (e.g., HGC/2024/2/367). Returns personal info, school, class, and class arm.",
+     *     operationId="getStudentByStudentId",
+     *     tags={"Api"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="studentId",
+     *         in="query",
+     *         required=true,
+     *         description="Unique Student ID (e.g., HGC/2024/2/367)",
+     *         @OA\Schema(type="string", example="HGC/2024/2/367")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful response with student details",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="sid", type="string", example="2376"),
+     *                     @OA\Property(property="fname", type="string", example="JOSHUA"),
+     *                     @OA\Property(property="lname", type="string", example="OKECHUKWU"),
+     *                     @OA\Property(property="status", type="string", example="active"),
+     *                     @OA\Property(property="school_name", type="string", example="HOLY GHOST COLLEGE"),
+     *                     @OA\Property(property="student_id", type="string", example="HGC/2024/2/367"),
+     *                     @OA\Property(property="class_id", type="integer", example=13),
+     *                     @OA\Property(property="class_name", type="string", example="JSS 3"),
+     *                     @OA\Property(property="class_arm_id", type="integer", example=5),
+     *                     @OA\Property(property="class_arm", type="string", example="A"),
+     *                     @OA\Property(property="current_class", type="string", example="JSS 3")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=400,
+     *         description="Bad Request - studentId missing",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="studentId is required"),
+     *             @OA\Property(property="pld", type="array", @OA\Items(type="object"))
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="Student not found",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Student not found"),
+     *             @OA\Property(property="pld", type="array", @OA\Items(type="object"))
+     *         )
+     *     )
+     * )
+     */
+
+
+    // public function verifyStudent(Request $request)
+    // {
+    //     $studentId = $request->query('studentId'); // ✅ use query param instead of path param
+
+    //     if (!$studentId) {
+    //         return response()->json([
+    //             "status"  => false,
+    //             "message" => "studentId is required",
+    //             "pld"     => []
+    //         ], 400);
+    //     }
+
+    //     $student = DB::table('old_student as os')
+    //         ->leftJoin('school as s', 'os.schid', '=', 's.sid')
+    //         ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')        // main class
+    //         ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')  // class arm
+    //         ->where("os.suid", $studentId) // ✅ filter by student unique ID
+    //         ->select(
+    //             'os.sid',
+    //             'os.fname',
+    //             'os.lname',
+    //             'os.status',
+    //             'os.suid as student_id',
+    //             's.name as school_name',
+    //             'c.id as class_id',
+    //             'c.name as class_name',
+    //             'sc.id as class_arm_id',
+    //             'sc.name as class_arm'
+    //         )
+    //         ->first();
+
+    //     if (!$student) {
+    //         return response()->json([
+    //             "status"  => false,
+    //             "message" => "Student not found",
+    //             "pld"     => []
+    //         ], 404);
+    //     }
+
+    //     // ✅ Alumni handling
+    //     $status = $student->status === 'inactive' ? 'Alumni' : $student->status;
+    //     $currentClass = $student->status === 'inactive' ? 'Alumni' : $student->class_name;
+
+    //     $pld = [
+    //         "sid"           => (string) $student->sid,
+    //         "fname"         => $student->fname,
+    //         "lname"         => $student->lname,
+    //         "status"        => $status,
+    //         "school_name"   => $student->school_name,
+    //         "student_id"    => $student->student_id,
+    //         "class_id"      => $student->class_id,
+    //         "class_name"    => $student->class_name,
+    //         "class_arm_id"  => $student->class_arm_id,
+    //         "class_arm"     => $student->class_arm,
+    //         "current_class" => $currentClass
+    //     ];
+
+    //     return response()->json([
+    //         "status"  => true,
+    //         "message" => "Success",
+    //         "pld"     => [$pld],
+    //     ]);
+    // }
+
+    public function verifyStudent(Request $request)
 {
     $studentId = $request->query('studentId'); // ✅ use query param instead of path param
 
@@ -29754,9 +29887,10 @@ public function verifyStudent(Request $request)
 
     $student = DB::table('old_student as os')
         ->leftJoin('school as s', 'os.schid', '=', 's.sid')
-        ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')        // main class
-        ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')  // class arm
-        ->where("os.suid", $studentId) // ✅ filter by student unique ID
+        ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')          // main class
+        ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')    // class arm
+        ->leftJoin('student_basic_data as sb', 'os.sid', '=', 'sb.user_id') // ✅ join with basic data
+        ->where("os.suid", $studentId) // ✅ filter by unique student ID
         ->select(
             'os.sid',
             'os.fname',
@@ -29767,10 +29901,14 @@ public function verifyStudent(Request $request)
             'c.id as class_id',
             'c.name as class_name',
             'sc.id as class_arm_id',
-            'sc.name as class_arm'
+            'sc.name as class_arm',
+            'sb.dob',        // ✅ include date of birth
+            'sb.sex',        // ✅ include sex
+            'sb.addr'        // ✅ include address
         )
         ->first();
 
+    // 🔸 Student not found
     if (!$student) {
         return response()->json([
             "status"  => false,
@@ -29779,10 +29917,21 @@ public function verifyStudent(Request $request)
         ], 404);
     }
 
+    // 🔹 Format DOB (convert from milliseconds to YYYY-MM-DD)
+    $dob = null;
+    if (!empty($student->dob) && is_numeric($student->dob)) {
+        try {
+            $dob = \Carbon\Carbon::createFromTimestamp($student->dob / 1000)->format('Y-m-d');
+        } catch (\Exception $e) {
+            $dob = null;
+        }
+    }
+
     // ✅ Alumni handling
     $status = $student->status === 'inactive' ? 'Alumni' : $student->status;
     $currentClass = $student->status === 'inactive' ? 'Alumni' : $student->class_name;
 
+    // ✅ Build payload
     $pld = [
         "sid"           => (string) $student->sid,
         "fname"         => $student->fname,
@@ -29794,12 +29943,351 @@ public function verifyStudent(Request $request)
         "class_name"    => $student->class_name,
         "class_arm_id"  => $student->class_arm_id,
         "class_arm"     => $student->class_arm,
-        "current_class" => $currentClass
+        "current_class" => $currentClass,
+        "dob"           => $dob ?: 'N/A',     // ✅ formatted DOB
+        "sex"           => $student->sex ?? 'N/A',
+        "address"       => $student->addr ?? 'N/A'
     ];
 
     return response()->json([
         "status"  => true,
-        "message" => "Success",
+        "message" => "Student verified successfully",
+        "pld"     => [$pld],
+    ]);
+}
+
+
+
+
+    /**
+     * @OA\Get(
+     *     path="/api/getStaffId/{schid}/{ssn}/{trm}",
+     *     summary="Get Staff IDs for a specific school, session, and term",
+     *     description="Generates and retrieves staff IDs including role names, contact details, and other related information for a specific school, session, and term.",
+     *     operationId="getStaffId",
+     *     tags={"Api"},
+     *  security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="path",
+     *         required=true,
+     *         description="School ID",
+     *         @OA\Schema(type="integer", example=13)
+     *     ),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="path",
+     *         required=true,
+     *         description="Session ID or academic session reference",
+     *         @OA\Schema(type="string", example="2025")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Term identifier (e.g., 1, 2, 3)",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Staff IDs generated successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Staff IDs generated successfully"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="sid", type="integer", example=1926),
+     *                     @OA\Property(property="full_name", type="string", example="Nwagbo Chikodili Veronica"),
+     *                     @OA\Property(property="status", type="string", example="active"),
+     *                     @OA\Property(property="role", type="string", example="Principal"),
+     *                     @OA\Property(property="role2", type="string", example="Vice Principal Academics"),
+     *                     @OA\Property(property="school_code", type="string", example="HRS"),
+     *                     @OA\Property(property="school_name", type="string", example="Holy Redeemer School"),
+     *                     @OA\Property(property="staff_id", type="string", example="HRS/STAFF/1"),
+     *                     @OA\Property(property="sex", type="string", example="F"),
+     *                     @OA\Property(property="phone", type="string", example="09168877900"),
+     *                     @OA\Property(property="address", type="string", example="Nwagbo's compound, Obeagu village, Nri town"),
+     *                     @OA\Property(property="created_at", type="string", example="2024-11-22 00:43:47")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="No staff records found for the given school, session, and term",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="No staff found")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=500,
+     *         description="Internal server error",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Something went wrong while generating staff IDs")
+     *         )
+     *     )
+     * )
+     */
+
+
+    public function getStaffId($schid, $ssn, $trm)
+    {
+        // 🔹 Fetch staff with role names, ensuring unique SID
+        $staff = DB::table('old_staff as os')
+            ->leftJoin('staff as s', 'os.sid', '=', 's.sid')
+            ->leftJoin('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
+            ->leftJoin('school as sch', 'os.schid', '=', 'sch.sid')
+            ->leftJoin('staff_role as r1', 'os.role', '=', 'r1.id')
+            ->leftJoin('staff_role as r2', 'os.role2', '=', 'r2.id')
+            ->where('os.schid', $schid)
+            ->where('os.ssn', $ssn)
+            ->where('os.trm', $trm)
+            ->select(
+                'os.sid',
+                DB::raw('MIN(os.uid) as uid'),
+                DB::raw('MAX(os.status) as status'),
+                DB::raw('MAX(os.role) as role'),
+                DB::raw('MAX(os.role2) as role2'),
+                DB::raw('MAX(r1.name) as role_name'),
+                DB::raw('MAX(r2.name) as role2_name'),
+                DB::raw('MAX(s.sch3) as sch3'),
+                DB::raw('MAX(sb.dob) as dob'),   // ✅ Added DOB
+                DB::raw('MAX(sb.sex) as sex'),
+                DB::raw('MAX(sb.phn) as phn'),
+                DB::raw('MAX(sb.addr) as addr'),
+                DB::raw('MAX(sch.name) as school_name'),
+                DB::raw('MAX(os.fname) as fname'),
+                DB::raw('MAX(os.mname) as mname'),
+                DB::raw('MAX(os.lname) as lname'),
+                DB::raw('MAX(os.suid) as suid'),
+                DB::raw('MAX(os.created_at) as created_at')
+            )
+            ->groupBy('os.sid') // ✅ Ensures one record per staff
+            ->orderBy('os.sid', 'asc')
+            ->get();
+
+        // 🔹 Start counter from next available number
+        $existingCount = DB::table('old_staff')
+            ->where('schid', $schid)
+            ->where('ssn', $ssn)
+            ->where('trm', $trm)
+            ->whereNotNull('suid')
+            ->distinct('sid')
+            ->count('sid');
+
+        $counter = $existingCount + 1;
+
+        $pld = $staff->map(function ($stf) use (&$counter, $schid, $ssn, $trm) {
+            $schoolCode = $stf->sch3 ?? 'SCH';
+
+            // 🔹 Convert DOB from milliseconds → YYYY-MM-DD
+            $dob = null;
+            if (!empty($stf->dob) && is_numeric($stf->dob)) {
+                try {
+                    // divide by 1000 to convert from milliseconds to seconds
+                    $dob = \Carbon\Carbon::createFromTimestamp($stf->dob / 1000)->format('Y-m-d');
+                } catch (\Exception $e) {
+                    $dob = null;
+                }
+            }
+
+            // 🔹 Only assign new suid if missing
+            if (empty($stf->suid)) {
+                $staffId = sprintf("%s/STAFF/%03d", $schoolCode, $counter);
+                DB::table('old_staff')
+                    ->where('sid', $stf->sid)
+                    ->where('schid', $schid)
+                    ->where('ssn', $ssn)
+                    ->where('trm', $trm)
+                    ->update(['suid' => $staffId]);
+                $counter++;
+            } else {
+                $staffId = $stf->suid;
+            }
+
+            return [
+                "sid"          => $stf->sid,
+                "full_name"    => trim("{$stf->fname} {$stf->mname} {$stf->lname}"),
+                "status"       => $stf->status,
+                "role"         => $stf->role_name ?? 'N/A',
+                "role2"        => $stf->role2_name ?? 'N/A',
+                "school_code"  => $schoolCode,
+                "school_name"  => $stf->school_name,
+                "staff_id"     => $staffId,
+                "dob"          => $dob ?: 'N/A', // ✅ Display formatted DOB
+                "sex"          => $stf->sex,
+                "phone"        => $stf->phn,
+                "address"      => $stf->addr,
+                "created_at"   => $stf->created_at,
+            ];
+        });
+
+        return response()->json([
+            "status"  => true,
+            "message" => "Unique staff IDs generated successfully",
+            "pld"     => $pld
+        ]);
+    }
+
+/**
+ * @OA\Get(
+ *     path="/api/verifyStaff",
+ *     summary="Verify Staff Details",
+ *     description="This endpoint verifies a staff member by their unique staff ID and returns staff details including personal information, school, and roles.",
+ *     tags={"Api"},
+ *   security={{"bearerAuth":{}}},
+ *
+ *     @OA\Parameter(
+ *         name="staffId",
+ *         in="query",
+ *         required=true,
+ *         description="Unique Staff ID (e.g., SCS/STAFF/003)",
+ *         @OA\Schema(type="string", example="SCS/STAFF/003")
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Staff verified successfully",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Staff verified successfully"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(property="sid", type="string", example="45"),
+ *                     @OA\Property(property="full_name", type="string", example="John A. Doe"),
+ *                     @OA\Property(property="status", type="string", example="active"),
+ *                     @OA\Property(property="school_name", type="string", example="Sunrise High School"),
+ *                     @OA\Property(property="staff_id", type="string", example="SCS/STAFF/003"),
+ *                     @OA\Property(property="role", type="string", example="Teacher"),
+ *                     @OA\Property(property="role2", type="string", example="Head of Department"),
+ *                     @OA\Property(property="dob", type="string", example="1985-07-15"),
+ *                     @OA\Property(property="sex", type="string", example="Male"),
+ *                     @OA\Property(property="phone", type="string", example="+2348012345678"),
+ *                     @OA\Property(property="address", type="string", example="12 Victory Road, Lagos, Nigeria"),
+ *                     @OA\Property(property="created_at", type="string", format="date-time", example="2025-09-12 14:32:00")
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=400,
+ *         description="Missing staffId parameter",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="staffId is required"),
+ *             @OA\Property(property="pld", type="array", @OA\Items(type="object"))
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=404,
+ *         description="Staff not found",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="Staff not found"),
+ *             @OA\Property(property="pld", type="array", @OA\Items(type="object"))
+ *         )
+ *     )
+ * )
+ */
+
+
+public function verifyStaff(Request $request)
+{
+    $staffId = $request->query('staffId'); // ✅ use query param like ?staffId=SCS/STAFF/003
+
+    if (!$staffId) {
+        return response()->json([
+            "status"  => false,
+            "message" => "staffId is required",
+            "pld"     => []
+        ], 400);
+    }
+
+    // 🔹 Join necessary tables
+    $staff = DB::table('old_staff as os')
+        ->leftJoin('staff as s', 'os.sid', '=', 's.sid')
+        ->leftJoin('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
+        ->leftJoin('school as sch', 'os.schid', '=', 'sch.sid')
+        ->leftJoin('staff_role as r1', 'os.role', '=', 'r1.id')
+        ->leftJoin('staff_role as r2', 'os.role2', '=', 'r2.id')
+        ->where('os.suid', $staffId) // ✅ filter by unique staff ID
+        ->select(
+            'os.sid',
+            'os.fname',
+            'os.mname',
+            'os.lname',
+            'os.status',
+            'os.suid as staff_id',
+            'sch.name as school_name',
+            'r1.name as role_name',
+            'r2.name as role2_name',
+            'sb.dob',
+            'sb.sex',
+            'sb.phn',
+            'sb.addr',
+            'os.created_at'
+        )
+        ->first();
+
+    // 🔸 Staff not found
+    if (!$staff) {
+        return response()->json([
+            "status"  => false,
+            "message" => "Staff not found",
+            "pld"     => []
+        ], 404);
+    }
+
+    // 🔹 Format date of birth (if numeric milliseconds)
+    $dob = null;
+    if (!empty($staff->dob) && is_numeric($staff->dob)) {
+        try {
+            $dob = \Carbon\Carbon::createFromTimestamp($staff->dob / 1000)->format('Y-m-d');
+        } catch (\Exception $e) {
+            $dob = null;
+        }
+    }
+
+    // ✅ Combine names
+    $fullName = trim("{$staff->fname} {$staff->mname} {$staff->lname}");
+
+    // ✅ Build payload
+    $pld = [
+        "sid"          => (string) $staff->sid,
+        "full_name"    => $fullName,
+        "status"       => $staff->status,
+        "school_name"  => $staff->school_name,
+        "staff_id"     => $staff->staff_id,
+        "role"         => $staff->role_name ?? 'N/A',
+        "role2"        => $staff->role2_name ?? 'N/A',
+        "dob"          => $dob ?: 'N/A',
+        "sex"          => $staff->sex,
+        "phone"        => $staff->phn,
+        "address"      => $staff->addr,
+        "created_at"   => $staff->created_at,
+    ];
+
+    return response()->json([
+        "status"  => true,
+        "message" => "Staff verified successfully",
         "pld"     => [$pld],
     ]);
 }

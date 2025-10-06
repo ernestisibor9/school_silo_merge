@@ -290,8 +290,10 @@ Route::group([
     Route::get('getOldStudents/{schid}/{ssn}/{trm}/{clsm}/{clsa}', [ApiController::class, 'getOldStudents']);
 
     Route::get('getStudentsId/{schid}/{ssn}/{trm}/{clsm}/{clsa}', [ApiController::class, 'getStudentsId']);
+     Route::get('getStaffId/{schid}/{ssn}/{trm}', [ApiController::class, 'getStaffId']);
 
     Route::get('verifyStudent', [ApiController::class, 'verifyStudent']);
+    Route::get('verifyStaff', [ApiController::class, 'verifyStaff']);
 
     Route::get('/getClassArms/{schid}/{cls_id}', [ApiController::class, 'getClassArms']);
 
