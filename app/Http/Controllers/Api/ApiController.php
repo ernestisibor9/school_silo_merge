@@ -3355,25 +3355,62 @@ class ApiController extends Controller
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
+    // public function getClassSubjectsByStaff($schid, $clsid, $stid)
+    // {
+    //     $start = 0;
+    //     $count = 20;
+    //     if (request()->has('start') && request()->has('count')) {
+    //         $start = request()->input('start');
+    //         $count = request()->input('count');
+    //     }
+    //     $pld = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
+    //         ->where('class_subj.schid', $schid)
+    //         ->where('class_subj.clsid', $clsid)
+    //         ->where('staff_subj.stid', $stid)
+    //         ->skip($start)->take($count)->get();
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => $pld,
+    //     ]);
+    // }
+
+
     public function getClassSubjectsByStaff($schid, $clsid, $stid)
-    {
-        $start = 0;
-        $count = 20;
-        if (request()->has('start') && request()->has('count')) {
-            $start = request()->input('start');
-            $count = request()->input('count');
-        }
-        $pld = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
-            ->where('class_subj.schid', $schid)
-            ->where('class_subj.clsid', $clsid)
-            ->where('staff_subj.stid', $stid)
-            ->skip($start)->take($count)->get();
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $pld,
-        ]);
-    }
+{
+    $start = request()->input('start', 0);
+    $count = request()->input('count', 20);
+
+    $pld = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
+        ->where('class_subj.schid', $schid)
+        ->where('class_subj.clsid', $clsid)
+        ->where('staff_subj.stid', $stid)
+        // ✅ Correct column-to-column comparison
+        ->whereColumn('class_subj.sesn', 'staff_subj.sesn')
+        ->whereColumn('class_subj.trm', 'staff_subj.trm')
+        ->select(
+            'class_subj.subj_id',
+            'class_subj.name',
+            'class_subj.comp',
+            'class_subj.clsid',
+            'class_subj.schid',
+            'class_subj.sesn',
+            'class_subj.trm'
+        )
+        ->distinct() // ✅ Ensures unique subjects
+        ->skip($start)
+        ->take($count)
+        ->get();
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => $pld,
+    ]);
+}
+
+
+
 
     /**
      * @OA\Get(
@@ -29637,6 +29674,7 @@ public function getStudentsId($schid, $ssn, $trm, $clsm, $clsa)
         'os.status',
         'os.suid as student_id',
         's.name as school_name',
+        's.sbd as subdomain',
         'swd.phn as school_phone', // ✅ get school phone
         'c.id as class_id',
         'c.name as class_name',
@@ -29668,6 +29706,7 @@ public function getStudentsId($schid, $ssn, $trm, $clsm, $clsa)
             "dob"           => $dob,
             "status"        => $status,
             "school_name"   => $student->school_name,
+            "subdomain"     => $student->subdomain,
             "school_phone"  => $student->school_phone ?? 'N/A', // ✅ added to response
             "student_id"    => $student->student_id,
             "class_id"      => $student->class_id,
@@ -29781,6 +29820,7 @@ public function verifyStudent(Request $request)
             'os.status',
             'os.suid as student_id',
             's.name as school_name',
+            's.sbd as subdomain',
             'c.id as class_id',
             'c.name as class_name',
             'sc.id as class_arm_id',
@@ -29822,6 +29862,7 @@ public function verifyStudent(Request $request)
         "lname"         => $student->lname,
         "status"        => $status,
         "school_name"   => $student->school_name,
+        "subdomain"     => $student->subdomain,
         "school_phone"  => $student->school_phone ?? 'N/A', // ✅ display phone number
         "student_id"    => $student->student_id,
         "class_id"      => $student->class_id,
@@ -29953,6 +29994,7 @@ public function getStaffId($schid, $ssn, $trm)
             DB::raw('MAX(sb.phn) as phn'),
             DB::raw('MAX(sb.addr) as addr'),
             DB::raw('MAX(sch.name) as school_name'),
+            DB::raw('MAX(sch.sbd) as subdomain'), // ✅ include sbd column
             DB::raw('MAX(sw.phn) as school_phone'), // ✅ get school phone number
             DB::raw('MAX(os.fname) as fname'),
             DB::raw('MAX(os.mname) as mname'),
@@ -30013,7 +30055,8 @@ public function getStaffId($schid, $ssn, $trm)
             "role2"         => $stf->role2_name ?? 'N/A',
             "school_code"   => $schoolCode,
             "school_name"   => $stf->school_name,
-            "school_phone"  => $stf->school_phone ?? 'N/A', // ✅ display school phone
+            "school_phone"  => $stf->school_phone ?? 'N/A',
+            "subdomain"    => $stf->subdomain ?? 'N/A', // ✅ include sbd in payload
             "staff_id"      => $staffId,
             "dob"           => $dob ?: 'N/A',
             "sex"           => $stf->sex,
@@ -30128,7 +30171,8 @@ public function verifyStaff(Request $request)
             'os.status',
             'os.suid as staff_id',
             'sch.name as school_name',
-            'sw.phn as school_phone', // ✅ added school phone number
+            'sch.sbd as subdomain',   // ✅ include school.sbd here
+            'sw.phn as school_phone',
             'r1.name as role_name',
             'r2.name as role2_name',
             'sb.dob',
@@ -30169,9 +30213,10 @@ public function verifyStaff(Request $request)
     $pld = [
         "sid"           => (string) $staff->sid,
         "full_name"     => $fullName,
-        "status"        => $currentStatus, // ✅ Shows "Staff" or "Ex Staff"
+        "status"        => $currentStatus,
         "school_name"   => $staff->school_name,
-        "school_phone"  => $staff->school_phone ?? 'N/A', // ✅ show school phone
+        "subdomain"   => $staff->subdomain, // ✅ Added school.sbd to pld
+        "school_phone"  => $staff->school_phone ?? 'N/A',
         "staff_id"      => $staff->staff_id,
         "role"          => $staff->role_name ?? 'N/A',
         "role2"         => $staff->role2_name ?? 'N/A',
@@ -30188,6 +30233,7 @@ public function verifyStaff(Request $request)
         "pld"     => [$pld],
     ]);
 }
+
 
 
 
