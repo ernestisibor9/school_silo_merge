@@ -28327,11 +28327,12 @@ public function getAllSchoolsInfo(Request $request)
     $state = $request->input('state'); // ✅ optional filter by state
     $lga   = $request->input('lga');   // ✅ optional filter by lga
 
-    // 🔹 Start query and join with school_web_data to access state + lga
+    // 🔹 Join with school_web_data to include country, state, and lga
     $query = DB::table('school as s')
         ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id')
         ->select(
             's.*',
+            'sw.country',
             'sw.state',
             'sw.lga'
         );
@@ -28345,6 +28346,9 @@ public function getAllSchoolsInfo(Request $request)
         $query->where('sw.lga', $lga);
     }
 
+    // 🔹 Get total count before pagination
+    $totalRecords = $query->count();
+
     // 🔹 Pagination + order
     $schools = $query->orderBy('s.name', 'asc')
         ->skip($start)
@@ -28356,14 +28360,14 @@ public function getAllSchoolsInfo(Request $request)
     foreach ($schools as $school) {
         $user_id = $school->sid;
 
-        // ✅ Count active learners without duplicates
+        // ✅ Count active learners
         $activeLearners = DB::table('old_student')
             ->where('schid', $user_id)
             ->where('status', 'active')
             ->distinct('sid')
             ->count('sid');
 
-        // ✅ FIXED: table name should be 'alumnis'
+        // ✅ Count alumni
         $alumniCount = DB::table('alumnis')
             ->where('schid', $user_id)
             ->count();
@@ -28404,6 +28408,7 @@ public function getAllSchoolsInfo(Request $request)
                 'cssn'            => $school->cssn,
                 'ctrm'            => $school->ctrm,
                 'ctrmn'           => $school->ctrmn,
+                'country'         => $school->country ?? 'N/A',
                 'state'           => $school->state ?? 'N/A',
                 'lga'             => $school->lga ?? 'N/A',
                 'lattitude'       => $school->latt,
@@ -28420,13 +28425,12 @@ public function getAllSchoolsInfo(Request $request)
     }
 
     return response()->json([
-        "status"  => true,
-        "message" => "Success",
-        "pld"     => $pld,
+        "status"        => true,
+        "message"       => "Success",
+        "total_records" => $totalRecords, // ✅ total count added here
+        "pld"           => $pld,
     ]);
 }
-
-
 
 
 
