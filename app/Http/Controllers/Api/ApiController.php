@@ -30367,6 +30367,9 @@ public function getAllSchoolsInfoByState(Request $request)
               ->select('school.*'); // ensure only school columns are returned
     }
 
+    // ✅ Count total results (before pagination)
+    $totalRecords = $query->count();
+
     // ✅ Pagination
     $schools = $query->skip($start)->take($count)->get();
 
@@ -30432,9 +30435,11 @@ public function getAllSchoolsInfoByState(Request $request)
         ];
     }
 
+    // ✅ Final response
     return response()->json([
         "status"  => true,
         "message" => "Success",
+        "total_records" => $totalRecords,
         "pld"     => $pld,
     ]);
 }
