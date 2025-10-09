@@ -24755,6 +24755,232 @@
                     }
                 ]
             }
+        },
+        "/api/getAllSchoolsInfoByState": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Fetch all schools information",
+                "description": "Returns a paginated list of schools, with optional filtering by state (case-insensitive). Includes learners, staff, alumni counts, and class details.",
+                "operationId": "getAllSchoolsInfoByState",
+                "parameters": [
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Starting offset for pagination (default: 0)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 0
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "Number of records to return (default: 20)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 20
+                        }
+                    },
+                    {
+                        "name": "state",
+                        "in": "query",
+                        "description": "Filter schools by state name (case-insensitive). Use 'all' to fetch all states.",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "Abia"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "s": {
+                                                        "properties": {
+                                                            "sid": {
+                                                                "type": "integer",
+                                                                "example": 1
+                                                            },
+                                                            "school_id": {
+                                                                "type": "string",
+                                                                "example": "ABJCE/0001"
+                                                            },
+                                                            "name": {
+                                                                "type": "string",
+                                                                "example": "St. Patrick High School"
+                                                            },
+                                                            "count": {
+                                                                "type": "integer",
+                                                                "example": 800
+                                                            },
+                                                            "s_web": {
+                                                                "type": "string",
+                                                                "nullable": true
+                                                            },
+                                                            "s_info": {
+                                                                "type": "string",
+                                                                "nullable": true
+                                                            },
+                                                            "sbd": {
+                                                                "type": "string",
+                                                                "example": "School Board"
+                                                            },
+                                                            "sch3": {
+                                                                "type": "string",
+                                                                "example": "ABJCE"
+                                                            },
+                                                            "cssn": {
+                                                                "type": "string",
+                                                                "example": "CSSN12345"
+                                                            },
+                                                            "ctrm": {
+                                                                "type": "integer",
+                                                                "example": 25
+                                                            },
+                                                            "ctrmn": {
+                                                                "type": "integer",
+                                                                "example": 3
+                                                            },
+                                                            "lattitude": {
+                                                                "type": "string",
+                                                                "example": "6.5244"
+                                                            },
+                                                            "longitude": {
+                                                                "type": "string",
+                                                                "example": "3.3792"
+                                                            },
+                                                            "created_at": {
+                                                                "type": "string",
+                                                                "format": "date-time",
+                                                                "example": "2025-10-09T12:34:56Z"
+                                                            },
+                                                            "updated_at": {
+                                                                "type": "string",
+                                                                "format": "date-time",
+                                                                "example": "2025-10-09T12:34:56Z"
+                                                            },
+                                                            "active_learners": {
+                                                                "type": "integer",
+                                                                "example": 450
+                                                            },
+                                                            "alumni": {
+                                                                "type": "integer",
+                                                                "example": 200
+                                                            },
+                                                            "active_staff": {
+                                                                "type": "integer",
+                                                                "example": 30
+                                                            },
+                                                            "classes": {
+                                                                "description": "Grouped class arms by class ID",
+                                                                "type": "object",
+                                                                "example": {
+                                                                    "1": [
+                                                                        "JSS 1A",
+                                                                        "JSS 1B"
+                                                                    ],
+                                                                    "2": [
+                                                                        "SSS 1A"
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "total_classes": {
+                                                                "type": "integer",
+                                                                "example": 12
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    },
+                                                    "w": {
+                                                        "description": "Web-related school data (from school_web_data)",
+                                                        "type": "object",
+                                                        "example": {
+                                                            "user_id": 1,
+                                                            "state": "Abia",
+                                                            "lga": "Umuahia North",
+                                                            "phone": "+2348012345678",
+                                                            "email": "info@stpatrick.edu.ng",
+                                                            "website": "https://stpatrick.edu.ng"
+                                                        },
+                                                        "nullable": true
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid parameters"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Internal server error"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
