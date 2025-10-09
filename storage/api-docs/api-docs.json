@@ -25044,6 +25044,211 @@
                     }
                 ]
             }
+        },
+        "/api/getLearnersEnrollmentInfo": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Retrieve learners enrollment information with gender statistics",
+                "description": "Fetches all schools and provides detailed enrollment information including active learners, staff, alumni, and gender summary for each school. Supports filtering by state and LGA with pagination.",
+                "operationId": "cbc9148647762f1922e6b4162257e43f",
+                "parameters": [
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "The starting index for pagination (default: 0)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 0
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "Number of records to retrieve (default: 20)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 20
+                        }
+                    },
+                    {
+                        "name": "state",
+                        "in": "query",
+                        "description": "Filter schools by state name",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "Abia"
+                        }
+                    },
+                    {
+                        "name": "lga",
+                        "in": "query",
+                        "description": "Filter schools by LGA name",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "Umuahia"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response with school enrollment and gender data",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "total_records": {
+                                            "type": "integer",
+                                            "example": 2
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "s": {
+                                                        "properties": {
+                                                            "sid": {
+                                                                "type": "integer",
+                                                                "example": 13
+                                                            },
+                                                            "school_id": {
+                                                                "type": "string",
+                                                                "example": "HRS/0013"
+                                                            },
+                                                            "name": {
+                                                                "type": "string",
+                                                                "example": "HOLY ROSARY SECONDARY SCHOOL"
+                                                            },
+                                                            "state": {
+                                                                "type": "string",
+                                                                "example": "Abia"
+                                                            },
+                                                            "lga": {
+                                                                "type": "string",
+                                                                "example": "Umuahia"
+                                                            },
+                                                            "active_learners": {
+                                                                "type": "integer",
+                                                                "example": 935
+                                                            },
+                                                            "alumni": {
+                                                                "type": "integer",
+                                                                "example": 0
+                                                            },
+                                                            "active_staff": {
+                                                                "type": "integer",
+                                                                "example": 28
+                                                            },
+                                                            "total_classes": {
+                                                                "type": "integer",
+                                                                "example": 26
+                                                            },
+                                                            "gender_summary": {
+                                                                "properties": {
+                                                                    "male": {
+                                                                        "type": "integer",
+                                                                        "example": 34
+                                                                    },
+                                                                    "female": {
+                                                                        "type": "integer",
+                                                                        "example": 43
+                                                                    },
+                                                                    "total": {
+                                                                        "type": "integer",
+                                                                        "example": 77
+                                                                    }
+                                                                },
+                                                                "type": "object"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    },
+                                                    "w": {
+                                                        "properties": {
+                                                            "user_id": {
+                                                                "type": "integer",
+                                                                "example": 13
+                                                            },
+                                                            "school_name": {
+                                                                "type": "string",
+                                                                "example": "HOLY ROSARY SECONDARY SCHOOL"
+                                                            },
+                                                            "color": {
+                                                                "type": "string",
+                                                                "example": "#4d0e05"
+                                                            },
+                                                            "address": {
+                                                                "type": "string",
+                                                                "example": "Ugunchara Umuahia, Abia State."
+                                                            },
+                                                            "country": {
+                                                                "type": "string",
+                                                                "example": "NG"
+                                                            },
+                                                            "state": {
+                                                                "type": "string",
+                                                                "example": "Abia"
+                                                            },
+                                                            "lga": {
+                                                                "type": "string",
+                                                                "example": "Umuahia"
+                                                            },
+                                                            "phone": {
+                                                                "type": "string",
+                                                                "example": "2348038956484"
+                                                            },
+                                                            "email": {
+                                                                "type": "string",
+                                                                "example": "hrssu22@gmail.com"
+                                                            },
+                                                            "year": {
+                                                                "type": "string",
+                                                                "example": "1961"
+                                                            },
+                                                            "motto": {
+                                                                "type": "string",
+                                                                "example": "Semper Unique Monstralucem"
+                                                            }
+                                                        },
+                                                        "type": "object",
+                                                        "nullable": true
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
