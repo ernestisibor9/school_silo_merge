@@ -25249,6 +25249,149 @@
                     }
                 ]
             }
+        },
+        "/api/getLearnersEnrollmentInfoGender": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get learners enrollment information filtered by gender, state, and LGA",
+                "description": "Fetches a paginated list of active learners filtered by gender (M/F), state, and LGA. Includes student details such as name, DOB, gender, class, and school name.",
+                "operationId": "getLearnersEnrollmentInfoGender",
+                "parameters": [
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "The starting offset for pagination (default: 0)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 0
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "The number of records to return (default: 20)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 20
+                        }
+                    },
+                    {
+                        "name": "state",
+                        "in": "query",
+                        "description": "Filter results by state (optional)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "Abia"
+                        }
+                    },
+                    {
+                        "name": "lga",
+                        "in": "query",
+                        "description": "Filter results by Local Government Area (optional)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "Umuahia South"
+                        }
+                    },
+                    {
+                        "name": "gender",
+                        "in": "query",
+                        "description": "Filter learners by gender (M or F)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "M",
+                                "F"
+                            ],
+                            "example": "M"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "total_records": {
+                                            "type": "integer",
+                                            "example": 8
+                                        },
+                                        "students": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "student_id": {
+                                                        "type": "string",
+                                                        "example": "ST/2024/373336"
+                                                    },
+                                                    "surname": {
+                                                        "type": "string",
+                                                        "example": "Ismail"
+                                                    },
+                                                    "middlename": {
+                                                        "type": "string",
+                                                        "example": "Umar"
+                                                    },
+                                                    "firstname": {
+                                                        "type": "string",
+                                                        "example": "Abdullahi"
+                                                    },
+                                                    "dob": {
+                                                        "type": "string",
+                                                        "example": "2014-02-24"
+                                                    },
+                                                    "gender": {
+                                                        "type": "string",
+                                                        "example": "M"
+                                                    },
+                                                    "class": {
+                                                        "type": "string",
+                                                        "example": "PRI1A"
+                                                    },
+                                                    "school_name": {
+                                                        "type": "string",
+                                                        "example": "Holy Rock Primary School"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
