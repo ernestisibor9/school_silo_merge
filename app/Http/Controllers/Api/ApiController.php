@@ -28324,20 +28324,14 @@ public function getAllSchoolsInfo(Request $request)
 {
     $start = $request->input('start', 0);
     $count = $request->input('count', 20);
-    $state = $request->input('state'); // ✅ optional filter by state
-    $lga   = $request->input('lga');   // ✅ optional filter by lga
+    $state = $request->input('state');
+    $lga   = $request->input('lga');
 
-    // 🔹 Join with school_web_data to include country, state, and lga
+    // 🔹 Join with school_web_data to filter and count
     $query = DB::table('school as s')
         ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id')
-        ->select(
-            's.*',
-            'sw.country',
-            'sw.state',
-            'sw.lga'
-        );
+        ->select('s.*', 'sw.state as web_state', 'sw.lga as web_lga', 'sw.country as web_country');
 
-    // 🔸 Apply optional filters
     if (!empty($state)) {
         $query->where('sw.state', $state);
     }
@@ -28349,7 +28343,7 @@ public function getAllSchoolsInfo(Request $request)
     // 🔹 Get total count before pagination
     $totalRecords = $query->count();
 
-    // 🔹 Pagination + order
+    // 🔹 Apply pagination
     $schools = $query->orderBy('s.name', 'asc')
         ->skip($start)
         ->take($count)
@@ -28379,7 +28373,7 @@ public function getAllSchoolsInfo(Request $request)
             ->distinct('sid')
             ->count('sid');
 
-        // ✅ Fetch list of class arms grouped by cls_id
+        // ✅ Fetch class arms grouped by cls_id
         $classArms = DB::table('sch_cls')
             ->where('schid', $user_id)
             ->get(['cls_id', 'name'])
@@ -28387,13 +28381,16 @@ public function getAllSchoolsInfo(Request $request)
             ->map(fn($items) => $items->pluck('name')->toArray())
             ->toArray();
 
-        // ✅ Count total classes
+        // ✅ Total class count
         $totalClasses = DB::table('sch_cls')
             ->where('schid', $user_id)
             ->count();
 
         // ✅ Proper school code
         $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
+
+        // 🔹 Fetch web data (including country)
+        $webData = DB::table('school_web_data')->where('user_id', $user_id)->first();
 
         $pld[] = [
             's' => [
@@ -28408,11 +28405,11 @@ public function getAllSchoolsInfo(Request $request)
                 'cssn'            => $school->cssn,
                 'ctrm'            => $school->ctrm,
                 'ctrmn'           => $school->ctrmn,
-                'country'         => $school->country ?? 'N/A',
-                'state'           => $school->state ?? 'N/A',
-                'lga'             => $school->lga ?? 'N/A',
                 'lattitude'       => $school->latt,
                 'longitude'       => $school->longi,
+                'country'         => $school->web_country ?? 'N/A',
+                'state'           => $school->web_state ?? 'N/A',
+                'lga'             => $school->web_lga ?? 'N/A',
                 'created_at'      => $school->created_at,
                 'updated_at'      => $school->updated_at,
                 'active_learners' => $activeLearners,
@@ -28421,17 +28418,40 @@ public function getAllSchoolsInfo(Request $request)
                 'classes'         => $classArms,
                 'total_classes'   => $totalClasses,
             ],
+            'w' => $webData ? [
+                'user_id'    => $webData->user_id,
+                'school_name'=> $webData->sname ?? 'N/A',
+                'color'      => $webData->color ?? 'N/A',
+                'address'    => $webData->addr ?? 'N/A',
+                'country'    => $webData->country ?? 'N/A',
+                'state'      => $webData->state ?? 'N/A',
+                'lga'        => $webData->lga ?? 'N/A',
+                'phone'      => $webData->phn ?? 'N/A',
+                'email'      => $webData->eml ?? 'N/A',
+                'vision'     => $webData->vision ?? 'N/A',
+                'values'     => $webData->values ?? 'N/A',
+                'year'       => $webData->year ?? 'N/A',
+                'about'      => $webData->about ?? 'N/A',
+                'motto'      => $webData->motto ?? 'N/A',
+                'facebook'   => $webData->fb ?? 'N/A',
+                'instagram'  => $webData->isg ?? 'N/A',
+                'youtube'    => $webData->yt ?? 'N/A',
+                'whatsapp'   => $webData->wh ?? 'N/A',
+                'linkedin'   => $webData->lkd ?? 'N/A',
+                'twitter'    => $webData->tw ?? 'N/A',
+                'created_at' => $webData->created_at,
+                'updated_at' => $webData->updated_at,
+            ] : null
         ];
     }
 
     return response()->json([
         "status"        => true,
         "message"       => "Success",
-        "total_records" => $totalRecords, // ✅ total count added here
+        "total_records" => $totalRecords,
         "pld"           => $pld,
     ]);
 }
-
 
 
     /**
