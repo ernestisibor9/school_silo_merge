@@ -395,6 +395,7 @@ Route::group([
     Route::get('getSchoolsByStat/{stat}', [ApiController::class, 'getSchoolsByStat']);
     Route::get('getSchools', [ApiController::class, 'getSchools']);
     Route::get('getAllSchoolsInfo', [ApiController::class, 'getAllSchoolsInfo']);
+    Route::get('getAllSchoolsInfoByStateLga', [ApiController::class, 'getAllSchoolsInfoByStateLga']);
     Route::get('getAllSchoolsInfoByState', [ApiController::class, 'getAllSchoolsInfoByState']);
     Route::get('getSchoolsStat', [ApiController::class, 'getSchoolsStat']);
     Route::get('getStudentsBySchool/{schid}/{stat}', [ApiController::class, 'getStudentsBySchool']);

@@ -24981,6 +24981,95 @@
                     }
                 ]
             }
+        },
+        "/api/getAllSchoolsInfoByStateLga": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get schools filtered by state and/or LGA",
+                "description": "Fetches schools filtered by state and/or LGA. Supports pagination.",
+                "operationId": "74c0137e1f9b64911d1e6901b1b0f097",
+                "parameters": [
+                    {
+                        "name": "state",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "Abia"
+                        }
+                    },
+                    {
+                        "name": "lga",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "Umuahia"
+                        }
+                    },
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 0
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 20
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "total_records": {
+                                            "type": "integer",
+                                            "example": 42
+                                        },
+                                        "records_returned": {
+                                            "type": "integer",
+                                            "example": 20
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {

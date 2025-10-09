@@ -3377,37 +3377,37 @@ class ApiController extends Controller
 
 
     public function getClassSubjectsByStaff($schid, $clsid, $stid)
-{
-    $start = request()->input('start', 0);
-    $count = request()->input('count', 20);
+    {
+        $start = request()->input('start', 0);
+        $count = request()->input('count', 20);
 
-    $pld = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
-        ->where('class_subj.schid', $schid)
-        ->where('class_subj.clsid', $clsid)
-        ->where('staff_subj.stid', $stid)
-        // ✅ Correct column-to-column comparison
-        ->whereColumn('class_subj.sesn', 'staff_subj.sesn')
-        ->whereColumn('class_subj.trm', 'staff_subj.trm')
-        ->select(
-            'class_subj.subj_id',
-            'class_subj.name',
-            'class_subj.comp',
-            'class_subj.clsid',
-            'class_subj.schid',
-            'class_subj.sesn',
-            'class_subj.trm'
-        )
-        ->distinct() // ✅ Ensures unique subjects
-        ->skip($start)
-        ->take($count)
-        ->get();
+        $pld = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
+            ->where('class_subj.schid', $schid)
+            ->where('class_subj.clsid', $clsid)
+            ->where('staff_subj.stid', $stid)
+            // ✅ Correct column-to-column comparison
+            ->whereColumn('class_subj.sesn', 'staff_subj.sesn')
+            ->whereColumn('class_subj.trm', 'staff_subj.trm')
+            ->select(
+                'class_subj.subj_id',
+                'class_subj.name',
+                'class_subj.comp',
+                'class_subj.clsid',
+                'class_subj.schid',
+                'class_subj.sesn',
+                'class_subj.trm'
+            )
+            ->distinct() // ✅ Ensures unique subjects
+            ->skip($start)
+            ->take($count)
+            ->get();
 
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => $pld,
-    ]);
-}
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld,
+        ]);
+    }
 
 
 
@@ -29650,79 +29650,79 @@ class ApiController extends Controller
      * )
      */
 
-public function getStudentsId($schid, $ssn, $trm, $clsm, $clsa)
-{
-    $query = DB::table('old_student as os')
-        ->leftJoin('school as s', 'os.schid', '=', 's.sid')
-        ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')              // ✅ main class
-        ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')        // ✅ class arm
-        ->leftJoin('student_basic_data as bd', 'os.sid', '=', 'bd.user_id') // ✅ join by sid
-        ->leftJoin('school_web_data as swd', 'os.schid', '=', 'swd.user_id') // ✅ join school_web_data
-        ->where("os.schid", $schid)
-        ->where("os.ssn", $ssn)
-        ->where("os.trm", $trm)
-        ->where("os.clsm", $clsm);
+    public function getStudentsId($schid, $ssn, $trm, $clsm, $clsa)
+    {
+        $query = DB::table('old_student as os')
+            ->leftJoin('school as s', 'os.schid', '=', 's.sid')
+            ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')              // ✅ main class
+            ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')        // ✅ class arm
+            ->leftJoin('student_basic_data as bd', 'os.sid', '=', 'bd.user_id') // ✅ join by sid
+            ->leftJoin('school_web_data as swd', 'os.schid', '=', 'swd.user_id') // ✅ join school_web_data
+            ->where("os.schid", $schid)
+            ->where("os.ssn", $ssn)
+            ->where("os.trm", $trm)
+            ->where("os.clsm", $clsm);
 
-    if ($clsa != '-1') {
-        $query->where("os.clsa", $clsa);
-    }
-
-    $students = $query->select(
-        'os.sid',
-        'os.fname',
-        'os.lname',
-        'os.status',
-        'os.suid as student_id',
-        's.name as school_name',
-        's.sbd as subdomain',
-        'swd.phn as school_phone', // ✅ get school phone
-        'c.id as class_id',
-        'c.name as class_name',
-        'sc.id as class_arm_id',
-        'sc.name as class_arm',
-        'bd.dob' // ✅ added date of birth
-    )
-    ->distinct('os.sid')
-    ->get();
-
-    $pld = $students->map(function ($student) {
-        $status = $student->status === 'inactive' ? 'Alumni' : $student->status;
-        $currentClass = $student->status === 'inactive' ? 'Alumni' : $student->class_name;
-
-        // ✅ Convert numeric dob (milliseconds) to YYYY-MM-DD
-        $dob = null;
-        if (!empty($student->dob) && is_numeric($student->dob)) {
-            try {
-                $dob = date('Y-m-d', $student->dob / 1000);
-            } catch (\Exception $e) {
-                $dob = null;
-            }
+        if ($clsa != '-1') {
+            $query->where("os.clsa", $clsa);
         }
 
-        return [
-            "sid"           => $student->sid,
-            "fname"         => $student->fname,
-            "lname"         => $student->lname,
-            "dob"           => $dob,
-            "status"        => $status,
-            "school_name"   => $student->school_name,
-            "subdomain"     => $student->subdomain,
-            "school_phone"  => $student->school_phone ?? 'N/A', // ✅ added to response
-            "student_id"    => $student->student_id,
-            "class_id"      => $student->class_id,
-            "class_name"    => $student->class_name,
-            "class_arm_id"  => $student->class_arm_id,
-            "class_arm"     => $student->class_arm,
-            "current_class" => $currentClass
-        ];
-    });
+        $students = $query->select(
+            'os.sid',
+            'os.fname',
+            'os.lname',
+            'os.status',
+            'os.suid as student_id',
+            's.name as school_name',
+            's.sbd as subdomain',
+            'swd.phn as school_phone', // ✅ get school phone
+            'c.id as class_id',
+            'c.name as class_name',
+            'sc.id as class_arm_id',
+            'sc.name as class_arm',
+            'bd.dob' // ✅ added date of birth
+        )
+            ->distinct('os.sid')
+            ->get();
 
-    return response()->json([
-        "status"  => true,
-        "message" => "Success",
-        "pld"     => $pld,
-    ]);
-}
+        $pld = $students->map(function ($student) {
+            $status = $student->status === 'inactive' ? 'Alumni' : $student->status;
+            $currentClass = $student->status === 'inactive' ? 'Alumni' : $student->class_name;
+
+            // ✅ Convert numeric dob (milliseconds) to YYYY-MM-DD
+            $dob = null;
+            if (!empty($student->dob) && is_numeric($student->dob)) {
+                try {
+                    $dob = date('Y-m-d', $student->dob / 1000);
+                } catch (\Exception $e) {
+                    $dob = null;
+                }
+            }
+
+            return [
+                "sid"           => $student->sid,
+                "fname"         => $student->fname,
+                "lname"         => $student->lname,
+                "dob"           => $dob,
+                "status"        => $status,
+                "school_name"   => $student->school_name,
+                "subdomain"     => $student->subdomain,
+                "school_phone"  => $student->school_phone ?? 'N/A', // ✅ added to response
+                "student_id"    => $student->student_id,
+                "class_id"      => $student->class_id,
+                "class_name"    => $student->class_name,
+                "class_arm_id"  => $student->class_arm_id,
+                "class_arm"     => $student->class_arm,
+                "current_class" => $currentClass
+            ];
+        });
+
+        return response()->json([
+            "status"  => true,
+            "message" => "Success",
+            "pld"     => $pld,
+        ]);
+    }
 
 
     /**
@@ -29794,93 +29794,93 @@ public function getStudentsId($schid, $ssn, $trm, $clsm, $clsa)
      * )
      */
 
-public function verifyStudent(Request $request)
-{
-    $studentId = $request->query('studentId'); // ✅ use query param instead of path param
+    public function verifyStudent(Request $request)
+    {
+        $studentId = $request->query('studentId'); // ✅ use query param instead of path param
 
-    if (!$studentId) {
-        return response()->json([
-            "status"  => false,
-            "message" => "studentId is required",
-            "pld"     => []
-        ], 400);
-    }
-
-    $student = DB::table('old_student as os')
-        ->leftJoin('school as s', 'os.schid', '=', 's.sid')
-        ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id') // ✅ join to get school phone
-        ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')                  // main class
-        ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')            // class arm
-        ->leftJoin('student_basic_data as sb', 'os.sid', '=', 'sb.user_id') // join with basic data
-        ->where("os.suid", $studentId) // filter by unique student ID
-        ->select(
-            'os.sid',
-            'os.fname',
-            'os.lname',
-            'os.status',
-            'os.suid as student_id',
-            's.name as school_name',
-            's.sbd as subdomain',
-            'c.id as class_id',
-            'c.name as class_name',
-            'sc.id as class_arm_id',
-            'sc.name as class_arm',
-            'sb.dob',
-            'sb.sex',
-            'sb.addr',
-            'sw.phn as school_phone' // ✅ added school phone
-        )
-        ->first();
-
-    // 🔸 Student not found
-    if (!$student) {
-        return response()->json([
-            "status"  => false,
-            "message" => "Student not found",
-            "pld"     => []
-        ], 404);
-    }
-
-    // 🔹 Convert DOB (milliseconds → YYYY-MM-DD)
-    $dob = null;
-    if (!empty($student->dob) && is_numeric($student->dob)) {
-        try {
-            $dob = \Carbon\Carbon::createFromTimestamp($student->dob / 1000)->format('Y-m-d');
-        } catch (\Exception $e) {
-            $dob = null;
+        if (!$studentId) {
+            return response()->json([
+                "status"  => false,
+                "message" => "studentId is required",
+                "pld"     => []
+            ], 400);
         }
+
+        $student = DB::table('old_student as os')
+            ->leftJoin('school as s', 'os.schid', '=', 's.sid')
+            ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id') // ✅ join to get school phone
+            ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')                  // main class
+            ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')            // class arm
+            ->leftJoin('student_basic_data as sb', 'os.sid', '=', 'sb.user_id') // join with basic data
+            ->where("os.suid", $studentId) // filter by unique student ID
+            ->select(
+                'os.sid',
+                'os.fname',
+                'os.lname',
+                'os.status',
+                'os.suid as student_id',
+                's.name as school_name',
+                's.sbd as subdomain',
+                'c.id as class_id',
+                'c.name as class_name',
+                'sc.id as class_arm_id',
+                'sc.name as class_arm',
+                'sb.dob',
+                'sb.sex',
+                'sb.addr',
+                'sw.phn as school_phone' // ✅ added school phone
+            )
+            ->first();
+
+        // 🔸 Student not found
+        if (!$student) {
+            return response()->json([
+                "status"  => false,
+                "message" => "Student not found",
+                "pld"     => []
+            ], 404);
+        }
+
+        // 🔹 Convert DOB (milliseconds → YYYY-MM-DD)
+        $dob = null;
+        if (!empty($student->dob) && is_numeric($student->dob)) {
+            try {
+                $dob = \Carbon\Carbon::createFromTimestamp($student->dob / 1000)->format('Y-m-d');
+            } catch (\Exception $e) {
+                $dob = null;
+            }
+        }
+
+        // ✅ Alumni handling
+        $status = $student->status === 'inactive' ? 'Alumni' : $student->status;
+        $currentClass = $student->status === 'inactive' ? 'Alumni' : $student->class_name;
+
+        // ✅ Build payload
+        $pld = [
+            "sid"           => (string) $student->sid,
+            "fname"         => $student->fname,
+            "lname"         => $student->lname,
+            "status"        => $status,
+            "school_name"   => $student->school_name,
+            "subdomain"     => $student->subdomain,
+            "school_phone"  => $student->school_phone ?? 'N/A', // ✅ display phone number
+            "student_id"    => $student->student_id,
+            "class_id"      => $student->class_id,
+            "class_name"    => $student->class_name,
+            "class_arm_id"  => $student->class_arm_id,
+            "class_arm"     => $student->class_arm,
+            "current_class" => $currentClass,
+            "dob"           => $dob ?: 'N/A',
+            "sex"           => $student->sex ?? 'N/A',
+            "address"       => $student->addr ?? 'N/A'
+        ];
+
+        return response()->json([
+            "status"  => true,
+            "message" => "Student verified successfully",
+            "pld"     => [$pld],
+        ]);
     }
-
-    // ✅ Alumni handling
-    $status = $student->status === 'inactive' ? 'Alumni' : $student->status;
-    $currentClass = $student->status === 'inactive' ? 'Alumni' : $student->class_name;
-
-    // ✅ Build payload
-    $pld = [
-        "sid"           => (string) $student->sid,
-        "fname"         => $student->fname,
-        "lname"         => $student->lname,
-        "status"        => $status,
-        "school_name"   => $student->school_name,
-        "subdomain"     => $student->subdomain,
-        "school_phone"  => $student->school_phone ?? 'N/A', // ✅ display phone number
-        "student_id"    => $student->student_id,
-        "class_id"      => $student->class_id,
-        "class_name"    => $student->class_name,
-        "class_arm_id"  => $student->class_arm_id,
-        "class_arm"     => $student->class_arm,
-        "current_class" => $currentClass,
-        "dob"           => $dob ?: 'N/A',
-        "sex"           => $student->sex ?? 'N/A',
-        "address"       => $student->addr ?? 'N/A'
-    ];
-
-    return response()->json([
-        "status"  => true,
-        "message" => "Student verified successfully",
-        "pld"     => [$pld],
-    ]);
-}
 
 
 
@@ -29968,482 +29968,550 @@ public function verifyStudent(Request $request)
      */
 
 
-public function getStaffId($schid, $ssn, $trm)
-{
-    $staff = DB::table('old_staff as os')
-        ->leftJoin('staff as s', 'os.sid', '=', 's.sid')
-        ->leftJoin('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
-        ->leftJoin('school as sch', 'os.schid', '=', 'sch.sid')
-        ->leftJoin('school_web_data as sw', 'sch.sid', '=', 'sw.user_id') // ✅ join to get school phone
-        ->leftJoin('staff_role as r1', 'os.role', '=', 'r1.id')
-        ->leftJoin('staff_role as r2', 'os.role2', '=', 'r2.id')
-        ->where('os.schid', $schid)
-        ->where('os.ssn', $ssn)
-        ->where('os.trm', $trm)
-        ->select(
-            'os.sid',
-            DB::raw('MIN(os.uid) as uid'),
-            DB::raw('MAX(os.status) as status'),
-            DB::raw('MAX(os.role) as role'),
-            DB::raw('MAX(os.role2) as role2'),
-            DB::raw('MAX(r1.name) as role_name'),
-            DB::raw('MAX(r2.name) as role2_name'),
-            DB::raw('MAX(s.sch3) as sch3'),
-            DB::raw('MAX(sb.dob) as dob'),
-            DB::raw('MAX(sb.sex) as sex'),
-            DB::raw('MAX(sb.phn) as phn'),
-            DB::raw('MAX(sb.addr) as addr'),
-            DB::raw('MAX(sch.name) as school_name'),
-            DB::raw('MAX(sch.sbd) as subdomain'), // ✅ include sbd column
-            DB::raw('MAX(sw.phn) as school_phone'), // ✅ get school phone number
-            DB::raw('MAX(os.fname) as fname'),
-            DB::raw('MAX(os.mname) as mname'),
-            DB::raw('MAX(os.lname) as lname'),
-            DB::raw('MAX(os.suid) as suid'),
-            DB::raw('MAX(os.created_at) as created_at')
-        )
-        ->groupBy('os.sid')
-        ->orderBy('os.sid', 'asc')
-        ->get();
+    public function getStaffId($schid, $ssn, $trm)
+    {
+        $staff = DB::table('old_staff as os')
+            ->leftJoin('staff as s', 'os.sid', '=', 's.sid')
+            ->leftJoin('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
+            ->leftJoin('school as sch', 'os.schid', '=', 'sch.sid')
+            ->leftJoin('school_web_data as sw', 'sch.sid', '=', 'sw.user_id') // ✅ join to get school phone
+            ->leftJoin('staff_role as r1', 'os.role', '=', 'r1.id')
+            ->leftJoin('staff_role as r2', 'os.role2', '=', 'r2.id')
+            ->where('os.schid', $schid)
+            ->where('os.ssn', $ssn)
+            ->where('os.trm', $trm)
+            ->select(
+                'os.sid',
+                DB::raw('MIN(os.uid) as uid'),
+                DB::raw('MAX(os.status) as status'),
+                DB::raw('MAX(os.role) as role'),
+                DB::raw('MAX(os.role2) as role2'),
+                DB::raw('MAX(r1.name) as role_name'),
+                DB::raw('MAX(r2.name) as role2_name'),
+                DB::raw('MAX(s.sch3) as sch3'),
+                DB::raw('MAX(sb.dob) as dob'),
+                DB::raw('MAX(sb.sex) as sex'),
+                DB::raw('MAX(sb.phn) as phn'),
+                DB::raw('MAX(sb.addr) as addr'),
+                DB::raw('MAX(sch.name) as school_name'),
+                DB::raw('MAX(sch.sbd) as subdomain'), // ✅ include sbd column
+                DB::raw('MAX(sw.phn) as school_phone'), // ✅ get school phone number
+                DB::raw('MAX(os.fname) as fname'),
+                DB::raw('MAX(os.mname) as mname'),
+                DB::raw('MAX(os.lname) as lname'),
+                DB::raw('MAX(os.suid) as suid'),
+                DB::raw('MAX(os.created_at) as created_at')
+            )
+            ->groupBy('os.sid')
+            ->orderBy('os.sid', 'asc')
+            ->get();
 
-    $existingCount = DB::table('old_staff')
-        ->where('schid', $schid)
-        ->where('ssn', $ssn)
-        ->where('trm', $trm)
-        ->whereNotNull('suid')
-        ->distinct('sid')
-        ->count('sid');
+        $existingCount = DB::table('old_staff')
+            ->where('schid', $schid)
+            ->where('ssn', $ssn)
+            ->where('trm', $trm)
+            ->whereNotNull('suid')
+            ->distinct('sid')
+            ->count('sid');
 
-    $counter = $existingCount + 1;
+        $counter = $existingCount + 1;
 
-    $pld = $staff->map(function ($stf) use (&$counter, $schid, $ssn, $trm) {
-        $schoolCode = $stf->sch3 ?? 'SCH';
+        $pld = $staff->map(function ($stf) use (&$counter, $schid, $ssn, $trm) {
+            $schoolCode = $stf->sch3 ?? 'SCH';
 
-        // ✅ Convert DOB from milliseconds → YYYY-MM-DD
+            // ✅ Convert DOB from milliseconds → YYYY-MM-DD
+            $dob = null;
+            if (!empty($stf->dob) && is_numeric($stf->dob)) {
+                try {
+                    $dob = \Carbon\Carbon::createFromTimestamp($stf->dob / 1000)->format('Y-m-d');
+                } catch (\Exception $e) {
+                    $dob = null;
+                }
+            }
+
+            // ✅ Check if staff is ex-staff
+            $isExStaff = DB::table('ex_staffs')->where('stid', $stf->sid)->exists();
+            $status = $isExStaff ? 'Ex Staff' : 'Staff';
+
+            // ✅ Only assign new suid if missing
+            if (empty($stf->suid)) {
+                $staffId = sprintf("%s/STAFF/%03d", $schoolCode, $counter);
+                DB::table('old_staff')
+                    ->where('sid', $stf->sid)
+                    ->where('schid', $schid)
+                    ->where('ssn', $ssn)
+                    ->where('trm', $trm)
+                    ->update(['suid' => $staffId]);
+                $counter++;
+            } else {
+                $staffId = $stf->suid;
+            }
+
+            return [
+                "sid"           => $stf->sid,
+                "full_name"     => trim("{$stf->fname} {$stf->mname} {$stf->lname}"),
+                "status"        => $status,
+                "role"          => $stf->role_name ?? 'N/A',
+                "role2"         => $stf->role2_name ?? 'N/A',
+                "school_code"   => $schoolCode,
+                "school_name"   => $stf->school_name,
+                "school_phone"  => $stf->school_phone ?? 'N/A',
+                "subdomain"    => $stf->subdomain ?? 'N/A', // ✅ include sbd in payload
+                "staff_id"      => $staffId,
+                "dob"           => $dob ?: 'N/A',
+                "sex"           => $stf->sex,
+                "phone"         => $stf->phn,
+                "address"       => $stf->addr,
+                "created_at"    => $stf->created_at,
+            ];
+        });
+
+        return response()->json([
+            "status"  => true,
+            "message" => "Unique staff IDs generated successfully",
+            "pld"     => $pld
+        ]);
+    }
+
+
+    /**
+     * @OA\Get(
+     *     path="/api/verifyStaff",
+     *     summary="Verify Staff Details",
+     *     description="This endpoint verifies a staff member by their unique staff ID and returns staff details including personal information, school, and roles.",
+     *     tags={"Api"},
+     *   security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="staffId",
+     *         in="query",
+     *         required=true,
+     *         description="Unique Staff ID (e.g., SCS/STAFF/003)",
+     *         @OA\Schema(type="string", example="SCS/STAFF/003")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Staff verified successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Staff verified successfully"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="sid", type="string", example="45"),
+     *                     @OA\Property(property="full_name", type="string", example="John A. Doe"),
+     *                     @OA\Property(property="status", type="string", example="active"),
+     *                     @OA\Property(property="school_name", type="string", example="Sunrise High School"),
+     *                     @OA\Property(property="staff_id", type="string", example="SCS/STAFF/003"),
+     *                     @OA\Property(property="role", type="string", example="Teacher"),
+     *                     @OA\Property(property="role2", type="string", example="Head of Department"),
+     *                     @OA\Property(property="dob", type="string", example="1985-07-15"),
+     *                     @OA\Property(property="sex", type="string", example="Male"),
+     *                     @OA\Property(property="phone", type="string", example="+2348012345678"),
+     *                     @OA\Property(property="address", type="string", example="12 Victory Road, Lagos, Nigeria"),
+     *                     @OA\Property(property="created_at", type="string", format="date-time", example="2025-09-12 14:32:00")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=400,
+     *         description="Missing staffId parameter",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="staffId is required"),
+     *             @OA\Property(property="pld", type="array", @OA\Items(type="object"))
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="Staff not found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Staff not found"),
+     *             @OA\Property(property="pld", type="array", @OA\Items(type="object"))
+     *         )
+     *     )
+     * )
+     */
+
+
+    public function verifyStaff(Request $request)
+    {
+        $staffId = $request->query('staffId'); // ✅ ?staffId=SCS/STAFF/003
+
+        if (!$staffId) {
+            return response()->json([
+                "status"  => false,
+                "message" => "staffId is required",
+                "pld"     => []
+            ], 400);
+        }
+
+        // 🔹 Join necessary tables
+        $staff = DB::table('old_staff as os')
+            ->leftJoin('staff as s', 'os.sid', '=', 's.sid')
+            ->leftJoin('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
+            ->leftJoin('school as sch', 'os.schid', '=', 'sch.sid')
+            ->leftJoin('school_web_data as sw', 'sch.sid', '=', 'sw.user_id') // ✅ join to get school phone
+            ->leftJoin('staff_role as r1', 'os.role', '=', 'r1.id')
+            ->leftJoin('staff_role as r2', 'os.role2', '=', 'r2.id')
+            ->where('os.suid', $staffId) // ✅ Filter by unique staff ID
+            ->select(
+                'os.sid',
+                'os.fname',
+                'os.mname',
+                'os.lname',
+                'os.status',
+                'os.suid as staff_id',
+                'sch.name as school_name',
+                'sch.sbd as subdomain',   // ✅ include school.sbd here
+                'sw.phn as school_phone',
+                'r1.name as role_name',
+                'r2.name as role2_name',
+                'sb.dob',
+                'sb.sex',
+                'sb.phn as staff_phone',
+                'sb.addr',
+                'os.created_at'
+            )
+            ->first();
+
+        // 🔸 Staff not found
+        if (!$staff) {
+            return response()->json([
+                "status"  => false,
+                "message" => "Staff not found",
+                "pld"     => []
+            ], 404);
+        }
+
+        // ✅ Check if staff is in ex_staffs table
+        $isExStaff = DB::table('ex_staffs')->where('stid', $staff->sid)->exists();
+        $currentStatus = $isExStaff ? 'Ex Staff' : 'Staff';
+
+        // 🔹 Format date of birth (if numeric milliseconds)
         $dob = null;
-        if (!empty($stf->dob) && is_numeric($stf->dob)) {
+        if (!empty($staff->dob) && is_numeric($staff->dob)) {
             try {
-                $dob = \Carbon\Carbon::createFromTimestamp($stf->dob / 1000)->format('Y-m-d');
+                $dob = \Carbon\Carbon::createFromTimestamp($staff->dob / 1000)->format('Y-m-d');
             } catch (\Exception $e) {
                 $dob = null;
             }
         }
 
-        // ✅ Check if staff is ex-staff
-        $isExStaff = DB::table('ex_staffs')->where('stid', $stf->sid)->exists();
-        $status = $isExStaff ? 'Ex Staff' : 'Staff';
+        // ✅ Combine names
+        $fullName = trim("{$staff->fname} {$staff->mname} {$staff->lname}");
 
-        // ✅ Only assign new suid if missing
-        if (empty($stf->suid)) {
-            $staffId = sprintf("%s/STAFF/%03d", $schoolCode, $counter);
-            DB::table('old_staff')
-                ->where('sid', $stf->sid)
-                ->where('schid', $schid)
-                ->where('ssn', $ssn)
-                ->where('trm', $trm)
-                ->update(['suid' => $staffId]);
-            $counter++;
-        } else {
-            $staffId = $stf->suid;
-        }
-
-        return [
-            "sid"           => $stf->sid,
-            "full_name"     => trim("{$stf->fname} {$stf->mname} {$stf->lname}"),
-            "status"        => $status,
-            "role"          => $stf->role_name ?? 'N/A',
-            "role2"         => $stf->role2_name ?? 'N/A',
-            "school_code"   => $schoolCode,
-            "school_name"   => $stf->school_name,
-            "school_phone"  => $stf->school_phone ?? 'N/A',
-            "subdomain"    => $stf->subdomain ?? 'N/A', // ✅ include sbd in payload
-            "staff_id"      => $staffId,
+        // ✅ Build payload
+        $pld = [
+            "sid"           => (string) $staff->sid,
+            "full_name"     => $fullName,
+            "status"        => $currentStatus,
+            "school_name"   => $staff->school_name,
+            "subdomain"   => $staff->subdomain, // ✅ Added school.sbd to pld
+            "school_phone"  => $staff->school_phone ?? 'N/A',
+            "staff_id"      => $staff->staff_id,
+            "role"          => $staff->role_name ?? 'N/A',
+            "role2"         => $staff->role2_name ?? 'N/A',
             "dob"           => $dob ?: 'N/A',
-            "sex"           => $stf->sex,
-            "phone"         => $stf->phn,
-            "address"       => $stf->addr,
-            "created_at"    => $stf->created_at,
+            "sex"           => $staff->sex,
+            "phone"         => $staff->staff_phone,
+            "address"       => $staff->addr,
+            "created_at"    => $staff->created_at,
         ];
-    });
 
-    return response()->json([
-        "status"  => true,
-        "message" => "Unique staff IDs generated successfully",
-        "pld"     => $pld
-    ]);
-}
-
-
-/**
- * @OA\Get(
- *     path="/api/verifyStaff",
- *     summary="Verify Staff Details",
- *     description="This endpoint verifies a staff member by their unique staff ID and returns staff details including personal information, school, and roles.",
- *     tags={"Api"},
- *   security={{"bearerAuth":{}}},
- *
- *     @OA\Parameter(
- *         name="staffId",
- *         in="query",
- *         required=true,
- *         description="Unique Staff ID (e.g., SCS/STAFF/003)",
- *         @OA\Schema(type="string", example="SCS/STAFF/003")
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Staff verified successfully",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Staff verified successfully"),
- *             @OA\Property(
- *                 property="pld",
- *                 type="array",
- *                 @OA\Items(
- *                     type="object",
- *                     @OA\Property(property="sid", type="string", example="45"),
- *                     @OA\Property(property="full_name", type="string", example="John A. Doe"),
- *                     @OA\Property(property="status", type="string", example="active"),
- *                     @OA\Property(property="school_name", type="string", example="Sunrise High School"),
- *                     @OA\Property(property="staff_id", type="string", example="SCS/STAFF/003"),
- *                     @OA\Property(property="role", type="string", example="Teacher"),
- *                     @OA\Property(property="role2", type="string", example="Head of Department"),
- *                     @OA\Property(property="dob", type="string", example="1985-07-15"),
- *                     @OA\Property(property="sex", type="string", example="Male"),
- *                     @OA\Property(property="phone", type="string", example="+2348012345678"),
- *                     @OA\Property(property="address", type="string", example="12 Victory Road, Lagos, Nigeria"),
- *                     @OA\Property(property="created_at", type="string", format="date-time", example="2025-09-12 14:32:00")
- *                 )
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=400,
- *         description="Missing staffId parameter",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="staffId is required"),
- *             @OA\Property(property="pld", type="array", @OA\Items(type="object"))
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=404,
- *         description="Staff not found",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="Staff not found"),
- *             @OA\Property(property="pld", type="array", @OA\Items(type="object"))
- *         )
- *     )
- * )
- */
-
-
-public function verifyStaff(Request $request)
-{
-    $staffId = $request->query('staffId'); // ✅ ?staffId=SCS/STAFF/003
-
-    if (!$staffId) {
         return response()->json([
-            "status"  => false,
-            "message" => "staffId is required",
-            "pld"     => []
-        ], 400);
+            "status"  => true,
+            "message" => "Staff verified successfully",
+            "pld"     => [$pld],
+        ]);
     }
 
-    // 🔹 Join necessary tables
-    $staff = DB::table('old_staff as os')
-        ->leftJoin('staff as s', 'os.sid', '=', 's.sid')
-        ->leftJoin('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
-        ->leftJoin('school as sch', 'os.schid', '=', 'sch.sid')
-        ->leftJoin('school_web_data as sw', 'sch.sid', '=', 'sw.user_id') // ✅ join to get school phone
-        ->leftJoin('staff_role as r1', 'os.role', '=', 'r1.id')
-        ->leftJoin('staff_role as r2', 'os.role2', '=', 'r2.id')
-        ->where('os.suid', $staffId) // ✅ Filter by unique staff ID
-        ->select(
-            'os.sid',
-            'os.fname',
-            'os.mname',
-            'os.lname',
-            'os.status',
-            'os.suid as staff_id',
-            'sch.name as school_name',
-            'sch.sbd as subdomain',   // ✅ include school.sbd here
-            'sw.phn as school_phone',
-            'r1.name as role_name',
-            'r2.name as role2_name',
-            'sb.dob',
-            'sb.sex',
-            'sb.phn as staff_phone',
-            'sb.addr',
-            'os.created_at'
-        )
-        ->first();
 
-    // 🔸 Staff not found
-    if (!$staff) {
-        return response()->json([
-            "status"  => false,
-            "message" => "Staff not found",
-            "pld"     => []
-        ], 404);
-    }
 
-    // ✅ Check if staff is in ex_staffs table
-    $isExStaff = DB::table('ex_staffs')->where('stid', $staff->sid)->exists();
-    $currentStatus = $isExStaff ? 'Ex Staff' : 'Staff';
 
-    // 🔹 Format date of birth (if numeric milliseconds)
-    $dob = null;
-    if (!empty($staff->dob) && is_numeric($staff->dob)) {
-        try {
-            $dob = \Carbon\Carbon::createFromTimestamp($staff->dob / 1000)->format('Y-m-d');
-        } catch (\Exception $e) {
-            $dob = null;
+
+    /**
+     * @OA\Get(
+     *     path="/api/getAllSchoolsInfoByState",
+     *     operationId="getAllSchoolsInfoByState",
+     *     tags={"Admin"},
+     *      security={{"bearerAuth":{}}},
+     *     summary="Fetch all schools information",
+     *     description="Returns a paginated list of schools, with optional filtering by state (case-insensitive). Includes learners, staff, alumni counts, and class details.",
+     *
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         description="Starting offset for pagination (default: 0)",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=0)
+     *     ),
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         description="Number of records to return (default: 20)",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=20)
+     *     ),
+     *     @OA\Parameter(
+     *         name="state",
+     *         in="query",
+     *         description="Filter schools by state name (case-insensitive). Use 'all' to fetch all states.",
+     *         required=false,
+     *         @OA\Schema(type="string", example="Abia")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful response",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(
+     *                         property="s",
+     *                         type="object",
+     *                         @OA\Property(property="sid", type="integer", example=1),
+     *                         @OA\Property(property="school_id", type="string", example="ABJCE/0001"),
+     *                         @OA\Property(property="name", type="string", example="St. Patrick High School"),
+     *                         @OA\Property(property="count", type="integer", example=800),
+     *                         @OA\Property(property="s_web", type="string", nullable=true),
+     *                         @OA\Property(property="s_info", type="string", nullable=true),
+     *                         @OA\Property(property="sbd", type="string", example="School Board"),
+     *                         @OA\Property(property="sch3", type="string", example="ABJCE"),
+     *                         @OA\Property(property="cssn", type="string", example="CSSN12345"),
+     *                         @OA\Property(property="ctrm", type="integer", example=25),
+     *                         @OA\Property(property="ctrmn", type="integer", example=3),
+     *                         @OA\Property(property="lattitude", type="string", example="6.5244"),
+     *                         @OA\Property(property="longitude", type="string", example="3.3792"),
+     *                         @OA\Property(property="created_at", type="string", format="date-time", example="2025-10-09T12:34:56Z"),
+     *                         @OA\Property(property="updated_at", type="string", format="date-time", example="2025-10-09T12:34:56Z"),
+     *                         @OA\Property(property="active_learners", type="integer", example=450),
+     *                         @OA\Property(property="alumni", type="integer", example=200),
+     *                         @OA\Property(property="active_staff", type="integer", example=30),
+     *                         @OA\Property(
+     *                             property="classes",
+     *                             type="object",
+     *                             example={"1": {"JSS 1A", "JSS 1B"}, "2": {"SSS 1A"}},
+     *                             description="Grouped class arms by class ID"
+     *                         ),
+     *                         @OA\Property(property="total_classes", type="integer", example=12)
+     *                     ),
+     *                     @OA\Property(
+     *                         property="w",
+     *                         type="object",
+     *                         nullable=true,
+     *                         description="Web-related school data (from school_web_data)",
+     *                         example={
+     *                             "user_id": 1,
+     *                             "state": "Abia",
+     *                             "lga": "Umuahia North",
+     *                             "phone": "+2348012345678",
+     *                             "email": "info@stpatrick.edu.ng",
+     *                             "website": "https://stpatrick.edu.ng"
+     *                         }
+     *                     )
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=400,
+     *         description="Bad Request",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Invalid parameters")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Server Error",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Internal server error")
+     *         )
+     *     )
+     * )
+     */
+
+
+    public function getAllSchoolsInfoByState(Request $request)
+    {
+        $start = $request->input('start', 0);
+        $count = $request->input('count', 20);
+        $state = $request->input('state'); // e.g. "Abia", "abia", or "ALL"
+
+        // ✅ Base query
+        $query = school::orderBy('name', 'asc');
+
+        // ✅ Filter by state (case-insensitive)
+        if (!empty($state) && strtolower($state) !== 'all') {
+            $query->join('school_web_data as swd', 'school.sid', '=', 'swd.user_id')
+                ->whereRaw('LOWER(swd.state) = ?', [strtolower($state)])
+                ->select('school.*'); // ensure only school columns are returned
         }
+
+        // ✅ Count total results (before pagination)
+        $totalRecords = $query->count();
+
+        // ✅ Pagination
+        $schools = $query->skip($start)->take($count)->get();
+
+        $pld = [];
+
+        foreach ($schools as $school) {
+            $user_id = $school->sid;
+
+            // ✅ Fetch school web data (contains state, lga, phone, etc.)
+            $webData = school_web_data::where('user_id', $user_id)->first();
+
+            // ✅ Count active learners (unique)
+            $activeLearners = old_student::where('schid', $user_id)
+                ->where('status', 'active')
+                ->distinct('sid')
+                ->count('sid');
+
+            // ✅ Alumni count
+            $alumniCount = alumni::where('schid', $user_id)->count();
+
+            // ✅ Active staff count
+            $activeStaff = old_staff::where('schid', $user_id)
+                ->where('status', 'active')
+                ->distinct('sid')
+                ->count('sid');
+
+            // ✅ Group class arms by class ID
+            $classArms = sch_cls::where('schid', $user_id)
+                ->get(['cls_id', 'name'])
+                ->groupBy('cls_id')
+                ->map(fn($items) => $items->pluck('name')->toArray())
+                ->toArray();
+
+            $totalClasses = sch_cls::where('schid', $user_id)->count();
+
+            // ✅ School code format (e.g., ABJCE/0001)
+            $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
+
+            $pld[] = [
+                's' => [
+                    'sid'             => $school->sid,
+                    'school_id'       => $schoolCode,
+                    'name'            => $school->name,
+                    'count'           => $school->count,
+                    's_web'           => $school->s_web,
+                    's_info'          => $school->s_info,
+                    'sbd'             => $school->sbd,
+                    'sch3'            => $school->sch3,
+                    'cssn'            => $school->cssn,
+                    'ctrm'            => $school->ctrm,
+                    'ctrmn'           => $school->ctrmn,
+                    'lattitude'       => $school->latt,
+                    'longitude'       => $school->longi,
+                    'created_at'      => $school->created_at,
+                    'updated_at'      => $school->updated_at,
+                    'active_learners' => $activeLearners,
+                    'alumni'          => $alumniCount,
+                    'active_staff'    => $activeStaff,
+                    'classes'         => $classArms,
+                    'total_classes'   => $totalClasses,
+                ],
+                'w' => $webData ? $webData->toArray() : null,
+            ];
+        }
+
+        // ✅ Final response
+        return response()->json([
+            "status"  => true,
+            "message" => "Success",
+            "total_records" => $totalRecords,
+            "pld"     => $pld,
+        ]);
     }
-
-    // ✅ Combine names
-    $fullName = trim("{$staff->fname} {$staff->mname} {$staff->lname}");
-
-    // ✅ Build payload
-    $pld = [
-        "sid"           => (string) $staff->sid,
-        "full_name"     => $fullName,
-        "status"        => $currentStatus,
-        "school_name"   => $staff->school_name,
-        "subdomain"   => $staff->subdomain, // ✅ Added school.sbd to pld
-        "school_phone"  => $staff->school_phone ?? 'N/A',
-        "staff_id"      => $staff->staff_id,
-        "role"          => $staff->role_name ?? 'N/A',
-        "role2"         => $staff->role2_name ?? 'N/A',
-        "dob"           => $dob ?: 'N/A',
-        "sex"           => $staff->sex,
-        "phone"         => $staff->staff_phone,
-        "address"       => $staff->addr,
-        "created_at"    => $staff->created_at,
-    ];
-
-    return response()->json([
-        "status"  => true,
-        "message" => "Staff verified successfully",
-        "pld"     => [$pld],
-    ]);
-}
-
-
-
 
 
 /**
  * @OA\Get(
- *     path="/api/getAllSchoolsInfoByState",
- *     operationId="getAllSchoolsInfoByState",
+ *     path="/api/getAllSchoolsInfoByStateLga",
+ *     summary="Get schools filtered by state and/or LGA",
+ *     description="Fetches schools filtered by state and/or LGA. Supports pagination.",
  *     tags={"Admin"},
- *      security={{"bearerAuth":{}}},
- *     summary="Fetch all schools information",
- *     description="Returns a paginated list of schools, with optional filtering by state (case-insensitive). Includes learners, staff, alumni counts, and class details.",
- *
- *     @OA\Parameter(
- *         name="start",
- *         in="query",
- *         description="Starting offset for pagination (default: 0)",
- *         required=false,
- *         @OA\Schema(type="integer", example=0)
- *     ),
- *     @OA\Parameter(
- *         name="count",
- *         in="query",
- *         description="Number of records to return (default: 20)",
- *         required=false,
- *         @OA\Schema(type="integer", example=20)
- *     ),
- *     @OA\Parameter(
- *         name="state",
- *         in="query",
- *         description="Filter schools by state name (case-insensitive). Use 'all' to fetch all states.",
- *         required=false,
- *         @OA\Schema(type="string", example="Abia")
- *     ),
- *
+ *     security={{"bearerAuth":{}}},
+ *     @OA\Parameter(name="state", in="query", required=false, @OA\Schema(type="string", example="Abia")),
+ *     @OA\Parameter(name="lga", in="query", required=false, @OA\Schema(type="string", example="Umuahia")),
+ *     @OA\Parameter(name="start", in="query", required=false, @OA\Schema(type="integer", example=0)),
+ *     @OA\Parameter(name="count", in="query", required=false, @OA\Schema(type="integer", example=20)),
  *     @OA\Response(
  *         response=200,
  *         description="Successful response",
  *         @OA\JsonContent(
- *             type="object",
  *             @OA\Property(property="status", type="boolean", example=true),
  *             @OA\Property(property="message", type="string", example="Success"),
- *             @OA\Property(
- *                 property="pld",
- *                 type="array",
- *                 @OA\Items(
- *                     type="object",
- *                     @OA\Property(
- *                         property="s",
- *                         type="object",
- *                         @OA\Property(property="sid", type="integer", example=1),
- *                         @OA\Property(property="school_id", type="string", example="ABJCE/0001"),
- *                         @OA\Property(property="name", type="string", example="St. Patrick High School"),
- *                         @OA\Property(property="count", type="integer", example=800),
- *                         @OA\Property(property="s_web", type="string", nullable=true),
- *                         @OA\Property(property="s_info", type="string", nullable=true),
- *                         @OA\Property(property="sbd", type="string", example="School Board"),
- *                         @OA\Property(property="sch3", type="string", example="ABJCE"),
- *                         @OA\Property(property="cssn", type="string", example="CSSN12345"),
- *                         @OA\Property(property="ctrm", type="integer", example=25),
- *                         @OA\Property(property="ctrmn", type="integer", example=3),
- *                         @OA\Property(property="lattitude", type="string", example="6.5244"),
- *                         @OA\Property(property="longitude", type="string", example="3.3792"),
- *                         @OA\Property(property="created_at", type="string", format="date-time", example="2025-10-09T12:34:56Z"),
- *                         @OA\Property(property="updated_at", type="string", format="date-time", example="2025-10-09T12:34:56Z"),
- *                         @OA\Property(property="active_learners", type="integer", example=450),
- *                         @OA\Property(property="alumni", type="integer", example=200),
- *                         @OA\Property(property="active_staff", type="integer", example=30),
- *                         @OA\Property(
- *                             property="classes",
- *                             type="object",
- *                             example={"1": {"JSS 1A", "JSS 1B"}, "2": {"SSS 1A"}},
- *                             description="Grouped class arms by class ID"
- *                         ),
- *                         @OA\Property(property="total_classes", type="integer", example=12)
- *                     ),
- *                     @OA\Property(
- *                         property="w",
- *                         type="object",
- *                         nullable=true,
- *                         description="Web-related school data (from school_web_data)",
- *                         example={
- *                             "user_id": 1,
- *                             "state": "Abia",
- *                             "lga": "Umuahia North",
- *                             "phone": "+2348012345678",
- *                             "email": "info@stpatrick.edu.ng",
- *                             "website": "https://stpatrick.edu.ng"
- *                         }
- *                     )
- *                 )
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=400,
- *         description="Bad Request",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="Invalid parameters")
- *         )
- *     ),
- *     @OA\Response(
- *         response=500,
- *         description="Server Error",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="Internal server error")
+ *             @OA\Property(property="total_records", type="integer", example=42),
+ *             @OA\Property(property="records_returned", type="integer", example=20),
+ *             @OA\Property(property="pld", type="array", @OA\Items(type="object"))
  *         )
  *     )
  * )
  */
 
-
-public function getAllSchoolsInfoByState(Request $request)
+public function getAllSchoolsInfoByStateLga(Request $request)
 {
     $start = $request->input('start', 0);
     $count = $request->input('count', 20);
-    $state = $request->input('state'); // e.g. "Abia", "abia", or "ALL"
+    $state = $request->input('state');
+    $lga   = $request->input('lga');
 
-    // ✅ Base query
-    $query = school::orderBy('name', 'asc');
+    $query = school::join('school_web_data as swd', 'school.sid', '=', 'swd.user_id')
+        ->orderBy('school.name', 'asc')
+        ->select('school.*');
 
-    // ✅ Filter by state (case-insensitive)
+    // ✅ Filter by state (if provided)
     if (!empty($state) && strtolower($state) !== 'all') {
-        $query->join('school_web_data as swd', 'school.sid', '=', 'swd.user_id')
-              ->whereRaw('LOWER(swd.state) = ?', [strtolower($state)])
-              ->select('school.*'); // ensure only school columns are returned
+        $query->whereRaw('LOWER(swd.state) = ?', [strtolower($state)]);
     }
 
-    // ✅ Count total results (before pagination)
+    // ✅ Filter by LGA (if provided)
+    if (!empty($lga) && strtolower($lga) !== 'all') {
+        $query->whereRaw('LOWER(swd.lga) = ?', [strtolower($lga)]);
+    }
+
+    // ✅ Count total matching records
     $totalRecords = $query->count();
 
     // ✅ Pagination
     $schools = $query->skip($start)->take($count)->get();
 
     $pld = [];
-
     foreach ($schools as $school) {
-        $user_id = $school->sid;
-
-        // ✅ Fetch school web data (contains state, lga, phone, etc.)
-        $webData = school_web_data::where('user_id', $user_id)->first();
-
-        // ✅ Count active learners (unique)
-        $activeLearners = old_student::where('schid', $user_id)
-            ->where('status', 'active')
-            ->distinct('sid')
-            ->count('sid');
-
-        // ✅ Alumni count
-        $alumniCount = alumni::where('schid', $user_id)->count();
-
-        // ✅ Active staff count
-        $activeStaff = old_staff::where('schid', $user_id)
-            ->where('status', 'active')
-            ->distinct('sid')
-            ->count('sid');
-
-        // ✅ Group class arms by class ID
-        $classArms = sch_cls::where('schid', $user_id)
-            ->get(['cls_id', 'name'])
-            ->groupBy('cls_id')
-            ->map(fn($items) => $items->pluck('name')->toArray())
-            ->toArray();
-
-        $totalClasses = sch_cls::where('schid', $user_id)->count();
-
-        // ✅ School code format (e.g., ABJCE/0001)
-        $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
-
+        $webData = school_web_data::where('user_id', $school->sid)->first();
         $pld[] = [
-            's' => [
-                'sid'             => $school->sid,
-                'school_id'       => $schoolCode,
-                'name'            => $school->name,
-                'count'           => $school->count,
-                's_web'           => $school->s_web,
-                's_info'          => $school->s_info,
-                'sbd'             => $school->sbd,
-                'sch3'            => $school->sch3,
-                'cssn'            => $school->cssn,
-                'ctrm'            => $school->ctrm,
-                'ctrmn'           => $school->ctrmn,
-                'lattitude'       => $school->latt,
-                'longitude'       => $school->longi,
-                'created_at'      => $school->created_at,
-                'updated_at'      => $school->updated_at,
-                'active_learners' => $activeLearners,
-                'alumni'          => $alumniCount,
-                'active_staff'    => $activeStaff,
-                'classes'         => $classArms,
-                'total_classes'   => $totalClasses,
-            ],
+            's' => $school,
             'w' => $webData ? $webData->toArray() : null,
         ];
     }
 
-    // ✅ Final response
     return response()->json([
-        "status"  => true,
-        "message" => "Success",
-        "total_records" => $totalRecords,
-        "pld"     => $pld,
+        "status"           => true,
+        "message"          => "Success",
+        "total_records"    => $totalRecords,
+        "pld"              => $pld,
     ]);
 }
-
-
 
 }
