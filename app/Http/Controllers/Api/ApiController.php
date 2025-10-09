@@ -28220,264 +28220,212 @@ class ApiController extends Controller
 
 
 
-    /**
-     * @OA\Get(
-     *     path="/api/getAllSchoolsInfo",
-     *     operationId="getAllSchoolsInfo",
-     *     tags={"Admin"},
-     *     security={{"bearerAuth":{}}},
-     *     summary="Get all schools information with pagination",
-     *     description="Returns a list of schools with details including web data, active learners, alumni, and active staff count.",
-     *
-     *     @OA\Parameter(
-     *         name="start",
-     *         in="query",
-     *         description="Pagination start index",
-     *         required=false,
-     *         @OA\Schema(type="integer", default=0)
-     *     ),
-     *     @OA\Parameter(
-     *         name="count",
-     *         in="query",
-     *         description="Number of schools to fetch",
-     *         required=false,
-     *         @OA\Schema(type="integer", default=20)
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="Successful operation",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Success"),
-     *             @OA\Property(
-     *                 property="pld",
-     *                 type="array",
-     *                 @OA\Items(
-     *                     type="object",
-     *                     @OA\Property(
-     *                         property="s",
-     *                         type="object",
-     *                         @OA\Property(property="sid", type="integer", example=12),
-     *                         @OA\Property(property="school_id", type="string", example="HGC/000012"),
-     *                         @OA\Property(property="name", type="string", example="HOLY GHOST COLLEGE"),
-     *                         @OA\Property(property="count", type="integer", example=11),
-     *                         @OA\Property(property="s_web", type="integer", example=1),
-     *                         @OA\Property(property="s_info", type="integer", example=0),
-     *                         @OA\Property(property="sbd", type="string", example="holygc"),
-     *                         @OA\Property(property="sch3", type="string", example="HGC"),
-     *                         @OA\Property(property="cssn", type="string", example="2024"),
-     *                         @OA\Property(property="ctrm", type="integer", example=3),
-     *                         @OA\Property(property="ctrmn", type="string", example="Third Term"),
-     *                         @OA\Property(property="created_at", type="string", format="date-time", example="2024-09-09T21:54:13.000000Z"),
-     *                         @OA\Property(property="updated_at", type="string", format="date-time", example="2025-07-10T16:32:41.000000Z"),
-     *                         @OA\Property(property="active_learners", type="integer", example=120),
-     *                         @OA\Property(property="alumni", type="integer", example=78),
-     *                         @OA\Property(property="active_staff", type="integer", example=22)
-     *                     ),
-     *                     @OA\Property(
-     *                         property="w",
-     *                         type="object",
-     *                         nullable=true,
-     *                         @OA\Property(property="user_id", type="integer", example=12),
-     *                         @OA\Property(property="sname", type="string", example="HOLY GHOST COLLEGE"),
-     *                         @OA\Property(property="color", type="string", example="#2e11d5"),
-     *                         @OA\Property(property="addr", type="string", example="HOLY GHOST COLLEGE, OLOKORO ROAD, UMUAHIA, ABIA STATE NIGERIA"),
-     *                         @OA\Property(property="country", type="string", example="NG"),
-     *                         @OA\Property(property="state", type="string", example="00"),
-     *                         @OA\Property(property="lga", type="string", example="15"),
-     *                         @OA\Property(property="phn", type="string", example="2348034623324"),
-     *                         @OA\Property(property="eml", type="string", example="collegeholyghost@gmail.com"),
-     *                         @OA\Property(property="vision", type="string", example="To restore the glory of education by producing Secondary School graduates who are morally disciplined, academically sound, responsible, patriotic and God fearing."),
-     *                         @OA\Property(property="values", type="string", example="To provide moral and qualitative education to young boys and girls who certainly will be the nation’s leaders of tomorrow."),
-     *                         @OA\Property(property="year", type="string", example="1946"),
-     *                         @OA\Property(property="about", type="string", example="Holy Ghost College is a boys secondary school and a government approved pace setter of excellence in learning and moral rectitude established by the catholic church."),
-     *                         @OA\Property(property="motto", type="string", example="Veritas Virtus Caritas"),
-     *                         @OA\Property(property="fb", type="string", example="https://www.facebook.com/HGCUMUAHIA?mibextid=kFxxJD"),
-     *                         @OA\Property(property="isg", type="string", example="https://www.facebook.com/HGCUMUAHIA?mibextid=kFxxJD"),
-     *                         @OA\Property(property="yt", type="string", example="https://www.facebook.com/HGCUMUAHIA?mibextid=kFxxJD"),
-     *                         @OA\Property(property="wh", type="string", example="https://www.facebook.com/HGCUMUAHIA?mibextid=kFxxJD"),
-     *                         @OA\Property(property="lkd", type="string", example="https://www.facebook.com/HGCUMUAHIA?mibextid=kFxxJD"),
-     *                         @OA\Property(property="tw", type="string", example="https://www.facebook.com/HGCUMUAHIA?mibextid=kFxxJD"),
-     *                         @OA\Property(property="created_at", type="string", format="date-time", example="2024-09-10T16:10:26.000000Z"),
-     *                         @OA\Property(property="updated_at", type="string", format="date-time", example="2024-12-25T16:10:56.000000Z")
-     *                     )
-     *                 )
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=400,
-     *         description="Bad request"
-     *     )
-     * )
-     */
-
-    // public function getAllSchoolsInfo()
-    // {
-    //     $start = request()->input('start', 0);
-    //     $count = request()->input('count', 20);
-
-    //     // Fetch schools with pagination and alphabetical order
-    //     $schools = school::orderBy('name', 'asc')
-    //         ->skip($start)
-    //         ->take($count)
-    //         ->get();
-
-    //     $pld = [];
-
-    //     foreach ($schools as $school) {
-    //         $user_id = $school->sid;
-
-    //         // Fetch web data if available
-    //         $webData = school_web_data::where('user_id', $user_id)->first();
-
-    //         // Count active learners
-    //         $activeLearners = old_student::where('schid', $user_id)
-    //             ->where('status', 'active')
-    //             ->count();
-
-    //         // Count alumni
-    //         $alumniCount = alumni::where('schid', $user_id)->count();
-
-    //         // Count active staff
-    //         $activeStaff = old_staff::where('schid', $user_id)
-    //             ->where('status', 'active')
-    //             ->count();
-
-    //         // Fetch list of classes + arms from sch_cls
-    //         $classArms = sch_cls::where('schid', $user_id)
-    //             ->get(['cls_id', 'name'])
-    //             ->groupBy('cls_id')
-    //             ->map(function ($items) {
-    //                 return $items->pluck('name')->toArray(); // arms only
-    //             })
-    //             ->toArray();
-
-    //         // Count total classes (all rows in sch_cls for the school)
-    //         $totalClasses = sch_cls::where('schid', $user_id)->count();
-
-    //         // Proper numbering code like ABJCE/000001
-    //         $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
-
-    //         $pld[] = [
-    //             's' => [
-    //                 'sid'            => $school->sid,
-    //                 'school_id'      => $schoolCode,
-    //                 'name'           => $school->name,
-    //                 'count'          => $school->count,
-    //                 's_web'          => $school->s_web,
-    //                 's_info'         => $school->s_info,
-    //                 'sbd'            => $school->sbd,
-    //                 'sch3'           => $school->sch3,
-    //                 'cssn'           => $school->cssn,
-    //                 'ctrm'           => $school->ctrm,
-    //                 'ctrmn'          => $school->ctrmn,
-    //                 'lattitude'      => $school->latt,
-    //                 'longitude'      => $school->longi,
-    //                 'created_at'     => $school->created_at,
-    //                 'updated_at'     => $school->updated_at,
-    //                 'active_learners' => $activeLearners,
-    //                 'alumni'         => $alumniCount,
-    //                 'active_staff'   => $activeStaff,
-    //                 'classes'        => $classArms,    // grouped by cls_id → list of arms
-    //                 'total_classes'  => $totalClasses, // count of all arms
-    //             ],
-    //             'w' => $webData ? $webData->toArray() : null,
-    //         ];
-    //     }
-
-    //     return response()->json([
-    //         "status"  => true,
-    //         "message" => "Success",
-    //         "pld"     => $pld,
-    //     ]);
-    // }
+/**
+ * @OA\Get(
+ *     path="/api/getAllSchoolsInfo",
+ *     summary="Get all schools information",
+ *     description="Retrieve a paginated list of schools with optional filters by state and LGA. Includes active learners, staff, alumni, and class information.",
+ *     operationId="getAllSchoolsInfo",
+ *     tags={"Admin"},
+ *      security={{"bearerAuth": {}}},
+ *
+ *     @OA\Parameter(
+ *         name="start",
+ *         in="query",
+ *         description="Starting record offset for pagination",
+ *         required=false,
+ *         @OA\Schema(type="integer", example=0)
+ *     ),
+ *     @OA\Parameter(
+ *         name="count",
+ *         in="query",
+ *         description="Number of records to retrieve per page",
+ *         required=false,
+ *         @OA\Schema(type="integer", example=20)
+ *     ),
+ *     @OA\Parameter(
+ *         name="state",
+ *         in="query",
+ *         description="Filter schools by state name",
+ *         required=false,
+ *         @OA\Schema(type="string", example="Lagos")
+ *     ),
+ *     @OA\Parameter(
+ *         name="lga",
+ *         in="query",
+ *         description="Filter schools by Local Government Area (LGA)",
+ *         required=false,
+ *         @OA\Schema(type="string", example="Ikeja")
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful response",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(
+ *                         property="s",
+ *                         type="object",
+ *                         @OA\Property(property="sid", type="integer", example=101),
+ *                         @OA\Property(property="school_id", type="string", example="SCH/0101"),
+ *                         @OA\Property(property="name", type="string", example="Queens College"),
+ *                         @OA\Property(property="count", type="integer", example=250),
+ *                         @OA\Property(property="s_web", type="string", example="queenscollege.edu.ng"),
+ *                         @OA\Property(property="s_info", type="string", example="A top Lagos secondary school"),
+ *                         @OA\Property(property="sbd", type="string", example="Public"),
+ *                         @OA\Property(property="sch3", type="string", example="QC"),
+ *                         @OA\Property(property="cssn", type="string", example="2020QC001"),
+ *                         @OA\Property(property="ctrm", type="string", example="10"),
+ *                         @OA\Property(property="ctrmn", type="string", example="25"),
+ *                         @OA\Property(property="state", type="string", example="Lagos"),
+ *                         @OA\Property(property="lga", type="string", example="Ikeja"),
+ *                         @OA\Property(property="lattitude", type="string", example="6.6018"),
+ *                         @OA\Property(property="longitude", type="string", example="3.3515"),
+ *                         @OA\Property(property="created_at", type="string", format="date-time", example="2025-10-06T12:00:00Z"),
+ *                         @OA\Property(property="updated_at", type="string", format="date-time", example="2025-10-06T12:30:00Z"),
+ *                         @OA\Property(property="active_learners", type="integer", example=350),
+ *                         @OA\Property(property="alumni", type="integer", example=220),
+ *                         @OA\Property(property="active_staff", type="integer", example=45),
+ *                         @OA\Property(
+ *                             property="classes",
+ *                             type="object",
+ *                             example={"1": {"JSS1A", "JSS1B"}, "2": {"JSS2A"}},
+ *                             description="Grouped class arms by class ID"
+ *                         ),
+ *                         @OA\Property(property="total_classes", type="integer", example=12)
+ *                     )
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=400,
+ *         description="Bad Request",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="Invalid input or parameters")
+ *         )
+ *     )
+ * )
+ */
 
 
-    public function getAllSchoolsInfo()
-    {
-        $start = request()->input('start', 0);
-        $count = request()->input('count', 20);
 
-        // Fetch schools with pagination and alphabetical order
-        $schools = school::orderBy('name', 'asc')
-            ->skip($start)
-            ->take($count)
-            ->get();
+public function getAllSchoolsInfo(Request $request)
+{
+    $start = $request->input('start', 0);
+    $count = $request->input('count', 20);
+    $state = $request->input('state'); // ✅ optional filter by state
+    $lga   = $request->input('lga');   // ✅ optional filter by lga
 
-        $pld = [];
+    // 🔹 Start query and join with school_web_data to access state + lga
+    $query = DB::table('school as s')
+        ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id')
+        ->select(
+            's.*',
+            'sw.state',
+            'sw.lga'
+        );
 
-        foreach ($schools as $school) {
-            $user_id = $school->sid;
-
-            // Fetch web data if available
-            $webData = school_web_data::where('user_id', $user_id)->first();
-
-            // ✅ Count active learners without duplicates
-            $activeLearners = old_student::where('schid', $user_id)
-                ->where('status', 'active')
-                ->distinct('sid')   // ensures no duplicate student counted
-                ->count('sid');     // count unique sid only
-
-            // Count alumni
-            $alumniCount = alumni::where('schid', $user_id)->count();
-
-            // Count active staff
-            $activeStaff = old_staff::where('schid', $user_id)
-                ->where('status', 'active')
-                ->distinct('sid')   // just in case staff also repeats
-                ->count('sid');
-
-            // Fetch list of classes + arms from sch_cls
-            $classArms = sch_cls::where('schid', $user_id)
-                ->get(['cls_id', 'name'])
-                ->groupBy('cls_id')
-                ->map(function ($items) {
-                    return $items->pluck('name')->toArray(); // arms only
-                })
-                ->toArray();
-
-            // Count total classes (all rows in sch_cls for the school)
-            $totalClasses = sch_cls::where('schid', $user_id)->count();
-
-            // Proper numbering code like ABJCE/000001
-            $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
-
-            $pld[] = [
-                's' => [
-                    'sid'            => $school->sid,
-                    'school_id'      => $schoolCode,
-                    'name'           => $school->name,
-                    'count'          => $school->count,
-                    's_web'          => $school->s_web,
-                    's_info'         => $school->s_info,
-                    'sbd'            => $school->sbd,
-                    'sch3'           => $school->sch3,
-                    'cssn'           => $school->cssn,
-                    'ctrm'           => $school->ctrm,
-                    'ctrmn'          => $school->ctrmn,
-                    'lattitude'      => $school->latt,
-                    'longitude'      => $school->longi,
-                    'created_at'     => $school->created_at,
-                    'updated_at'     => $school->updated_at,
-                    'active_learners' => $activeLearners,
-                    'alumni'         => $alumniCount,
-                    'active_staff'   => $activeStaff,
-                    'classes'        => $classArms,    // grouped by cls_id → list of arms
-                    'total_classes'  => $totalClasses, // count of all arms
-                ],
-                'w' => $webData ? $webData->toArray() : null,
-            ];
-        }
-
-        return response()->json([
-            "status"  => true,
-            "message" => "Success",
-            "pld"     => $pld,
-        ]);
+    // 🔸 Apply optional filters
+    if (!empty($state)) {
+        $query->where('sw.state', $state);
     }
+
+    if (!empty($lga)) {
+        $query->where('sw.lga', $lga);
+    }
+
+    // 🔹 Pagination + order
+    $schools = $query->orderBy('s.name', 'asc')
+        ->skip($start)
+        ->take($count)
+        ->get();
+
+    $pld = [];
+
+    foreach ($schools as $school) {
+        $user_id = $school->sid;
+
+        // ✅ Count active learners without duplicates
+        $activeLearners = DB::table('old_student')
+            ->where('schid', $user_id)
+            ->where('status', 'active')
+            ->distinct('sid')
+            ->count('sid');
+
+        // ✅ FIXED: table name should be 'alumnis'
+        $alumniCount = DB::table('alumnis')
+            ->where('schid', $user_id)
+            ->count();
+
+        // ✅ Count active staff
+        $activeStaff = DB::table('old_staff')
+            ->where('schid', $user_id)
+            ->where('status', 'active')
+            ->distinct('sid')
+            ->count('sid');
+
+        // ✅ Fetch list of class arms grouped by cls_id
+        $classArms = DB::table('sch_cls')
+            ->where('schid', $user_id)
+            ->get(['cls_id', 'name'])
+            ->groupBy('cls_id')
+            ->map(fn($items) => $items->pluck('name')->toArray())
+            ->toArray();
+
+        // ✅ Count total classes
+        $totalClasses = DB::table('sch_cls')
+            ->where('schid', $user_id)
+            ->count();
+
+        // ✅ Proper school code
+        $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
+
+        $pld[] = [
+            's' => [
+                'sid'             => $school->sid,
+                'school_id'       => $schoolCode,
+                'name'            => $school->name,
+                'count'           => $school->count,
+                's_web'           => $school->s_web,
+                's_info'          => $school->s_info,
+                'sbd'             => $school->sbd,
+                'sch3'            => $school->sch3,
+                'cssn'            => $school->cssn,
+                'ctrm'            => $school->ctrm,
+                'ctrmn'           => $school->ctrmn,
+                'state'           => $school->state ?? 'N/A',
+                'lga'             => $school->lga ?? 'N/A',
+                'lattitude'       => $school->latt,
+                'longitude'       => $school->longi,
+                'created_at'      => $school->created_at,
+                'updated_at'      => $school->updated_at,
+                'active_learners' => $activeLearners,
+                'alumni'          => $alumniCount,
+                'active_staff'    => $activeStaff,
+                'classes'         => $classArms,
+                'total_classes'   => $totalClasses,
+            ],
+        ];
+    }
+
+    return response()->json([
+        "status"  => true,
+        "message" => "Success",
+        "pld"     => $pld,
+    ]);
+}
+
 
 
 

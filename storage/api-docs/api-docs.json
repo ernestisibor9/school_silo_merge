@@ -22837,34 +22837,54 @@
                 "tags": [
                     "Admin"
                 ],
-                "summary": "Get all schools information with pagination",
-                "description": "Returns a list of schools with details including web data, active learners, alumni, and active staff count.",
+                "summary": "Get all schools information",
+                "description": "Retrieve a paginated list of schools with optional filters by state and LGA. Includes active learners, staff, alumni, and class information.",
                 "operationId": "getAllSchoolsInfo",
                 "parameters": [
                     {
                         "name": "start",
                         "in": "query",
-                        "description": "Pagination start index",
+                        "description": "Starting record offset for pagination",
                         "required": false,
                         "schema": {
                             "type": "integer",
-                            "default": 0
+                            "example": 0
                         }
                     },
                     {
                         "name": "count",
                         "in": "query",
-                        "description": "Number of schools to fetch",
+                        "description": "Number of records to retrieve per page",
                         "required": false,
                         "schema": {
                             "type": "integer",
-                            "default": 20
+                            "example": 20
+                        }
+                    },
+                    {
+                        "name": "state",
+                        "in": "query",
+                        "description": "Filter schools by state name",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "Lagos"
+                        }
+                    },
+                    {
+                        "name": "lga",
+                        "in": "query",
+                        "description": "Filter schools by Local Government Area (LGA)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "Ikeja"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Successful operation",
+                        "description": "Successful response",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -22885,168 +22905,105 @@
                                                         "properties": {
                                                             "sid": {
                                                                 "type": "integer",
-                                                                "example": 12
+                                                                "example": 101
                                                             },
                                                             "school_id": {
                                                                 "type": "string",
-                                                                "example": "HGC/000012"
+                                                                "example": "SCH/0101"
                                                             },
                                                             "name": {
                                                                 "type": "string",
-                                                                "example": "HOLY GHOST COLLEGE"
+                                                                "example": "Queens College"
                                                             },
                                                             "count": {
                                                                 "type": "integer",
-                                                                "example": 11
+                                                                "example": 250
                                                             },
                                                             "s_web": {
-                                                                "type": "integer",
-                                                                "example": 1
+                                                                "type": "string",
+                                                                "example": "queenscollege.edu.ng"
                                                             },
                                                             "s_info": {
-                                                                "type": "integer",
-                                                                "example": 0
+                                                                "type": "string",
+                                                                "example": "A top Lagos secondary school"
                                                             },
                                                             "sbd": {
                                                                 "type": "string",
-                                                                "example": "holygc"
+                                                                "example": "Public"
                                                             },
                                                             "sch3": {
                                                                 "type": "string",
-                                                                "example": "HGC"
+                                                                "example": "QC"
                                                             },
                                                             "cssn": {
                                                                 "type": "string",
-                                                                "example": "2024"
+                                                                "example": "2020QC001"
                                                             },
                                                             "ctrm": {
-                                                                "type": "integer",
-                                                                "example": 3
+                                                                "type": "string",
+                                                                "example": "10"
                                                             },
                                                             "ctrmn": {
                                                                 "type": "string",
-                                                                "example": "Third Term"
-                                                            },
-                                                            "created_at": {
-                                                                "type": "string",
-                                                                "format": "date-time",
-                                                                "example": "2024-09-09T21:54:13.000000Z"
-                                                            },
-                                                            "updated_at": {
-                                                                "type": "string",
-                                                                "format": "date-time",
-                                                                "example": "2025-07-10T16:32:41.000000Z"
-                                                            },
-                                                            "active_learners": {
-                                                                "type": "integer",
-                                                                "example": 120
-                                                            },
-                                                            "alumni": {
-                                                                "type": "integer",
-                                                                "example": 78
-                                                            },
-                                                            "active_staff": {
-                                                                "type": "integer",
-                                                                "example": 22
-                                                            }
-                                                        },
-                                                        "type": "object"
-                                                    },
-                                                    "w": {
-                                                        "properties": {
-                                                            "user_id": {
-                                                                "type": "integer",
-                                                                "example": 12
-                                                            },
-                                                            "sname": {
-                                                                "type": "string",
-                                                                "example": "HOLY GHOST COLLEGE"
-                                                            },
-                                                            "color": {
-                                                                "type": "string",
-                                                                "example": "#2e11d5"
-                                                            },
-                                                            "addr": {
-                                                                "type": "string",
-                                                                "example": "HOLY GHOST COLLEGE, OLOKORO ROAD, UMUAHIA, ABIA STATE NIGERIA"
-                                                            },
-                                                            "country": {
-                                                                "type": "string",
-                                                                "example": "NG"
+                                                                "example": "25"
                                                             },
                                                             "state": {
                                                                 "type": "string",
-                                                                "example": "00"
+                                                                "example": "Lagos"
                                                             },
                                                             "lga": {
                                                                 "type": "string",
-                                                                "example": "15"
+                                                                "example": "Ikeja"
                                                             },
-                                                            "phn": {
+                                                            "lattitude": {
                                                                 "type": "string",
-                                                                "example": "2348034623324"
+                                                                "example": "6.6018"
                                                             },
-                                                            "eml": {
+                                                            "longitude": {
                                                                 "type": "string",
-                                                                "example": "collegeholyghost@gmail.com"
-                                                            },
-                                                            "vision": {
-                                                                "type": "string",
-                                                                "example": "To restore the glory of education by producing Secondary School graduates who are morally disciplined, academically sound, responsible, patriotic and God fearing."
-                                                            },
-                                                            "values": {
-                                                                "type": "string",
-                                                                "example": "To provide moral and qualitative education to young boys and girls who certainly will be the nation’s leaders of tomorrow."
-                                                            },
-                                                            "year": {
-                                                                "type": "string",
-                                                                "example": "1946"
-                                                            },
-                                                            "about": {
-                                                                "type": "string",
-                                                                "example": "Holy Ghost College is a boys secondary school and a government approved pace setter of excellence in learning and moral rectitude established by the catholic church."
-                                                            },
-                                                            "motto": {
-                                                                "type": "string",
-                                                                "example": "Veritas Virtus Caritas"
-                                                            },
-                                                            "fb": {
-                                                                "type": "string",
-                                                                "example": "https://www.facebook.com/HGCUMUAHIA?mibextid=kFxxJD"
-                                                            },
-                                                            "isg": {
-                                                                "type": "string",
-                                                                "example": "https://www.facebook.com/HGCUMUAHIA?mibextid=kFxxJD"
-                                                            },
-                                                            "yt": {
-                                                                "type": "string",
-                                                                "example": "https://www.facebook.com/HGCUMUAHIA?mibextid=kFxxJD"
-                                                            },
-                                                            "wh": {
-                                                                "type": "string",
-                                                                "example": "https://www.facebook.com/HGCUMUAHIA?mibextid=kFxxJD"
-                                                            },
-                                                            "lkd": {
-                                                                "type": "string",
-                                                                "example": "https://www.facebook.com/HGCUMUAHIA?mibextid=kFxxJD"
-                                                            },
-                                                            "tw": {
-                                                                "type": "string",
-                                                                "example": "https://www.facebook.com/HGCUMUAHIA?mibextid=kFxxJD"
+                                                                "example": "3.3515"
                                                             },
                                                             "created_at": {
                                                                 "type": "string",
                                                                 "format": "date-time",
-                                                                "example": "2024-09-10T16:10:26.000000Z"
+                                                                "example": "2025-10-06T12:00:00Z"
                                                             },
                                                             "updated_at": {
                                                                 "type": "string",
                                                                 "format": "date-time",
-                                                                "example": "2024-12-25T16:10:56.000000Z"
+                                                                "example": "2025-10-06T12:30:00Z"
+                                                            },
+                                                            "active_learners": {
+                                                                "type": "integer",
+                                                                "example": 350
+                                                            },
+                                                            "alumni": {
+                                                                "type": "integer",
+                                                                "example": 220
+                                                            },
+                                                            "active_staff": {
+                                                                "type": "integer",
+                                                                "example": 45
+                                                            },
+                                                            "classes": {
+                                                                "description": "Grouped class arms by class ID",
+                                                                "type": "object",
+                                                                "example": {
+                                                                    "1": [
+                                                                        "JSS1A",
+                                                                        "JSS1B"
+                                                                    ],
+                                                                    "2": [
+                                                                        "JSS2A"
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "total_classes": {
+                                                                "type": "integer",
+                                                                "example": 12
                                                             }
                                                         },
-                                                        "type": "object",
-                                                        "nullable": true
+                                                        "type": "object"
                                                     }
                                                 },
                                                 "type": "object"
@@ -23059,7 +23016,24 @@
                         }
                     },
                     "400": {
-                        "description": "Bad request"
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid input or parameters"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
