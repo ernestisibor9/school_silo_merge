@@ -25392,6 +25392,403 @@
                     }
                 ]
             }
+        },
+        "/api/getStaffsEnrollmentInfo": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get staff employment information for all schools",
+                "description": "Fetches employment data for all schools including staff count, gender summary, and job role distribution. Supports filtering by state and LGA, and includes pagination.",
+                "operationId": "getStaffEmploymentInfo",
+                "parameters": [
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Pagination start index (default: 0)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 0
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "Number of records to retrieve (default: 20)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 20
+                        }
+                    },
+                    {
+                        "name": "state",
+                        "in": "query",
+                        "description": "Filter schools by state (optional)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "Lagos"
+                        }
+                    },
+                    {
+                        "name": "lga",
+                        "in": "query",
+                        "description": "Filter schools by local government area (optional)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "Ikeja"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "total_records": {
+                                            "type": "integer",
+                                            "example": 154
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "s": {
+                                                        "properties": {
+                                                            "sid": {
+                                                                "type": "integer",
+                                                                "example": 12
+                                                            },
+                                                            "school_id": {
+                                                                "type": "string",
+                                                                "example": "ABJCE/0012"
+                                                            },
+                                                            "name": {
+                                                                "type": "string",
+                                                                "example": "Springfield Academy"
+                                                            },
+                                                            "s_info": {
+                                                                "type": "string",
+                                                                "example": "Leading secondary school in Lagos"
+                                                            },
+                                                            "sch3": {
+                                                                "type": "string",
+                                                                "example": "ABJCE"
+                                                            },
+                                                            "country": {
+                                                                "type": "string",
+                                                                "example": "Nigeria"
+                                                            },
+                                                            "state": {
+                                                                "type": "string",
+                                                                "example": "Lagos"
+                                                            },
+                                                            "lga": {
+                                                                "type": "string",
+                                                                "example": "Ikeja"
+                                                            },
+                                                            "total_staff": {
+                                                                "type": "integer",
+                                                                "example": 50
+                                                            },
+                                                            "active_staff": {
+                                                                "type": "integer",
+                                                                "example": 45
+                                                            },
+                                                            "inactive_staff": {
+                                                                "type": "integer",
+                                                                "example": 5
+                                                            },
+                                                            "gender_summary": {
+                                                                "properties": {
+                                                                    "male": {
+                                                                        "type": "integer",
+                                                                        "example": 30
+                                                                    },
+                                                                    "female": {
+                                                                        "type": "integer",
+                                                                        "example": 20
+                                                                    },
+                                                                    "total": {
+                                                                        "type": "integer",
+                                                                        "example": 50
+                                                                    }
+                                                                },
+                                                                "type": "object"
+                                                            },
+                                                            "role_summary": {
+                                                                "type": "object",
+                                                                "example": {
+                                                                    "teacher": 40,
+                                                                    "principal": 1,
+                                                                    "admin": 9
+                                                                }
+                                                            },
+                                                            "created_at": {
+                                                                "type": "string",
+                                                                "format": "date-time",
+                                                                "example": "2025-01-03T12:00:00Z"
+                                                            },
+                                                            "updated_at": {
+                                                                "type": "string",
+                                                                "format": "date-time",
+                                                                "example": "2025-03-10T10:15:00Z"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    },
+                                                    "w": {
+                                                        "properties": {
+                                                            "user_id": {
+                                                                "type": "integer",
+                                                                "example": 12
+                                                            },
+                                                            "school_name": {
+                                                                "type": "string",
+                                                                "example": "Springfield Academy"
+                                                            },
+                                                            "address": {
+                                                                "type": "string",
+                                                                "example": "12 Broad Street, Ikeja, Lagos"
+                                                            },
+                                                            "state": {
+                                                                "type": "string",
+                                                                "example": "Lagos"
+                                                            },
+                                                            "lga": {
+                                                                "type": "string",
+                                                                "example": "Ikeja"
+                                                            },
+                                                            "email": {
+                                                                "type": "string",
+                                                                "example": "info@springfieldacademy.ng"
+                                                            },
+                                                            "phone": {
+                                                                "type": "string",
+                                                                "example": "+2348123456789"
+                                                            },
+                                                            "website": {
+                                                                "type": "string",
+                                                                "example": "https://springfieldacademy.ng"
+                                                            },
+                                                            "created_at": {
+                                                                "type": "string",
+                                                                "format": "date-time",
+                                                                "example": "2024-12-20T08:45:00Z"
+                                                            },
+                                                            "updated_at": {
+                                                                "type": "string",
+                                                                "format": "date-time",
+                                                                "example": "2025-01-15T09:30:00Z"
+                                                            }
+                                                        },
+                                                        "type": "object",
+                                                        "nullable": true
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request parameters"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/getStaffsEnrollmentInfoGender": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get staff enrollment information filtered by gender, state, and LGA",
+                "description": "Retrieves staff enrollment data with optional filters for state, LGA, and gender, including pagination support.",
+                "operationId": "getStaffsEnrollmentInfoGender",
+                "parameters": [
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Starting index for pagination (default: 0)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 0
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "Number of records to fetch (default: 20)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 20
+                        }
+                    },
+                    {
+                        "name": "state",
+                        "in": "query",
+                        "description": "Filter by school state",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "Lagos"
+                        }
+                    },
+                    {
+                        "name": "lga",
+                        "in": "query",
+                        "description": "Filter by school LGA",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "Ikeja"
+                        }
+                    },
+                    {
+                        "name": "gender",
+                        "in": "query",
+                        "description": "Filter by staff gender ('M' or 'F')",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "M",
+                                "F"
+                            ],
+                            "example": "F"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Staff enrollment data retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "total_records": {
+                                            "type": "integer",
+                                            "example": 120
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "staff_id": {
+                                                        "type": "string",
+                                                        "example": "STF0012"
+                                                    },
+                                                    "fname": {
+                                                        "type": "string",
+                                                        "example": "John"
+                                                    },
+                                                    "mname": {
+                                                        "type": "string",
+                                                        "example": "A."
+                                                    },
+                                                    "lname": {
+                                                        "type": "string",
+                                                        "example": "Doe"
+                                                    },
+                                                    "role": {
+                                                        "type": "string",
+                                                        "example": "Teacher"
+                                                    },
+                                                    "status": {
+                                                        "type": "string",
+                                                        "example": "active"
+                                                    },
+                                                    "dob": {
+                                                        "type": "string",
+                                                        "format": "date",
+                                                        "example": "1988-05-12"
+                                                    },
+                                                    "gender": {
+                                                        "type": "string",
+                                                        "example": "M"
+                                                    },
+                                                    "staff_state": {
+                                                        "type": "string",
+                                                        "example": "Ogun"
+                                                    },
+                                                    "staff_lga": {
+                                                        "type": "string",
+                                                        "example": "Abeokuta"
+                                                    },
+                                                    "school_country": {
+                                                        "type": "string",
+                                                        "example": "Nigeria"
+                                                    },
+                                                    "school_state": {
+                                                        "type": "string",
+                                                        "example": "Lagos"
+                                                    },
+                                                    "school_lga": {
+                                                        "type": "string",
+                                                        "example": "Ikeja"
+                                                    },
+                                                    "school_name": {
+                                                        "type": "string",
+                                                        "example": "Bright Future Academy"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request or parameters"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
