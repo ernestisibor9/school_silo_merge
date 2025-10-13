@@ -30868,91 +30868,95 @@ class ApiController extends Controller
      */
 
 
-    public function getLearnersEnrollmentInfoGender(Request $request)
-    {
-        $start = $request->input('start', 0);
-        $count = $request->input('count', 20);
-        $state = $request->input('state');
-        $lga   = $request->input('lga');
-        $gender = $request->input('gender'); // 'M' or 'F'
+public function getLearnersEnrollmentInfoGender(Request $request)
+{
+    $start = $request->input('start', 0);
+    $count = $request->input('count', 20);
+    $state = $request->input('state');
+    $lga   = $request->input('lga');
+    $gender = $request->input('gender'); // 'M' or 'F'
 
-        // ✅ Build base query
-        $query = DB::table('old_student as os')
-            ->join('student_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
-            ->join('school as sc', 'os.schid', '=', 'sc.sid')
-            ->join('school_web_data as swd', 'sc.sid', '=', 'swd.user_id')
-            ->join('cls as c', 'os.clsm', '=', 'c.id') // ✅ Join class table
-            ->select(
-                'os.suid as student_id', // ✅ suid is now the student ID
-                'os.fname',
-                'os.mname',
-                'os.lname',
-                'sbd.dob',
-                'sbd.sex as gender',
-                'sbd.state as student_state',
-                'sbd.lga as student_lga',
-                'swd.country as school_country',
-                'swd.state as school_state',
-                'swd.lga as school_lga',
-                'os.clsa as class_arm',
-                'c.name as class_name',
-                'sc.name as school_name'
-            )
-            ->where('os.status', 'active');
+    // ✅ Build base query
+    $query = DB::table('old_student as os')
+        ->join('student_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
+        ->join('school as sc', 'os.schid', '=', 'sc.sid')
+        ->join('school_web_data as swd', 'sc.sid', '=', 'swd.user_id')
+        ->join('cls as c', 'os.clsm', '=', 'c.id') // class name
+        ->join('sch_cls as scl', 'os.clsa', '=', 'scl.id') // ✅ join to get class arm name
+        ->select(
+            'os.suid as student_id',
+            'os.fname',
+            'os.mname',
+            'os.lname',
+            'sbd.dob',
+            'sbd.sex as gender',
+            'sbd.state as student_state',
+            'sbd.lga as student_lga',
+            'swd.country as school_country',
+            'swd.state as school_state',
+            'swd.lga as school_lga',
+            'c.name as class_name',
+            'scl.name as class_arm_name', // ✅ new field
+            'sc.name as school_name'
+        )
+        ->where('os.status', 'active');
 
-        // ✅ Apply filters
-        if (!empty($state)) {
-            $query->where('swd.state', $state);
-        }
+    // ✅ Apply filters
+    if (!empty($state)) {
+        $query->where('swd.state', $state);
+    }
 
-        if (!empty($lga)) {
-            $query->where('swd.lga', $lga);
-        }
+    if (!empty($lga)) {
+        $query->where('swd.lga', $lga);
+    }
 
-        if (!empty($gender)) {
-            $query->where('sbd.sex', $gender);
-        }
+    if (!empty($gender)) {
+        $query->where('sbd.sex', $gender);
+    }
 
-        // ✅ Get total records before pagination
-        $totalRecords = $query->count();
+    // ✅ Get total records before pagination
+    $totalRecords = $query->count(DB::raw('DISTINCT os.suid'));
 
-        // ✅ Fetch paginated data
-        $students = $query->orderBy('os.lname', 'asc')
-            ->skip($start)
-            ->take($count)
-            ->get();
+    // ✅ Fetch paginated distinct records
+    $students = $query
+        ->distinct('os.suid')
+        ->orderBy('os.lname', 'asc')
+        ->skip($start)
+        ->take($count)
+        ->get();
 
-        // ✅ Format DOBs (handle milliseconds timestamps)
-        foreach ($students as $student) {
-            $dob = null;
+    // ✅ Format DOBs
+    foreach ($students as $student) {
+        $dob = null;
 
-            if (!empty($student->dob)) {
-                if (is_numeric($student->dob)) {
-                    try {
-                        $dob = \Carbon\Carbon::createFromTimestamp($student->dob / 1000)->format('Y-m-d');
-                    } catch (\Exception $e) {
-                        $dob = null;
-                    }
-                } else {
-                    try {
-                        $dob = \Carbon\Carbon::parse($student->dob)->format('Y-m-d');
-                    } catch (\Exception $e) {
-                        $dob = null;
-                    }
+        if (!empty($student->dob)) {
+            if (is_numeric($student->dob)) {
+                try {
+                    $dob = \Carbon\Carbon::createFromTimestamp($student->dob / 1000)->format('Y-m-d');
+                } catch (\Exception $e) {
+                    $dob = null;
+                }
+            } else {
+                try {
+                    $dob = \Carbon\Carbon::parse($student->dob)->format('Y-m-d');
+                } catch (\Exception $e) {
+                    $dob = null;
                 }
             }
-
-            $student->dob = $dob;
         }
 
-        // ✅ Return JSON response
-        return response()->json([
-            'status' => true,
-            'message' => 'Success',
-            'total_records' => $totalRecords,
-            'pld' => $students
-        ]);
+        $student->dob = $dob;
     }
+
+    // ✅ Return response
+    return response()->json([
+        'status' => true,
+        'message' => 'Success',
+        'total_records' => $totalRecords,
+        'pld' => $students
+    ]);
+}
+
 
     /**
      * @OA\Get(
