@@ -25789,6 +25789,230 @@
                     }
                 ]
             }
+        },
+        "/api/getLearnersStaffRatioInfo": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Fetch Learners-to-Staff Ratio Information",
+                "description": "Retrieve detailed learners, staff, and gender ratio information for schools within a specified location and academic session.",
+                "operationId": "getLearnersStaffRatioInfo",
+                "parameters": [
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Pagination start offset (default: 0)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 0
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "Number of records to retrieve per page (default: 20)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 20
+                        }
+                    },
+                    {
+                        "name": "state",
+                        "in": "query",
+                        "description": "Filter by state name",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "Abia"
+                        }
+                    },
+                    {
+                        "name": "lga",
+                        "in": "query",
+                        "description": "Filter by local government area",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "Umuahia"
+                        }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "query",
+                        "description": "Academic session identifier (required)",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "2024/2025"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                },
+                                "example": {
+                                    "status": true,
+                                    "message": "Success",
+                                    "total_records": 2,
+                                    "pld": [
+                                        {
+                                            "sid": "12",
+                                            "school_id": "HGC/0012",
+                                            "school_name": "HOLY GHOST COLLEGE",
+                                            "school_country": "NG",
+                                            "school_state": "Abia",
+                                            "school_lga": "Umuahia",
+                                            "active_learners": 250,
+                                            "alumni": 45,
+                                            "active_staff": 20,
+                                            "inactive_staff": 0,
+                                            "total_staff": 20,
+                                            "total_classes": 12,
+                                            "classes": {
+                                                "1": [
+                                                    "JSS1A",
+                                                    "JSS1B"
+                                                ],
+                                                "2": [
+                                                    "SS1A",
+                                                    "SS1B"
+                                                ]
+                                            },
+                                            "student_gender_summary": {
+                                                "active": {
+                                                    "male": 120,
+                                                    "female": 130,
+                                                    "total": 250
+                                                },
+                                                "alumni": {
+                                                    "male": 20,
+                                                    "female": 25,
+                                                    "total": 45
+                                                }
+                                            },
+                                            "staff_gender_summary": {
+                                                "active": {
+                                                    "male": 11,
+                                                    "female": 9,
+                                                    "total": 20
+                                                },
+                                                "inactive": {
+                                                    "male": 0,
+                                                    "female": 0,
+                                                    "total": 0
+                                                },
+                                                "overall_total": 20
+                                            },
+                                            "web_data": {
+                                                "address": "HOLY GHOST COLLEGE, OLOKORO ROAD, UMUAHIA, ABIA STATE NIGERIA",
+                                                "phone": "2348034623324",
+                                                "email": "collegeholyghost@gmail.com",
+                                                "about": "N/A"
+                                            }
+                                        },
+                                        {
+                                            "sid": "13",
+                                            "school_id": "HRS/0013",
+                                            "school_name": "HOLY ROSARY SECONDARY SCHOOL",
+                                            "school_country": "NG",
+                                            "school_state": "Abia",
+                                            "school_lga": "Umuahia",
+                                            "active_learners": 300,
+                                            "alumni": 80,
+                                            "active_staff": 28,
+                                            "inactive_staff": 0,
+                                            "total_staff": 28,
+                                            "total_classes": 15,
+                                            "classes": {
+                                                "1": [
+                                                    "JSS2A",
+                                                    "JSS2B"
+                                                ],
+                                                "2": [
+                                                    "SS2A",
+                                                    "SS2B"
+                                                ]
+                                            },
+                                            "student_gender_summary": {
+                                                "active": {
+                                                    "male": 150,
+                                                    "female": 150,
+                                                    "total": 300
+                                                },
+                                                "alumni": {
+                                                    "male": 40,
+                                                    "female": 40,
+                                                    "total": 80
+                                                }
+                                            },
+                                            "staff_gender_summary": {
+                                                "active": {
+                                                    "male": 13,
+                                                    "female": 15,
+                                                    "total": 28
+                                                },
+                                                "inactive": {
+                                                    "male": 0,
+                                                    "female": 0,
+                                                    "total": 0
+                                                },
+                                                "overall_total": 28
+                                            },
+                                            "web_data": {
+                                                "address": "Ugunchara Umuahia, Abia State.",
+                                                "phone": "2348038956484",
+                                                "email": "hrssu22@gmail.com",
+                                                "about": "N/A"
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid Request Parameters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                },
+                                "example": {
+                                    "status": false,
+                                    "message": "Invalid or missing parameters"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                },
+                                "example": {
+                                    "status": false,
+                                    "message": "An unexpected error occurred"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {

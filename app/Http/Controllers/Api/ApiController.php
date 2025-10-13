@@ -31506,4 +31506,405 @@ public function getStaffsEnrollmentInfoGender(Request $request)
 
 
 
+
+
+
+/**
+ * @OA\Get(
+ *     path="/api/getLearnersStaffRatioInfo",
+ *     tags={"Admin"},
+ *    operationId="getLearnersStaffRatioInfo",
+ *   security={{"bearerAuth":{}}},
+ *     summary="Fetch Learners-to-Staff Ratio Information",
+ *     description="Retrieve detailed learners, staff, and gender ratio information for schools within a specified location and academic session.",
+ *
+ *     @OA\Parameter(
+ *         name="start",
+ *         in="query",
+ *         required=false,
+ *         description="Pagination start offset (default: 0)",
+ *         @OA\Schema(type="integer", example=0)
+ *     ),
+ *     @OA\Parameter(
+ *         name="count",
+ *         in="query",
+ *         required=false,
+ *         description="Number of records to retrieve per page (default: 20)",
+ *         @OA\Schema(type="integer", example=20)
+ *     ),
+ *     @OA\Parameter(
+ *         name="state",
+ *         in="query",
+ *         required=false,
+ *         description="Filter by state name",
+ *         @OA\Schema(type="string", example="Abia")
+ *     ),
+ *     @OA\Parameter(
+ *         name="lga",
+ *         in="query",
+ *         required=false,
+ *         description="Filter by local government area",
+ *         @OA\Schema(type="string", example="Umuahia")
+ *     ),
+ *     @OA\Parameter(
+ *         name="ssn",
+ *         in="query",
+ *         required=true,
+ *         description="Academic session identifier (required)",
+ *         @OA\Schema(type="string", example="2024/2025")
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful Response",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             example={
+ *                 "status": true,
+ *                 "message": "Success",
+ *                 "total_records": 2,
+ *                 "pld": {
+ *                     {
+ *                         "sid": "12",
+ *                         "school_id": "HGC/0012",
+ *                         "school_name": "HOLY GHOST COLLEGE",
+ *                         "school_country": "NG",
+ *                         "school_state": "Abia",
+ *                         "school_lga": "Umuahia",
+ *                         "active_learners": 250,
+ *                         "alumni": 45,
+ *                         "active_staff": 20,
+ *                         "inactive_staff": 0,
+ *                         "total_staff": 20,
+ *                         "total_classes": 12,
+ *                         "classes": {
+ *                             "1": {"JSS1A", "JSS1B"},
+ *                             "2": {"SS1A", "SS1B"}
+ *                         },
+ *                         "student_gender_summary": {
+ *                             "active": {
+ *                                 "male": 120,
+ *                                 "female": 130,
+ *                                 "total": 250
+ *                             },
+ *                             "alumni": {
+ *                                 "male": 20,
+ *                                 "female": 25,
+ *                                 "total": 45
+ *                             }
+ *                         },
+ *                         "staff_gender_summary": {
+ *                             "active": {
+ *                                 "male": 11,
+ *                                 "female": 9,
+ *                                 "total": 20
+ *                             },
+ *                             "inactive": {
+ *                                 "male": 0,
+ *                                 "female": 0,
+ *                                 "total": 0
+ *                             },
+ *                             "overall_total": 20
+ *                         },
+ *                         "web_data": {
+ *                             "address": "HOLY GHOST COLLEGE, OLOKORO ROAD, UMUAHIA, ABIA STATE NIGERIA",
+ *                             "phone": "2348034623324",
+ *                             "email": "collegeholyghost@gmail.com",
+ *                             "about": "N/A"
+ *                         }
+ *                     },
+ *                     {
+ *                         "sid": "13",
+ *                         "school_id": "HRS/0013",
+ *                         "school_name": "HOLY ROSARY SECONDARY SCHOOL",
+ *                         "school_country": "NG",
+ *                         "school_state": "Abia",
+ *                         "school_lga": "Umuahia",
+ *                         "active_learners": 300,
+ *                         "alumni": 80,
+ *                         "active_staff": 28,
+ *                         "inactive_staff": 0,
+ *                         "total_staff": 28,
+ *                         "total_classes": 15,
+ *                         "classes": {
+ *                             "1": {"JSS2A", "JSS2B"},
+ *                             "2": {"SS2A", "SS2B"}
+ *                         },
+ *                         "student_gender_summary": {
+ *                             "active": {
+ *                                 "male": 150,
+ *                                 "female": 150,
+ *                                 "total": 300
+ *                             },
+ *                             "alumni": {
+ *                                 "male": 40,
+ *                                 "female": 40,
+ *                                 "total": 80
+ *                             }
+ *                         },
+ *                         "staff_gender_summary": {
+ *                             "active": {
+ *                                 "male": 13,
+ *                                 "female": 15,
+ *                                 "total": 28
+ *                             },
+ *                             "inactive": {
+ *                                 "male": 0,
+ *                                 "female": 0,
+ *                                 "total": 0
+ *                             },
+ *                             "overall_total": 28
+ *                         },
+ *                         "web_data": {
+ *                             "address": "Ugunchara Umuahia, Abia State.",
+ *                             "phone": "2348038956484",
+ *                             "email": "hrssu22@gmail.com",
+ *                             "about": "N/A"
+ *                         }
+ *                     }
+ *                 }
+ *             }
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=400,
+ *         description="Invalid Request Parameters",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             example={
+ *                 "status": false,
+ *                 "message": "Invalid or missing parameters"
+ *             }
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=500,
+ *         description="Internal Server Error",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             example={
+ *                 "status": false,
+ *                 "message": "An unexpected error occurred"
+ *             }
+ *         )
+ *     )
+ * )
+ */
+
+public function getLearnersStaffRatioInfo(Request $request)
+{
+    $start = $request->input('start', 0);
+    $count = $request->input('count', 20);
+    $state = $request->input('state');
+    $lga   = $request->input('lga');
+    $ssn   = $request->input('ssn'); // academic session (required)
+
+    // 🔹 Base query for schools
+    $query = DB::table('school as s')
+        ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id')
+        ->select('s.*', 'sw.state as web_state', 'sw.lga as web_lga', 'sw.country as web_country');
+
+    if (!empty($state)) {
+        $query->where('sw.state', $state);
+    }
+
+    if (!empty($lga)) {
+        $query->where('sw.lga', $lga);
+    }
+
+    $totalRecords = $query->count();
+
+    // 🔹 Pagination
+    $schools = $query->orderBy('s.name', 'asc')
+        ->skip($start)
+        ->take($count)
+        ->get();
+
+    $pld = [];
+
+    foreach ($schools as $school) {
+        $schoolId = $school->sid;
+
+        /**
+         * ===========================
+         * ✅ STUDENT SECTION
+         * ===========================
+         */
+        $activeLearners = DB::table('old_student')
+            ->where('schid', $schoolId)
+            ->where('status', 'active')
+            ->where('ssn', $ssn)
+            ->distinct('sid')
+            ->count('sid');
+
+        $alumniCount = DB::table('alumnis')
+            ->where('schid', $schoolId)
+            ->count();
+
+        $activeStudentIds = DB::table('old_student')
+            ->where('schid', $schoolId)
+            ->where('status', 'active')
+            ->where('ssn', $ssn)
+            ->pluck('sid')
+            ->toArray();
+
+        $activeGender = DB::table('student_basic_data')
+            ->whereIn('user_id', $activeStudentIds)
+            ->select('sex', DB::raw('count(*) as total'))
+            ->groupBy('sex')
+            ->pluck('total', 'sex')
+            ->toArray();
+
+        $activeMale   = $activeGender['M'] ?? 0;
+        $activeFemale = $activeGender['F'] ?? 0;
+        $totalActiveStudents = $activeMale + $activeFemale;
+
+        $alumniStudentIds = DB::table('alumnis')
+            ->where('schid', $schoolId)
+            ->pluck('stid')
+            ->toArray();
+
+        $alumniGender = DB::table('student_basic_data')
+            ->whereIn('user_id', $alumniStudentIds)
+            ->select('sex', DB::raw('count(*) as total'))
+            ->groupBy('sex')
+            ->pluck('total', 'sex')
+            ->toArray();
+
+        $alumniMale   = $alumniGender['M'] ?? 0;
+        $alumniFemale = $alumniGender['F'] ?? 0;
+        $totalAlumni  = $alumniMale + $alumniFemale;
+
+        /**
+         * ===========================
+         * ✅ STAFF SECTION
+         * ===========================
+         */
+$activeStaffIds = DB::table('old_staff')
+    ->where('schid', $schoolId)
+    ->where('status', 'active')
+    ->where('ssn', $ssn)
+    ->distinct()
+    ->pluck('sid')
+    ->toArray();
+
+
+        $activeStaffCount = count($activeStaffIds);
+
+$inactiveStaffIds = DB::table('old_staff')
+    ->where('schid', $schoolId)
+    ->where('status', '!=', 'active')
+    ->where('ssn', $ssn)
+    ->distinct()
+    ->pluck('sid')
+    ->toArray();
+
+
+        $inactiveStaffCount = count($inactiveStaffIds);
+
+        $activeStaffGender = DB::table('staff_basic_data')
+            ->whereIn('user_id', $activeStaffIds)
+            ->select('sex', DB::raw('count(*) as total'))
+            ->groupBy('sex')
+            ->pluck('total', 'sex')
+            ->toArray();
+
+        $inactiveStaffGender = DB::table('staff_basic_data')
+            ->whereIn('user_id', $inactiveStaffIds)
+            ->select('sex', DB::raw('count(*) as total'))
+            ->groupBy('sex')
+            ->pluck('total', 'sex')
+            ->toArray();
+
+        $activeStaffMale   = $activeStaffGender['M'] ?? 0;
+        $activeStaffFemale = $activeStaffGender['F'] ?? 0;
+        $inactiveStaffMale   = $inactiveStaffGender['M'] ?? 0;
+        $inactiveStaffFemale = $inactiveStaffGender['F'] ?? 0;
+        $totalStaff = $activeStaffCount + $inactiveStaffCount;
+
+        /**
+         * ===========================
+         * ✅ CLASSES / SCHOOL DETAILS
+         * ===========================
+         */
+        $classArms = DB::table('sch_cls')
+            ->where('schid', $schoolId)
+            ->get(['cls_id', 'name'])
+            ->groupBy('cls_id')
+            ->map(fn($items) => $items->pluck('name')->toArray())
+            ->toArray();
+
+        $totalClasses = DB::table('sch_cls')
+            ->where('schid', $schoolId)
+            ->count();
+
+        $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
+
+        $webData = DB::table('school_web_data')->where('user_id', $schoolId)->first();
+
+        /**
+         * ===========================
+         * ✅ FINAL PAYLOAD
+         * ===========================
+         */
+        $pld[] = [
+            "sid"             => $school->sid,
+            "school_id"       => $schoolCode,
+            "school_name"     => $school->name,
+            "school_country"  => $school->web_country ?? "N/A",
+            "school_state"    => $school->web_state ?? "N/A",
+            "school_lga"      => $school->web_lga ?? "N/A",
+            "active_learners" => $activeLearners,
+            "alumni"          => $alumniCount,
+            "active_staff"    => $activeStaffCount,
+            "inactive_staff"  => $inactiveStaffCount,
+            "total_staff"     => $totalStaff,
+            "total_classes"   => $totalClasses,
+            "classes"         => $classArms,
+            "student_gender_summary" => [
+                "active" => [
+                    "male"   => $activeMale,
+                    "female" => $activeFemale,
+                    "total"  => $totalActiveStudents,
+                ],
+                "alumni" => [
+                    "male"   => $alumniMale,
+                    "female" => $alumniFemale,
+                    "total"  => $totalAlumni,
+                ],
+            ],
+            "staff_gender_summary" => [
+                "active" => [
+                    "male"   => $activeStaffMale,
+                    "female" => $activeStaffFemale,
+                    "total"  => $activeStaffCount,
+                ],
+                "inactive" => [
+                    "male"   => $inactiveStaffMale,
+                    "female" => $inactiveStaffFemale,
+                    "total"  => $inactiveStaffCount,
+                ],
+                "overall_total" => $totalStaff,
+            ],
+            "web_data" => $webData ? [
+                "address" => $webData->addr ?? "N/A",
+                "phone"   => $webData->phn ?? "N/A",
+                "email"   => $webData->eml ?? "N/A",
+                "about"   => $webData->about ?? "N/A",
+            ] : null,
+        ];
+    }
+
+    return response()->json([
+        "status"        => true,
+        "message"       => "Success",
+        "total_records" => $totalRecords,
+        "pld"           => $pld,
+    ], 200);
+}
+
+
+
 }
