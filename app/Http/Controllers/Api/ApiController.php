@@ -31070,144 +31070,164 @@ public function getLearnersEnrollmentInfoGender(Request $request)
      */
 
 
-    public function getStaffsEnrollmentInfo(Request $request)
-    {
-        $start = $request->input('start', 0);
-        $count = $request->input('count', 20);
-        $state = $request->input('state');
-        $lga   = $request->input('lga');
+public function getStaffsEnrollmentInfo(Request $request)
+{
+    $start = $request->input('start', 0);
+    $count = $request->input('count', 20);
+    $state = $request->input('state');
+    $lga   = $request->input('lga');
 
-        // 🔹 Join school with school_web_data for filtering
-        $query = DB::table('school as s')
-            ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id')
-            ->select('s.*', 'sw.state as web_state', 'sw.lga as web_lga', 'sw.country as web_country');
+    // 🔹 Join school with school_web_data for filtering
+    $query = DB::table('school as s')
+        ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id')
+        ->select('s.*', 'sw.state as web_state', 'sw.lga as web_lga', 'sw.country as web_country');
 
-        if (!empty($state)) {
-            $query->where('sw.state', $state);
-        }
-
-        if (!empty($lga)) {
-            $query->where('sw.lga', $lga);
-        }
-
-        // 🔹 Count total before pagination
-        $totalRecords = $query->count();
-
-        // 🔹 Apply pagination
-        $schools = $query->orderBy('s.name', 'asc')
-            ->skip($start)
-            ->take($count)
-            ->get();
-
-        $pld = [];
-
-        foreach ($schools as $school) {
-            $user_id = $school->sid;
-
-            /**
-             * ✅ STAFF COUNTS
-             */
-            $activeStaffCount = DB::table('old_staff')
-                ->where('schid', $user_id)
-                ->where('status', 'active')
-                ->distinct('sid')
-                ->count('sid');
-
-            $inactiveStaffCount = DB::table('old_staff')
-                ->where('schid', $user_id)
-                ->where('status', 'inactive')
-                ->distinct('sid')
-                ->count('sid');
-
-            $totalStaff = $activeStaffCount + $inactiveStaffCount;
-
-            /**
-             * ✅ STAFF GENDER SUMMARY
-             */
-            $staffIds = DB::table('old_staff')
-                ->where('schid', $user_id)
-                ->pluck('sid')
-                ->toArray();
-
-            // assuming you have a staff_basic_data table similar to student_basic_data
-            $genderSummary = DB::table('staff_basic_data')
-                ->whereIn('user_id', $staffIds)
-                ->select('sex', DB::raw('count(*) as total'))
-                ->groupBy('sex')
-                ->pluck('total', 'sex')
-                ->toArray();
-
-            $maleStaff   = $genderSummary['M'] ?? 0;
-            $femaleStaff = $genderSummary['F'] ?? 0;
-
-            /**
-             * ✅ JOB ROLE SUMMARY (e.g., teacher, principal, admin, etc.)
-             */
-            $roleSummary = DB::table('old_staff')
-                ->where('schid', $user_id)
-                ->select('role', DB::raw('count(*) as total'))
-                ->groupBy('role')
-                ->pluck('total', 'role')
-                ->toArray();
-
-            /**
-             * ✅ SCHOOL CODE + WEB DATA
-             */
-            $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
-            $webData = DB::table('school_web_data')->where('user_id', $user_id)->first();
-
-            // ✅ Build Payload
-            $pld[] = [
-                's' => [
-                    'sid'              => $school->sid,
-                    'school_id'        => $schoolCode,
-                    'name'             => $school->name,
-                    's_info'           => $school->s_info,
-                    'sch3'             => $school->sch3,
-                    'created_at'       => $school->created_at,
-                    'updated_at'       => $school->updated_at,
-                    'country'          => $school->web_country ?? 'N/A',
-                    'state'            => $school->web_state ?? 'N/A',
-                    'lga'              => $school->web_lga ?? 'N/A',
-
-                    // Staff data
-                    'total_staff'      => $totalStaff,
-                    'active_staff'     => $activeStaffCount,
-                    'inactive_staff'   => $inactiveStaffCount,
-
-                    // Gender summary
-                    'gender_summary' => [
-                        'male'   => $maleStaff,
-                        'female' => $femaleStaff,
-                        'total'  => $maleStaff + $femaleStaff,
-                    ],
-
-                    // Job role summary
-                    'role_summary' => $roleSummary,
-                ],
-                'w' => $webData ? [
-                    'user_id'    => $webData->user_id,
-                    'school_name' => $webData->sname ?? 'N/A',
-                    'address'    => $webData->addr ?? 'N/A',
-                    'state'      => $webData->state ?? 'N/A',
-                    'lga'        => $webData->lga ?? 'N/A',
-                    'email'      => $webData->eml ?? 'N/A',
-                    'phone'      => $webData->phn ?? 'N/A',
-                    'website'    => $webData->website ?? 'N/A',
-                    'created_at' => $webData->created_at,
-                    'updated_at' => $webData->updated_at,
-                ] : null,
-            ];
-        }
-
-        return response()->json([
-            "status"        => true,
-            "message"       => "Success",
-            "total_records" => $totalRecords,
-            "pld"           => $pld,
-        ]);
+    if (!empty($state)) {
+        $query->where('sw.state', $state);
     }
 
+    if (!empty($lga)) {
+        $query->where('sw.lga', $lga);
+    }
+
+    // 🔹 Count total before pagination
+    $totalRecords = $query->count();
+
+    // 🔹 Apply pagination
+    $schools = $query->orderBy('s.name', 'asc')
+        ->skip($start)
+        ->take($count)
+        ->get();
+
+    $pld = [];
+
+    foreach ($schools as $school) {
+        $user_id = $school->sid;
+
+        /**
+         * ✅ STAFF COUNTS
+         */
+        $activeStaffCount = DB::table('old_staff')
+            ->where('schid', $user_id)
+            ->where('status', 'active')
+            ->distinct('sid')
+            ->count('sid');
+
+        $inactiveStaffCount = DB::table('old_staff')
+            ->where('schid', $user_id)
+            ->where('status', 'inactive')
+            ->distinct('sid')
+            ->count('sid');
+
+        $totalStaff = $activeStaffCount + $inactiveStaffCount;
+
+        /**
+         * ✅ GENDER SUMMARY (by status)
+         */
+        $genderSummary = [
+            'active' => [
+                'male' => DB::table('old_staff')
+                    ->join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
+                    ->where('old_staff.schid', $user_id)
+                    ->where('old_staff.status', 'active')
+                    ->where('staff_basic_data.sex', 'M')
+                    ->distinct('old_staff.sid')
+                    ->count('old_staff.sid'),
+
+                'female' => DB::table('old_staff')
+                    ->join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
+                    ->where('old_staff.schid', $user_id)
+                    ->where('old_staff.status', 'active')
+                    ->where('staff_basic_data.sex', 'F')
+                    ->distinct('old_staff.sid')
+                    ->count('old_staff.sid'),
+            ],
+            'inactive' => [
+                'male' => DB::table('old_staff')
+                    ->join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
+                    ->where('old_staff.schid', $user_id)
+                    ->where('old_staff.status', 'inactive')
+                    ->where('staff_basic_data.sex', 'M')
+                    ->distinct('old_staff.sid')
+                    ->count('old_staff.sid'),
+
+                'female' => DB::table('old_staff')
+                    ->join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
+                    ->where('old_staff.schid', $user_id)
+                    ->where('old_staff.status', 'inactive')
+                    ->where('staff_basic_data.sex', 'F')
+                    ->distinct('old_staff.sid')
+                    ->count('old_staff.sid'),
+            ],
+        ];
+
+        // Add totals for each status
+        $genderSummary['active']['total']   = $genderSummary['active']['male'] + $genderSummary['active']['female'];
+        $genderSummary['inactive']['total'] = $genderSummary['inactive']['male'] + $genderSummary['inactive']['female'];
+
+        /**
+         * ✅ JOB ROLE SUMMARY (e.g., teacher, principal, admin, etc.)
+         */
+        $roleSummary = DB::table('old_staff')
+            ->where('schid', $user_id)
+            ->select('role', DB::raw('count(distinct sid) as total'))
+            ->groupBy('role')
+            ->pluck('total', 'role')
+            ->toArray();
+
+        /**
+         * ✅ SCHOOL CODE + WEB DATA
+         */
+        $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
+        $webData = DB::table('school_web_data')->where('user_id', $user_id)->first();
+
+        // ✅ Build Payload
+        $pld[] = [
+            's' => [
+                'sid'            => $school->sid,
+                'school_id'      => $schoolCode,
+                'name'           => $school->name,
+                's_info'         => $school->s_info,
+                'sch3'           => $school->sch3,
+                'created_at'     => $school->created_at,
+                'updated_at'     => $school->updated_at,
+                'country'        => $school->web_country ?? 'N/A',
+                'state'          => $school->web_state ?? 'N/A',
+                'lga'            => $school->web_lga ?? 'N/A',
+
+                // Staff data
+                'total_staff'    => $totalStaff,
+                'active_staff'   => $activeStaffCount,
+                'inactive_staff' => $inactiveStaffCount,
+
+                // Gender summary
+                'gender_summary' => $genderSummary,
+
+                // Job role summary
+                'role_summary'   => $roleSummary,
+            ],
+            'w' => $webData ? [
+                'user_id'     => $webData->user_id,
+                'school_name' => $webData->sname ?? 'N/A',
+                'address'     => $webData->addr ?? 'N/A',
+                'state'       => $webData->state ?? 'N/A',
+                'lga'         => $webData->lga ?? 'N/A',
+                'email'       => $webData->eml ?? 'N/A',
+                'phone'       => $webData->phn ?? 'N/A',
+                'website'     => $webData->website ?? 'N/A',
+                'created_at'  => $webData->created_at,
+                'updated_at'  => $webData->updated_at,
+            ] : null,
+        ];
+    }
+
+    return response()->json([
+        "status"        => true,
+        "message"       => "Success",
+        "total_records" => $totalRecords,
+        "pld"           => $pld,
+    ]);
+}
 
 
 
