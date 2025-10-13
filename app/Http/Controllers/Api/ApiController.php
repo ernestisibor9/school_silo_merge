@@ -31318,6 +31318,97 @@ public function getStaffsEnrollmentInfo(Request $request)
  *     )
  * )
  */
+// public function getStaffsEnrollmentInfoGender(Request $request)
+// {
+//     $start = $request->input('start', 0);
+//     $count = $request->input('count', 20);
+//     $state = $request->input('state');
+//     $lga   = $request->input('lga');
+//     $gender = $request->input('gender'); // 'M' or 'F'
+
+//     // ✅ Build base query
+//     $query = DB::table('old_staff as os')
+//         ->join('staff_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
+//         ->join('school as sc', 'os.schid', '=', 'sc.sid')
+//         ->join('school_web_data as swd', 'sc.sid', '=', 'swd.user_id')
+//         ->select(
+//             'os.sid',
+//             'os.suid as staff_id', // unique staff code
+//             'os.fname',
+//             'os.mname',
+//             'os.lname',
+//             'os.role',
+//             'os.status',
+//             'sbd.dob',
+//             'sbd.sex as gender',
+//             'sbd.state as staff_state',
+//             'sbd.lga as staff_lga',
+//             'swd.country as school_country',
+//             'swd.state as school_state',
+//             'swd.lga as school_lga',
+//             'sc.name as school_name'
+//         )
+//         ->where('os.status', 'active');
+
+//     // ✅ Apply filters
+//     if (!empty($state)) {
+//         $query->where('swd.state', $state);
+//     }
+
+//     if (!empty($lga)) {
+//         $query->where('swd.lga', $lga);
+//     }
+
+//     if (!empty($gender)) {
+//         $query->where('sbd.sex', $gender);
+//     }
+
+//     // ✅ Avoid duplicates by grouping or distinct
+//     $query->groupBy('os.sid', 'os.suid', 'os.fname', 'os.mname', 'os.lname', 'os.role', 'os.status', 'sbd.dob', 'sbd.sex', 'sbd.state', 'sbd.lga', 'swd.country', 'swd.state', 'swd.lga', 'sc.name');
+//     // OR shorter version:
+//     // $query->distinct('os.sid');
+
+//     // ✅ Get total records before pagination
+//     $totalRecords = $query->count(DB::raw('distinct os.sid'));
+
+//     // ✅ Fetch paginated results (distinct)
+//     $staff = $query->orderBy('os.lname', 'asc')
+//         ->skip($start)
+//         ->take($count)
+//         ->get();
+
+//     // ✅ Format DOB (if numeric timestamps exist)
+//     foreach ($staff as $member) {
+//         $dob = null;
+
+//         if (!empty($member->dob)) {
+//             if (is_numeric($member->dob)) {
+//                 try {
+//                     $dob = \Carbon\Carbon::createFromTimestamp($member->dob / 1000)->format('Y-m-d');
+//                 } catch (\Exception $e) {
+//                     $dob = null;
+//                 }
+//             } else {
+//                 try {
+//                     $dob = \Carbon\Carbon::parse($member->dob)->format('Y-m-d');
+//                 } catch (\Exception $e) {
+//                     $dob = null;
+//                 }
+//             }
+//         }
+
+//         $member->dob = $dob;
+//     }
+
+//     // ✅ Return JSON response
+//     return response()->json([
+//         'status' => true,
+//         'message' => 'Success',
+//         'total_records' => $totalRecords,
+//         'pld' => $staff->unique('sid')->values() // final unique filter on collection (just in case)
+//     ]);
+// }
+
 public function getStaffsEnrollmentInfoGender(Request $request)
 {
     $start = $request->input('start', 0);
@@ -31326,19 +31417,28 @@ public function getStaffsEnrollmentInfoGender(Request $request)
     $lga   = $request->input('lga');
     $gender = $request->input('gender'); // 'M' or 'F'
 
-    // ✅ Build base query
+    // ✅ Build query
     $query = DB::table('old_staff as os')
         ->join('staff_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
         ->join('school as sc', 'os.schid', '=', 'sc.sid')
         ->join('school_web_data as swd', 'sc.sid', '=', 'swd.user_id')
+        // ✅ Join for role1
+        ->leftJoin('staff_role as sr1', DB::raw('REPLACE(os.role, "*", "")'), '=', 'sr1.id')
+        // ✅ Join for role2
+        ->leftJoin('staff_role as sr2', DB::raw('REPLACE(os.role2, "*", "")'), '=', 'sr2.id')
         ->select(
             'os.sid',
-            'os.suid as staff_id', // unique staff code
+            'os.suid as staff_id',
             'os.fname',
             'os.mname',
             'os.lname',
-            'os.role',
             'os.status',
+            'os.role',
+            'os.role2',
+            DB::raw('REPLACE(os.role, "*", "") as role1_clean'),
+            DB::raw('REPLACE(os.role2, "*", "") as role2_clean'),
+            'sr1.name as role1_name',
+            'sr2.name as role2_name',
             'sbd.dob',
             'sbd.sex as gender',
             'sbd.state as staff_state',
@@ -31363,51 +31463,47 @@ public function getStaffsEnrollmentInfoGender(Request $request)
         $query->where('sbd.sex', $gender);
     }
 
-    // ✅ Avoid duplicates by grouping or distinct
-    $query->groupBy('os.sid', 'os.suid', 'os.fname', 'os.mname', 'os.lname', 'os.role', 'os.status', 'sbd.dob', 'sbd.sex', 'sbd.state', 'sbd.lga', 'swd.country', 'swd.state', 'swd.lga', 'sc.name');
-    // OR shorter version:
-    // $query->distinct('os.sid');
+    // ✅ Avoid duplicates
+    $query->groupBy(
+        'os.sid', 'os.suid', 'os.fname', 'os.mname', 'os.lname',
+        'os.role', 'os.role2', 'os.status', 'sbd.dob', 'sbd.sex',
+        'sbd.state', 'sbd.lga', 'swd.country', 'swd.state', 'swd.lga',
+        'sc.name', 'sr1.name', 'sr2.name'
+    );
 
-    // ✅ Get total records before pagination
+    // ✅ Get total records
     $totalRecords = $query->count(DB::raw('distinct os.sid'));
 
-    // ✅ Fetch paginated results (distinct)
+    // ✅ Fetch paginated results
     $staff = $query->orderBy('os.lname', 'asc')
         ->skip($start)
         ->take($count)
         ->get();
 
-    // ✅ Format DOB (if numeric timestamps exist)
+    // ✅ Format DOBs
     foreach ($staff as $member) {
         $dob = null;
-
         if (!empty($member->dob)) {
-            if (is_numeric($member->dob)) {
-                try {
-                    $dob = \Carbon\Carbon::createFromTimestamp($member->dob / 1000)->format('Y-m-d');
-                } catch (\Exception $e) {
-                    $dob = null;
-                }
-            } else {
-                try {
-                    $dob = \Carbon\Carbon::parse($member->dob)->format('Y-m-d');
-                } catch (\Exception $e) {
-                    $dob = null;
-                }
+            try {
+                $dob = is_numeric($member->dob)
+                    ? \Carbon\Carbon::createFromTimestamp($member->dob / 1000)->format('Y-m-d')
+                    : \Carbon\Carbon::parse($member->dob)->format('Y-m-d');
+            } catch (\Exception $e) {
+                $dob = null;
             }
         }
-
         $member->dob = $dob;
     }
 
-    // ✅ Return JSON response
+    // ✅ Return result
     return response()->json([
         'status' => true,
         'message' => 'Success',
         'total_records' => $totalRecords,
-        'pld' => $staff->unique('sid')->values() // final unique filter on collection (just in case)
+        'pld' => $staff->unique('sid')->values()
     ]);
 }
+
 
 
 }
