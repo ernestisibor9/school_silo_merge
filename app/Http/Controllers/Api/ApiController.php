@@ -31766,18 +31766,31 @@ public function getLearnersStaffRatioInfo(Request $request)
         $alumniMale   = $alumniGender['M'] ?? 0;
         $alumniFemale = $alumniGender['F'] ?? 0;
 
-        /** ============================
-         *  STAFF SECTION
-         * ============================ */
-        $activeStaffIds = DB::table('old_staff')
-            ->where('schid', $schoolId)
-            ->where('status', 'active')
-            ->where('ssn', $ssn)
-            ->distinct()
-            ->pluck('sid')
-            ->toArray();
+/** ============================
+ *  STAFF SECTION
+ * ============================ */
+$activeStaffIds = DB::table('old_staff')
+    ->where('schid', $schoolId)
+    ->where('status', 'active')
+    ->where('ssn', $ssn)
+    ->distinct()
+    ->pluck('sid')
+    ->toArray();
 
-        $activeStaffCount = count($activeStaffIds);
+$activeStaffCount = count($activeStaffIds);
+
+// Gender summary for active staff
+$activeStaffGender = DB::table('staff_basic_data')
+    ->whereIn('user_id', $activeStaffIds)
+    ->whereNotNull('sex')
+    ->select('sex', DB::raw('count(*) as total'))
+    ->groupBy('sex')
+    ->pluck('total', 'sex')
+    ->toArray();
+
+$activeStaffMale   = $activeStaffGender['M'] ?? 0;
+$activeStaffFemale = $activeStaffGender['F'] ?? 0;
+
 
         /** ============================
          *  CLASS SECTION
@@ -31828,18 +31841,24 @@ public function getLearnersStaffRatioInfo(Request $request)
                 "active_staff" => $activeStaffCount,
                 "classes" => $classArms,
                 "total_classes" => $totalClasses,
-                "gender_summary" => [
-                    "active_students" => [
-                        "male" => $activeMale,
-                        "female" => $activeFemale,
-                        "total" => $activeMale + $activeFemale,
-                    ],
-                    "alumni" => [
-                        "male" => $alumniMale,
-                        "female" => $alumniFemale,
-                        "total" => $alumniMale + $alumniFemale,
-                    ]
-                ]
+"gender_summary" => [
+    "active_students" => [
+        "male" => $activeMale,
+        "female" => $activeFemale,
+        "total" => $activeMale + $activeFemale,
+    ],
+    "alumni" => [
+        "male" => $alumniMale,
+        "female" => $alumniFemale,
+        "total" => $alumniMale + $alumniFemale,
+    ],
+    "active_staff" => [
+        "male" => $activeStaffMale,
+        "female" => $activeStaffFemale,
+        "total" => $activeStaffMale + $activeStaffFemale,
+    ],
+],
+
             ],
             "w" => $webData ? [
                 "user_id" => (string)$webData->user_id,
