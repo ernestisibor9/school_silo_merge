@@ -31701,22 +31701,15 @@ public function getLearnersStaffRatioInfo(Request $request)
     $lga   = $request->input('lga');
     $ssn   = $request->input('ssn'); // academic session (required)
 
-    // 🔹 Base query for schools
     $query = DB::table('school as s')
         ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id')
         ->select('s.*', 'sw.state as web_state', 'sw.lga as web_lga', 'sw.country as web_country');
 
-    if (!empty($state)) {
-        $query->where('sw.state', $state);
-    }
-
-    if (!empty($lga)) {
-        $query->where('sw.lga', $lga);
-    }
+    if (!empty($state)) $query->where('sw.state', $state);
+    if (!empty($lga)) $query->where('sw.lga', $lga);
 
     $totalRecords = $query->count();
 
-    // 🔹 Pagination
     $schools = $query->orderBy('s.name', 'asc')
         ->skip($start)
         ->take($count)
@@ -31727,11 +31720,9 @@ public function getLearnersStaffRatioInfo(Request $request)
     foreach ($schools as $school) {
         $schoolId = $school->sid;
 
-        /**
-         * ===========================
-         * ✅ STUDENT SECTION
-         * ===========================
-         */
+        /** ============================
+         *  STUDENT SECTION
+         * ============================ */
         $activeLearners = DB::table('old_student')
             ->where('schid', $schoolId)
             ->where('status', 'active')
@@ -31759,7 +31750,6 @@ public function getLearnersStaffRatioInfo(Request $request)
 
         $activeMale   = $activeGender['M'] ?? 0;
         $activeFemale = $activeGender['F'] ?? 0;
-        $totalActiveStudents = $activeMale + $activeFemale;
 
         $alumniStudentIds = DB::table('alumnis')
             ->where('schid', $schoolId)
@@ -31775,60 +31765,23 @@ public function getLearnersStaffRatioInfo(Request $request)
 
         $alumniMale   = $alumniGender['M'] ?? 0;
         $alumniFemale = $alumniGender['F'] ?? 0;
-        $totalAlumni  = $alumniMale + $alumniFemale;
 
-        /**
-         * ===========================
-         * ✅ STAFF SECTION
-         * ===========================
-         */
-$activeStaffIds = DB::table('old_staff')
-    ->where('schid', $schoolId)
-    ->where('status', 'active')
-    ->where('ssn', $ssn)
-    ->distinct()
-    ->pluck('sid')
-    ->toArray();
-
+        /** ============================
+         *  STAFF SECTION
+         * ============================ */
+        $activeStaffIds = DB::table('old_staff')
+            ->where('schid', $schoolId)
+            ->where('status', 'active')
+            ->where('ssn', $ssn)
+            ->distinct()
+            ->pluck('sid')
+            ->toArray();
 
         $activeStaffCount = count($activeStaffIds);
 
-$inactiveStaffIds = DB::table('old_staff')
-    ->where('schid', $schoolId)
-    ->where('status', '!=', 'active')
-    ->where('ssn', $ssn)
-    ->distinct()
-    ->pluck('sid')
-    ->toArray();
-
-
-        $inactiveStaffCount = count($inactiveStaffIds);
-
-        $activeStaffGender = DB::table('staff_basic_data')
-            ->whereIn('user_id', $activeStaffIds)
-            ->select('sex', DB::raw('count(*) as total'))
-            ->groupBy('sex')
-            ->pluck('total', 'sex')
-            ->toArray();
-
-        $inactiveStaffGender = DB::table('staff_basic_data')
-            ->whereIn('user_id', $inactiveStaffIds)
-            ->select('sex', DB::raw('count(*) as total'))
-            ->groupBy('sex')
-            ->pluck('total', 'sex')
-            ->toArray();
-
-        $activeStaffMale   = $activeStaffGender['M'] ?? 0;
-        $activeStaffFemale = $activeStaffGender['F'] ?? 0;
-        $inactiveStaffMale   = $inactiveStaffGender['M'] ?? 0;
-        $inactiveStaffFemale = $inactiveStaffGender['F'] ?? 0;
-        $totalStaff = $activeStaffCount + $inactiveStaffCount;
-
-        /**
-         * ===========================
-         * ✅ CLASSES / SCHOOL DETAILS
-         * ===========================
-         */
+        /** ============================
+         *  CLASS SECTION
+         * ============================ */
         $classArms = DB::table('sch_cls')
             ->where('schid', $schoolId)
             ->get(['cls_id', 'name'])
@@ -31842,67 +31795,85 @@ $inactiveStaffIds = DB::table('old_staff')
 
         $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
 
+        /** ============================
+         *  WEB DATA SECTION
+         * ============================ */
         $webData = DB::table('school_web_data')->where('user_id', $schoolId)->first();
 
-        /**
-         * ===========================
-         * ✅ FINAL PAYLOAD
-         * ===========================
-         */
+        /** ============================
+         *  BUILD RESPONSE
+         * ============================ */
         $pld[] = [
-            "sid"             => $school->sid,
-            "school_id"       => $schoolCode,
-            "school_name"     => $school->name,
-            "school_country"  => $school->web_country ?? "N/A",
-            "school_state"    => $school->web_state ?? "N/A",
-            "school_lga"      => $school->web_lga ?? "N/A",
-            "active_learners" => $activeLearners,
-            "alumni"          => $alumniCount,
-            "active_staff"    => $activeStaffCount,
-            "inactive_staff"  => $inactiveStaffCount,
-            "total_staff"     => $totalStaff,
-            "total_classes"   => $totalClasses,
-            "classes"         => $classArms,
-            "student_gender_summary" => [
-                "active" => [
-                    "male"   => $activeMale,
-                    "female" => $activeFemale,
-                    "total"  => $totalActiveStudents,
-                ],
-                "alumni" => [
-                    "male"   => $alumniMale,
-                    "female" => $alumniFemale,
-                    "total"  => $totalAlumni,
-                ],
+            "s" => [
+                "sid" => (string)$school->sid,
+                "school_id" => $schoolCode,
+                "name" => $school->name,
+                "count" => $school->count,
+                "s_web" => $school->s_web,
+                "s_info" => $school->s_info,
+                "sbd" => $school->sbd,
+                "sch3" => $school->sch3,
+                "cssn" => $school->cssn,
+                "ctrm" => $school->ctrm,
+                "ctrmn" => $school->ctrmn,
+                "lattitude" => $school->latt,
+                "longitude" => $school->longi,
+                "country" => $school->web_country ?? "NG",
+                "state" => $school->web_state ?? "N/A",
+                "lga" => $school->web_lga ?? "N/A",
+                "created_at" => $school->created_at,
+                "updated_at" => $school->updated_at,
+                "active_learners" => $activeLearners,
+                "alumni" => $alumniCount,
+                "active_staff" => $activeStaffCount,
+                "classes" => $classArms,
+                "total_classes" => $totalClasses,
+                "gender_summary" => [
+                    "active_students" => [
+                        "male" => $activeMale,
+                        "female" => $activeFemale,
+                        "total" => $activeMale + $activeFemale,
+                    ],
+                    "alumni" => [
+                        "male" => $alumniMale,
+                        "female" => $alumniFemale,
+                        "total" => $alumniMale + $alumniFemale,
+                    ]
+                ]
             ],
-            "staff_gender_summary" => [
-                "active" => [
-                    "male"   => $activeStaffMale,
-                    "female" => $activeStaffFemale,
-                    "total"  => $activeStaffCount,
-                ],
-                "inactive" => [
-                    "male"   => $inactiveStaffMale,
-                    "female" => $inactiveStaffFemale,
-                    "total"  => $inactiveStaffCount,
-                ],
-                "overall_total" => $totalStaff,
-            ],
-            "web_data" => $webData ? [
-                "address" => $webData->addr ?? "N/A",
-                "phone"   => $webData->phn ?? "N/A",
-                "email"   => $webData->eml ?? "N/A",
-                "about"   => $webData->about ?? "N/A",
-            ] : null,
+            "w" => $webData ? [
+                "user_id" => (string)$webData->user_id,
+                "school_name" => $webData->sname,
+                "color" => $webData->color,
+                "address" => $webData->addr,
+                "country" => $webData->country,
+                "state" => $webData->state,
+                "lga" => $webData->lga,
+                "phone" => $webData->phn,
+                "email" => $webData->eml,
+                "vision" => $webData->vision,
+                "values" => $webData->values,
+                "year" => $webData->year,
+                "about" => $webData->about,
+                "motto" => $webData->motto,
+                "facebook" => $webData->fb,
+                "instagram" => $webData->isg,
+                "youtube" => $webData->yt,
+                "whatsapp" => $webData->wh,
+                "linkedin" => $webData->lkd,
+                "twitter" => $webData->tw,
+                "created_at" => $webData->created_at,
+                "updated_at" => $webData->updated_at,
+            ] : null
         ];
     }
 
     return response()->json([
-        "status"        => true,
-        "message"       => "Success",
+        "status" => true,
+        "message" => "Success",
         "total_records" => $totalRecords,
-        "pld"           => $pld,
-    ], 200);
+        "pld" => $pld,
+    ], 200, [], JSON_PRETTY_PRINT);
 }
 
 
