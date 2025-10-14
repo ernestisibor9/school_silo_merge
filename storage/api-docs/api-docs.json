@@ -26013,6 +26013,420 @@
                     }
                 ]
             }
+        },
+        "/api/getLearnersStaffDetails": {
+            "post": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get learners and staff gender summary by class",
+                "description": "Fetches learners (students) and staff gender details (Male/Female/Total) per class for a specific school and academic session. Only active students and staff are included.",
+                "operationId": "getLearnersStaffDetails",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "schid",
+                                    "ssn"
+                                ],
+                                "properties": {
+                                    "schid": {
+                                        "description": "School ID",
+                                        "type": "integer",
+                                        "example": 12
+                                    },
+                                    "ssn": {
+                                        "description": "Academic session identifier",
+                                        "type": "string",
+                                        "example": "2024"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Learner/Staff Ratio fetched successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Learner/Staff Ratio fetched successfully"
+                                        },
+                                        "school_id": {
+                                            "type": "integer",
+                                            "example": 12
+                                        },
+                                        "session": {
+                                            "type": "string",
+                                            "example": "2024"
+                                        },
+                                        "ratios": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "class": {
+                                                        "type": "string",
+                                                        "example": "Primary 3"
+                                                    },
+                                                    "learners": {
+                                                        "properties": {
+                                                            "male": {
+                                                                "type": "integer",
+                                                                "example": 15
+                                                            },
+                                                            "female": {
+                                                                "type": "integer",
+                                                                "example": 18
+                                                            },
+                                                            "total": {
+                                                                "type": "integer",
+                                                                "example": 33
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    },
+                                                    "staff": {
+                                                        "properties": {
+                                                            "male": {
+                                                                "type": "integer",
+                                                                "example": 2
+                                                            },
+                                                            "female": {
+                                                                "type": "integer",
+                                                                "example": 3
+                                                            },
+                                                            "total": {
+                                                                "type": "integer",
+                                                                "example": 5
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Missing or invalid parameters",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "School ID and session are required."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "An unexpected error occurred."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/getStudentGenderDetails": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Fetch student gender details for a given class and session",
+                "description": "Returns a list of students filtered by gender, session, and class for a given school.",
+                "operationId": "getStudentGenderDetails",
+                "parameters": [
+                    {
+                        "name": "schid",
+                        "in": "query",
+                        "description": "School ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "query",
+                        "description": "Academic Session (e.g. 2024)",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "class",
+                        "in": "query",
+                        "description": "Class ID (clsm)",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "gender",
+                        "in": "query",
+                        "description": "Gender (M or F)",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "M",
+                                "F"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Student list fetched successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Student list fetched successfully"
+                                        },
+                                        "count": {
+                                            "type": "integer",
+                                            "example": 5
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "student_id": {
+                                                        "type": "integer",
+                                                        "example": 1000
+                                                    },
+                                                    "suid": {
+                                                        "type": "string",
+                                                        "example": "HRS/2024/1/68"
+                                                    },
+                                                    "full_name": {
+                                                        "type": "string",
+                                                        "example": "Victoria Ngozika Kenneth"
+                                                    },
+                                                    "sex": {
+                                                        "type": "string",
+                                                        "example": "F"
+                                                    },
+                                                    "date_of_birth": {
+                                                        "type": "string",
+                                                        "example": "2008-05-14"
+                                                    },
+                                                    "class_name": {
+                                                        "type": "string",
+                                                        "example": "JSS 1"
+                                                    },
+                                                    "class_arm": {
+                                                        "type": "string",
+                                                        "example": "A"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Missing parameters"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/getStaffGenderDetails": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Fetch staff gender details for a specific school and class",
+                "description": "Returns a list of active staff filtered by gender, school, and class for a given session (if provided).",
+                "operationId": "getStaffGenderDetails",
+                "parameters": [
+                    {
+                        "name": "school_id",
+                        "in": "query",
+                        "description": "Unique ID of the school",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 13
+                        }
+                    },
+                    {
+                        "name": "session",
+                        "in": "query",
+                        "description": "Academic session (optional)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "2024/2025"
+                        }
+                    },
+                    {
+                        "name": "class",
+                        "in": "query",
+                        "description": "Class name or identifier",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "JSS 2"
+                        }
+                    },
+                    {
+                        "name": "gender",
+                        "in": "query",
+                        "description": "Gender of staff (M or F)",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "M",
+                                "F"
+                            ],
+                            "example": "F"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Staff list fetched successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Staff list fetched successfully"
+                                        },
+                                        "count": {
+                                            "type": "integer",
+                                            "example": 3
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "staff_id": {
+                                                        "type": "integer",
+                                                        "example": 100
+                                                    },
+                                                    "full_name": {
+                                                        "type": "string",
+                                                        "example": "John Okafor"
+                                                    },
+                                                    "sex": {
+                                                        "type": "string",
+                                                        "example": "M"
+                                                    },
+                                                    "phone": {
+                                                        "type": "string",
+                                                        "example": "+2348012345678"
+                                                    },
+                                                    "class_name": {
+                                                        "type": "string",
+                                                        "example": "JSS 2"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Missing parameters: school_id, class, gender",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Missing parameters: school_id, class, gender"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
