@@ -26298,52 +26298,48 @@
                 "tags": [
                     "Admin"
                 ],
-                "summary": "Fetch staff gender details for a specific school and class",
-                "description": "Returns a list of active staff filtered by gender, school, and class for a given session (if provided).",
+                "summary": "Get staff gender details by school, session (ssn), and class (clsm)",
+                "description": "Fetches a unique list of active staff filtered by school ID, session (ssn), class (clsm), and gender.",
                 "operationId": "getStaffGenderDetails",
                 "parameters": [
                     {
                         "name": "school_id",
                         "in": "query",
-                        "description": "Unique ID of the school",
+                        "description": "The ID of the school (maps to os.schid)",
                         "required": true,
                         "schema": {
                             "type": "integer",
-                            "example": 13
+                            "example": 12
                         }
                     },
                     {
-                        "name": "session",
+                        "name": "ssn",
                         "in": "query",
-                        "description": "Academic session (optional)",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "example": "2024/2025"
-                        }
-                    },
-                    {
-                        "name": "class",
-                        "in": "query",
-                        "description": "Class name or identifier",
+                        "description": "The academic session (maps to os.ssn)",
                         "required": true,
                         "schema": {
-                            "type": "string",
-                            "example": "JSS 2"
+                            "type": "integer",
+                            "example": 2024
+                        }
+                    },
+                    {
+                        "name": "clsm",
+                        "in": "query",
+                        "description": "The class ID (maps to os.clsm)",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 11
                         }
                     },
                     {
                         "name": "gender",
                         "in": "query",
-                        "description": "Gender of staff (M or F)",
+                        "description": "Gender of the staff (M or F)",
                         "required": true,
                         "schema": {
                             "type": "string",
-                            "enum": [
-                                "M",
-                                "F"
-                            ],
-                            "example": "F"
+                            "example": "M"
                         }
                     }
                 ],
@@ -26364,31 +26360,31 @@
                                         },
                                         "count": {
                                             "type": "integer",
-                                            "example": 3
+                                            "example": 5
                                         },
-                                        "data": {
+                                        "pld": {
                                             "type": "array",
                                             "items": {
                                                 "properties": {
                                                     "staff_id": {
                                                         "type": "integer",
-                                                        "example": 100
+                                                        "example": 1932
+                                                    },
+                                                    "suid": {
+                                                        "type": "string",
+                                                        "example": "SCS/STAFF/9"
                                                     },
                                                     "full_name": {
                                                         "type": "string",
-                                                        "example": "John Okafor"
+                                                        "example": "Onyinyechi Bertha Ahiabuike"
                                                     },
                                                     "sex": {
                                                         "type": "string",
-                                                        "example": "M"
-                                                    },
-                                                    "phone": {
-                                                        "type": "string",
-                                                        "example": "+2348012345678"
+                                                        "example": "F"
                                                     },
                                                     "class_name": {
                                                         "type": "string",
-                                                        "example": "JSS 2"
+                                                        "example": "Primary 1"
                                                     }
                                                 },
                                                 "type": "object"
@@ -26401,24 +26397,7 @@
                         }
                     },
                     "400": {
-                        "description": "Missing parameters: school_id, class, gender",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Missing parameters: school_id, class, gender"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Missing parameters"
                     }
                 },
                 "security": [
