@@ -32504,14 +32504,16 @@ public function getStaffGenderDetails(Request $request)
             'os.suid',
             DB::raw("CONCAT(os.fname, ' ', os.mname, ' ', os.lname) as full_name"),
             'sbd.sex',
-            'c.name as class_name'
+            'c.name as class_name',
+            // Convert dob from milliseconds timestamp to readable date
+            DB::raw("FROM_UNIXTIME(sbd.dob / 1000, '%Y-%m-%d') as dob")
         )
         ->where('os.schid', $schoolId)
         ->where('os.ssn', $session)
         ->where('os.clsm', $class)
         ->where('sbd.sex', $gender)
         ->where('os.status', 'active')
-        ->groupBy('os.sid', 'os.suid', 'os.fname', 'os.mname', 'os.lname', 'sbd.sex', 'c.name')
+        ->groupBy('os.sid', 'os.suid', 'os.fname', 'os.mname', 'os.lname', 'sbd.sex', 'c.name', 'sbd.dob')
         ->orderBy('full_name', 'asc')
         ->get();
 
