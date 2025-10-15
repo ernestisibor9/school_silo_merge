@@ -32395,7 +32395,9 @@ public function getStudentGenderDetails(Request $request)
         ->select(
             'os.sid as student_id',
             'os.suid',
-            DB::raw("CONCAT(os.fname, ' ', os.mname, ' ', os.lname) as full_name"),
+            'os.fname',
+            'os.mname',
+            'os.lname',
             'sbd.sex',
             DB::raw("DATE(FROM_UNIXTIME(sbd.dob / 1000)) as date_of_birth"),
             'c.name as class_name',
@@ -32406,7 +32408,18 @@ public function getStudentGenderDetails(Request $request)
         ->where('c.id', $class)
         ->where('sbd.sex', $gender)
         ->where('os.status', 'active')
-        ->groupBy('os.sid', 'os.suid', 'os.fname', 'os.mname', 'os.lname', 'sbd.sex', 'sbd.dob', 'c.name', 'sc.name')
+        ->groupBy(
+            'os.sid',
+            'os.suid',
+            'os.fname',
+            'os.mname',
+            'os.lname',
+            'sbd.sex',
+            'sbd.dob',
+            'c.name',
+            'sc.name'
+        )
+        ->orderBy('os.lname', 'asc')
         ->get();
 
     return response()->json([
@@ -32416,7 +32429,6 @@ public function getStudentGenderDetails(Request $request)
         'pld' => $records
     ], 200, [], JSON_PRETTY_PRINT);
 }
-
 
 
 
