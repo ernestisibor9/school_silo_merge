@@ -12578,61 +12578,127 @@ public function getClassSubjects($schid, $clsid, $sesn, $trm)
 
 
 
-    public function createOrGetSplit(int $schid, int $clsid, array $subaccounts, string $splitType = 'percentage'): string
-    {
-        // Check if a split already exists for this school/class
-        $existing = subaccount_split::where('schid', $schid)
-            ->where('clsid', $clsid)
-            ->first();
+    // public function createOrGetSplit(int $schid, int $clsid, array $subaccounts, string $splitType = 'percentage'): string
+    // {
+    //     // Check if a split already exists for this school/class
+    //     $existing = subaccount_split::where('schid', $schid)
+    //         ->where('clsid', $clsid)
+    //         ->first();
 
-        if ($existing && !empty($existing->split_code)) {
-            return $existing->split_code;
-        }
+    //     if ($existing && !empty($existing->split_code)) {
+    //         return $existing->split_code;
+    //     }
 
-        // Normalize subaccount shares based on split type
-        foreach ($subaccounts as &$acc) {
-            if ($splitType === 'flat') {
-                $acc['share'] = intval($acc['share']) * 100; // Convert Naira → Kobo
-            } else {
-                $acc['share'] = floatval($acc['share']); // Percentage
-            }
-        }
+    //     // Normalize subaccount shares based on split type
+    //     foreach ($subaccounts as &$acc) {
+    //         if ($splitType === 'flat') {
+    //             $acc['share'] = intval($acc['share']) * 100; // Convert Naira → Kobo
+    //         } else {
+    //             $acc['share'] = floatval($acc['share']); // Percentage
+    //         }
+    //     }
 
-        // Prepare payload for Paystack
-        $payload = [
-            'name'        => "Split-{$schid}-{$clsid}-" . uniqid(),
-            'type'        => $splitType,
-            'currency'    => 'NGN',
-            'subaccounts' => $subaccounts,
-            'bearer_type' => 'account', // Main account bears Paystack fees
+    //     // Prepare payload for Paystack
+    //     $payload = [
+    //         'name'        => "Split-{$schid}-{$clsid}-" . uniqid(),
+    //         'type'        => $splitType,
+    //         'currency'    => 'NGN',
+    //         'subaccounts' => $subaccounts,
+    //         'bearer_type' => 'account', // Main account bears Paystack fees
+    //     ];
+
+    //     try {
+    //         $response = Http::withToken(env('PAYSTACK_SECRET'))
+    //             ->post('https://api.paystack.co/split', $payload);
+
+    //         $respData = $response->json();
+
+    //         if ($response->successful() && isset($respData['data']['split_code'])) {
+    //             $splitCode = $respData['data']['split_code'];
+
+    //             // Save split to DB
+    //             subaccount_split::create([
+    //                 'schid'      => $schid,
+    //                 'clsid'      => $clsid,
+    //                 'split_code' => $splitCode,
+    //             ]);
+
+    //             return $splitCode;
+    //         }
+
+    //         Log::error('Paystack Split Error: ' . $response->body());
+    //         throw new \Exception('Error creating split: ' . $response->body());
+    //     } catch (\Exception $e) {
+    //         Log::error('Paystack Split Exception: ' . $e->getMessage());
+    //         throw new \Exception('Failed to create Paystack split: ' . $e->getMessage());
+    //     }
+    // }
+
+
+    public function createOrGetSplit(int $schid, int $clsid, array $subaccounts, string $splitType = 'percentage'): array
+{
+    // Check if a split already exists for this school/class
+    $existing = subaccount_split::where('schid', $schid)
+        ->where('clsid', $clsid)
+        ->first();
+
+    if ($existing && !empty($existing->split_code)) {
+        return [
+            'split_code' => $existing->split_code,
+            'total_amount' => array_sum(array_column($subaccounts, 'share')), // sum of shares
+            'subaccounts' => $subaccounts
         ];
+    }
 
-        try {
-            $response = Http::withToken(env('PAYSTACK_SECRET'))
-                ->post('https://api.paystack.co/split', $payload);
-
-            $respData = $response->json();
-
-            if ($response->successful() && isset($respData['data']['split_code'])) {
-                $splitCode = $respData['data']['split_code'];
-
-                // Save split to DB
-                subaccount_split::create([
-                    'schid'      => $schid,
-                    'clsid'      => $clsid,
-                    'split_code' => $splitCode,
-                ]);
-
-                return $splitCode;
-            }
-
-            Log::error('Paystack Split Error: ' . $response->body());
-            throw new \Exception('Error creating split: ' . $response->body());
-        } catch (\Exception $e) {
-            Log::error('Paystack Split Exception: ' . $e->getMessage());
-            throw new \Exception('Failed to create Paystack split: ' . $e->getMessage());
+    // Normalize subaccount shares based on split type
+    foreach ($subaccounts as &$acc) {
+        if ($splitType === 'flat') {
+            $acc['share'] = intval($acc['share']) * 100; // Naira → Kobo
+        } else {
+            $acc['share'] = floatval($acc['share']); // Percentage
         }
     }
+
+    // Prepare payload for Paystack
+    $payload = [
+        'name'        => "Split-{$schid}-{$clsid}-" . uniqid(),
+        'type'        => $splitType,
+        'currency'    => 'NGN',
+        'subaccounts' => $subaccounts,
+        'bearer_type' => 'account',
+    ];
+
+    try {
+        $response = Http::withToken(env('PAYSTACK_SECRET'))
+            ->post('https://api.paystack.co/split', $payload);
+
+        $respData = $response->json();
+
+        if ($response->successful() && isset($respData['data']['split_code'])) {
+            $splitCode = $respData['data']['split_code'];
+
+            // Save split to DB
+            subaccount_split::create([
+                'schid'      => $schid,
+                'clsid'      => $clsid,
+                'split_code' => $splitCode,
+            ]);
+
+            return [
+                'split_code' => $splitCode,
+                'total_amount' => array_sum(array_column($subaccounts, 'share')), // sum of all shares
+                'subaccounts' => $subaccounts
+            ];
+        }
+
+        Log::error('Paystack Split Error: ' . $response->body());
+        throw new \Exception('Error creating split: ' . $response->body());
+    } catch (\Exception $e) {
+        Log::error('Paystack Split Exception: ' . $e->getMessage());
+        throw new \Exception('Failed to create Paystack split: ' . $e->getMessage());
+    }
+}
+
 
 
     public function handleCallback(Request $request)
@@ -12720,7 +12786,15 @@ public function getClassSubjects($schid, $clsid, $sesn, $trm)
             }
 
             // Get or create split code
-            $splitCode = $this->createOrGetSplit($schid, $clsid, $subaccounts, $splitType);
+            // $splitCode = $this->createOrGetSplit($schid, $clsid, $subaccounts, $splitType);
+
+            // Get or create split data
+$splitData = $this->createOrGetSplit($schid, $clsid, $subaccounts, $splitType);
+
+$splitCode       = $splitData['split_code'];       // Paystack split code
+$totalSplitAmount = $splitData['total_amount'];   // Total split amount in Naira
+$subaccountsData  = $splitData['subaccounts'];    // Optional: subaccount details
+
 
             // Build unique reference
             $host  = preg_replace('/^api\./', '', $request->getHost());
@@ -12771,6 +12845,9 @@ public function getClassSubjects($schid, $clsid, $sesn, $trm)
                     'message' => 'Payment Initialized Successfully',
                     'data'    => $response->json(),
                     'ref'     => $ref,
+                            'split_code'         => $splitCode,
+        'total_split_amount' => $totalSplitAmount,
+        'subaccounts'        => $subaccountsData,
                 ]);
             }
 
