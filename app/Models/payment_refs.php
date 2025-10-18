@@ -10,7 +10,7 @@ class payment_refs extends Model
     protected $primaryKey = 'ref';
     public $incrementing = false;
     protected $fillable = [
-        'ref', 'amt', 'time', 'metadata'
+        'ref', 'amt', 'time', 'metadata', 'split_code', 'subaccounts', 'amount'
     ];
     /*protected $hidden = [
         'password',
