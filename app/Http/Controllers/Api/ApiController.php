@@ -12834,7 +12834,7 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts, str
             return $this->redirectToError();
         }
 
-        // Redirect to the school's subdomain + /studentPortal
+        // Redirect to the school's subdomain + /studentPortall
         $url = request()->getScheme() . "://{$subdomain}.schoolsilomerge.top/studentPortal";
 
         return redirect()->to($url);
