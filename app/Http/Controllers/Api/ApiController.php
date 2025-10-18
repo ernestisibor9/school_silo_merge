@@ -12945,14 +12945,17 @@ public function initializePayment(Request $request)
 if ($response->successful()) {
     $paystackData = $response->json();
 
-    // 🟢 Store split details for later webhook use
-    payment_refs::create([
-        'ref'         => $ref,
+// 🟢 Upsert reference so callback can use it
+payment_refs::updateOrCreate(
+    ['ref' => $ref],
+    [
         'split_code'  => $splitCode,
         'subaccounts' => json_encode($subaccountsData),
-        'amt'      => $amount,
-        'time'        => now(), // store normal datetime
-    ]);
+        'amt'         => $amount,
+        'time'        => now(),
+    ]
+);
+
 
     return response()->json([
         'status'  => true,
@@ -14109,11 +14112,12 @@ public function paystackConf(Request $request)
         return response()->json(['status' => 'error', 'message' => 'Missing reference'], 400);
     }
 
-    // 🟢 If already recorded, ignore duplicate webhook
-    if (payment_refs::where('ref', $ref)->exists()) {
-        Log::info('Duplicate reference detected: ' . $ref);
-        return response()->json(['status' => 'duplicate'], 200);
-    }
+// 🟢 Ignore only if payment was already saved, not just reference
+if (payments::where('main_ref', $ref)->exists()) {
+    Log::info("Duplicate webhook ignored for ref {$ref}");
+    return response()->json(['status' => 'duplicate'], 200);
+}
+
 
     // Extract identifiers
     $payinfo = explode('-', $ref);
