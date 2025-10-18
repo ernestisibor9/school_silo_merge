@@ -12942,19 +12942,29 @@ public function initializePayment(Request $request)
             ->post('https://api.paystack.co/transaction/initialize', $payload);
 
         // ✅ Handle Paystack response
-        if ($response->successful()) {
-            $paystackData = $response->json();
+if ($response->successful()) {
+    $paystackData = $response->json();
 
-            return response()->json([
-                'status'  => true,
-                'message' => 'Payment Initialized Successfully',
-                'data'    => $paystackData,
-                'ref'     => $ref,
-                'split_code'         => $splitCode,
-                'total_split_amount' => $totalSplitAmount,
-                'subaccounts'        => $subaccountsData,
-            ]);
-        }
+    // 🟢 Store split details for later webhook use
+    payment_refs::create([
+        'ref'         => $ref,
+        'split_code'  => $splitCode,
+        'subaccounts' => json_encode($subaccountsData),
+        'amount'      => $amount,
+        'time'        => now(), // store normal datetime
+    ]);
+
+    return response()->json([
+        'status'  => true,
+        'message' => 'Payment Initialized Successfully',
+        'data'    => $paystackData,
+        'ref'     => $ref,
+        'split_code'         => $splitCode,
+        'total_split_amount' => $totalSplitAmount,
+        'subaccounts'        => $subaccountsData,
+    ]);
+}
+
 
         // Log and return error if not successful
         Log::error('Paystack Transaction Error: ' . $response->body());
@@ -14087,81 +14097,57 @@ public function paystackConf(Request $request)
 {
     Log::info('------------PAYSTACK CALLBACK ARRIVED-----------');
 
-    // Decode the Paystack payload
     $payload = json_decode($request->input('payload'), true);
 
     if (!isset($payload['event']) || $payload['event'] !== "charge.success") {
-        Log::warning('Invalid or missing Paystack event: ' . json_encode($payload));
+        Log::warning('Invalid Paystack event');
         return response()->json(['status' => 'ignored'], 200);
     }
 
     $ref = $payload['data']['reference'] ?? null;
     if (!$ref) {
-        Log::error('Missing transaction reference.');
         return response()->json(['status' => 'error', 'message' => 'Missing reference'], 400);
     }
 
-    $pld = payment_refs::where("ref", "=", $ref)->first();
-    if ($pld) {
+    // 🟢 If already recorded, ignore duplicate webhook
+    if (payment_refs::where('ref', $ref)->exists()) {
         Log::info('Duplicate reference detected: ' . $ref);
         return response()->json(['status' => 'duplicate'], 200);
     }
 
-    // Extract reference details
+    // Extract identifiers
     $payinfo = explode('-', $ref);
-    if (count($payinfo) < 8) {
-        Log::error('Invalid reference format: ' . $ref);
-        return response()->json(['status' => 'error', 'message' => 'Invalid reference format'], 400);
-    }
-
     [$host, $schid, $amt, $typ, $stid, $ssnid, $trmid, $clsid] = $payinfo;
 
     $metadata = $payload['data']['metadata'] ?? [];
     $nm  = $metadata['name'] ?? '';
-    $tm  = $metadata['time'] ?? now()->timestamp;
     $exp = $metadata['exp'] ?? '';
-    $eml = $metadata['eml'] ?? '';
     $lid = $metadata['lid'] ?? '';
 
-    $what = match ($typ) {
-        '0' => 'School Fees',
-        '1' => 'Application Fee',
-        '2' => 'Acceptance Fee',
-        default => 'Payment',
-    };
+    $totalAmountPaid = ($payload['data']['amount'] ?? $amt * 100) / 100;
 
-    // ✅ Actual amount paid (convert from kobo)
-    $totalAmountPaid = isset($payload['data']['amount'])
-        ? $payload['data']['amount'] / 100
-        : $amt;
-
-    // ✅ Handle special payment types
-    if ($typ == '1') {
-        student::where('sid', $stid)->update(["rfee" => '1']);
-    }
-
-    if ($typ == '2') {
-        $uid = $stid . $schid . $clsid;
-        afeerec::updateOrCreate(
-            ["uid" => $uid],
-            [
-                "stid"  => $stid,
-                "schid" => $schid,
-                "clsid" => $clsid,
-                "amt"   => intval($amt),
-            ]
-        );
-    }
-
-    // ✅ Handle split or non-split payments
+    // 🟢 Try to get split data from Paystack webhook
     $splitData = $payload['data']['split']['shares']['subaccounts'] ?? null;
 
     if ($splitData && is_array($splitData)) {
-        // Compute total split (in Naira)
+        // (Normal split from webhook)
         $totalSplitAmount = isset($payload['data']['split']['total_split'])
             ? $payload['data']['split']['total_split'] / 100
             : array_sum(array_column($splitData, 'amount')) / 100;
+    } else {
+        // 🩵 Restore locally saved split data
+        $stored = payment_refs::where('ref', $ref)->first();
 
+        if ($stored && $stored->subaccounts) {
+            $splitData = json_decode($stored->subaccounts, true);
+            $totalSplitAmount = $stored->amount;
+        } else {
+            $splitData = null;
+        }
+    }
+
+    // 🟢 Save payment(s)
+    if ($splitData && is_array($splitData)) {
         foreach ($splitData as $sub) {
             payments::create([
                 'schid'              => $schid,
@@ -14171,55 +14157,39 @@ public function paystackConf(Request $request)
                 'clsid'              => $clsid,
                 'name'               => $nm,
                 'exp'                => $exp,
-                'amt'                => $sub['amount'] / 100,
+                'amt'                => $totalAmountPaid / count($splitData),
                 'lid'                => $lid,
-                'subaccount_code'    => $sub['subaccount_code'] ?? null,
+                'subaccount_code'    => $sub['subaccount'] ?? null,
                 'main_ref'           => $ref,
                 'total_split_amount' => $totalSplitAmount,
             ]);
         }
 
-        Log::info("Split payment recorded for ref {$ref} with total_split_amount ₦{$totalSplitAmount}");
+        Log::info("✅ Split payment recorded successfully for ref {$ref}");
     } else {
-        // ✅ No split present — record the full payment
         payments::create([
-            'schid'             => $schid,
-            'stid'              => $stid,
-            'ssnid'             => $ssnid,
-            'trmid'             => $trmid,
-            'clsid'             => $clsid,
-            'name'              => $nm,
-            'exp'               => $exp,
-            'amt'               => $totalAmountPaid,
-            'lid'               => $lid,
-            'main_ref'          => $ref,
-            'total_split_amount'=> null, // ✅ stays null for non-split payments
+            'schid'              => $schid,
+            'stid'               => $stid,
+            'ssnid'              => $ssnid,
+            'trmid'              => $trmid,
+            'clsid'              => $clsid,
+            'name'               => $nm,
+            'exp'                => $exp,
+            'amt'                => $totalAmountPaid,
+            'lid'                => $lid,
+            'main_ref'           => $ref,
+            'total_split_amount' => null,
         ]);
 
-        Log::info("Non-split payment recorded for ref {$ref}, amount ₦{$totalAmountPaid}");
+        Log::info("✅ Non-split payment recorded for ref {$ref}");
     }
 
-    // ✅ Optional email notification
-    try {
-        $data = [
-            'name'    => $nm,
-            'subject' => 'Payment Received',
-            'body'    => 'Your ' . $what . ' payment was received successfully.',
-            'link'    => env('PORTAL_URL') . '/studentLogin/' . $schid,
-        ];
-        Mail::to($eml)->send(new SSSMails($data));
-    } catch (\Exception $e) {
-        Log::error('Email send failed: ' . $e->getMessage());
-    }
-
-    // ✅ Log and persist payment reference
+    // Mark reference as confirmed
     payment_refs::create([
-        "ref"  => $ref,
-        "amt"  => $totalAmountPaid,
-        "time" => $tm,
+        'ref'  => $ref,
+        'amt'  => $totalAmountPaid,
     ]);
 
-    Log::info("Payment CONFIRMATION success for ref {$ref}");
     return response()->json(['status' => 'success'], 200);
 }
 
