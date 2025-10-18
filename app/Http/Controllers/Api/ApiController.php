@@ -11758,33 +11758,34 @@ public function getClassSubjects($schid, $clsid, $sesn, $trm)
 
 public function getStudentPayments($stid)
 {
-    $start = request('start', 0);
-    $count = request('count', 20);
+    try {
+        // ✅ Get latest record where total_split_amount is NOT NULL
+        $latestNonNull = payments::where('stid', $stid)
+            ->whereNotNull('total_split_amount')
+            ->latest()
+            ->first();
 
-    // ✅ Get latest record with total_split_amount != NULL
-    $latestSplitRecord = payments::where('stid', $stid)
-        ->whereNotNull('total_split_amount')
-        ->latest()
-        ->first();
+        // ✅ Get all records where total_split_amount IS NULL
+        $nullRecords = payments::where('stid', $stid)
+            ->whereNull('total_split_amount')
+            ->orderByDesc('created_at')
+            ->get();
 
-    // ✅ Get all other records (including NULL total_split_amount)
-    $otherRecords = payments::where('stid', $stid)
-        ->when($latestSplitRecord, function ($query) use ($latestSplitRecord) {
-            // Exclude the one already retrieved above
-            return $query->where('id', '!=', $latestSplitRecord->id);
-        })
-        ->skip($start)
-        ->take($count)
-        ->get();
+        return response()->json([
+            'status' => true,
+            'message' => 'Success',
+            'latest_record' => $latestNonNull,   // may be null if none exists
+            'null_records' => $nullRecords,      // may be empty if none exist
+        ]);
 
-    // ✅ Merge both together (latest split record first)
-    $pld = collect([$latestSplitRecord])->filter()->merge($otherRecords);
-
-    return response()->json([
-        "status"  => true,
-        "message" => "Success",
-        "pld"     => $pld,
-    ]);
+    } catch (\Exception $e) {
+        Log::error('Error fetching student payments: ' . $e->getMessage());
+        return response()->json([
+            'status' => false,
+            'message' => 'Failed to fetch records',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
 }
 
 
