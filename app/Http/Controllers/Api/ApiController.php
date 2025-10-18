@@ -12744,6 +12744,7 @@ public function getStudentPayments($stid)
 // }
 
 
+
 public function createOrGetSplit(int $schid, int $clsid, array $subaccounts, string $splitType = 'percentage'): array
 {
     // Check if a split already exists for this school/class
@@ -14106,64 +14107,115 @@ payment_refs::updateOrCreate(
     //     return response()->json(['status' => 'success'], 200);
     // }
 
-
 public function paystackConf(Request $request)
 {
-    Log::info('------------PAYSTACK CALLBACK ARRIVED-----------');
+    Log::info('------------ PAYSTACK CALLBACK ARRIVED -----------');
 
     $payload = json_decode($request->input('payload'), true);
 
     if (!isset($payload['event']) || $payload['event'] !== "charge.success") {
-        Log::warning('Invalid Paystack event');
+        Log::warning('Invalid Paystack event received.');
         return response()->json(['status' => 'ignored'], 200);
     }
 
     $ref = $payload['data']['reference'] ?? null;
     if (!$ref) {
+        Log::error('Missing transaction reference in webhook.');
         return response()->json(['status' => 'error', 'message' => 'Missing reference'], 400);
     }
 
-// 🟢 Ignore only if payment was already saved, not just reference
-if (payments::where('main_ref', $ref)->exists()) {
-    Log::info("Duplicate webhook ignored for ref {$ref}");
-    return response()->json(['status' => 'duplicate'], 200);
-}
+    // ✅ Prevent duplicate webhook processing
+    if (payments::where('main_ref', $ref)->exists()) {
+        Log::info("Duplicate webhook ignored for ref {$ref}");
+        return response()->json(['status' => 'duplicate'], 200);
+    }
 
-
-    // Extract identifiers
+    // ✅ Extract info from reference
     $payinfo = explode('-', $ref);
+    if (count($payinfo) < 8) {
+        Log::error("Invalid reference format: {$ref}");
+        return response()->json(['status' => 'error', 'message' => 'Invalid reference format'], 400);
+    }
+
     [$host, $schid, $amt, $typ, $stid, $ssnid, $trmid, $clsid] = $payinfo;
 
     $metadata = $payload['data']['metadata'] ?? [];
     $nm  = $metadata['name'] ?? '';
     $exp = $metadata['exp'] ?? '';
+    $eml = $metadata['eml'] ?? '';
     $lid = $metadata['lid'] ?? '';
+    $tm  = $metadata['time'] ?? now()->timestamp;
 
-    $totalAmountPaid = ($payload['data']['amount'] ?? $amt * 100) / 100;
+    $totalAmountPaid = ($payload['data']['amount'] ?? ($amt * 100)) / 100;
 
-    // 🟢 Try to get split data from Paystack webhook
+    // ✅ Determine payment type (school, application, or acceptance)
+    $what = '';
+    if ($typ == '0') {
+        $what = 'School Fees';
+    } elseif ($typ == '1') {
+        $what = 'Application Fee';
+        student::where('sid', $stid)->update(["rfee" => '1']);
+    } elseif ($typ == '2') {
+        $what = 'Acceptance Fee';
+        $uid = $stid . $schid . $clsid;
+        afeerec::updateOrCreate(
+            ["uid" => $uid],
+            [
+                "stid"  => $stid,
+                "schid" => $schid,
+                "clsid" => $clsid,
+                "amt"   => intval($amt),
+            ]
+        );
+    }
+
+    // ✅ Handle split data
     $splitData = $payload['data']['split']['shares']['subaccounts'] ?? null;
+    $totalSplitAmount = null;
 
-    if ($splitData && is_array($splitData)) {
-        // (Normal split from webhook)
+    if (!$splitData || !is_array($splitData)) {
+        // Fallback from payment_refs
+        $stored = payment_refs::where('ref', $ref)->first();
+        if ($stored && $stored->subaccounts) {
+            $splitData = json_decode($stored->subaccounts, true);
+            $totalSplitAmount = $stored->amt;
+            Log::info("🔄 Restored split data from payment_refs for ref {$ref}");
+        } else {
+            Log::warning("⚠️ No split data found in webhook or DB for ref {$ref}");
+        }
+    } else {
         $totalSplitAmount = isset($payload['data']['split']['total_split'])
             ? $payload['data']['split']['total_split'] / 100
             : array_sum(array_column($splitData, 'amount')) / 100;
-    } else {
-        // 🩵 Restore locally saved split data
-        $stored = payment_refs::where('ref', $ref)->first();
-
-        if ($stored && $stored->subaccounts) {
-            $splitData = json_decode($stored->subaccounts, true);
-            $totalSplitAmount = $stored->amount;
-        } else {
-            $splitData = null;
-        }
     }
 
-    // 🟢 Save payment(s)
-    if ($splitData && is_array($splitData)) {
-        foreach ($splitData as $sub) {
+    try {
+        DB::beginTransaction();
+
+        // ✅ Record payments (split or non-split)
+        if ($splitData && is_array($splitData)) {
+            foreach ($splitData as $sub) {
+                $subAmt = isset($sub['amount']) ? $sub['amount'] / 100 : 0;
+                $subCode = $sub['subaccount'] ?? null;
+
+                payments::create([
+                    'schid'              => $schid,
+                    'stid'               => $stid,
+                    'ssnid'              => $ssnid,
+                    'trmid'              => $trmid,
+                    'clsid'              => $clsid,
+                    'name'               => $nm,
+                    'exp'                => $exp,
+                    'amt'                => $subAmt,
+                    'lid'                => $lid,
+                    'subaccount_code'    => $subCode,
+                    'main_ref'           => $ref,
+                    'total_split_amount' => $totalSplitAmount,
+                ]);
+            }
+
+            Log::info("✅ Split payment recorded successfully for ref {$ref}");
+        } else {
             payments::create([
                 'schid'              => $schid,
                 'stid'               => $stid,
@@ -14172,42 +14224,45 @@ if (payments::where('main_ref', $ref)->exists()) {
                 'clsid'              => $clsid,
                 'name'               => $nm,
                 'exp'                => $exp,
-                'amt'                => $totalAmountPaid / count($splitData),
+                'amt'                => $totalAmountPaid,
                 'lid'                => $lid,
-                'subaccount_code'    => $sub['subaccount'] ?? null,
                 'main_ref'           => $ref,
-                'total_split_amount' => $totalSplitAmount,
+                'total_split_amount' => null,
             ]);
+
+            Log::info("✅ Non-split payment recorded for ref {$ref}");
         }
 
-        Log::info("✅ Split payment recorded successfully for ref {$ref}");
-    } else {
-        payments::create([
-            'schid'              => $schid,
-            'stid'               => $stid,
-            'ssnid'              => $ssnid,
-            'trmid'              => $trmid,
-            'clsid'              => $clsid,
-            'name'               => $nm,
-            'exp'                => $exp,
-            'amt'                => $totalAmountPaid,
-            'lid'                => $lid,
-            'main_ref'           => $ref,
-            'total_split_amount' => null,
-        ]);
+        // ✅ Save payment reference
+        payment_refs::updateOrCreate(
+            ['ref' => $ref],
+            ['amt' => $totalAmountPaid, 'time' => $tm, 'confirmed_at' => now()]
+        );
 
-        Log::info("✅ Non-split payment recorded for ref {$ref}");
+        DB::commit();
+
+        // ✅ Send email confirmation
+        try {
+            $data = [
+                'name'    => $nm,
+                'subject' => 'Payment Received',
+                'body'    => 'Your ' . $what . ' payment was successfully received.',
+                'link'    => env('PORTAL_URL') . '/studentLogin/' . $schid,
+            ];
+            Mail::to($eml)->send(new SSSMails($data));
+            Log::info("📧 Payment email sent successfully to {$eml}");
+        } catch (\Exception $e) {
+            Log::error('Failed to send payment confirmation email: ' . $e->getMessage());
+        }
+
+        return response()->json(['status' => 'success'], 200);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error("❌ Failed to record payment for ref {$ref}: " . $e->getMessage());
+        return response()->json(['status' => 'error', 'message' => 'Failed to record payment'], 500);
     }
-
-    // Mark reference as confirmed
-    payment_refs::create([
-        'ref'  => $ref,
-        'amt'  => $totalAmountPaid,
-    ]);
-
-    return response()->json(['status' => 'success'], 200);
 }
-
 
 
     //--VENDORS
