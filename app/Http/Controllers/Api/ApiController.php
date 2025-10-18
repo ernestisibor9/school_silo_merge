@@ -12950,7 +12950,7 @@ if ($response->successful()) {
         'ref'         => $ref,
         'split_code'  => $splitCode,
         'subaccounts' => json_encode($subaccountsData),
-        'amount'      => $amount,
+        'amt'      => $amount,
         'time'        => now(), // store normal datetime
     ]);
 
