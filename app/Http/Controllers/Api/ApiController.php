@@ -11771,19 +11771,30 @@ public function getStudentPayments($stid)
             ->orderByDesc('created_at')
             ->get();
 
+        // ✅ Combine them into one payload
+        $pld = collect();
+
+        if ($latestNonNull) {
+            $pld->push($latestNonNull);
+        }
+
+        if ($nullRecords->isNotEmpty()) {
+            $pld = $pld->merge($nullRecords);
+        }
+
+        // ✅ Return response with everything inside `pld`
         return response()->json([
-            'status' => true,
-            'message' => 'Success',
-            'latest_record' => $latestNonNull,   // may be null if none exists
-            'null_records' => $nullRecords,      // may be empty if none exist
+            "status"  => true,
+            "message" => "Success",
+            "pld"     => $pld,
         ]);
 
     } catch (\Exception $e) {
         Log::error('Error fetching student payments: ' . $e->getMessage());
         return response()->json([
-            'status' => false,
-            'message' => 'Failed to fetch records',
-            'error' => $e->getMessage(),
+            "status"  => false,
+            "message" => "Failed to fetch records",
+            "error"   => $e->getMessage(),
         ], 500);
     }
 }
