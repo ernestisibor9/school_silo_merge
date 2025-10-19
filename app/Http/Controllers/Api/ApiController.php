@@ -14124,13 +14124,11 @@ public function paystackConf(Request $request)
         return response()->json(['status' => 'error', 'message' => 'Missing reference'], 400);
     }
 
-    // ✅ Prevent duplicate webhook processing
     if (payments::where('main_ref', $ref)->exists()) {
         Log::info("Duplicate webhook ignored for ref {$ref}");
         return response()->json(['status' => 'duplicate'], 200);
     }
 
-    // ✅ Extract info from reference
     $payinfo = explode('-', $ref);
     if (count($payinfo) < 8) {
         Log::error("Invalid reference format: {$ref}");
@@ -14148,7 +14146,7 @@ public function paystackConf(Request $request)
 
     $totalAmountPaid = ($payload['data']['amount'] ?? ($amt * 100)) / 100;
 
-    // ✅ Determine payment type (school, application, or acceptance)
+    // Determine payment type
     $what = '';
     if ($typ == '0') {
         $what = 'School Fees';
@@ -14169,7 +14167,7 @@ public function paystackConf(Request $request)
         );
     }
 
-    // ✅ Handle split data
+    // Handle split data
     $splitData = $payload['data']['split']['shares']['subaccounts'] ?? null;
     $totalSplitAmount = null;
 
@@ -14184,18 +14182,19 @@ public function paystackConf(Request $request)
             Log::warning("⚠️ No split data found in webhook or DB for ref {$ref}");
         }
     } else {
+        // Sum 'share' instead of 'amount'
         $totalSplitAmount = isset($payload['data']['split']['total_split'])
             ? $payload['data']['split']['total_split'] / 100
-            : array_sum(array_column($splitData, 'amount')) / 100;
+            : array_sum(array_column($splitData, 'share')) / 100;
     }
 
     try {
         DB::beginTransaction();
 
-        // ✅ Record payments (split or non-split)
+        // Record payments
         if ($splitData && is_array($splitData)) {
             foreach ($splitData as $sub) {
-                $subAmt = isset($sub['amount']) ? $sub['amount'] / 100 : 0;
+                $subAmt = isset($sub['share']) ? $sub['share'] / 100 : 0;
                 $subCode = $sub['subaccount'] ?? null;
 
                 payments::create([
@@ -14233,7 +14232,7 @@ public function paystackConf(Request $request)
             Log::info("✅ Non-split payment recorded for ref {$ref}");
         }
 
-        // ✅ Save payment reference
+        // Save payment reference
         payment_refs::updateOrCreate(
             ['ref' => $ref],
             ['amt' => $totalAmountPaid, 'time' => $tm, 'confirmed_at' => now()]
@@ -14241,7 +14240,7 @@ public function paystackConf(Request $request)
 
         DB::commit();
 
-        // ✅ Send email confirmation
+        // Send email confirmation
         try {
             $data = [
                 'name'    => $nm,
