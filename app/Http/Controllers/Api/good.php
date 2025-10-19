@@ -1,5 +1,4 @@
 
-text/x-generic ApiController.php ( C++ source, UTF-8 Unicode text, with very long lines )
 <?php
 
 namespace App\Http\Controllers\Api;

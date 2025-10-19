@@ -120,27 +120,28 @@ use Illuminate\Support\Facades\Hash;
 class ApiController extends Controller
 {
 
-    //--Schools
+/**
+ * @OA\Post(
+ *     path="/api/registerSchool",
+ *     tags={"Unprotected"},
+ *     summary="Register a new school",
+ *     operationId="registerSchool",
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             type="object",
+ *             required={"email","name","sbd","sch3","password"},
+ *             @OA\Property(property="email", type="string", format="email"),
+ *             @OA\Property(property="name", type="string"),
+ *             @OA\Property(property="sbd", type="string", description="Sub-Domain ID"),
+ *             @OA\Property(property="sch3", type="string", description="3-letter acronym for the school"),
+ *             @OA\Property(property="password", type="string", description="The password for the school")
+ *         )
+ *     ),
+ *     @OA\Response(response=200, description="School registered successfully")
+ * )
+ */
 
-    /**
-     * @OA\Post(
-     *     path="/api/registerSchool",
-     *     tags={"Unprotected"},
-     *     summary="Register a new school",
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="email", type="string", format="email"),
-     *             @OA\Property(property="name", type="string"),
-     *             @OA\Property(property="sbd", type="string", description="Sub-Domain ID"),
-     *             @OA\Property(property="sch3", type="string", description="3 acrn for the school"),
-     *             @OA\Property(property="password", type="string", description="The password for the school"),
-     *         )
-     *     ),
-     *     @OA\Response(response="200", description="Password reset token sent to mail"),
-     * )
-     */
 
 
     public function registerSchool(Request $request)
@@ -3310,31 +3311,31 @@ class ApiController extends Controller
     // }
 
 
-public function getClassSubjects($schid, $clsid, $sesn, $trm)
-{
-    $start = 0;
-    $count = 30; // increased from 20 to 30
+    public function getClassSubjects($schid, $clsid, $sesn, $trm)
+    {
+        $start = 0;
+        $count = 30; // increased from 20 to 30
 
-    if (request()->has('start') && request()->has('count')) {
-        $start = request()->input('start');
-        $count = request()->input('count');
+        if (request()->has('start') && request()->has('count')) {
+            $start = request()->input('start');
+            $count = request()->input('count');
+        }
+
+        $pld = class_subj::where("schid", $schid)
+            ->where("clsid", $clsid)
+            ->where("sesn", $sesn)
+            ->where("trm", $trm)
+            ->orderBy('created_at', 'asc') // optional, but helps maintain consistent order
+            ->skip($start)
+            ->take($count)
+            ->get();
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld,
+        ]);
     }
-
-    $pld = class_subj::where("schid", $schid)
-        ->where("clsid", $clsid)
-        ->where("sesn", $sesn)
-        ->where("trm", $trm)
-        ->orderBy('created_at', 'asc') // optional, but helps maintain consistent order
-        ->skip($start)
-        ->take($count)
-        ->get();
-
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => $pld,
-    ]);
-}
 
 
 
@@ -11756,48 +11757,47 @@ public function getClassSubjects($schid, $clsid, $sesn, $trm)
     // }
 
 
-public function getStudentPayments($stid)
-{
-    try {
-        // ✅ Get latest record where total_split_amount is NOT NULL
-        $latestNonNull = payments::where('stid', $stid)
-            ->whereNotNull('total_split_amount')
-            ->latest()
-            ->first();
+    public function getStudentPayments($stid)
+    {
+        try {
+            // ✅ Get latest record where total_split_amount is NOT NULL
+            $latestNonNull = payments::where('stid', $stid)
+                ->whereNotNull('total_split_amount')
+                ->latest()
+                ->first();
 
-        // ✅ Get all records where total_split_amount IS NULL
-        $nullRecords = payments::where('stid', $stid)
-            ->whereNull('total_split_amount')
-            ->orderByDesc('created_at')
-            ->get();
+            // ✅ Get all records where total_split_amount IS NULL
+            $nullRecords = payments::where('stid', $stid)
+                ->whereNull('total_split_amount')
+                ->orderByDesc('created_at')
+                ->get();
 
-        // ✅ Combine them into one payload
-        $pld = collect();
+            // ✅ Combine them into one payload
+            $pld = collect();
 
-        if ($latestNonNull) {
-            $pld->push($latestNonNull);
+            if ($latestNonNull) {
+                $pld->push($latestNonNull);
+            }
+
+            if ($nullRecords->isNotEmpty()) {
+                $pld = $pld->merge($nullRecords);
+            }
+
+            // ✅ Return response with everything inside `pld`
+            return response()->json([
+                "status"  => true,
+                "message" => "Success",
+                "pld"     => $pld,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching student payments: ' . $e->getMessage());
+            return response()->json([
+                "status"  => false,
+                "message" => "Failed to fetch records",
+                "error"   => $e->getMessage(),
+            ], 500);
         }
-
-        if ($nullRecords->isNotEmpty()) {
-            $pld = $pld->merge($nullRecords);
-        }
-
-        // ✅ Return response with everything inside `pld`
-        return response()->json([
-            "status"  => true,
-            "message" => "Success",
-            "pld"     => $pld,
-        ]);
-
-    } catch (\Exception $e) {
-        Log::error('Error fetching student payments: ' . $e->getMessage());
-        return response()->json([
-            "status"  => false,
-            "message" => "Failed to fetch records",
-            "error"   => $e->getMessage(),
-        ], 500);
     }
-}
 
 
     /**
@@ -12678,139 +12678,139 @@ public function getStudentPayments($stid)
     // }
 
 
-//     public function createOrGetSplit(int $schid, int $clsid, array $subaccounts, string $splitType = 'percentage'): array
-// {
-//     // Check if a split already exists for this school/class
-//     $existing = subaccount_split::where('schid', $schid)
-//         ->where('clsid', $clsid)
-//         ->first();
+    //     public function createOrGetSplit(int $schid, int $clsid, array $subaccounts, string $splitType = 'percentage'): array
+    // {
+    //     // Check if a split already exists for this school/class
+    //     $existing = subaccount_split::where('schid', $schid)
+    //         ->where('clsid', $clsid)
+    //         ->first();
 
-//     if ($existing && !empty($existing->split_code)) {
-//         return [
-//             'split_code' => $existing->split_code,
-//             'total_amount' => null, // Let Paystack handle the actual total during transaction
-//            // 'total_amount' => array_sum(array_column($subaccounts, 'share')), // sum of shares
-//             'subaccounts' => $subaccounts
-//         ];
-//     }
+    //     if ($existing && !empty($existing->split_code)) {
+    //         return [
+    //             'split_code' => $existing->split_code,
+    //             'total_amount' => null, // Let Paystack handle the actual total during transaction
+    //            // 'total_amount' => array_sum(array_column($subaccounts, 'share')), // sum of shares
+    //             'subaccounts' => $subaccounts
+    //         ];
+    //     }
 
-//     // Normalize subaccount shares based on split type
-//     foreach ($subaccounts as &$acc) {
-//         if ($splitType === 'flat') {
-//             $acc['share'] = intval($acc['share']) * 100; // Naira → Kobo
-//         } else {
-//             $acc['share'] = floatval($acc['share']); // Percentage
-//         }
-//     }
+    //     // Normalize subaccount shares based on split type
+    //     foreach ($subaccounts as &$acc) {
+    //         if ($splitType === 'flat') {
+    //             $acc['share'] = intval($acc['share']) * 100; // Naira → Kobo
+    //         } else {
+    //             $acc['share'] = floatval($acc['share']); // Percentage
+    //         }
+    //     }
 
-//     // Prepare payload for Paystack
-//     $payload = [
-//         'name'        => "Split-{$schid}-{$clsid}-" . uniqid(),
-//         'type'        => $splitType,
-//         'currency'    => 'NGN',
-//         'subaccounts' => $subaccounts,
-//         'bearer_type' => 'account',
-//     ];
+    //     // Prepare payload for Paystack
+    //     $payload = [
+    //         'name'        => "Split-{$schid}-{$clsid}-" . uniqid(),
+    //         'type'        => $splitType,
+    //         'currency'    => 'NGN',
+    //         'subaccounts' => $subaccounts,
+    //         'bearer_type' => 'account',
+    //     ];
 
-//     try {
-//         $response = Http::withToken(env('PAYSTACK_SECRET'))
-//             ->post('https://api.paystack.co/split', $payload);
+    //     try {
+    //         $response = Http::withToken(env('PAYSTACK_SECRET'))
+    //             ->post('https://api.paystack.co/split', $payload);
 
-//         $respData = $response->json();
+    //         $respData = $response->json();
 
-//         if ($response->successful() && isset($respData['data']['split_code'])) {
-//             $splitCode = $respData['data']['split_code'];
+    //         if ($response->successful() && isset($respData['data']['split_code'])) {
+    //             $splitCode = $respData['data']['split_code'];
 
-//             // Save split to DB
-//             subaccount_split::create([
-//                 'schid'      => $schid,
-//                 'clsid'      => $clsid,
-//                 'split_code' => $splitCode,
-//             ]);
+    //             // Save split to DB
+    //             subaccount_split::create([
+    //                 'schid'      => $schid,
+    //                 'clsid'      => $clsid,
+    //                 'split_code' => $splitCode,
+    //             ]);
 
-//             return [
-//                 'split_code' => $splitCode,
-//                 'total_amount' => array_sum(array_column($subaccounts, 'share')), // sum of all shares
-//                 'subaccounts' => $subaccounts
-//             ];
-//         }
+    //             return [
+    //                 'split_code' => $splitCode,
+    //                 'total_amount' => array_sum(array_column($subaccounts, 'share')), // sum of all shares
+    //                 'subaccounts' => $subaccounts
+    //             ];
+    //         }
 
-//         Log::error('Paystack Split Error: ' . $response->body());
-//         throw new \Exception('Error creating split: ' . $response->body());
-//     } catch (\Exception $e) {
-//         Log::error('Paystack Split Exception: ' . $e->getMessage());
-//         throw new \Exception('Failed to create Paystack split: ' . $e->getMessage());
-//     }
-// }
+    //         Log::error('Paystack Split Error: ' . $response->body());
+    //         throw new \Exception('Error creating split: ' . $response->body());
+    //     } catch (\Exception $e) {
+    //         Log::error('Paystack Split Exception: ' . $e->getMessage());
+    //         throw new \Exception('Failed to create Paystack split: ' . $e->getMessage());
+    //     }
+    // }
 
 
 
-public function createOrGetSplit(int $schid, int $clsid, array $subaccounts, string $splitType = 'percentage'): array
-{
-    // Check if a split already exists for this school/class
-    $existing = subaccount_split::where('schid', $schid)
-        ->where('clsid', $clsid)
-        ->first();
+    public function createOrGetSplit(int $schid, int $clsid, array $subaccounts, string $splitType = 'percentage'): array
+    {
+        // Check if a split already exists for this school/class
+        $existing = subaccount_split::where('schid', $schid)
+            ->where('clsid', $clsid)
+            ->first();
 
-    if ($existing && !empty($existing->split_code)) {
-        return [
-            'split_code'  => $existing->split_code,
-            'total_amount' => null, // ✅ Let Paystack handle the actual total during transaction
-            'subaccounts' => $subaccounts
-        ];
-    }
-
-    // ✅ Normalize subaccount shares based on split type
-    foreach ($subaccounts as &$acc) {
-        if ($splitType === 'flat') {
-            // Convert Naira to Kobo if using flat split
-            $acc['share'] = intval($acc['share']) * 100;
-        } else {
-            // Keep as percentage if split type is 'percentage'
-            $acc['share'] = floatval($acc['share']);
-        }
-    }
-
-    // ✅ Prepare payload for Paystack
-    $payload = [
-        'name'        => "Split-{$schid}-{$clsid}-" . uniqid(),
-        'type'        => $splitType,
-        'currency'    => 'NGN',
-        'subaccounts' => $subaccounts,
-        'bearer_type' => 'account',
-    ];
-
-    try {
-        $response = Http::withToken(env('PAYSTACK_SECRET'))
-            ->post('https://api.paystack.co/split', $payload);
-
-        $respData = $response->json();
-
-        if ($response->successful() && isset($respData['data']['split_code'])) {
-            $splitCode = $respData['data']['split_code'];
-
-            // ✅ Save split to DB
-            subaccount_split::create([
-                'schid'      => $schid,
-                'clsid'      => $clsid,
-                'split_code' => $splitCode,
-            ]);
-
+        if ($existing && !empty($existing->split_code)) {
             return [
-                'split_code'   => $splitCode,
-                'total_amount' => null, // ✅ Paystack will compute this dynamically
-                'subaccounts'  => $subaccounts
+                'split_code'  => $existing->split_code,
+                'total_amount' => null, // ✅ Let Paystack handle the actual total during transaction
+                'subaccounts' => $subaccounts
             ];
         }
 
-        // Log Paystack response for debugging
-        Log::error('Paystack Split Error: ' . $response->body());
-        throw new \Exception('Error creating split: ' . $response->body());
-    } catch (\Exception $e) {
-        Log::error('Paystack Split Exception: ' . $e->getMessage());
-        throw new \Exception('Failed to create Paystack split: ' . $e->getMessage());
+        // ✅ Normalize subaccount shares based on split type
+        foreach ($subaccounts as &$acc) {
+            if ($splitType === 'flat') {
+                // Convert Naira to Kobo if using flat split
+                $acc['share'] = intval($acc['share']) * 100;
+            } else {
+                // Keep as percentage if split type is 'percentage'
+                $acc['share'] = floatval($acc['share']);
+            }
+        }
+
+        // ✅ Prepare payload for Paystack
+        $payload = [
+            'name'        => "Split-{$schid}-{$clsid}-" . uniqid(),
+            'type'        => $splitType,
+            'currency'    => 'NGN',
+            'subaccounts' => $subaccounts,
+            'bearer_type' => 'account',
+        ];
+
+        try {
+            $response = Http::withToken(env('PAYSTACK_SECRET'))
+                ->post('https://api.paystack.co/split', $payload);
+
+            $respData = $response->json();
+
+            if ($response->successful() && isset($respData['data']['split_code'])) {
+                $splitCode = $respData['data']['split_code'];
+
+                // ✅ Save split to DB
+                subaccount_split::create([
+                    'schid'      => $schid,
+                    'clsid'      => $clsid,
+                    'split_code' => $splitCode,
+                ]);
+
+                return [
+                    'split_code'   => $splitCode,
+                    'total_amount' => null, // ✅ Paystack will compute this dynamically
+                    'subaccounts'  => $subaccounts
+                ];
+            }
+
+            // Log Paystack response for debugging
+            Log::error('Paystack Split Error: ' . $response->body());
+            throw new \Exception('Error creating split: ' . $response->body());
+        } catch (\Exception $e) {
+            Log::error('Paystack Split Exception: ' . $e->getMessage());
+            throw new \Exception('Failed to create Paystack split: ' . $e->getMessage());
+        }
     }
-}
 
 
 
@@ -12859,145 +12859,144 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts, str
 
 
 
-public function initializePayment(Request $request)
-{
-    $request->validate([
-        'email'           => 'required|email',
-        'amount'          => 'required|numeric|min:100',
-        'schid'           => 'required|integer',
-        'clsid'           => 'required|integer',
-        'subaccount_code' => 'required|array|min:1',
-        'metadata'        => 'required|array',
-        'type'            => 'nullable|string', // 'flat' or 'percentage'
-    ]);
-
-    $email       = $request->email;
-    $amount      = $request->amount;
-    $schid       = $request->schid;
-    $clsid       = $request->clsid;
-    $subaccounts = $request->subaccount_code;
-    $metadata    = $request->metadata;
-    $splitType   = $request->type ?? 'percentage';
-
-    try {
-        $totalAmountKobo = $amount * 100;
-
-        // ✅ Validate subaccounts
-        foreach ($subaccounts as $acc) {
-            $exists = \DB::table('sub_accounts')
-                ->where('schid', $schid)
-                ->where('clsid', $clsid)
-                ->where('subaccount_code', $acc['subaccount'])
-                ->exists();
-
-            if (!$exists) {
-                return response()->json([
-                    'status'  => false,
-                    'message' => "Invalid subaccount: {$acc['subaccount']}",
-                ], 400);
-            }
-        }
-
-        // ✅ Get or create split data (handles total_split_amount & subaccounts)
-        $splitData = $this->createOrGetSplit($schid, $clsid, $subaccounts, $splitType);
-
-        $splitCode        = $splitData['split_code'] ?? null;   // Paystack split code
-        $totalSplitAmount = $splitData['total_amount'] ?? null; // Total split amount (₦)
-        $subaccountsData  = $splitData['subaccounts'] ?? [];    // Subaccount info
-
-        // ✅ Build reference
-        $host  = preg_replace('/^api\./', '', $request->getHost());
-        $typ   = $request->typ ?? 0;
-        $stid  = $request->stid ?? 0;
-        $ssnid = $request->ssnid ?? 0;
-        $trmid = $request->trmid ?? 0;
-
-        $ref = "{$host}-{$schid}-{$amount}-{$typ}-{$stid}-{$ssnid}-{$trmid}-{$clsid}-" . uniqid();
-
-        // ✅ Merge metadata
-        $metadata = array_merge($metadata, [
-            'stid'  => $stid,
-            'ssnid' => $ssnid,
-            'trmid' => $trmid,
-            'clsid' => $clsid,
-            'schid' => $schid,
-            'typ'   => $typ,
-            'name'  => $metadata['name'] ?? '',
-            'exp'   => $metadata['exp'] ?? '',
-            'eml'   => $email,
-            'lid'   => $metadata['lid'] ?? '',
-            'time'  => now()->timestamp,
+    public function initializePayment(Request $request)
+    {
+        $request->validate([
+            'email'           => 'required|email',
+            'amount'          => 'required|numeric|min:100',
+            'schid'           => 'required|integer',
+            'clsid'           => 'required|integer',
+            'subaccount_code' => 'required|array|min:1',
+            'metadata'        => 'required|array',
+            'type'            => 'nullable|string', // 'flat' or 'percentage'
         ]);
 
-        // ✅ Build Paystack payload
-        $payload = [
-            'email'        => $email,
-            'amount'       => $totalAmountKobo,
-            'currency'     => 'NGN',
-            'reference'    => $ref,
-            'callback_url' => $this->getFrontendUrl($schid, '/studentPortal'),
-            'metadata'     => $metadata,
-            'channels'     => ['card', 'bank', 'ussd'],
-        ];
+        $email       = $request->email;
+        $amount      = $request->amount;
+        $schid       = $request->schid;
+        $clsid       = $request->clsid;
+        $subaccounts = $request->subaccount_code;
+        $metadata    = $request->metadata;
+        $splitType   = $request->type ?? 'percentage';
 
-        // Only attach split_code if it exists
-        if (!empty($splitCode)) {
-            $payload['split_code'] = $splitCode;
+        try {
+            $totalAmountKobo = $amount * 100;
+
+            // ✅ Validate subaccounts
+            foreach ($subaccounts as $acc) {
+                $exists = \DB::table('sub_accounts')
+                    ->where('schid', $schid)
+                    ->where('clsid', $clsid)
+                    ->where('subaccount_code', $acc['subaccount'])
+                    ->exists();
+
+                if (!$exists) {
+                    return response()->json([
+                        'status'  => false,
+                        'message' => "Invalid subaccount: {$acc['subaccount']}",
+                    ], 400);
+                }
+            }
+
+            // ✅ Get or create split data (handles total_split_amount & subaccounts)
+            $splitData = $this->createOrGetSplit($schid, $clsid, $subaccounts, $splitType);
+
+            $splitCode        = $splitData['split_code'] ?? null;   // Paystack split code
+            $totalSplitAmount = $splitData['total_amount'] ?? null; // Total split amount (₦)
+            $subaccountsData  = $splitData['subaccounts'] ?? [];    // Subaccount info
+
+            // ✅ Build reference
+            $host  = preg_replace('/^api\./', '', $request->getHost());
+            $typ   = $request->typ ?? 0;
+            $stid  = $request->stid ?? 0;
+            $ssnid = $request->ssnid ?? 0;
+            $trmid = $request->trmid ?? 0;
+
+            $ref = "{$host}-{$schid}-{$amount}-{$typ}-{$stid}-{$ssnid}-{$trmid}-{$clsid}-" . uniqid();
+
+            // ✅ Merge metadata
+            $metadata = array_merge($metadata, [
+                'stid'  => $stid,
+                'ssnid' => $ssnid,
+                'trmid' => $trmid,
+                'clsid' => $clsid,
+                'schid' => $schid,
+                'typ'   => $typ,
+                'name'  => $metadata['name'] ?? '',
+                'exp'   => $metadata['exp'] ?? '',
+                'eml'   => $email,
+                'lid'   => $metadata['lid'] ?? '',
+                'time'  => now()->timestamp,
+            ]);
+
+            // ✅ Build Paystack payload
+            $payload = [
+                'email'        => $email,
+                'amount'       => $totalAmountKobo,
+                'currency'     => 'NGN',
+                'reference'    => $ref,
+                'callback_url' => $this->getFrontendUrl($schid, '/studentPortal'),
+                'metadata'     => $metadata,
+                'channels'     => ['card', 'bank', 'ussd'],
+            ];
+
+            // Only attach split_code if it exists
+            if (!empty($splitCode)) {
+                $payload['split_code'] = $splitCode;
+            }
+
+            if ($request->has('transaction_charge')) {
+                $payload['transaction_charge'] = intval($request->transaction_charge) * 100;
+            }
+
+            // ✅ Initialize payment on Paystack
+            $response = Http::withToken(env('PAYSTACK_SECRET'))
+                ->post('https://api.paystack.co/transaction/initialize', $payload);
+
+            // ✅ Handle Paystack response
+            if ($response->successful()) {
+                $paystackData = $response->json();
+
+                // 🟢 Upsert reference so callback can use it
+                payment_refs::updateOrCreate(
+                    ['ref' => $ref],
+                    [
+                        'split_code'  => $splitCode,
+                        'subaccounts' => json_encode($subaccountsData),
+                        'amt'         => $amount,
+                        'time'        => now(),
+                    ]
+                );
+
+
+                return response()->json([
+                    'status'  => true,
+                    'message' => 'Payment Initialized Successfully',
+                    'data'    => $paystackData,
+                    'ref'     => $ref,
+                    'split_code'         => $splitCode,
+                    'total_split_amount' => $totalSplitAmount,
+                    'subaccounts'        => $subaccountsData,
+                ]);
+            }
+
+
+            // Log and return error if not successful
+            Log::error('Paystack Transaction Error: ' . $response->body());
+            return response()->json([
+                'status'  => false,
+                'message' => 'Payment Initialization Failed',
+                'error'   => $response->body(),
+            ], 400);
+        } catch (\Exception $e) {
+            Log::error('Initialize Payment Exception: ' . $e->getMessage());
+            return response()->json([
+                'status'  => false,
+                'message' => 'Server Error: Unable to initialize payment',
+                'error'   => $e->getMessage(),
+            ], 500);
         }
-
-        if ($request->has('transaction_charge')) {
-            $payload['transaction_charge'] = intval($request->transaction_charge) * 100;
-        }
-
-        // ✅ Initialize payment on Paystack
-        $response = Http::withToken(env('PAYSTACK_SECRET'))
-            ->post('https://api.paystack.co/transaction/initialize', $payload);
-
-        // ✅ Handle Paystack response
-if ($response->successful()) {
-    $paystackData = $response->json();
-
-// 🟢 Upsert reference so callback can use it
-payment_refs::updateOrCreate(
-    ['ref' => $ref],
-    [
-        'split_code'  => $splitCode,
-        'subaccounts' => json_encode($subaccountsData),
-        'amt'         => $amount,
-        'time'        => now(),
-    ]
-);
-
-
-    return response()->json([
-        'status'  => true,
-        'message' => 'Payment Initialized Successfully',
-        'data'    => $paystackData,
-        'ref'     => $ref,
-        'split_code'         => $splitCode,
-        'total_split_amount' => $totalSplitAmount,
-        'subaccounts'        => $subaccountsData,
-    ]);
-}
-
-
-        // Log and return error if not successful
-        Log::error('Paystack Transaction Error: ' . $response->body());
-        return response()->json([
-            'status'  => false,
-            'message' => 'Payment Initialization Failed',
-            'error'   => $response->body(),
-        ], 400);
-
-    } catch (\Exception $e) {
-        Log::error('Initialize Payment Exception: ' . $e->getMessage());
-        return response()->json([
-            'status'  => false,
-            'message' => 'Server Error: Unable to initialize payment',
-            'error'   => $e->getMessage(),
-        ], 500);
     }
-}
 
 
     private function getFrontendUrl(int $schid, string $path = ''): string
@@ -14110,157 +14109,157 @@ payment_refs::updateOrCreate(
 
 
 
-public function paystackConf(Request $request)
-{
-    Log::info('------------ PAYSTACK CALLBACK ARRIVED -----------');
+    public function paystackConf(Request $request)
+    {
+        Log::info('------------ PAYSTACK CALLBACK ARRIVED -----------');
 
-//    $payload = json_decode($request->getContent(), true);
-$payload = json_decode($request->input('payload'), true);
+        //    $payload = json_decode($request->getContent(), true);
+        $payload = json_decode($request->input('payload'), true);
 
-    // 🟢 Verify Paystack event type
-    if (!isset($payload['event']) || $payload['event'] !== "charge.success") {
-        Log::warning('Invalid Paystack event received.');
-        return response()->json(['status' => 'ignored'], 200);
-    }
-
-    // 🟢 Extract reference
-    $ref = $payload['data']['reference'] ?? null;
-    if (!$ref) {
-        Log::error('Missing payment reference.');
-        return response()->json(['status' => 'error', 'message' => 'Missing reference'], 400);
-    }
-
-    // 🟢 Prevent duplicate webhook saves
-    if (payments::where('main_ref', $ref)->exists()) {
-        Log::info("Duplicate webhook ignored for ref {$ref}");
-        return response()->json(['status' => 'duplicate'], 200);
-    }
-
-    // 🟢 Parse identifiers from reference
-    $payinfo = explode('-', $ref);
-    [$host, $schid, $amt, $typ, $stid, $ssnid, $trmid, $clsid] = $payinfo;
-
-    // 🟢 Extract metadata
-    $metadata = $payload['data']['metadata'] ?? [];
-    $nm  = $metadata['name'] ?? '';
-    $exp = $metadata['exp'] ?? '';
-    $lid = $metadata['lid'] ?? '';
-    $eml = $metadata['eml'] ?? '';
-    $tm  = $metadata['time'] ?? now()->timestamp;
-
-    $totalAmountPaid = ($payload['data']['amount'] ?? ($amt * 100)) / 100;
-
-    // 🟢 Get split data (from webhook or stored reference)
-    $splitData = $payload['data']['split']['subaccounts'] ?? [];
-
-    if (!$splitData || !is_array($splitData)) {
-        $stored = payment_refs::where('ref', $ref)->first();
-        if ($stored && $stored->subaccounts) {
-            $splitData = json_decode($stored->subaccounts, true);
+        // 🟢 Verify Paystack event type
+        if (!isset($payload['event']) || $payload['event'] !== "charge.success") {
+            Log::warning('Invalid Paystack event received.');
+            return response()->json(['status' => 'ignored'], 200);
         }
-    }
 
-    // 🟢 Record payments (split or non-split)
-    if ($splitData && is_array($splitData) && count($splitData) > 0) {
-        Log::info('Split Data detected:', $splitData);
+        // 🟢 Extract reference
+        $ref = $payload['data']['reference'] ?? null;
+        if (!$ref) {
+            Log::error('Missing payment reference.');
+            return response()->json(['status' => 'error', 'message' => 'Missing reference'], 400);
+        }
 
-        $totalSplitAmount = $totalAmountPaid;
-        $hasRealShares = false;
+        // 🟢 Prevent duplicate webhook saves
+        if (payments::where('main_ref', $ref)->exists()) {
+            Log::info("Duplicate webhook ignored for ref {$ref}");
+            return response()->json(['status' => 'duplicate'], 200);
+        }
 
-        // ✅ Check if there are valid share values
-        foreach ($splitData as $sub) {
-            if (isset($sub['share']) && floatval($sub['share']) > 0) {
-                $hasRealShares = true;
-                break;
+        // 🟢 Parse identifiers from reference
+        $payinfo = explode('-', $ref);
+        [$host, $schid, $amt, $typ, $stid, $ssnid, $trmid, $clsid] = $payinfo;
+
+        // 🟢 Extract metadata
+        $metadata = $payload['data']['metadata'] ?? [];
+        $nm  = $metadata['name'] ?? '';
+        $exp = $metadata['exp'] ?? '';
+        $lid = $metadata['lid'] ?? '';
+        $eml = $metadata['eml'] ?? '';
+        $tm  = $metadata['time'] ?? now()->timestamp;
+
+        $totalAmountPaid = ($payload['data']['amount'] ?? ($amt * 100)) / 100;
+
+        // 🟢 Get split data (from webhook or stored reference)
+        $splitData = $payload['data']['split']['subaccounts'] ?? [];
+
+        if (!$splitData || !is_array($splitData)) {
+            $stored = payment_refs::where('ref', $ref)->first();
+            if ($stored && $stored->subaccounts) {
+                $splitData = json_decode($stored->subaccounts, true);
             }
         }
 
-        // ✅ Insert payments
-        foreach ($splitData as $sub) {
-            $subCode = $sub['subaccount'] ?? null;
-            $subShare = 0;
+        // 🟢 Record payments (split or non-split)
+        if ($splitData && is_array($splitData) && count($splitData) > 0) {
+            Log::info('Split Data detected:', $splitData);
 
-            if ($hasRealShares) {
-                // Use real share (percentage or flat)
-                $shareValue = floatval($sub['share'] ?? 0);
-                if ($shareValue <= 100) {
-                    // percentage type
-                    $subShare = ($totalSplitAmount * $shareValue) / 100;
-                } else {
-                    // flat (Paystack stores in Kobo)
-                    $subShare = $shareValue / 100;
+            $totalSplitAmount = $totalAmountPaid;
+            $hasRealShares = false;
+
+            // ✅ Check if there are valid share values
+            foreach ($splitData as $sub) {
+                if (isset($sub['share']) && floatval($sub['share']) > 0) {
+                    $hasRealShares = true;
+                    break;
                 }
-            } else {
-                // Fallback to equal division
-                $subShare = $totalSplitAmount / count($splitData);
             }
 
+            // ✅ Insert payments
+            foreach ($splitData as $sub) {
+                $subCode = $sub['subaccount'] ?? null;
+                $subShare = 0;
+
+                if ($hasRealShares) {
+                    // Use real share (percentage or flat)
+                    $shareValue = floatval($sub['share'] ?? 0);
+                    if ($shareValue <= 100) {
+                        // percentage type
+                        $subShare = ($totalSplitAmount * $shareValue) / 100;
+                    } else {
+                        // flat (Paystack stores in Kobo)
+                        $subShare = $shareValue / 100;
+                    }
+                } else {
+                    // Fallback to equal division
+                    $subShare = $totalSplitAmount / count($splitData);
+                }
+
+                payments::create([
+                    'schid'              => $schid,
+                    'stid'               => $stid,
+                    'ssnid'              => $ssnid,
+                    'trmid'              => $trmid,
+                    'clsid'              => $clsid,
+                    'name'               => $nm,
+                    'exp'                => $exp,
+                    'amt'                => $subShare,
+                    'lid'                => $lid,
+                    'subaccount_code'    => $subCode,
+                    'main_ref'           => $ref,
+                    'total_split_amount' => $totalSplitAmount,
+                    'email'              => $eml,
+                ]);
+
+                Log::info("✅ Recorded subaccount {$subCode} share: ₦{$subShare}");
+            }
+
+            Log::info("✅ Split payment recorded successfully for ref {$ref}");
+        } else {
+            // ✅ Non-split transaction
             payments::create([
-                'schid'              => $schid,
-                'stid'               => $stid,
-                'ssnid'              => $ssnid,
-                'trmid'              => $trmid,
-                'clsid'              => $clsid,
-                'name'               => $nm,
-                'exp'                => $exp,
-                'amt'                => $subShare,
-                'lid'                => $lid,
-                'subaccount_code'    => $subCode,
-                'main_ref'           => $ref,
-                'total_split_amount' => $totalSplitAmount,
-                'email'              => $eml,
+                'schid'    => $schid,
+                'stid'     => $stid,
+                'ssnid'    => $ssnid,
+                'trmid'    => $trmid,
+                'clsid'    => $clsid,
+                'name'     => $nm,
+                'exp'      => $exp,
+                'amt'      => $totalAmountPaid,
+                'lid'      => $lid,
+                'main_ref' => $ref,
+                'email'    => $eml,
             ]);
 
-            Log::info("✅ Recorded subaccount {$subCode} share: ₦{$subShare}");
+            Log::info("✅ Non-split payment recorded for ref {$ref}");
         }
 
-        Log::info("✅ Split payment recorded successfully for ref {$ref}");
-    } else {
-        // ✅ Non-split transaction
-        payments::create([
-            'schid'    => $schid,
-            'stid'     => $stid,
-            'ssnid'    => $ssnid,
-            'trmid'    => $trmid,
-            'clsid'    => $clsid,
-            'name'     => $nm,
-            'exp'      => $exp,
-            'amt'      => $totalAmountPaid,
-            'lid'      => $lid,
-            'main_ref' => $ref,
-            'email'    => $eml,
-        ]);
+        // 🟢 Update payment_refs
+        payment_refs::updateOrCreate(
+            ['ref' => $ref],
+            [
+                'amt'          => $totalAmountPaid,
+                'time'         => $tm,
+                'metadata'     => json_encode($metadata),
+                'subaccounts'  => json_encode($splitData), // store the actual subaccounts array
+                'confirmed_at' => now(),
+            ]
+        );
 
-        Log::info("✅ Non-split payment recorded for ref {$ref}");
+        // 🟢 Send confirmation email
+        try {
+            $data = [
+                'name'    => $nm,
+                'subject' => 'Payment Received',
+                'body'    => "Your payment of ₦{$totalAmountPaid} was received successfully.",
+                'link'    => env('PORTAL_URL') . '/studentLogin/' . $schid,
+            ];
+            Mail::to($eml)->send(new SSSMails($data));
+        } catch (\Exception $e) {
+            Log::error('Failed to send email: ' . $e->getMessage());
+        }
+
+        return response()->json(['status' => 'success'], 200);
     }
-
-    // 🟢 Update payment_refs
-    payment_refs::updateOrCreate(
-        ['ref' => $ref],
-        [
-            'amt'          => $totalAmountPaid,
-            'time'         => $tm,
-            'metadata'     => json_encode($metadata),
-             'subaccounts'  => json_encode($splitData), // store the actual subaccounts array
-            'confirmed_at' => now(),
-        ]
-    );
-
-    // 🟢 Send confirmation email
-    try {
-        $data = [
-            'name'    => $nm,
-            'subject' => 'Payment Received',
-            'body'    => "Your payment of ₦{$totalAmountPaid} was received successfully.",
-            'link'    => env('PORTAL_URL') . '/studentLogin/' . $schid,
-        ];
-        Mail::to($eml)->send(new SSSMails($data));
-    } catch (\Exception $e) {
-        Log::error('Failed to send email: ' . $e->getMessage());
-    }
-
-    return response()->json(['status' => 'success'], 200);
-}
 
     //--VENDORS.
 
@@ -32521,381 +32520,556 @@ $payload = json_decode($request->input('payload'), true);
 
 
     public function getLearnersStaffDetails(Request $request)
-{
-    $schid = $request->input('schid');
-    $ssn   = $request->input('ssn'); // academic session (required)
+    {
+        $schid = $request->input('schid');
+        $ssn   = $request->input('ssn'); // academic session (required)
 
-    if (empty($schid) || empty($ssn)) {
-        return response()->json([
-            'status' => false,
-            'message' => 'School ID and session are required.'
-        ], 400);
-    }
+        if (empty($schid) || empty($ssn)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'School ID and session are required.'
+            ], 400);
+        }
 
-    // Fetch all unique classes belonging to this school
-    $classes = DB::table('sch_cls')
-        ->join('cls', 'cls.id', '=', 'sch_cls.cls_id')
-        ->where('sch_cls.schid', $schid)
-        ->select(
-            'cls.id as clsid',        // ✅ class id from cls table
-            'cls.name as class_name'
-        )
-        ->distinct()
-        ->orderBy('cls.id', 'asc')
-        ->get();
-
-    $data = [];
-
-    // Initialize totals
-    $totalMaleStudents = 0;
-    $totalFemaleStudents = 0;
-    $totalMaleStaff = 0;
-    $totalFemaleStaff = 0;
-
-    foreach ($classes as $class) {
-        $clsid = $class->clsid;       // ✅ get clsid
-        $className = $class->class_name;
-
-        /**
-         * ===========================
-         * STUDENT SECTION
-         * ===========================
-         */
-        $studentIds = DB::table('old_student')
-            ->where('schid', $schid)
-            ->where('status', 'active')
-            ->where('ssn', $ssn)
-            ->where('clsm', $clsid) // ✅ match using clsid
+        // Fetch all unique classes belonging to this school
+        $classes = DB::table('sch_cls')
+            ->join('cls', 'cls.id', '=', 'sch_cls.cls_id')
+            ->where('sch_cls.schid', $schid)
+            ->select(
+                'cls.id as clsid',        // ✅ class id from cls table
+                'cls.name as class_name'
+            )
             ->distinct()
-            ->pluck('sid')
-            ->toArray();
+            ->orderBy('cls.id', 'asc')
+            ->get();
 
-        $studentGender = DB::table('student_basic_data')
-            ->whereIn('user_id', $studentIds)
-            ->whereNotNull('sex')
-            ->select('sex', DB::raw('COUNT(*) as total'))
-            ->groupBy('sex')
-            ->pluck('total', 'sex')
-            ->toArray();
+        $data = [];
 
-        $maleStudents   = $studentGender['M'] ?? 0;
-        $femaleStudents = $studentGender['F'] ?? 0;
-        $totalStudents  = $maleStudents + $femaleStudents;
+        // Initialize totals
+        $totalMaleStudents = 0;
+        $totalFemaleStudents = 0;
+        $totalMaleStaff = 0;
+        $totalFemaleStaff = 0;
 
-        // Accumulate overall student totals
-        $totalMaleStudents += $maleStudents;
-        $totalFemaleStudents += $femaleStudents;
+        foreach ($classes as $class) {
+            $clsid = $class->clsid;       // ✅ get clsid
+            $className = $class->class_name;
+
+            /**
+             * ===========================
+             * STUDENT SECTION
+             * ===========================
+             */
+            $studentIds = DB::table('old_student')
+                ->where('schid', $schid)
+                ->where('status', 'active')
+                ->where('ssn', $ssn)
+                ->where('clsm', $clsid) // ✅ match using clsid
+                ->distinct()
+                ->pluck('sid')
+                ->toArray();
+
+            $studentGender = DB::table('student_basic_data')
+                ->whereIn('user_id', $studentIds)
+                ->whereNotNull('sex')
+                ->select('sex', DB::raw('COUNT(*) as total'))
+                ->groupBy('sex')
+                ->pluck('total', 'sex')
+                ->toArray();
+
+            $maleStudents   = $studentGender['M'] ?? 0;
+            $femaleStudents = $studentGender['F'] ?? 0;
+            $totalStudents  = $maleStudents + $femaleStudents;
+
+            // Accumulate overall student totals
+            $totalMaleStudents += $maleStudents;
+            $totalFemaleStudents += $femaleStudents;
+
+            /**
+             * ===========================
+             * STAFF SECTION
+             * ===========================
+             */
+            $staffIds = DB::table('old_staff')
+                ->where('schid', $schid)
+                ->where('status', 'active')
+                ->where('ssn', $ssn)
+                ->where('clsm', $clsid) // ✅ match using clsid
+                ->distinct()
+                ->pluck('sid')
+                ->toArray();
+
+            $staffGender = DB::table('staff_basic_data')
+                ->whereIn('user_id', $staffIds)
+                ->whereNotNull('sex')
+                ->select('sex', DB::raw('COUNT(*) as total'))
+                ->groupBy('sex')
+                ->pluck('total', 'sex')
+                ->toArray();
+
+            $maleStaff   = $staffGender['M'] ?? 0;
+            $femaleStaff = $staffGender['F'] ?? 0;
+            $totalStaff  = $maleStaff + $femaleStaff;
+
+            // Accumulate overall staff totals
+            $totalMaleStaff += $maleStaff;
+            $totalFemaleStaff += $femaleStaff;
+
+            /**
+             * ===========================
+             * BUILD CLASS RATIO DATA
+             * ===========================
+             */
+            $data[] = [
+                'clsid' => $clsid,  // ✅ now included in the pld
+                'school_id' => $schid,
+                'session' => $ssn,
+                'class' => $className,
+                'learners' => [
+                    'male' => $maleStudents,
+                    'female' => $femaleStudents,
+                    'total' => $totalStudents,
+                ],
+                'staff' => [
+                    'male' => $maleStaff,
+                    'female' => $femaleStaff,
+                    'total' => $totalStaff,
+                ],
+            ];
+        }
 
         /**
          * ===========================
-         * STAFF SECTION
+         * OVERALL SUMMARY
          * ===========================
          */
-        $staffIds = DB::table('old_staff')
-            ->where('schid', $schid)
-            ->where('status', 'active')
-            ->where('ssn', $ssn)
-            ->where('clsm', $clsid) // ✅ match using clsid
-            ->distinct()
-            ->pluck('sid')
-            ->toArray();
+        $overallSummary = [
+            'total_male_students' => $totalMaleStudents,
+            'total_female_students' => $totalFemaleStudents,
+            'total_students' => $totalMaleStudents + $totalFemaleStudents,
 
-        $staffGender = DB::table('staff_basic_data')
-            ->whereIn('user_id', $staffIds)
-            ->whereNotNull('sex')
-            ->select('sex', DB::raw('COUNT(*) as total'))
-            ->groupBy('sex')
-            ->pluck('total', 'sex')
-            ->toArray();
+            'total_male_staff' => $totalMaleStaff,
+            'total_female_staff' => $totalFemaleStaff,
+            'total_staff' => $totalMaleStaff + $totalFemaleStaff,
 
-        $maleStaff   = $staffGender['M'] ?? 0;
-        $femaleStaff = $staffGender['F'] ?? 0;
-        $totalStaff  = $maleStaff + $femaleStaff;
-
-        // Accumulate overall staff totals
-        $totalMaleStaff += $maleStaff;
-        $totalFemaleStaff += $femaleStaff;
-
-        /**
-         * ===========================
-         * BUILD CLASS RATIO DATA
-         * ===========================
-         */
-        $data[] = [
-            'clsid' => $clsid,  // ✅ now included in the pld
-            'school_id' => $schid,
-            'session' => $ssn,
-            'class' => $className,
-            'learners' => [
-                'male' => $maleStudents,
-                'female' => $femaleStudents,
-                'total' => $totalStudents,
-            ],
-            'staff' => [
-                'male' => $maleStaff,
-                'female' => $femaleStaff,
-                'total' => $totalStaff,
-            ],
+            'overall_male' => $totalMaleStudents + $totalMaleStaff,
+            'overall_female' => $totalFemaleStudents + $totalFemaleStaff,
+            'overall_total' => $totalMaleStudents + $totalFemaleStudents + $totalMaleStaff + $totalFemaleStaff,
         ];
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Learner/Staff Ratio fetched successfully',
+            'pld' => [
+                'details' => $data,
+                'summary' => $overallSummary
+            ]
+        ], 200, [], JSON_PRETTY_PRINT);
     }
+
+
+
+
 
     /**
-     * ===========================
-     * OVERALL SUMMARY
-     * ===========================
+     * @OA\Get(
+     *     path="/api/getStudentGenderDetails",
+     *     tags={"Admin"},
+     *    operationId="getStudentGenderDetails",
+     *   security={{"bearerAuth":{}}},
+     *     summary="Fetch student gender details for a given class and session",
+     *     description="Returns a list of students filtered by gender, session, and class for a given school.",
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="query",
+     *         required=true,
+     *         description="School ID",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="query",
+     *         required=true,
+     *         description="Academic Session (e.g. 2024)",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="class",
+     *         in="query",
+     *         required=true,
+     *         description="Class ID (clsm)",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="gender",
+     *         in="query",
+     *         required=true,
+     *         description="Gender (M or F)",
+     *         @OA\Schema(type="string", enum={"M", "F"})
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Student list fetched successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Student list fetched successfully"),
+     *             @OA\Property(property="count", type="integer", example=5),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="student_id", type="integer", example=1000),
+     *                     @OA\Property(property="suid", type="string", example="HRS/2024/1/68"),
+     *                     @OA\Property(property="full_name", type="string", example="Victoria Ngozika Kenneth"),
+     *                     @OA\Property(property="sex", type="string", example="F"),
+     *                     @OA\Property(property="date_of_birth", type="string", example="2008-05-14"),
+     *                     @OA\Property(property="class_name", type="string", example="JSS 1"),
+     *                     @OA\Property(property="class_arm", type="string", example="A")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=400, description="Missing parameters")
+     * )
      */
-    $overallSummary = [
-        'total_male_students' => $totalMaleStudents,
-        'total_female_students' => $totalFemaleStudents,
-        'total_students' => $totalMaleStudents + $totalFemaleStudents,
+    public function getStudentGenderDetails(Request $request)
+    {
+        $schid  = $request->input('schid');   // school_id
+        $ssn    = $request->input('ssn');     // session
+        $class  = $request->input('class');   // cls_id
+        $gender = $request->input('gender');  // 'M' or 'F'
 
-        'total_male_staff' => $totalMaleStaff,
-        'total_female_staff' => $totalFemaleStaff,
-        'total_staff' => $totalMaleStaff + $totalFemaleStaff,
+        if (!$schid || !$ssn || !$class || !$gender) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Missing parameters: schid, ssn, class, gender'
+            ], 400);
+        }
 
-        'overall_male' => $totalMaleStudents + $totalMaleStaff,
-        'overall_female' => $totalFemaleStudents + $totalFemaleStaff,
-        'overall_total' => $totalMaleStudents + $totalFemaleStudents + $totalMaleStaff + $totalFemaleStaff,
-    ];
+        $records = DB::table('old_student as os')
+            ->join('student_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
+            ->join('sch_cls as sc', function ($join) {
+                $join->on('os.clsa', '=', 'sc.id')  // Join class arms
+                    ->on('os.schid', '=', 'sc.schid');
+            })
+            ->join('cls as c', 'os.clsm', '=', 'c.id') // Join main class table
+            ->select(
+                'os.sid as student_id',
+                'os.suid',
+                'os.fname',
+                'os.mname',
+                'os.lname',
+                'sbd.sex',
+                DB::raw("DATE(FROM_UNIXTIME(sbd.dob / 1000)) as date_of_birth"),
+                'c.name as class_name',
+                'sc.name as class_arm'
+            )
+            ->where('os.schid', $schid)
+            ->where('os.ssn', $ssn)
+            ->where('c.id', $class)
+            ->where('sbd.sex', $gender)
+            ->where('os.status', 'active')
+            ->groupBy(
+                'os.sid',
+                'os.suid',
+                'os.fname',
+                'os.mname',
+                'os.lname',
+                'sbd.sex',
+                'sbd.dob',
+                'c.name',
+                'sc.name'
+            )
+            ->orderBy('os.lname', 'asc')
+            ->get();
 
-    return response()->json([
-        'status' => true,
-        'message' => 'Learner/Staff Ratio fetched successfully',
-        'pld' => [
-            'details' => $data,
-            'summary' => $overallSummary
-        ]
-    ], 200, [], JSON_PRETTY_PRINT);
-}
-
-
-
-
-
-/**
- * @OA\Get(
- *     path="/api/getStudentGenderDetails",
- *     tags={"Admin"},
- *    operationId="getStudentGenderDetails",
- *   security={{"bearerAuth":{}}},
- *     summary="Fetch student gender details for a given class and session",
- *     description="Returns a list of students filtered by gender, session, and class for a given school.",
- *     @OA\Parameter(
- *         name="schid",
- *         in="query",
- *         required=true,
- *         description="School ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Parameter(
- *         name="ssn",
- *         in="query",
- *         required=true,
- *         description="Academic Session (e.g. 2024)",
- *         @OA\Schema(type="string")
- *     ),
- *     @OA\Parameter(
- *         name="class",
- *         in="query",
- *         required=true,
- *         description="Class ID (clsm)",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Parameter(
- *         name="gender",
- *         in="query",
- *         required=true,
- *         description="Gender (M or F)",
- *         @OA\Schema(type="string", enum={"M", "F"})
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Student list fetched successfully",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Student list fetched successfully"),
- *             @OA\Property(property="count", type="integer", example=5),
- *             @OA\Property(
- *                 property="pld",
- *                 type="array",
- *                 @OA\Items(
- *                     @OA\Property(property="student_id", type="integer", example=1000),
- *                     @OA\Property(property="suid", type="string", example="HRS/2024/1/68"),
- *                     @OA\Property(property="full_name", type="string", example="Victoria Ngozika Kenneth"),
- *                     @OA\Property(property="sex", type="string", example="F"),
- *                     @OA\Property(property="date_of_birth", type="string", example="2008-05-14"),
- *                     @OA\Property(property="class_name", type="string", example="JSS 1"),
- *                     @OA\Property(property="class_arm", type="string", example="A")
- *                 )
- *             )
- *         )
- *     ),
- *     @OA\Response(response=400, description="Missing parameters")
- * )
- */
-public function getStudentGenderDetails(Request $request)
-{
-    $schid  = $request->input('schid');   // school_id
-    $ssn    = $request->input('ssn');     // session
-    $class  = $request->input('class');   // cls_id
-    $gender = $request->input('gender');  // 'M' or 'F'
-
-    if (!$schid || !$ssn || !$class || !$gender) {
         return response()->json([
-            'status' => false,
-            'message' => 'Missing parameters: schid, ssn, class, gender'
-        ], 400);
+            'status' => true,
+            'message' => 'Student list fetched successfully',
+            'count' => $records->count(),
+            'pld' => $records
+        ], 200, [], JSON_PRETTY_PRINT);
     }
 
-    $records = DB::table('old_student as os')
-        ->join('student_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
-        ->join('sch_cls as sc', function ($join) {
-            $join->on('os.clsa', '=', 'sc.id')  // Join class arms
-                 ->on('os.schid', '=', 'sc.schid');
-        })
-        ->join('cls as c', 'os.clsm', '=', 'c.id') // Join main class table
-        ->select(
-            'os.sid as student_id',
-            'os.suid',
-            'os.fname',
-            'os.mname',
-            'os.lname',
-            'sbd.sex',
-            DB::raw("DATE(FROM_UNIXTIME(sbd.dob / 1000)) as date_of_birth"),
-            'c.name as class_name',
-            'sc.name as class_arm'
-        )
-        ->where('os.schid', $schid)
-        ->where('os.ssn', $ssn)
-        ->where('c.id', $class)
-        ->where('sbd.sex', $gender)
-        ->where('os.status', 'active')
-        ->groupBy(
-            'os.sid',
-            'os.suid',
-            'os.fname',
-            'os.mname',
-            'os.lname',
-            'sbd.sex',
-            'sbd.dob',
-            'c.name',
-            'sc.name'
-        )
-        ->orderBy('os.lname', 'asc')
-        ->get();
-
-    return response()->json([
-        'status' => true,
-        'message' => 'Student list fetched successfully',
-        'count' => $records->count(),
-        'pld' => $records
-    ], 200, [], JSON_PRETTY_PRINT);
-}
 
 
+    /**
+     * @OA\Get(
+     *     path="/api/getStaffGenderDetails",
+     *     tags={"Admin"},
+     *    operationId="getStaffGenderDetails",
+     *  security={{"bearerAuth":{}}},
+     *     summary="Get staff gender details by school, session (ssn), and class (clsm)",
+     *     description="Fetches a unique list of active staff filtered by school ID, session (ssn), class (clsm), and gender.",
+     *     @OA\Parameter(
+     *         name="school_id",
+     *         in="query",
+     *         required=true,
+     *         description="The ID of the school (maps to os.schid)",
+     *         @OA\Schema(type="integer", example=12)
+     *     ),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="query",
+     *         required=true,
+     *         description="The academic session (maps to os.ssn)",
+     *         @OA\Schema(type="integer", example=2024)
+     *     ),
+     *     @OA\Parameter(
+     *         name="clsm",
+     *         in="query",
+     *         required=true,
+     *         description="The class ID (maps to os.clsm)",
+     *         @OA\Schema(type="integer", example=11)
+     *     ),
+     *     @OA\Parameter(
+     *         name="gender",
+     *         in="query",
+     *         required=true,
+     *         description="Gender of the staff (M or F)",
+     *         @OA\Schema(type="string", example="M")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Staff list fetched successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Staff list fetched successfully"),
+     *             @OA\Property(property="count", type="integer", example=5),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="staff_id", type="integer", example=1932),
+     *                     @OA\Property(property="suid", type="string", example="SCS/STAFF/9"),
+     *                     @OA\Property(property="full_name", type="string", example="Onyinyechi Bertha Ahiabuike"),
+     *                     @OA\Property(property="sex", type="string", example="F"),
+     *                     @OA\Property(property="class_name", type="string", example="Primary 1")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Missing parameters"
+     *     )
+     * )
+     */
+    public function getStaffGenderDetails(Request $request)
+    {
+        $schoolId = $request->input('school_id');
+        $session  = $request->input('ssn'); // academic session
+        $class    = $request->input('clsm'); // class ID
+        $gender   = $request->input('gender'); // 'M' or 'F'
 
+        if (!$schoolId || !$session || !$class || !$gender) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Missing parameters: school_id, ssn, clsm, gender'
+            ], 400);
+        }
+
+        $records = DB::table('old_staff as os')
+            ->join('staff_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
+            ->join('cls as c', 'os.clsm', '=', 'c.id')
+            ->select(
+                'os.sid as staff_id',
+                'os.suid',
+                DB::raw("CONCAT(os.fname, ' ', os.mname, ' ', os.lname) as full_name"),
+                'sbd.sex',
+                'c.name as class_name',
+                // Convert dob from milliseconds timestamp to readable date
+                DB::raw("FROM_UNIXTIME(sbd.dob / 1000, '%Y-%m-%d') as dob")
+            )
+            ->where('os.schid', $schoolId)
+            ->where('os.ssn', $session)
+            ->where('os.clsm', $class)
+            ->where('sbd.sex', $gender)
+            ->where('os.status', 'active')
+            ->groupBy('os.sid', 'os.suid', 'os.fname', 'os.mname', 'os.lname', 'sbd.sex', 'c.name', 'sbd.dob')
+            ->orderBy('full_name', 'asc')
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Staff list fetched successfully',
+            'count' => $records->count(),
+            'pld' => $records
+        ]);
+    }
+
+
+
+    
 /**
- * @OA\Get(
- *     path="/api/getStaffGenderDetails",
- *     tags={"Admin"},
- *    operationId="getStaffGenderDetails",
- *  security={{"bearerAuth":{}}},
- *     summary="Get staff gender details by school, session (ssn), and class (clsm)",
- *     description="Fetches a unique list of active staff filtered by school ID, session (ssn), class (clsm), and gender.",
- *     @OA\Parameter(
- *         name="school_id",
- *         in="query",
+ * @OA\Post(
+ *     path="/api/rePostStaff",
+ *     summary="Re-post a staff to a new class and arm for a specific session and term",
+ *     tags={"Api"},
+ *     operationId="rePostStaffUnique",
+ *     security={ {"bearerAuth": {}} },
+ *     @OA\RequestBody(
  *         required=true,
- *         description="The ID of the school (maps to os.schid)",
- *         @OA\Schema(type="integer", example=12)
- *     ),
- *     @OA\Parameter(
- *         name="ssn",
- *         in="query",
- *         required=true,
- *         description="The academic session (maps to os.ssn)",
- *         @OA\Schema(type="integer", example=2024)
- *     ),
- *     @OA\Parameter(
- *         name="clsm",
- *         in="query",
- *         required=true,
- *         description="The class ID (maps to os.clsm)",
- *         @OA\Schema(type="integer", example=11)
- *     ),
- *     @OA\Parameter(
- *         name="gender",
- *         in="query",
- *         required=true,
- *         description="Gender of the staff (M or F)",
- *         @OA\Schema(type="string", example="M")
+ *         @OA\JsonContent(
+ *             type="object",
+ *             required={"stid","schid","sesn","trm","clsm","clsa","suid"},
+ *             @OA\Property(property="stid", type="integer", example=1929, description="Staff ID"),
+ *             @OA\Property(property="schid", type="integer", example=12, description="School ID"),
+ *             @OA\Property(property="sesn", type="integer", example=2025, description="Academic session"),
+ *             @OA\Property(property="trm", type="integer", example=1, description="Term"),
+ *             @OA\Property(property="clsm", type="integer", example=11, description="New main class ID"),
+ *             @OA\Property(property="clsa", type="integer", example=10152065, description="New class arm ID"),
+ *             @OA\Property(property="suid", type="string", example="HGC/STAFF/6", description="Staff unique ID")
+ *         )
  *     ),
  *     @OA\Response(
  *         response=200,
- *         description="Staff list fetched successfully",
+ *         description="Staff re-promoted successfully",
  *         @OA\JsonContent(
+ *             type="object",
  *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Staff list fetched successfully"),
- *             @OA\Property(property="count", type="integer", example=5),
+ *             @OA\Property(property="message", type="string", example="Staff re-promoted successfully for this term"),
  *             @OA\Property(
- *                 property="pld",
- *                 type="array",
- *                 @OA\Items(
- *                     @OA\Property(property="staff_id", type="integer", example=1932),
- *                     @OA\Property(property="suid", type="string", example="SCS/STAFF/9"),
- *                     @OA\Property(property="full_name", type="string", example="Onyinyechi Bertha Ahiabuike"),
- *                     @OA\Property(property="sex", type="string", example="F"),
- *                     @OA\Property(property="class_name", type="string", example="Primary 1")
- *                 )
+ *                 property="data",
+ *                 type="object",
+ *                 @OA\Property(property="stid", type="integer", example=1929),
+ *                 @OA\Property(property="suid", type="string", example="HGC/STAFF/6"),
+ *                 @OA\Property(property="ssn", type="integer", example=2025),
+ *                 @OA\Property(property="trm", type="integer", example=1),
+ *                 @OA\Property(property="clsm", type="integer", example=11),
+ *                 @OA\Property(property="clsa", type="integer", example=10152065),
+ *                 @OA\Property(property="clsa_name", type="string", example="A")
  *             )
  *         )
  *     ),
  *     @OA\Response(
- *         response=400,
- *         description="Missing parameters"
+ *         response=404,
+ *         description="Staff not found",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="Staff not found")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation or logical error",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="Invalid class arm for the selected class")
+ *         )
  *     )
  * )
  */
-public function getStaffGenderDetails(Request $request)
-{
-    $schoolId = $request->input('school_id');
-    $session  = $request->input('ssn'); // academic session
-    $class    = $request->input('clsm'); // class ID
-    $gender   = $request->input('gender'); // 'M' or 'F'
 
-    if (!$schoolId || !$session || !$class || !$gender) {
+public function rePostStaff(Request $request)
+{
+    $request->validate([
+        'stid'  => 'required', // staff id
+        'schid' => 'required',
+        'sesn'  => 'required', // session
+        'trm'   => 'required', // term
+        'clsm'  => 'required', // new main class
+        'clsa'  => 'required', // requested new class arm (staff_class_arm.id)
+        'suid'  => 'required', // staff unique id
+    ]);
+
+    // 1. Find the staff
+    $staff = DB::table('staff')->where('sid', $request->stid)->first();
+    if (!$staff) {
         return response()->json([
             'status' => false,
-            'message' => 'Missing parameters: school_id, ssn, clsm, gender'
-        ], 400);
+            'message' => 'Staff not found',
+        ], 404);
     }
 
-    $records = DB::table('old_staff as os')
-        ->join('staff_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
-        ->join('cls as c', 'os.clsm', '=', 'c.id')
-        ->select(
-            'os.sid as staff_id',
-            'os.suid',
-            DB::raw("CONCAT(os.fname, ' ', os.mname, ' ', os.lname) as full_name"),
-            'sbd.sex',
-            'c.name as class_name',
-            // Convert dob from milliseconds timestamp to readable date
-            DB::raw("FROM_UNIXTIME(sbd.dob / 1000, '%Y-%m-%d') as dob")
-        )
-        ->where('os.schid', $schoolId)
-        ->where('os.ssn', $session)
-        ->where('os.clsm', $class)
-        ->where('sbd.sex', $gender)
-        ->where('os.status', 'active')
-        ->groupBy('os.sid', 'os.suid', 'os.fname', 'os.mname', 'os.lname', 'sbd.sex', 'c.name', 'sbd.dob')
-        ->orderBy('full_name', 'asc')
-        ->get();
+    // 2. Make sure this arm belongs to the new class
+    $validArm = DB::table('staff_class_arm')
+        ->where('arm', $request->clsa)
+        ->where('cls', $request->clsm)
+        ->where('schid', $request->schid)
+        ->first();
+
+    if (!$validArm) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Invalid class arm for the selected class',
+        ], 422);
+    }
+
+    // 3. Generate a unique promotion ID
+    $uid = $request->sesn . $request->trm . $request->stid . rand(10000, 99999);
+
+    // 4. Update or insert into old_staff (no deletion, no clsa)
+    DB::table('old_staff')->updateOrInsert(
+        [
+            'sid' => $request->stid,
+            'ssn' => $request->sesn,
+            'trm' => $request->trm,
+        ],
+        [
+            'uid'    => $uid,
+            'schid'  => $request->schid,
+            'fname'  => $staff->fname,
+            'mname'  => $staff->mname,
+            'lname'  => $staff->lname,
+            'status' => 'active',
+            'suid'   => $request->suid,
+            'clsm'   => $request->clsm,
+            'role'   => 0,       
+            'role2'  => 0,     
+            'more'   => '',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]
+    );
+
+    // 5. Update or insert into staff_class
+    DB::table('staff_class')->updateOrInsert(
+        [
+            'stid' => $request->stid,
+            'ssn'  => $request->sesn,
+            'trm'  => $request->trm,
+        ],
+        [
+            'uid'    => $uid,
+            'cls'    => $request->clsm,
+            'schid'  => $request->schid,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]
+    );
+
+    // 6. Update or insert into staff_class_arm
+    DB::table('staff_class_arm')->updateOrInsert(
+        [
+            'stid' => $request->stid,
+            'cls'  => $request->clsm,
+            'sesn'  => $request->sesn,
+        ],
+        [
+            'uid'    => $uid,
+            'arm'   => $validArm->arm,
+            'schid' => $request->schid,
+            'sesn'  => $request->sesn,
+            'trm'   => $request->trm,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]
+    );
 
     return response()->json([
         'status' => true,
-        'message' => 'Staff list fetched successfully',
-        'count' => $records->count(),
-        'pld' => $records
+        'message' => 'Staff re-posted successfully for this term',
+        'pld' => [
+            'stid' => $request->stid,
+            'suid' => $request->suid,
+            'ssn'  => $request->sesn,
+            'trm'  => $request->trm,
+            'clsm' => $request->clsm,
+            'clsa' => $validArm->arm,
+        ],
     ]);
 }
 
