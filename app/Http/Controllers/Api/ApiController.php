@@ -14240,6 +14240,7 @@ public function paystackConf(Request $request)
             'amt'          => $totalAmountPaid,
             'time'         => $tm,
             'metadata'     => json_encode($metadata),
+             'subaccounts'  => json_encode($splitData), // store the actual subaccounts array
             'confirmed_at' => now(),
         ]
     );
