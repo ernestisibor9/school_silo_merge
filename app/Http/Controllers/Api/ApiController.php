@@ -32918,7 +32918,7 @@ class ApiController extends Controller
  *             @OA\Property(property="sesn", type="integer", example=2025, description="Academic session"),
  *             @OA\Property(property="trm", type="integer", example=1, description="Term"),
  *             @OA\Property(property="clsm", type="integer", example=11, description="New main class ID"),
- *             @OA\Property(property="clsa", type="integer", example=10152065, description="New class arm ID"),
+ *             @OA\Property(property="clsa", type="integer", example=10152055, description="New class arm ID"),
  *             @OA\Property(property="suid", type="string", example="HGC/STAFF/6", description="Staff unique ID")
  *         )
  *     ),

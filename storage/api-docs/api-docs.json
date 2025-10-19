@@ -20,12 +20,19 @@
                     "Unprotected"
                 ],
                 "summary": "Register a new school",
-                "operationId": "8e36e29325a9cc83f8a8b1aa1a40a8f2",
+                "operationId": "registerSchool",
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
+                                "required": [
+                                    "email",
+                                    "name",
+                                    "sbd",
+                                    "sch3",
+                                    "password"
+                                ],
                                 "properties": {
                                     "email": {
                                         "type": "string",
@@ -39,7 +46,7 @@
                                         "type": "string"
                                     },
                                     "sch3": {
-                                        "description": "3 acrn for the school",
+                                        "description": "3-letter acronym for the school",
                                         "type": "string"
                                     },
                                     "password": {
@@ -54,7 +61,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Password reset token sent to mail"
+                        "description": "School registered successfully"
                     }
                 }
             }
@@ -26398,6 +26405,171 @@
                     },
                     "400": {
                         "description": "Missing parameters"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/rePostStaff": {
+            "post": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Re-post a staff to a new class and arm for a specific session and term",
+                "operationId": "rePostStaffUnique",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "stid",
+                                    "schid",
+                                    "sesn",
+                                    "trm",
+                                    "clsm",
+                                    "clsa",
+                                    "suid"
+                                ],
+                                "properties": {
+                                    "stid": {
+                                        "description": "Staff ID",
+                                        "type": "integer",
+                                        "example": 1929
+                                    },
+                                    "schid": {
+                                        "description": "School ID",
+                                        "type": "integer",
+                                        "example": 12
+                                    },
+                                    "sesn": {
+                                        "description": "Academic session",
+                                        "type": "integer",
+                                        "example": 2025
+                                    },
+                                    "trm": {
+                                        "description": "Term",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "clsm": {
+                                        "description": "New main class ID",
+                                        "type": "integer",
+                                        "example": 11
+                                    },
+                                    "clsa": {
+                                        "description": "New class arm ID",
+                                        "type": "integer",
+                                        "example": 10152055
+                                    },
+                                    "suid": {
+                                        "description": "Staff unique ID",
+                                        "type": "string",
+                                        "example": "HGC/STAFF/6"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Staff re-promoted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Staff re-promoted successfully for this term"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "stid": {
+                                                    "type": "integer",
+                                                    "example": 1929
+                                                },
+                                                "suid": {
+                                                    "type": "string",
+                                                    "example": "HGC/STAFF/6"
+                                                },
+                                                "ssn": {
+                                                    "type": "integer",
+                                                    "example": 2025
+                                                },
+                                                "trm": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "clsm": {
+                                                    "type": "integer",
+                                                    "example": 11
+                                                },
+                                                "clsa": {
+                                                    "type": "integer",
+                                                    "example": 10152065
+                                                },
+                                                "clsa_name": {
+                                                    "type": "string",
+                                                    "example": "A"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Staff not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Staff not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation or logical error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid class arm for the selected class"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
