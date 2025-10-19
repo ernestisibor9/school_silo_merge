@@ -12957,12 +12957,12 @@ public function initializePayment(Request $request)
 if ($response->successful()) {
     $paystackData = $response->json();
 
-// 🟢 Upsert reference so callback can use it.
+// 🟢 Upsert reference so callback can use it
 payment_refs::updateOrCreate(
     ['ref' => $ref],
     [
         'split_code'  => $splitCode,
-        'subaccounts' => json_encode($subaccountsData),
+        'subaccounts' => json_encode(['subaccounts' => $subaccountsData]),
         'amt'         => $amount,
         'time'        => now(),
     ]
@@ -14168,22 +14168,36 @@ public function paystackConf(Request $request)
     }
 
     // Handle split data
-    $splitData = $payload['data']['split']['shares'] ?? null; // fixed
+    $splitData = $payload['data']['split']['shares']['subaccounts'] ?? null;
     $totalSplitAmount = null;
 
-    if (!$splitData || !is_array($splitData)) {
-        // Fallback from payment_refs
-        $stored = payment_refs::where('ref', $ref)->first();
-        if ($stored && $stored->subaccounts) {
-            $splitData = json_decode($stored->subaccounts, true);
-            $totalSplitAmount = $stored->amt;
-            Log::info("🔄 Restored split data from payment_refs for ref {$ref}");
+if (!$splitData || !is_array($splitData)) {
+    $stored = payment_refs::where('ref', $ref)->first();
+
+    if ($stored && $stored->subaccounts) {
+        $decoded = json_decode($stored->subaccounts, true);
+
+        // Handle both possible structures
+        if (isset($decoded['subaccounts']) && is_array($decoded['subaccounts'])) {
+            $splitData = $decoded['subaccounts'];
+        } elseif (isset($decoded[0]) && is_array($decoded[0])) {
+            $splitData = $decoded;
         } else {
-            Log::warning("⚠️ No split data found in webhook or DB for ref {$ref}");
+            $splitData = [];
         }
+
+        $totalSplitAmount = $stored->amt;
+        Log::info("🔄 Restored and normalized split data from payment_refs for ref {$ref}");
     } else {
-        $totalSplitAmount = $payload['data']['split']['total_split'] ?? array_sum(array_column($splitData, 'amount'));
-        $totalSplitAmount = $totalSplitAmount / 100;
+        Log::warning("⚠️ No split data found in webhook or DB for ref {$ref}");
+        $splitData = [];
+    }
+}
+else {
+        // Sum 'share' instead of 'amount'
+        $totalSplitAmount = isset($payload['data']['split']['total_split'])
+            ? $payload['data']['split']['total_split'] / 100
+            : array_sum(array_column($splitData, 'share')) / 100;
     }
 
     try {
@@ -14192,7 +14206,7 @@ public function paystackConf(Request $request)
         // Record payments
         if ($splitData && is_array($splitData)) {
             foreach ($splitData as $sub) {
-                $subAmt = isset($sub['amount']) ? $sub['amount'] / 100 : 0; // fixed
+                $subAmt = isset($sub['share']) ? $sub['share'] / 100 : 0;
                 $subCode = $sub['subaccount'] ?? null;
 
                 payments::create([
@@ -14205,7 +14219,7 @@ public function paystackConf(Request $request)
                     'exp'                => $exp,
                     'amt'                => $subAmt,
                     'lid'                => $lid,
-                    'subaccount_code'    => $subCode, // fixed
+                    'subaccount_code'    => $subCode,
                     'main_ref'           => $ref,
                     'total_split_amount' => $totalSplitAmount,
                 ]);
@@ -14233,12 +14247,7 @@ public function paystackConf(Request $request)
         // Save payment reference
         payment_refs::updateOrCreate(
             ['ref' => $ref],
-            [
-                'amt'          => $totalAmountPaid,
-                'time'         => $tm,
-                'subaccounts'  => json_encode($splitData),
-                'confirmed_at' => now()
-            ]
+            ['amt' => $totalAmountPaid, 'time' => $tm, 'confirmed_at' => now()]
         );
 
         DB::commit();
