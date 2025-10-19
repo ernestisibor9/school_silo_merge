@@ -14262,7 +14262,7 @@ $payload = json_decode($request->input('payload'), true);
     return response()->json(['status' => 'success'], 200);
 }
 
-    //--VENDORS
+    //--VENDORS.
 
     /**
      * @OA\Post(
