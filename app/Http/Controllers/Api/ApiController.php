@@ -14148,7 +14148,8 @@ public function paystackConf(Request $request)
     $totalAmountPaid = ($payload['data']['amount'] ?? $amt * 100) / 100;
 
     // 🟢 Try webhook split data first
-    $splitData = $payload['data']['split']['shares']['subaccounts'] ?? null;
+   $splitData = $payload['data']['split']['subaccounts'] ?? [];
+
 
     if (!$splitData || !is_array($splitData)) {
         // fallback: retrieve from our record
@@ -14160,6 +14161,8 @@ public function paystackConf(Request $request)
 
     // 🟢 Record payments
     if ($splitData && is_array($splitData)) {
+        Log::info('Split Data:', $splitData ?? []);
+
         foreach ($splitData as $sub) {
             payments::create([
                 'schid'              => $schid,
