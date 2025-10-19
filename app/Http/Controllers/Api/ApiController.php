@@ -14114,7 +14114,7 @@ public function paystackConf(Request $request)
     Log::info('------------ PAYSTACK CALLBACK ARRIVED -----------');
 
     try {
-        $payload = json_decode($request->input('payload'), true);
+        $payload = json_decode($request->getContent(), true);
 
         if (!isset($payload['event']) || $payload['event'] !== "charge.success") {
             Log::warning('Invalid Paystack event received.');
