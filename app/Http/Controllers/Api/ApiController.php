@@ -14114,26 +14114,28 @@ public function paystackConf(Request $request)
 {
     Log::info('------------ PAYSTACK CALLBACK ARRIVED -----------');
 
-    $payload = json_decode($request->getContent(), true);
-    Log::info('PAYSTACK RAW BODY:', [$payload]);
+   $payload = json_decode($request->input('payload'), true);
 
+    // 🟢 Verify Paystack event type
     if (!isset($payload['event']) || $payload['event'] !== "charge.success") {
-        Log::warning('Invalid Paystack event');
+        Log::warning('Invalid Paystack event received.');
         return response()->json(['status' => 'ignored'], 200);
     }
 
+    // 🟢 Extract reference
     $ref = $payload['data']['reference'] ?? null;
     if (!$ref) {
+        Log::error('Missing payment reference.');
         return response()->json(['status' => 'error', 'message' => 'Missing reference'], 400);
     }
 
-    // 🟢 Prevent duplicate saves
+    // 🟢 Prevent duplicate webhook saves
     if (payments::where('main_ref', $ref)->exists()) {
         Log::info("Duplicate webhook ignored for ref {$ref}");
         return response()->json(['status' => 'duplicate'], 200);
     }
 
-    // 🟢 Extract identifiers
+    // 🟢 Parse identifiers from reference
     $payinfo = explode('-', $ref);
     [$host, $schid, $amt, $typ, $stid, $ssnid, $trmid, $clsid] = $payinfo;
 
@@ -14142,28 +14144,56 @@ public function paystackConf(Request $request)
     $nm  = $metadata['name'] ?? '';
     $exp = $metadata['exp'] ?? '';
     $lid = $metadata['lid'] ?? '';
-    $eml = $metadata['eml'] ?? ''; // ✅ email included
+    $eml = $metadata['eml'] ?? '';
     $tm  = $metadata['time'] ?? now()->timestamp;
 
-    $totalAmountPaid = ($payload['data']['amount'] ?? $amt * 100) / 100;
+    $totalAmountPaid = ($payload['data']['amount'] ?? ($amt * 100)) / 100;
 
-    // 🟢 Try webhook split data first
-   $splitData = $payload['data']['split']['subaccounts'] ?? [];
-
+    // 🟢 Get split data (from webhook or stored reference)
+    $splitData = $payload['data']['split']['subaccounts'] ?? [];
 
     if (!$splitData || !is_array($splitData)) {
-        // fallback: retrieve from our record
         $stored = payment_refs::where('ref', $ref)->first();
         if ($stored && $stored->subaccounts) {
             $splitData = json_decode($stored->subaccounts, true);
         }
     }
 
-    // 🟢 Record payments
-    if ($splitData && is_array($splitData)) {
-        Log::info('Split Data:', $splitData ?? []);
+    // 🟢 Record payments (split or non-split)
+    if ($splitData && is_array($splitData) && count($splitData) > 0) {
+        Log::info('Split Data detected:', $splitData);
 
+        $totalSplitAmount = $totalAmountPaid;
+        $hasRealShares = false;
+
+        // ✅ Check if there are valid share values
         foreach ($splitData as $sub) {
+            if (isset($sub['share']) && floatval($sub['share']) > 0) {
+                $hasRealShares = true;
+                break;
+            }
+        }
+
+        // ✅ Insert payments
+        foreach ($splitData as $sub) {
+            $subCode = $sub['subaccount'] ?? null;
+            $subShare = 0;
+
+            if ($hasRealShares) {
+                // Use real share (percentage or flat)
+                $shareValue = floatval($sub['share'] ?? 0);
+                if ($shareValue <= 100) {
+                    // percentage type
+                    $subShare = ($totalSplitAmount * $shareValue) / 100;
+                } else {
+                    // flat (Paystack stores in Kobo)
+                    $subShare = $shareValue / 100;
+                }
+            } else {
+                // Fallback to equal division
+                $subShare = $totalSplitAmount / count($splitData);
+            }
+
             payments::create([
                 'schid'              => $schid,
                 'stid'               => $stid,
@@ -14172,16 +14202,20 @@ public function paystackConf(Request $request)
                 'clsid'              => $clsid,
                 'name'               => $nm,
                 'exp'                => $exp,
-                'amt'                => $totalAmountPaid / count($splitData),
+                'amt'                => $subShare,
                 'lid'                => $lid,
-                'subaccount_code'    => $sub['subaccount'] ?? null,
+                'subaccount_code'    => $subCode,
                 'main_ref'           => $ref,
-                'total_split_amount' => $totalAmountPaid,
-                'email'              => $eml, // ✅ added
+                'total_split_amount' => $totalSplitAmount,
+                'email'              => $eml,
             ]);
+
+            Log::info("✅ Recorded subaccount {$subCode} share: ₦{$subShare}");
         }
+
         Log::info("✅ Split payment recorded successfully for ref {$ref}");
     } else {
+        // ✅ Non-split transaction
         payments::create([
             'schid'    => $schid,
             'stid'     => $stid,
@@ -14193,12 +14227,13 @@ public function paystackConf(Request $request)
             'amt'      => $totalAmountPaid,
             'lid'      => $lid,
             'main_ref' => $ref,
-            'email'    => $eml, // ✅ added
+            'email'    => $eml,
         ]);
+
         Log::info("✅ Non-split payment recorded for ref {$ref}");
     }
 
-    // 🟢 Update or create payment_refs
+    // 🟢 Update payment_refs
     payment_refs::updateOrCreate(
         ['ref' => $ref],
         [
@@ -14209,8 +14244,7 @@ public function paystackConf(Request $request)
         ]
     );
 
-    // 🟢 Optional: Send confirmation email
-
+    // 🟢 Send confirmation email
     try {
         $data = [
             'name'    => $nm,
@@ -14222,7 +14256,6 @@ public function paystackConf(Request $request)
     } catch (\Exception $e) {
         Log::error('Failed to send email: ' . $e->getMessage());
     }
-
 
     return response()->json(['status' => 'success'], 200);
 }
