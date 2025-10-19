@@ -12957,7 +12957,7 @@ public function initializePayment(Request $request)
 if ($response->successful()) {
     $paystackData = $response->json();
 
-// 🟢 Upsert reference so callback can use it
+// 🟢 Upsert reference so callback can use it.
 payment_refs::updateOrCreate(
     ['ref' => $ref],
     [
