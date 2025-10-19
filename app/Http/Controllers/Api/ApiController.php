@@ -14168,7 +14168,7 @@ public function paystackConf(Request $request)
     }
 
     // Handle split data
-    $splitData = $payload['data']['split']['shares']['subaccounts'] ?? null;
+    $splitData = $payload['data']['split']['shares'] ?? null; // fixed
     $totalSplitAmount = null;
 
     if (!$splitData || !is_array($splitData)) {
@@ -14182,10 +14182,8 @@ public function paystackConf(Request $request)
             Log::warning("⚠️ No split data found in webhook or DB for ref {$ref}");
         }
     } else {
-        // Sum 'share' instead of 'amount'
-        $totalSplitAmount = isset($payload['data']['split']['total_split'])
-            ? $payload['data']['split']['total_split'] / 100
-            : array_sum(array_column($splitData, 'share')) / 100;
+        $totalSplitAmount = $payload['data']['split']['total_split'] ?? array_sum(array_column($splitData, 'amount'));
+        $totalSplitAmount = $totalSplitAmount / 100;
     }
 
     try {
@@ -14194,7 +14192,7 @@ public function paystackConf(Request $request)
         // Record payments
         if ($splitData && is_array($splitData)) {
             foreach ($splitData as $sub) {
-                $subAmt = isset($sub['share']) ? $sub['share'] / 100 : 0;
+                $subAmt = isset($sub['amount']) ? $sub['amount'] / 100 : 0; // fixed
                 $subCode = $sub['subaccount'] ?? null;
 
                 payments::create([
@@ -14207,7 +14205,7 @@ public function paystackConf(Request $request)
                     'exp'                => $exp,
                     'amt'                => $subAmt,
                     'lid'                => $lid,
-                    'subaccount_code'    => $subCode,
+                    'subaccount_code'    => $subCode, // fixed
                     'main_ref'           => $ref,
                     'total_split_amount' => $totalSplitAmount,
                 ]);
@@ -14235,7 +14233,12 @@ public function paystackConf(Request $request)
         // Save payment reference
         payment_refs::updateOrCreate(
             ['ref' => $ref],
-            ['amt' => $totalAmountPaid, 'time' => $tm, 'confirmed_at' => now()]
+            [
+                'amt'          => $totalAmountPaid,
+                'time'         => $tm,
+                'subaccounts'  => json_encode($splitData),
+                'confirmed_at' => now()
+            ]
         );
 
         DB::commit();
