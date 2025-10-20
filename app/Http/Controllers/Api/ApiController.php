@@ -19208,7 +19208,7 @@ class ApiController extends Controller
         // ✅ Sort alphabetically by fname (A → Z)
         $query->orderBy('lname', 'asc');
 
-        // Get total count before pagination
+        // Get total count before pagination.
         $totalAlumni = $query->count();
 
         // Apply pagination
