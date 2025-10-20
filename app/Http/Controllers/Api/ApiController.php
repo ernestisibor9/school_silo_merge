@@ -19205,6 +19205,9 @@ class ApiController extends Controller
             $query->where('exit_class_arm', $exitClassArm);
         }
 
+        // ✅ Sort alphabetically by fname (A → Z)
+        $query->orderBy('lname', 'asc');
+
         // Get total count before pagination
         $totalAlumni = $query->count();
 
