@@ -26419,8 +26419,9 @@
                 "tags": [
                     "Api"
                 ],
-                "summary": "Re-post a staff to a new class and arm for a specific session and term",
-                "operationId": "rePostStaffUnique",
+                "summary": "Repost a staff for a specific session and term",
+                "description": "This endpoint re-posts a staff member into the `old_staff` table for the specified session, term, and class. It does not modify any other tables.",
+                "operationId": "rePostStaff",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -26432,14 +26433,13 @@
                                     "sesn",
                                     "trm",
                                     "clsm",
-                                    "clsa",
                                     "suid"
                                 ],
                                 "properties": {
                                     "stid": {
                                         "description": "Staff ID",
                                         "type": "integer",
-                                        "example": 1929
+                                        "example": 2073
                                     },
                                     "schid": {
                                         "description": "School ID",
@@ -26447,29 +26447,24 @@
                                         "example": 12
                                     },
                                     "sesn": {
-                                        "description": "Academic session",
+                                        "description": "Academic session (e.g., 2025)",
                                         "type": "integer",
                                         "example": 2025
                                     },
                                     "trm": {
-                                        "description": "Term",
+                                        "description": "Term number (1, 2, or 3)",
                                         "type": "integer",
                                         "example": 1
                                     },
                                     "clsm": {
                                         "description": "New main class ID",
                                         "type": "integer",
-                                        "example": 11
-                                    },
-                                    "clsa": {
-                                        "description": "New class arm ID",
-                                        "type": "integer",
-                                        "example": 10152055
+                                        "example": 16
                                     },
                                     "suid": {
-                                        "description": "Staff unique ID",
+                                        "description": "Unique staff code or identifier",
                                         "type": "string",
-                                        "example": "HGC/STAFF/6"
+                                        "example": "HGC/STAFF/4"
                                     }
                                 },
                                 "type": "object"
@@ -26479,7 +26474,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Staff re-promoted successfully",
+                        "description": "Staff successfully re-posted",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -26490,17 +26485,17 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "Staff re-promoted successfully for this term"
+                                            "example": "Staff re-posted successfully and saved in old_staff table"
                                         },
-                                        "data": {
+                                        "pld": {
                                             "properties": {
                                                 "stid": {
                                                     "type": "integer",
-                                                    "example": 1929
+                                                    "example": 2073
                                                 },
                                                 "suid": {
                                                     "type": "string",
-                                                    "example": "HGC/STAFF/6"
+                                                    "example": "HGC/STAFF/4"
                                                 },
                                                 "ssn": {
                                                     "type": "integer",
@@ -26512,15 +26507,7 @@
                                                 },
                                                 "clsm": {
                                                     "type": "integer",
-                                                    "example": 11
-                                                },
-                                                "clsa": {
-                                                    "type": "integer",
-                                                    "example": 10152065
-                                                },
-                                                "clsa_name": {
-                                                    "type": "string",
-                                                    "example": "A"
+                                                    "example": 16
                                                 }
                                             },
                                             "type": "object"
@@ -26552,18 +26539,17 @@
                         }
                     },
                     "422": {
-                        "description": "Validation or logical error",
+                        "description": "Validation error or invalid data",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
                                         "message": {
                                             "type": "string",
-                                            "example": "Invalid class arm for the selected class"
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object"
                                         }
                                     },
                                     "type": "object"
@@ -26571,12 +26557,7 @@
                             }
                         }
                     }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
+                }
             }
         }
     },

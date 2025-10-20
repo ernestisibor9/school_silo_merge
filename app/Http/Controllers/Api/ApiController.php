@@ -9940,6 +9940,18 @@ class ApiController extends Controller
 
         // ✅ Update or create staff class arm record
         $pld = staff_class_arm::updateOrCreate(
+            // [
+            //     "stid"  => $request->stid,
+            //     "cls"   => $request->cls,
+            //     "arm"   => $request->arm,
+            //     "schid" => $request->schid,
+            //     "sesn"  => $request->sesn,
+            //     "trm"   => $request->trm,
+            // ],
+            // [
+            //     "uid"   => $uid,
+            // ]
+                        ["uid" => $uid],
             [
                 "stid"  => $request->stid,
                 "cls"   => $request->cls,
@@ -9947,9 +9959,6 @@ class ApiController extends Controller
                 "schid" => $request->schid,
                 "sesn"  => $request->sesn,
                 "trm"   => $request->trm,
-            ],
-            [
-                "uid"   => $uid,
             ]
         );
 
@@ -32904,78 +32913,76 @@ class ApiController extends Controller
 /**
  * @OA\Post(
  *     path="/api/rePostStaff",
- *     summary="Re-post a staff to a new class and arm for a specific session and term",
+ *     summary="Repost a staff for a specific session and term",
+ *     description="This endpoint re-posts a staff member into the `old_staff` table for the specified session, term, and class. It does not modify any other tables.",
  *     tags={"Api"},
- *     operationId="rePostStaffUnique",
- *     security={ {"bearerAuth": {}} },
+ *    security={{"bearerAuth":{}}},
+ *     operationId="rePostStaff",
+ *
  *     @OA\RequestBody(
  *         required=true,
  *         @OA\JsonContent(
- *             type="object",
- *             required={"stid","schid","sesn","trm","clsm","clsa","suid"},
- *             @OA\Property(property="stid", type="integer", example=1929, description="Staff ID"),
+ *             required={"stid", "schid", "sesn", "trm", "clsm", "suid"},
+ *             @OA\Property(property="stid", type="integer", example=2073, description="Staff ID"),
  *             @OA\Property(property="schid", type="integer", example=12, description="School ID"),
- *             @OA\Property(property="sesn", type="integer", example=2025, description="Academic session"),
- *             @OA\Property(property="trm", type="integer", example=1, description="Term"),
- *             @OA\Property(property="clsm", type="integer", example=11, description="New main class ID"),
- *             @OA\Property(property="clsa", type="integer", example=10152055, description="New class arm ID"),
- *             @OA\Property(property="suid", type="string", example="HGC/STAFF/6", description="Staff unique ID")
+ *             @OA\Property(property="sesn", type="integer", example=2025, description="Academic session (e.g., 2025)"),
+ *             @OA\Property(property="trm", type="integer", example=1, description="Term number (1, 2, or 3)"),
+ *             @OA\Property(property="clsm", type="integer", example=16, description="New main class ID"),
+ *             @OA\Property(property="suid", type="string", example="HGC/STAFF/4", description="Unique staff code or identifier")
  *         )
  *     ),
+ *
  *     @OA\Response(
  *         response=200,
- *         description="Staff re-promoted successfully",
+ *         description="Staff successfully re-posted",
  *         @OA\JsonContent(
- *             type="object",
  *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Staff re-promoted successfully for this term"),
+ *             @OA\Property(property="message", type="string", example="Staff re-posted successfully and saved in old_staff table"),
  *             @OA\Property(
- *                 property="data",
+ *                 property="pld",
  *                 type="object",
- *                 @OA\Property(property="stid", type="integer", example=1929),
- *                 @OA\Property(property="suid", type="string", example="HGC/STAFF/6"),
+ *                 @OA\Property(property="stid", type="integer", example=2073),
+ *                 @OA\Property(property="suid", type="string", example="HGC/STAFF/4"),
  *                 @OA\Property(property="ssn", type="integer", example=2025),
  *                 @OA\Property(property="trm", type="integer", example=1),
- *                 @OA\Property(property="clsm", type="integer", example=11),
- *                 @OA\Property(property="clsa", type="integer", example=10152065),
- *                 @OA\Property(property="clsa_name", type="string", example="A")
+ *                 @OA\Property(property="clsm", type="integer", example=16)
  *             )
  *         )
  *     ),
+ *
  *     @OA\Response(
  *         response=404,
  *         description="Staff not found",
  *         @OA\JsonContent(
- *             type="object",
  *             @OA\Property(property="status", type="boolean", example=false),
  *             @OA\Property(property="message", type="string", example="Staff not found")
  *         )
  *     ),
+ *
  *     @OA\Response(
  *         response=422,
- *         description="Validation or logical error",
+ *         description="Validation error or invalid data",
  *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="Invalid class arm for the selected class")
+ *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+ *             @OA\Property(property="errors", type="object")
  *         )
  *     )
  * )
  */
 
+
 public function rePostStaff(Request $request)
 {
     $request->validate([
         'stid'  => 'required', // staff id
-        'schid' => 'required',
+        'schid' => 'required', // school id
         'sesn'  => 'required', // session
         'trm'   => 'required', // term
         'clsm'  => 'required', // new main class
-        'clsa'  => 'required', // requested new class arm (staff_class_arm.id)
         'suid'  => 'required', // staff unique id
     ]);
 
-    // 1. Find the staff
+    // 1️⃣ Find the staff record
     $staff = DB::table('staff')->where('sid', $request->stid)->first();
     if (!$staff) {
         return response()->json([
@@ -32984,24 +32991,10 @@ public function rePostStaff(Request $request)
         ], 404);
     }
 
-    // 2. Make sure this arm belongs to the new class
-    $validArm = DB::table('staff_class_arm')
-        ->where('arm', $request->clsa)
-        ->where('cls', $request->clsm)
-        ->where('schid', $request->schid)
-        ->first();
-
-    if (!$validArm) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Invalid class arm for the selected class',
-        ], 422);
-    }
-
-    // 3. Generate a unique promotion ID
+    // 2️⃣ Generate a unique repost UID
     $uid = $request->sesn . $request->trm . $request->stid . rand(10000, 99999);
 
-    // 4. Update or insert into old_staff (no deletion, no clsa)
+    // 3️⃣ Insert or update in old_staff only
     DB::table('old_staff')->updateOrInsert(
         [
             'sid' => $request->stid,
@@ -33017,43 +33010,9 @@ public function rePostStaff(Request $request)
             'status' => 'active',
             'suid'   => $request->suid,
             'clsm'   => $request->clsm,
-            'role'   => 0,       
-            'role2'  => 0,     
+            'role'   => '',
+            'role2'  => '',
             'more'   => '',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]
-    );
-
-    // 5. Update or insert into staff_class
-    DB::table('staff_class')->updateOrInsert(
-        [
-            'stid' => $request->stid,
-            'ssn'  => $request->sesn,
-            'trm'  => $request->trm,
-        ],
-        [
-            'uid'    => $uid,
-            'cls'    => $request->clsm,
-            'schid'  => $request->schid,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]
-    );
-
-    // 6. Update or insert into staff_class_arm
-    DB::table('staff_class_arm')->updateOrInsert(
-        [
-            'stid' => $request->stid,
-            'cls'  => $request->clsm,
-            'sesn'  => $request->sesn,
-        ],
-        [
-            'uid'    => $uid,
-            'arm'   => $validArm->arm,
-            'schid' => $request->schid,
-            'sesn'  => $request->sesn,
-            'trm'   => $request->trm,
             'created_at' => now(),
             'updated_at' => now(),
         ]
@@ -33061,17 +33020,17 @@ public function rePostStaff(Request $request)
 
     return response()->json([
         'status' => true,
-        'message' => 'Staff re-posted successfully for this term',
+        'message' => 'Staff re-posted successfully and saved in old_staff table',
         'pld' => [
             'stid' => $request->stid,
             'suid' => $request->suid,
             'ssn'  => $request->sesn,
             'trm'  => $request->trm,
             'clsm' => $request->clsm,
-            'clsa' => $validArm->arm,
         ],
     ]);
 }
+
 
 
 }

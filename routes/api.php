@@ -35,11 +35,11 @@ Route::post('setClass', [ApiController::class, 'setCls']);
 Route::post('setAdminStaffRole', [ApiController::class, 'setAdminStaffRole']);
 Route::post('setSchoolStaffRole', [ApiController::class, 'setSchoolStaffRole']);
 
-Route::post('promoteStudent', [ApiController::class, 'promoteStudent']);
-Route::post('repeatStudent', [ApiController::class, 'repeatStudent']);
-Route::post('rePromoteStudent', [ApiController::class, 'rePromoteStudent']);
-Route::post('resetPass', [ApiController::class, 'resetPass']);
-Route::post('rePostStaff', [ApiController::class, 'rePostStaff']);
+// Route::post('promoteStudent', [ApiController::class, 'promoteStudent']);
+// Route::post('repeatStudent', [ApiController::class, 'repeatStudent']);
+// Route::post('rePromoteStudent', [ApiController::class, 'rePromoteStudent']);
+// Route::post('resetPass', [ApiController::class, 'resetPass']);
+// Route::post('rePostStaff', [ApiController::class, 'rePostStaff']);
 
 
 
@@ -198,7 +198,12 @@ Route::group([
     Route::post('/autoCommentTemplate', [ApiController::class, 'autoCommentTemplate']);
     Route::post('/allStudentResultsComment', [ApiController::class, 'allStudentResultsComment']);
 
-
+    
+    Route::post('promoteStudent', [ApiController::class, 'promoteStudent']);
+    Route::post('repeatStudent', [ApiController::class, 'repeatStudent']);
+    Route::post('rePromoteStudent', [ApiController::class, 'rePromoteStudent']);
+    Route::post('resetPass', [ApiController::class, 'resetPass']);
+    Route::post('rePostStaff', [ApiController::class, 'rePostStaff']);
 
 
 
