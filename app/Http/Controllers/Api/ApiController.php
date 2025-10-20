@@ -5646,6 +5646,7 @@ class ApiController extends Controller
             'clsa'
         )
             ->distinct('sid') // ✅ ensures unique student records
+             ->orderBy('lname', 'asc') // ✅ sort alphabetically by first name
             ->get()
             ->map(function ($student) {
                 return [
