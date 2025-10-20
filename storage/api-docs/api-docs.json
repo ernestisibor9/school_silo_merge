@@ -26420,7 +26420,7 @@
                     "Api"
                 ],
                 "summary": "Repost a staff for a specific session and term",
-                "description": "This endpoint re-posts a staff member into the `old_staff` table for the specified session, term, and class. It does not modify any other tables.",
+                "description": "This endpoint re-posts a staff member into the `old_staff` table for the specified session, term, and class. It does not modify any other tables. Optional roles can be updated if provided.",
                 "operationId": "rePostStaff",
                 "requestBody": {
                     "required": true,
@@ -26465,6 +26465,18 @@
                                         "description": "Unique staff code or identifier",
                                         "type": "string",
                                         "example": "HGC/STAFF/4"
+                                    },
+                                    "role": {
+                                        "description": "(Optional) Primary role for the reposted staff",
+                                        "type": "string",
+                                        "example": "Form Teacher",
+                                        "nullable": true
+                                    },
+                                    "role2": {
+                                        "description": "(Optional) Secondary role for the reposted staff",
+                                        "type": "string",
+                                        "example": "Subject Coordinator",
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -26485,7 +26497,7 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "Staff re-posted successfully and saved in old_staff table"
+                                            "example": "Staff re-posted successfully"
                                         },
                                         "pld": {
                                             "properties": {
@@ -26508,6 +26520,14 @@
                                                 "clsm": {
                                                     "type": "integer",
                                                     "example": 16
+                                                },
+                                                "role": {
+                                                    "type": "string",
+                                                    "example": "Form Teacher"
+                                                },
+                                                "role2": {
+                                                    "type": "string",
+                                                    "example": "Subject Coordinator"
                                                 }
                                             },
                                             "type": "object"
@@ -26557,7 +26577,12 @@
                             }
                         }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         }
     },

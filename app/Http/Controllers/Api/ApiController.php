@@ -32914,9 +32914,9 @@ class ApiController extends Controller
  * @OA\Post(
  *     path="/api/rePostStaff",
  *     summary="Repost a staff for a specific session and term",
- *     description="This endpoint re-posts a staff member into the `old_staff` table for the specified session, term, and class. It does not modify any other tables.",
+ *     description="This endpoint re-posts a staff member into the `old_staff` table for the specified session, term, and class. It does not modify any other tables. Optional roles can be updated if provided.",
  *     tags={"Api"},
- *    security={{"bearerAuth":{}}},
+ *     security={{"bearerAuth":{}}},
  *     operationId="rePostStaff",
  *
  *     @OA\RequestBody(
@@ -32928,7 +32928,9 @@ class ApiController extends Controller
  *             @OA\Property(property="sesn", type="integer", example=2025, description="Academic session (e.g., 2025)"),
  *             @OA\Property(property="trm", type="integer", example=1, description="Term number (1, 2, or 3)"),
  *             @OA\Property(property="clsm", type="integer", example=16, description="New main class ID"),
- *             @OA\Property(property="suid", type="string", example="HGC/STAFF/4", description="Unique staff code or identifier")
+ *             @OA\Property(property="suid", type="string", example="HGC/STAFF/4", description="Unique staff code or identifier"),
+ *             @OA\Property(property="role", type="string", nullable=true, example="Form Teacher", description="(Optional) Primary role for the reposted staff"),
+ *             @OA\Property(property="role2", type="string", nullable=true, example="Subject Coordinator", description="(Optional) Secondary role for the reposted staff")
  *         )
  *     ),
  *
@@ -32937,7 +32939,7 @@ class ApiController extends Controller
  *         description="Staff successfully re-posted",
  *         @OA\JsonContent(
  *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Staff re-posted successfully and saved in old_staff table"),
+ *             @OA\Property(property="message", type="string", example="Staff re-posted successfully"),
  *             @OA\Property(
  *                 property="pld",
  *                 type="object",
@@ -32945,7 +32947,9 @@ class ApiController extends Controller
  *                 @OA\Property(property="suid", type="string", example="HGC/STAFF/4"),
  *                 @OA\Property(property="ssn", type="integer", example=2025),
  *                 @OA\Property(property="trm", type="integer", example=1),
- *                 @OA\Property(property="clsm", type="integer", example=16)
+ *                 @OA\Property(property="clsm", type="integer", example=16),
+ *                 @OA\Property(property="role", type="string", example="Form Teacher"),
+ *                 @OA\Property(property="role2", type="string", example="Subject Coordinator")
  *             )
  *         )
  *     ),
@@ -32980,6 +32984,8 @@ public function rePostStaff(Request $request)
         'trm'   => 'required', // term
         'clsm'  => 'required', // new main class
         'suid'  => 'required', // staff unique id
+        'role'   => 'nullable',
+        'role2'  => 'nullable',
     ]);
 
     // 1️⃣ Find the staff record
@@ -33010,8 +33016,8 @@ public function rePostStaff(Request $request)
             'status' => 'active',
             'suid'   => $request->suid,
             'clsm'   => $request->clsm,
-            'role'   => '',
-            'role2'  => '',
+            'role'    => $request->role ?? $staff->role,
+            'role2'   => $request->role2 ?? $staff->role2,
             'more'   => '',
             'created_at' => now(),
             'updated_at' => now(),
@@ -33020,13 +33026,15 @@ public function rePostStaff(Request $request)
 
     return response()->json([
         'status' => true,
-        'message' => 'Staff re-posted successfully and saved in old_staff table',
+        'message' => 'Staff re-posted successfully',
         'pld' => [
             'stid' => $request->stid,
             'suid' => $request->suid,
             'ssn'  => $request->sesn,
             'trm'  => $request->trm,
             'clsm' => $request->clsm,
+            'role'  => $request->role,
+            'role2' => $request->role2,
         ],
     ]);
 }
