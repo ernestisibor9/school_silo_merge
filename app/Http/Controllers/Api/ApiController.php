@@ -17994,7 +17994,7 @@ class ApiController extends Controller
         if ($cls !== 'zzz') {
             $members = []; //TODO DO it join...
         } else {
-            $members = staff::where('schid', $schid)->where('stat', $stat)->orderBy('sid', 'desc')->skip($start)->take($count)->get();
+            $members = staff::where('schid', $schid)->where('stat', $stat)->orderBy('fname', 'asc')->skip($start)->take($count)->get();
         }
         $pld = [];
         foreach ($members as $member) {
