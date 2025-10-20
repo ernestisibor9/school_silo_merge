@@ -8842,6 +8842,7 @@ class ApiController extends Controller
                 ->where("trm", $trm)
                 ->where("clsm", $clsm)
                 ->where("status", "active")
+                ->orderBy('lname', 'asc')
                 ->get();
         } else {
             $ostd = old_student::where("schid", $schid)
@@ -8850,6 +8851,7 @@ class ApiController extends Controller
                 ->where("clsm", $clsm)
                 ->where("clsa", $clsa)
                 ->where("status", "active")
+                ->orderBy('lname', 'asc') 
                 ->get();
         }
 
