@@ -33041,17 +33041,17 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
  */
 
 
-public function rePostStaff(Request $request)
+public function rePostStaff(Request $request) 
 {
     $request->validate([
         'stid'  => 'required', // staff id
         'schid' => 'required', // school id
         'sesn'  => 'required', // session
         'trm'   => 'required', // term
-        'clsm'  => 'nullable', // new main class
+        'clsm'  => 'required', // new main class
         'suid'  => 'required', // staff unique id
-        'role'   => 'nullable',
-        'role2'  => 'nullable',
+        'role'  => 'nullable',
+        'role2' => 'nullable',
     ]);
 
     // 1️⃣ Find the staff record
@@ -33063,10 +33063,10 @@ public function rePostStaff(Request $request)
         ], 404);
     }
 
-    // 2️⃣ Generate a unique repost UID
+    // 2️⃣ Generate unique repost UID
     $uid = $request->sesn . $request->trm . $request->stid . rand(10000, 99999);
 
-    // 3️⃣ Insert or update in old_staff only
+    // 3️⃣ Insert or update in old_staff
     DB::table('old_staff')->updateOrInsert(
         [
             'sid' => $request->stid,
@@ -33074,33 +33074,49 @@ public function rePostStaff(Request $request)
             'trm' => $request->trm,
         ],
         [
-            'uid'    => $uid,
-            'schid'  => $request->schid,
-            'fname'  => $staff->fname,
-            'mname'  => $staff->mname,
-            'lname'  => $staff->lname,
-            'status' => 'active',
-            'suid'   => $request->suid,
-            'clsm'   => $request->clsm,
-            'role'    => $request->role ?? $staff->role,
-            'role2'   => $request->role2 ?? $staff->role2,
-            'more'   => '',
+            'uid'        => $uid,
+            'schid'      => $request->schid,
+            'fname'      => $staff->fname,
+            'mname'      => $staff->mname,
+            'lname'      => $staff->lname,
+            'status'     => 'active',
+            'suid'       => $request->suid,
+            'clsm'       => $request->clsm,
+            'role'       => $request->role ?? $staff->role,
+            'role2'      => $request->role2 ?? $staff->role2,
+            'more'       => '',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]
+    );
+
+    // 4️⃣ Update or insert in staff_class table
+    DB::table('staff_class')->updateOrInsert(
+        [
+            'stid' => $request->stid,
+            'ssn'  => $request->sesn,
+            'trm'  => $request->trm,
+        ],
+        [
+            'uid'        => $uid,
+            'cls'        => $request->clsm,
+            'schid'      => $request->schid,
             'created_at' => now(),
             'updated_at' => now(),
         ]
     );
 
     return response()->json([
-        'status' => true,
-        'message' => 'Staff re-posted successfully',
+        'status'  => true,
+        'message' => 'Staff re-posted successfully and class assigned.',
         'pld' => [
             'stid' => $request->stid,
             'suid' => $request->suid,
             'ssn'  => $request->sesn,
             'trm'  => $request->trm,
             'clsm' => $request->clsm,
-            'role'  => $request->role,
-            'role2' => $request->role2,
+            'role' => $request->role,
+            'role2'=> $request->role2,
         ],
     ]);
 }
