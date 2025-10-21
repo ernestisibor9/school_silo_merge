@@ -9854,14 +9854,55 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
     // }
 
 
-    public function getStaffClasses($stid)
-    {
-        $start = request()->input('start', 0);   // default 0
-        $count = request()->input('count', 20);  // default 20
+    // public function getStaffClasses($stid)
+    // {
+    //     $start = request()->input('start', 0);   // default 0
+    //     $count = request()->input('count', 20);  // default 20
 
-        $query = staff_class::where("staff_class.stid", $stid)
-            ->join("old_staff", "staff_class.stid", "=", "old_staff.sid")
-            ->selectRaw("
+    //     $query = staff_class::where("staff_class.stid", $stid)
+    //         ->join("old_staff", "staff_class.stid", "=", "old_staff.sid")
+    //         ->selectRaw("
+    //         MIN(staff_class.uid) as uid,
+    //         staff_class.stid,
+    //         staff_class.cls,
+    //         staff_class.schid,
+    //         MIN(staff_class.ssn) as ssn,
+    //         MIN(staff_class.trm) as trm,
+    //         old_staff.fname,
+    //         old_staff.mname,
+    //         old_staff.lname
+    //     ")
+    //         ->groupBy("staff_class.stid", "staff_class.cls", "staff_class.schid", "old_staff.fname", "old_staff.mname", "old_staff.lname") // ✅ group by staff + class
+    //         ->orderBy("ssn", "desc")
+    //         ->orderBy("trm", "asc");
+
+    //     // ✅ Filter by session if provided
+    //     if (request()->has('ssn')) {
+    //         $query->where("staff_class.ssn", request()->input('ssn'));
+    //     }
+
+    //     // ✅ Filter by term if provided
+    //     if (request()->has('trm')) {
+    //         $query->where("staff_class.trm", request()->input('trm'));
+    //     }
+
+    //     $pld = $query->skip($start)->take($count)->get();
+
+    //     return response()->json([
+    //         "status"  => true,
+    //         "message" => "Success",
+    //         "pld"     => $pld,
+    //     ]);
+    // }
+
+    public function getStaffClasses($stid)
+{
+    $start = request()->input('start', 0);   // default 0
+    $count = request()->input('count', 20);  // default 20
+
+    $query = staff_class::join("old_staff", "staff_class.stid", "=", "old_staff.sid")
+        ->where("staff_class.stid", $stid)
+        ->selectRaw("
             MIN(staff_class.uid) as uid,
             staff_class.stid,
             staff_class.cls,
@@ -9872,28 +9913,34 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
             old_staff.mname,
             old_staff.lname
         ")
-            ->groupBy("staff_class.stid", "staff_class.cls", "staff_class.schid", "old_staff.fname", "old_staff.mname", "old_staff.lname") // ✅ group by staff + class
-            ->orderBy("ssn", "desc")
-            ->orderBy("trm", "asc");
+        // ✅ Only group by fields that define uniqueness
+        ->groupBy(
+            "staff_class.stid",
+            "staff_class.cls",
+            "staff_class.schid"
+        )
+        ->orderBy("ssn", "desc")
+        ->orderBy("trm", "asc");
 
-        // ✅ Filter by session if provided
-        if (request()->has('ssn')) {
-            $query->where("staff_class.ssn", request()->input('ssn'));
-        }
-
-        // ✅ Filter by term if provided
-        if (request()->has('trm')) {
-            $query->where("staff_class.trm", request()->input('trm'));
-        }
-
-        $pld = $query->skip($start)->take($count)->get();
-
-        return response()->json([
-            "status"  => true,
-            "message" => "Success",
-            "pld"     => $pld,
-        ]);
+    // ✅ Optional filter by session
+    if (request()->filled('ssn')) {
+        $query->where("staff_class.ssn", request()->input('ssn'));
     }
+
+    // ✅ Optional filter by term
+    if (request()->filled('trm')) {
+        $query->where("staff_class.trm", request()->input('trm'));
+    }
+
+    // ✅ Use DISTINCT to ensure no duplicate (extra layer of safety)
+    $pld = $query->distinct()->skip($start)->take($count)->get();
+
+    return response()->json([
+        "status"  => true,
+        "message" => "Success",
+        "pld"     => $pld,
+    ]);
+}
 
 
 
