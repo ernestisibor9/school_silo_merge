@@ -26527,11 +26527,6 @@
                                         "type": "integer",
                                         "example": 1
                                     },
-                                    "clsm": {
-                                        "description": "New main class ID",
-                                        "type": "integer",
-                                        "example": 16
-                                    },
                                     "suid": {
                                         "description": "Unique staff code or identifier",
                                         "type": "string",
@@ -26587,10 +26582,6 @@
                                                 "trm": {
                                                     "type": "integer",
                                                     "example": 1
-                                                },
-                                                "clsm": {
-                                                    "type": "integer",
-                                                    "example": 16
                                                 },
                                                 "role": {
                                                     "type": "string",

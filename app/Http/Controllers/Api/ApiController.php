@@ -32993,7 +32993,6 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
  *             @OA\Property(property="schid", type="integer", example=12, description="School ID"),
  *             @OA\Property(property="sesn", type="integer", example=2025, description="Academic session (e.g., 2025)"),
  *             @OA\Property(property="trm", type="integer", example=1, description="Term number (1, 2, or 3)"),
- *             @OA\Property(property="clsm", type="integer", example=16, description="New main class ID"),
  *             @OA\Property(property="suid", type="string", example="HGC/STAFF/4", description="Unique staff code or identifier"),
  *             @OA\Property(property="role", type="string", nullable=true, example="Form Teacher", description="(Optional) Primary role for the reposted staff"),
  *             @OA\Property(property="role2", type="string", nullable=true, example="Subject Coordinator", description="(Optional) Secondary role for the reposted staff")
@@ -33013,7 +33012,6 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
  *                 @OA\Property(property="suid", type="string", example="HGC/STAFF/4"),
  *                 @OA\Property(property="ssn", type="integer", example=2025),
  *                 @OA\Property(property="trm", type="integer", example=1),
- *                 @OA\Property(property="clsm", type="integer", example=16),
  *                 @OA\Property(property="role", type="string", example="Form Teacher"),
  *                 @OA\Property(property="role2", type="string", example="Subject Coordinator")
  *             )
@@ -33048,7 +33046,6 @@ public function rePostStaff(Request $request)
         'schid' => 'required', // school id
         'sesn'  => 'required', // session
         'trm'   => 'required', // term
-        'clsm'  => 'nullable', // new main class
         'suid'  => 'required', // staff unique id
         'role'   => 'nullable',
         'role2'  => 'nullable',
@@ -33081,7 +33078,6 @@ public function rePostStaff(Request $request)
             'lname'  => $staff->lname,
             'status' => 'active',
             'suid'   => $request->suid,
-            'clsm'   => $request->clsm,
             'role'    => $request->role ?? $staff->role,
             'role2'   => $request->role2 ?? $staff->role2,
             'more'   => '',
@@ -33098,7 +33094,6 @@ public function rePostStaff(Request $request)
             'suid' => $request->suid,
             'ssn'  => $request->sesn,
             'trm'  => $request->trm,
-            'clsm' => $request->clsm,
             'role'  => $request->role,
             'role2' => $request->role2,
         ],
