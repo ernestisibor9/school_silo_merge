@@ -3340,65 +3340,125 @@ class ApiController extends Controller
 
 
 
-    /**
-     * @OA\Get(
-     *     path="/api/getClassSubjectsByStaff/{schid}/{clsid}/{stid}",
-     *     tags={"Api"},
-     *     security={{"bearerAuth": {}}},
-     *     summary="Get a class's subjects",
-     *     description="Use this endpoint to get subjects of a class.",
-     *     @OA\Parameter(
-     *         name="schid",
-     *         in="path",
-     *         required=true,
-     *         description="School Id",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="clsid",
-     *         in="path",
-     *         required=true,
-     *         description="Class Id",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="stid",
-     *         in="path",
-     *         required=true,
-     *         description="Staff Id",
-     *         @OA\Schema(type="string")
-     *     ),
-     *      @OA\Parameter(
-     *         name="start",
-     *         in="query",
-     *         required=false,
-     *         description="Index to start at",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Parameter(
-     *         name="count",
-     *         in="query",
-     *         required=false,
-     *         description="No of records to retrieve",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
-     * )
-     */
+/**
+ * @OA\Get(
+ *     path="/api/getClassSubjectsByStaff/{schid}/{clsid}/{stid}",
+ *     summary="Get subjects assigned to a staff for a class",
+ *     description="Fetches all subjects that a staff member teaches for a specific class, session, and term.",
+ *     tags={"Api"},
+ *    security={{"bearerAuth": {}}},
+ *     operationId="getClassSubjectsByStaff",
+ *     
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="path",
+ *         description="School ID",
+ *         required=true,
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Parameter(
+ *         name="clsid",
+ *         in="path",
+ *         description="Class ID",
+ *         required=true,
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Parameter(
+ *         name="stid",
+ *         in="path",
+ *         description="Staff ID",
+ *         required=true,
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Parameter(
+ *         name="sesn",
+ *         in="query",
+ *         description="Session (e.g., 2024, 2025)",
+ *         required=true,
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Parameter(
+ *         name="trm",
+ *         in="query",
+ *         description="Term (e.g., 1, 2, 3)",
+ *         required=true,
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Parameter(
+ *         name="start",
+ *         in="query",
+ *         description="Pagination start index",
+ *         required=false,
+ *         @OA\Schema(type="integer", default=0)
+ *     ),
+ *     @OA\Parameter(
+ *         name="count",
+ *         in="query",
+ *         description="Number of records to return",
+ *         required=false,
+ *         @OA\Schema(type="integer", default=20)
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful response with subjects",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(property="subj_id", type="integer", example=100),
+ *                     @OA\Property(property="name", type="string", example="FRENCH"),
+ *                     @OA\Property(property="comp", type="string", example="Core"),
+ *                     @OA\Property(property="clsid", type="integer", example=11),
+ *                     @OA\Property(property="schid", type="integer", example=31),
+ *                     @OA\Property(property="sesn", type="integer", example=2024),
+ *                     @OA\Property(property="trm", type="integer", example=1)
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=400,
+ *         description="Bad request"
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="Data not found"
+ *     )
+ * )
+ */
+
+
     // public function getClassSubjectsByStaff($schid, $clsid, $stid)
     // {
-    //     $start = 0;
-    //     $count = 20;
-    //     if (request()->has('start') && request()->has('count')) {
-    //         $start = request()->input('start');
-    //         $count = request()->input('count');
-    //     }
+    //     $start = request()->input('start', 0);
+    //     $count = request()->input('count', 20);
+
     //     $pld = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
     //         ->where('class_subj.schid', $schid)
     //         ->where('class_subj.clsid', $clsid)
     //         ->where('staff_subj.stid', $stid)
-    //         ->skip($start)->take($count)->get();
+    //         // ✅ Correct column-to-column comparison
+    //         ->whereColumn('class_subj.sesn', 'staff_subj.sesn')
+    //         ->whereColumn('class_subj.trm', 'staff_subj.trm')
+    //         ->select(
+    //             'class_subj.subj_id',
+    //             'class_subj.name',
+    //             'class_subj.comp',
+    //             'class_subj.clsid',
+    //             'class_subj.schid',
+    //             'class_subj.sesn',
+    //             'class_subj.trm'
+    //         )
+    //         ->distinct() // ✅ Ensures unique subjects
+    //         ->skip($start)
+    //         ->take($count)
+    //         ->get();
+
     //     return response()->json([
     //         "status" => true,
     //         "message" => "Success",
@@ -3407,39 +3467,39 @@ class ApiController extends Controller
     // }
 
 
-    public function getClassSubjectsByStaff($schid, $clsid, $stid)
-    {
-        $start = request()->input('start', 0);
-        $count = request()->input('count', 20);
+public function getClassSubjectsByStaff($schid, $clsid, $stid)
+{
+    $sesn = request()->input('sesn'); // session from query
+    $trm = request()->input('trm');   // term from query
+    $start = request()->input('start', 0);
+    $count = request()->input('count', 20);
 
-        $pld = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
-            ->where('class_subj.schid', $schid)
-            ->where('class_subj.clsid', $clsid)
-            ->where('staff_subj.stid', $stid)
-            // ✅ Correct column-to-column comparison
-            ->whereColumn('class_subj.sesn', 'staff_subj.sesn')
-            ->whereColumn('class_subj.trm', 'staff_subj.trm')
-            ->select(
-                'class_subj.subj_id',
-                'class_subj.name',
-                'class_subj.comp',
-                'class_subj.clsid',
-                'class_subj.schid',
-                'class_subj.sesn',
-                'class_subj.trm'
-            )
-            ->distinct() // ✅ Ensures unique subjects
-            ->skip($start)
-            ->take($count)
-            ->get();
+    $pld = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
+        ->where('class_subj.schid', $schid)
+        ->where('class_subj.clsid', $clsid)
+        ->where('staff_subj.stid', $stid)
+        ->when($sesn, fn($q) => $q->where('class_subj.sesn', $sesn)->whereColumn('class_subj.sesn', 'staff_subj.sesn'))
+        ->when($trm, fn($q) => $q->where('class_subj.trm', $trm)->whereColumn('class_subj.trm', 'staff_subj.trm'))
+        ->select(
+            'class_subj.subj_id',
+            'class_subj.name',
+            'class_subj.comp',
+            'class_subj.clsid',
+            'class_subj.schid',
+            'class_subj.sesn',
+            'class_subj.trm'
+        )
+        ->distinct()
+        ->skip($start)
+        ->take($count)
+        ->get();
 
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $pld,
-        ]);
-    }
-
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => $pld,
+    ]);
+}
 
 
 
@@ -6945,7 +7005,7 @@ class ApiController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/api/setStaffSubject",
+     *     path="/api/setStaffSubjectsetStaffSubject",
      *     tags={"Api"},
      *     security={{"bearerAuth": {}}},
      *     summary="Assign subject(s) to staff",
@@ -32988,7 +33048,7 @@ public function rePostStaff(Request $request)
         'schid' => 'required', // school id
         'sesn'  => 'required', // session
         'trm'   => 'required', // term
-        'clsm'  => 'required', // new main class
+        'clsm'  => 'nullable', // new main class
         'suid'  => 'required', // staff unique id
         'role'   => 'nullable',
         'role2'  => 'nullable',
