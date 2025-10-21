@@ -9897,52 +9897,55 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
 
 public function getStaffClasses($stid)
 {
-    $start = request()->input('start', 0);   // default 0
-    $count = request()->input('count', 20);  // default 20
+    $start = request()->input('start', 0);
+    $count = request()->input('count', 20);
+    $ssn   = request()->input('ssn');
+    $trm   = request()->input('trm');
 
     $query = staff_class::query()
-        ->join("old_staff", "staff_class.stid", "=", "old_staff.sid")
-        ->where("staff_class.stid", $stid)
+        ->join('old_staff', 'staff_class.stid', '=', 'old_staff.sid')
+        ->where('staff_class.stid', $stid)
         ->select([
-            DB::raw("MIN(staff_class.uid) as uid"),
-            "staff_class.stid",
-            "staff_class.cls",
-            "staff_class.schid",
-            DB::raw("MIN(staff_class.ssn) as ssn"),
-            DB::raw("MIN(staff_class.trm) as trm"),
-            "old_staff.fname",
-            "old_staff.mname",
-            "old_staff.lname",
+            DB::raw('MAX(staff_class.uid) as uid'), // latest UID
+            'staff_class.stid',
+            'staff_class.cls',
+            'staff_class.schid',
+            DB::raw('MAX(staff_class.ssn) as ssn'),
+            DB::raw('MAX(staff_class.trm) as trm'),
+            'old_staff.fname',
+            'old_staff.mname',
+            'old_staff.lname',
         ])
         ->groupBy([
-            "staff_class.stid",
-            "staff_class.cls",
-            "staff_class.schid",
-            "old_staff.fname",
-            "old_staff.mname",
-            "old_staff.lname"
+            'staff_class.stid',
+            'staff_class.cls',
+            'staff_class.schid',
+            'old_staff.fname',
+            'old_staff.mname',
+            'old_staff.lname',
         ])
-        ->distinct() // ✅ ensure unique results
-        ->orderBy("ssn", "desc")
-        ->orderBy("trm", "asc");
+        ->orderBy('ssn', 'desc')
+        ->orderBy('trm', 'desc');
 
-    if (request()->filled('ssn')) {
-        $query->where("staff_class.ssn", request()->input('ssn'));
+    // ✅ Apply filters only if provided
+    if (!empty($ssn)) {
+        $query->where('staff_class.ssn', $ssn);
     }
 
-    if (request()->filled('trm')) {
-        $query->where("staff_class.trm", request()->input('trm'));
+    if (!empty($trm)) {
+        $query->where('staff_class.trm', $trm);
     }
 
+    // ✅ Apply pagination
     $pld = $query->skip($start)->take($count)->get();
 
-    // ✅ Also remove duplicates in the final collection by class id
-    $pld = $pld->unique('cls')->values();
+    // ✅ Remove duplicate class entries if any
+    $pld = $pld->unique(fn($item) => $item->cls . '-' . $item->ssn)->values();
 
     return response()->json([
-        "status"  => true,
-        "message" => "Success",
-        "pld"     => $pld,
+        'status'  => true,
+        'message' => 'Success',
+        'pld'     => $pld,
     ]);
 }
 
