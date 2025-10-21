@@ -9895,30 +9895,33 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
     //     ]);
     // }
 
-    public function getStaffClasses($stid)
+public function getStaffClasses($stid)
 {
     $start = request()->input('start', 0);   // default 0
     $count = request()->input('count', 20);  // default 20
 
-    $query = staff_class::join("old_staff", "staff_class.stid", "=", "old_staff.sid")
+    $query = staff_class::query()
+        ->join("old_staff", "staff_class.stid", "=", "old_staff.sid")
         ->where("staff_class.stid", $stid)
-        ->selectRaw("
-            MIN(staff_class.uid) as uid,
-            staff_class.stid,
-            staff_class.cls,
-            staff_class.schid,
-            MIN(staff_class.ssn) as ssn,
-            MIN(staff_class.trm) as trm,
-            old_staff.fname,
-            old_staff.mname,
-            old_staff.lname
-        ")
-        // ✅ Only group by fields that define uniqueness
-        ->groupBy(
+        ->select([
+            DB::raw("MIN(staff_class.uid) as uid"),
             "staff_class.stid",
             "staff_class.cls",
-            "staff_class.schid"
-        )
+            "staff_class.schid",
+            DB::raw("MIN(staff_class.ssn) as ssn"),
+            DB::raw("MIN(staff_class.trm) as trm"),
+            "old_staff.fname",
+            "old_staff.mname",
+            "old_staff.lname",
+        ])
+        ->groupBy([
+            "staff_class.stid",
+            "staff_class.cls",
+            "staff_class.schid",
+            "old_staff.fname",
+            "old_staff.mname",
+            "old_staff.lname"
+        ]) // ✅ include all selected non-aggregated columns
         ->orderBy("ssn", "desc")
         ->orderBy("trm", "asc");
 
@@ -9932,8 +9935,8 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
         $query->where("staff_class.trm", request()->input('trm'));
     }
 
-    // ✅ Use DISTINCT to ensure no duplicate (extra layer of safety)
-    $pld = $query->distinct()->skip($start)->take($count)->get();
+    // ✅ Paginate results
+    $pld = $query->skip($start)->take($count)->get();
 
     return response()->json([
         "status"  => true,
@@ -9941,7 +9944,6 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
         "pld"     => $pld,
     ]);
 }
-
 
 
     /**
