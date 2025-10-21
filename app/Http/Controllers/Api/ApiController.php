@@ -9921,22 +9921,23 @@ public function getStaffClasses($stid)
             "old_staff.fname",
             "old_staff.mname",
             "old_staff.lname"
-        ]) // ✅ include all selected non-aggregated columns
+        ])
+        ->distinct() // ✅ ensure unique results
         ->orderBy("ssn", "desc")
         ->orderBy("trm", "asc");
 
-    // ✅ Optional filter by session
     if (request()->filled('ssn')) {
         $query->where("staff_class.ssn", request()->input('ssn'));
     }
 
-    // ✅ Optional filter by term
     if (request()->filled('trm')) {
         $query->where("staff_class.trm", request()->input('trm'));
     }
 
-    // ✅ Paginate results
     $pld = $query->skip($start)->take($count)->get();
+
+    // ✅ Also remove duplicates in the final collection by class id
+    $pld = $pld->unique('cls')->values();
 
     return response()->json([
         "status"  => true,
@@ -9944,6 +9945,7 @@ public function getStaffClasses($stid)
         "pld"     => $pld,
     ]);
 }
+
 
 
     /**
@@ -33112,48 +33114,55 @@ public function rePostStaff(Request $request)
         ], 404);
     }
 
+    $exists = DB::table('staff_class')->where([
+    'stid' => $request->stid,
+    'cls'  => $request->clsm,
+    'ssn'  => $request->sesn,
+    'trm'  => $request->trm,
+])->exists();
+
+if ($exists) {
+    return response()->json([
+        'status' => false,
+        'message' => 'This staff has already been assigned to this class for the selected session and term.',
+    ]);
+}
+
+
     // 2️⃣ Generate unique repost UID
     $uid = $request->sesn . $request->trm . $request->stid . rand(10000, 99999);
 
-    // 3️⃣ Insert or update in old_staff
-    DB::table('old_staff')->updateOrInsert(
-        [
-            'sid' => $request->stid,
-            'ssn' => $request->sesn,
-            'trm' => $request->trm,
-        ],
-        [
-            'uid'        => $uid,
-            'schid'      => $request->schid,
-            'fname'      => $staff->fname,
-            'mname'      => $staff->mname,
-            'lname'      => $staff->lname,
-            'status'     => 'active',
-            'suid'       => $request->suid,
-            'clsm'       => $request->clsm,
-            'role'       => $request->role ?? $staff->role,
-            'role2'      => $request->role2 ?? $staff->role2,
-            'more'       => '',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]
-    );
+    // 3️⃣ Insert a new record in old_staff (no update)
+    DB::table('old_staff')->insert([
+        'uid'        => $uid,
+        'sid'        => $request->stid,
+        'schid'      => $request->schid,
+        'fname'      => $staff->fname,
+        'mname'      => $staff->mname,
+        'lname'      => $staff->lname,
+        'status'     => 'active',
+        'suid'       => $request->suid,
+        'ssn'        => $request->sesn,
+        'trm'        => $request->trm,
+        'clsm'       => $request->clsm,
+        'role'       => $request->role ?? $staff->role,
+        'role2'      => $request->role2 ?? $staff->role2,
+        'more'       => '',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
 
-    // 4️⃣ Update or insert in staff_class table
-    DB::table('staff_class')->updateOrInsert(
-        [
-            'stid' => $request->stid,
-            'ssn'  => $request->sesn,
-            'trm'  => $request->trm,
-        ],
-        [
-            'uid'        => $uid,
-            'cls'        => $request->clsm,
-            'schid'      => $request->schid,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]
-    );
+    // 4️⃣ Insert a new record in staff_class (no update)
+    DB::table('staff_class')->insert([
+        'uid'        => $uid,
+        'stid'       => $request->stid,
+        'cls'        => $request->clsm,
+        'schid'      => $request->schid,
+        'ssn'        => $request->sesn,
+        'trm'        => $request->trm,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
 
     return response()->json([
         'status'  => true,
@@ -33169,7 +33178,6 @@ public function rePostStaff(Request $request)
         ],
     ]);
 }
-
 
 
 }
