@@ -8,6 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 class acceptance_sub_acct extends Model
 {
     use HasFactory;
-    
+
     protected $guarded = [];
 }

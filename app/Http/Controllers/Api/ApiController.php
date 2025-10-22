@@ -25813,77 +25813,185 @@ public function getStaffClasses($stid)
 
     ////////////////////////////
 
-    /**
-     * @OA\Get(
-     *     path="/api/getLoggedInUserDetails",
-     *     summary="Get logged-in user details",
-     *     description="Returns the authenticated user and their staff or old staff profile with role names.",
-     *     operationId="getLoggedInUserDetails",
-     *     tags={"Authentication"},
-     *     security={{"bearerAuth":{}}},
-     *     @OA\Response(
-     *         response=200,
-     *         description="User and profile fetched successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="user", type="object",
-     *                 @OA\Property(property="id", type="integer", example=1927),
-     *                 @OA\Property(property="email", type="string", example="stellajonah@gmail.com"),
-     *                 @OA\Property(property="typ", type="string", example="w")
-     *             ),
-     *             @OA\Property(property="profile", type="object",
-     *                 @OA\Property(property="sid", type="string", example="1927"),
-     *                 @OA\Property(property="schid", type="string", example="13"),
-     *                 @OA\Property(property="fname", type="string", example="Mrs."),
-     *                 @OA\Property(property="lname", type="string", example="Stella"),
-     *                 @OA\Property(property="role", type="string", example="*21"),
-     *                 @OA\Property(property="role2", type="string", example="-1"),
-     *                 @OA\Property(property="role_name", type="string", example="Vice Principal"),
-     *                 @OA\Property(property="role2_name", type="string", example="Head Teacher")
-     *             )
-     *         )
-     *     )
-     * )
-     */
-    public function getLoggedInUserDetails()
-    {
-        $user = JWTAuth::parseToken()->authenticate();
+/**
+ * @OA\Get(
+ *     path="/api/getLoggedInUserDetails",
+ *     summary="Get logged-in user details (with optional session & term filters)",
+ *     description="This endpoint retrieves the authenticated user's details along with staff information.
+ *     You can optionally pass 'ssn' (session) and 'trm' (term) as query parameters to filter the staff record.
+ *     If no matching record is found, the system will return the latest available session/term record.",
+ *     operationId="getLoggedInUserDetails",
+ *     tags={"Authentication"},
+ *     security={{"bearerAuth":{}}},
+ *
+ *     @OA\Parameter(
+ *         name="ssn",
+ *         in="query",
+ *         required=false,
+ *         description="Session to filter staff records (e.g., 2024)",
+ *         @OA\Schema(type="string", example="2024")
+ *     ),
+ *     @OA\Parameter(
+ *         name="trm",
+ *         in="query",
+ *         required=false,
+ *         description="Term to filter staff records (e.g., 1)",
+ *         @OA\Schema(type="string", example="1")
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="User details successfully retrieved",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="user", type="object",
+ *                 description="Authenticated user data",
+ *                 example={
+ *                     "id": 1932,
+ *                     "email": "user@example.com",
+ *                     "name": "John Doe"
+ *                 }
+ *             ),
+ *             @OA\Property(property="profile", type="object",
+ *                 description="Staff profile with role names",
+ *                 example={
+ *                     "id": 15,
+ *                     "fname": "Onyinyechi",
+ *                     "lname": "Ahiabuike",
+ *                     "ssn": "2024",
+ *                     "trm": "1",
+ *                     "clsm": "11",
+ *                     "role": "13",
+ *                     "role2": "14",
+ *                     "role_name": "Head Teacher",
+ *                     "role2_name": "Subject Teacher"
+ *                 }
+ *             ),
+ *             @OA\Property(property="ssn", type="string", example="2024"),
+ *             @OA\Property(property="trm", type="string", example="1")
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthorized - Invalid or missing JWT token",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="message", type="string", example="Token not provided or invalid")
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=404,
+ *         description="User not found",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="message", type="string", example="User not found")
+ *         )
+ *     )
+ * )
+ */
 
-        if (!$user) {
-            return response()->json(['message' => 'User not found'], 404);
-        }
+    // public function getLoggedInUserDetails()
+    // {
+    //     $user = JWTAuth::parseToken()->authenticate();
 
-        $staff = $user->oldStaff()->first();
+    //     if (!$user) {
+    //         return response()->json(['message' => 'User not found'], 404);
+    //     }
 
-        if (!$staff) {
-            $staff = $user->oldStaff()->first();
-        }
+    //     $staff = $user->oldStaff()->first();
 
-        if ($staff) {
-            $role = ltrim($staff->role, '*-');
-            $role2 = ltrim($staff->role2, '*-');
+    //     if (!$staff) {
+    //         $staff = $user->oldStaff()->first();
+    //     }
 
-            $roleName = sch_staff_role::where('role', $role)
-                ->where('schid', $staff->schid)
-                ->value('name');
+    //     if ($staff) {
+    //         $role = ltrim($staff->role, '*-');
+    //         $role2 = ltrim($staff->role2, '*-');
 
-            $role2Name = sch_staff_role::where('role', $role2)
-                ->where('schid', $staff->schid)
-                ->value('name');
+    //         $roleName = sch_staff_role::where('role', $role)
+    //             ->where('schid', $staff->schid)
+    //             ->value('name');
 
-            $profile = [
-                ...$staff->toArray(),
-                'role_name' => $roleName,
-                'role2_name' => $role2Name,
-            ];
-        } else {
-            $profile = null;
-        }
+    //         $role2Name = sch_staff_role::where('role', $role2)
+    //             ->where('schid', $staff->schid)
+    //             ->value('name');
 
-        return response()->json([
-            'user' => $user,
-            'profile' => $profile,
-        ]);
+    //         $profile = [
+    //             ...$staff->toArray(),
+    //             'role_name' => $roleName,
+    //             'role2_name' => $role2Name,
+    //         ];
+    //     } else {
+    //         $profile = null;
+    //     }
+
+    //     return response()->json([
+    //         'user' => $user,
+    //         'profile' => $profile,
+    //     ]);
+    // }
+
+
+    public function getLoggedInUserDetails(Request $request)
+{
+    // ✅ Get JWT user
+    $user = JWTAuth::parseToken()->authenticate();
+
+    if (!$user) {
+        return response()->json(['message' => 'User not found'], 404);
     }
+
+    // ✅ Get ssn & trm from query
+    $ssn = $request->input('ssn');
+    $trm = $request->input('trm');
+
+    // ✅ Fetch staff record for this user, respecting ssn/trm if provided
+    $staffQuery = $user->oldStaff();
+
+    if (!empty($ssn)) {
+        $staffQuery->where('ssn', $ssn);
+    }
+
+    if (!empty($trm)) {
+        $staffQuery->where('trm', $trm);
+    }
+
+    $staff = $staffQuery->first();
+
+    // ✅ If no match for ssn/trm, fallback to latest session
+    if (!$staff) {
+        $staff = $user->oldStaff()->latest('ssn')->latest('trm')->first();
+    }
+
+    if ($staff) {
+        $role = ltrim($staff->role, '*-');
+        $role2 = ltrim($staff->role2, '*-');
+
+        $roleName = sch_staff_role::where('role', $role)
+            ->where('schid', $staff->schid)
+            ->value('name');
+
+        $role2Name = sch_staff_role::where('role', $role2)
+            ->where('schid', $staff->schid)
+            ->value('name');
+
+        $profile = [
+            ...$staff->toArray(),
+            'role_name' => $roleName,
+            'role2_name' => $role2Name,
+        ];
+    } else {
+        $profile = null;
+    }
+
+    return response()->json([
+        'user'    => $user,
+        'profile' => $profile,
+        'ssn'     => $ssn,
+        'trm'     => $trm
+    ]);
+}
+
 
 
     ////////////////////////////////////////////////////////////////////

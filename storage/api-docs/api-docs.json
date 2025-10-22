@@ -20177,69 +20177,102 @@
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Get logged-in user details",
-                "description": "Returns the authenticated user and their staff or old staff profile with role names.",
+                "summary": "Get logged-in user details (with optional session & term filters)",
+                "description": "This endpoint retrieves the authenticated user's details along with staff information.\n *     You can optionally pass 'ssn' (session) and 'trm' (term) as query parameters to filter the staff record.\n *     If no matching record is found, the system will return the latest available session/term record.",
                 "operationId": "getLoggedInUserDetails",
+                "parameters": [
+                    {
+                        "name": "ssn",
+                        "in": "query",
+                        "description": "Session to filter staff records (e.g., 2024)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "2024"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "query",
+                        "description": "Term to filter staff records (e.g., 1)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "1"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "User and profile fetched successfully",
+                        "description": "User details successfully retrieved",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
                                         "user": {
-                                            "properties": {
-                                                "id": {
-                                                    "type": "integer",
-                                                    "example": 1927
-                                                },
-                                                "email": {
-                                                    "type": "string",
-                                                    "example": "stellajonah@gmail.com"
-                                                },
-                                                "typ": {
-                                                    "type": "string",
-                                                    "example": "w"
-                                                }
-                                            },
-                                            "type": "object"
+                                            "description": "Authenticated user data",
+                                            "type": "object",
+                                            "example": {
+                                                "id": 1932,
+                                                "email": "user@example.com",
+                                                "name": "John Doe"
+                                            }
                                         },
                                         "profile": {
-                                            "properties": {
-                                                "sid": {
-                                                    "type": "string",
-                                                    "example": "1927"
-                                                },
-                                                "schid": {
-                                                    "type": "string",
-                                                    "example": "13"
-                                                },
-                                                "fname": {
-                                                    "type": "string",
-                                                    "example": "Mrs."
-                                                },
-                                                "lname": {
-                                                    "type": "string",
-                                                    "example": "Stella"
-                                                },
-                                                "role": {
-                                                    "type": "string",
-                                                    "example": "*21"
-                                                },
-                                                "role2": {
-                                                    "type": "string",
-                                                    "example": "-1"
-                                                },
-                                                "role_name": {
-                                                    "type": "string",
-                                                    "example": "Vice Principal"
-                                                },
-                                                "role2_name": {
-                                                    "type": "string",
-                                                    "example": "Head Teacher"
-                                                }
-                                            },
-                                            "type": "object"
+                                            "description": "Staff profile with role names",
+                                            "type": "object",
+                                            "example": {
+                                                "id": 15,
+                                                "fname": "Onyinyechi",
+                                                "lname": "Ahiabuike",
+                                                "ssn": "2024",
+                                                "trm": "1",
+                                                "clsm": "11",
+                                                "role": "13",
+                                                "role2": "14",
+                                                "role_name": "Head Teacher",
+                                                "role2_name": "Subject Teacher"
+                                            }
+                                        },
+                                        "ssn": {
+                                            "type": "string",
+                                            "example": "2024"
+                                        },
+                                        "trm": {
+                                            "type": "string",
+                                            "example": "1"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Invalid or missing JWT token",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Token not provided or invalid"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User not found"
                                         }
                                     },
                                     "type": "object"
