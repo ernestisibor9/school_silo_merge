@@ -3348,7 +3348,7 @@ class ApiController extends Controller
  *     tags={"Api"},
  *    security={{"bearerAuth": {}}},
  *     operationId="getClassSubjectsByStaff",
- *     
+ *
  *     @OA\Parameter(
  *         name="schid",
  *         in="path",
@@ -8958,7 +8958,7 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
                 ->where("clsm", $clsm)
                 ->where("clsa", $clsa)
                 ->where("status", "active")
-                ->orderBy('lname', 'asc') 
+                ->orderBy('lname', 'asc')
                 ->get();
         }
 
@@ -25852,7 +25852,7 @@ public function getStaffClasses($stid)
             return response()->json(['message' => 'User not found'], 404);
         }
 
-        $staff = $user->staff()->first();
+        $staff = $user->oldStaff()->first();
 
         if (!$staff) {
             $staff = $user->oldStaff()->first();
@@ -33077,7 +33077,7 @@ public function getStaffClasses($stid)
 
 
 
-    
+
 /**
  * @OA\Post(
  *     path="/api/rePostStaff",
@@ -33143,7 +33143,7 @@ public function getStaffClasses($stid)
  */
 
 
-public function rePostStaff(Request $request) 
+public function rePostStaff(Request $request)
 {
     $request->validate([
         'stid'  => 'required', // staff id
