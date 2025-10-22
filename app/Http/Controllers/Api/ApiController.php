@@ -3467,19 +3467,60 @@ class ApiController extends Controller
     // }
 
 
+// public function getClassSubjectsByStaff($schid, $clsid, $stid)
+// {
+//     $sesn = request()->input('sesn'); // session from query
+//     $trm = request()->input('trm');   // term from query
+//     $start = request()->input('start', 0);
+//     $count = request()->input('count', 20);
+
+//     $pld = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
+//         ->where('class_subj.schid', $schid)
+//         ->where('class_subj.clsid', $clsid)
+//         ->where('staff_subj.stid', $stid)
+//         ->when($sesn, fn($q) => $q->where('class_subj.sesn', $sesn)->whereColumn('class_subj.sesn', 'staff_subj.sesn'))
+//         ->when($trm, fn($q) => $q->where('class_subj.trm', $trm)->whereColumn('class_subj.trm', 'staff_subj.trm'))
+//         ->select(
+//             'class_subj.subj_id',
+//             'class_subj.name',
+//             'class_subj.comp',
+//             'class_subj.clsid',
+//             'class_subj.schid',
+//             'class_subj.sesn',
+//             'class_subj.trm'
+//         )
+//         ->distinct()
+//         ->skip($start)
+//         ->take($count)
+//         ->get();
+
+//     return response()->json([
+//         "status" => true,
+//         "message" => "Success",
+//         "pld" => $pld,
+//     ]);
+// }
+
+
 public function getClassSubjectsByStaff($schid, $clsid, $stid)
 {
-    $sesn = request()->input('sesn'); // session from query
-    $trm = request()->input('trm');   // term from query
+    $sesn = request()->input('sesn');
+    $trm  = request()->input('trm');
     $start = request()->input('start', 0);
     $count = request()->input('count', 20);
 
-    $pld = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
+    $query = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
         ->where('class_subj.schid', $schid)
         ->where('class_subj.clsid', $clsid)
         ->where('staff_subj.stid', $stid)
-        ->when($sesn, fn($q) => $q->where('class_subj.sesn', $sesn)->whereColumn('class_subj.sesn', 'staff_subj.sesn'))
-        ->when($trm, fn($q) => $q->where('class_subj.trm', $trm)->whereColumn('class_subj.trm', 'staff_subj.trm'))
+        ->when($sesn, function ($q) use ($sesn) {
+            $q->where('class_subj.sesn', $sesn)
+              ->where('staff_subj.sesn', $sesn);
+        })
+        ->when($trm, function ($q) use ($trm) {
+            $q->where('class_subj.trm', $trm)
+              ->where('staff_subj.trm', $trm);
+        })
         ->select(
             'class_subj.subj_id',
             'class_subj.name',
@@ -3489,17 +3530,23 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
             'class_subj.sesn',
             'class_subj.trm'
         )
-        ->distinct()
-        ->skip($start)
-        ->take($count)
-        ->get();
+        ->orderBy('class_subj.name', 'asc');
+
+    $pld = $query->get();
+
+    // ✅ Remove duplicates manually based on subj_id
+    $pld = $pld->unique('subj_id')->values();
+
+    // ✅ Paginate after deduplication
+    $pld = $pld->slice($start, $count)->values();
 
     return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => $pld,
+        'status' => true,
+        'message' => 'Success',
+        'pld' => $pld,
     ]);
 }
+
 
 
 
