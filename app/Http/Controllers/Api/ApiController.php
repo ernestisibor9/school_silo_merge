@@ -14360,7 +14360,7 @@ public function getStaffClasses($stid)
                         $subShare = ($totalSplitAmount * $shareValue) / 100;
                     } else {
                         // flat (Paystack stores in Kobo)
-                        $subShare = $shareValue / 100;
+                        $subShare = $shareValue;
                     }
                 } else {
                     // Fallback to equal division
@@ -14375,7 +14375,8 @@ public function getStaffClasses($stid)
                     'clsid'              => $clsid,
                     'name'               => $nm,
                     'exp'                => $exp,
-                    'amt'                => $subShare,
+                    'amt'                => $totalSplitAmount,
+                    'share'              => $subShare,         // each subaccount share (₦200, ₦300, etc.)
                     'lid'                => $lid,
                     'subaccount_code'    => $subCode,
                     'main_ref'           => $ref,
