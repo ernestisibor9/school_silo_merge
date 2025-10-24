@@ -198,7 +198,7 @@ Route::group([
     Route::post('/autoCommentTemplate', [ApiController::class, 'autoCommentTemplate']);
     Route::post('/allStudentResultsComment', [ApiController::class, 'allStudentResultsComment']);
 
-    
+
     Route::post('promoteStudent', [ApiController::class, 'promoteStudent']);
     Route::post('repeatStudent', [ApiController::class, 'repeatStudent']);
     Route::post('rePromoteStudent', [ApiController::class, 'rePromoteStudent']);
@@ -401,6 +401,7 @@ Route::group([
     Route::get('getSchoolsByStat/{stat}', [ApiController::class, 'getSchoolsByStat']);
     Route::get('getSchools', [ApiController::class, 'getSchools']);
     Route::get('getAllSchoolsInfo', [ApiController::class, 'getAllSchoolsInfo']);
+    Route::get('getAllSchoolsInfoRecord', [ApiController::class, 'getAllSchoolsInfoRecord']);
     Route::get('getLearnersEnrollmentInfo', [ApiController::class, 'getLearnersEnrollmentInfo']);
     Route::get('getLearnersEnrollmentInfoGender', [ApiController::class, 'getLearnersEnrollmentInfoGender']);
     Route::get('getStaffsEnrollmentInfo', [ApiController::class, 'getStaffsEnrollmentInfo']);

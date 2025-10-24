@@ -26688,6 +26688,333 @@
                     }
                 ]
             }
+        },
+        "/api/getAllSchoolsInfoRecord": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Retrieve all school information records with optional filters",
+                "description": "Returns a paginated list of schools with statistics such as active learners, alumni, staff, and web data information.",
+                "operationId": "cb86f3a3e53e618f41385da2934a9f52",
+                "parameters": [
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "The offset (starting point) for pagination. Default is 0.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 0
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "Number of records to return. Default is 20.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 20
+                        }
+                    },
+                    {
+                        "name": "state",
+                        "in": "query",
+                        "description": "Filter schools by state.",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "Lagos"
+                        }
+                    },
+                    {
+                        "name": "lga",
+                        "in": "query",
+                        "description": "Filter schools by LGA (Local Government Area).",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "Ikeja"
+                        }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "query",
+                        "description": "Filter results by academic session.",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "2024/2025"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "query",
+                        "description": "Filter results by academic term.",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "First Term"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response with school records",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "total_records": {
+                                            "type": "integer",
+                                            "example": 56
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "s": {
+                                                        "properties": {
+                                                            "sid": {
+                                                                "type": "string",
+                                                                "example": "2439"
+                                                            },
+                                                            "school_id": {
+                                                                "type": "string",
+                                                                "example": "AHS/2439"
+                                                            },
+                                                            "name": {
+                                                                "type": "string",
+                                                                "example": "ABC High School"
+                                                            },
+                                                            "count": {
+                                                                "type": "string",
+                                                                "example": "48"
+                                                            },
+                                                            "s_web": {
+                                                                "type": "string",
+                                                                "example": "0"
+                                                            },
+                                                            "s_info": {
+                                                                "type": "string",
+                                                                "example": "0"
+                                                            },
+                                                            "sbd": {
+                                                                "type": "string",
+                                                                "example": "abchs"
+                                                            },
+                                                            "sch3": {
+                                                                "type": "string",
+                                                                "example": "AHS"
+                                                            },
+                                                            "cssn": {
+                                                                "type": "string",
+                                                                "example": "0"
+                                                            },
+                                                            "ctrm": {
+                                                                "type": "string",
+                                                                "example": "0"
+                                                            },
+                                                            "ctrmn": {
+                                                                "type": "string",
+                                                                "example": "0"
+                                                            },
+                                                            "lattitude": {
+                                                                "type": "string",
+                                                                "example": null,
+                                                                "nullable": true
+                                                            },
+                                                            "longitude": {
+                                                                "type": "string",
+                                                                "example": null,
+                                                                "nullable": true
+                                                            },
+                                                            "country": {
+                                                                "type": "string",
+                                                                "example": "N/A"
+                                                            },
+                                                            "state": {
+                                                                "type": "string",
+                                                                "example": "N/A"
+                                                            },
+                                                            "lga": {
+                                                                "type": "string",
+                                                                "example": "N/A"
+                                                            },
+                                                            "created_at": {
+                                                                "type": "string",
+                                                                "example": "2025-09-23 05:00:21"
+                                                            },
+                                                            "updated_at": {
+                                                                "type": "string",
+                                                                "example": "2025-09-23 05:00:21"
+                                                            },
+                                                            "active_learners": {
+                                                                "type": "integer",
+                                                                "example": 0
+                                                            },
+                                                            "alumni": {
+                                                                "type": "integer",
+                                                                "example": 0
+                                                            },
+                                                            "active_staff": {
+                                                                "type": "integer",
+                                                                "example": 0
+                                                            },
+                                                            "classes": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "string",
+                                                                    "example": "JSS1A"
+                                                                }
+                                                            },
+                                                            "total_classes": {
+                                                                "type": "integer",
+                                                                "example": 4
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    },
+                                                    "w": {
+                                                        "properties": {
+                                                            "user_id": {
+                                                                "type": "string",
+                                                                "example": "2439"
+                                                            },
+                                                            "school_name": {
+                                                                "type": "string",
+                                                                "example": "ABC High School"
+                                                            },
+                                                            "color": {
+                                                                "type": "string",
+                                                                "example": "#123456"
+                                                            },
+                                                            "address": {
+                                                                "type": "string",
+                                                                "example": "12 Palm Street, Ikeja"
+                                                            },
+                                                            "country": {
+                                                                "type": "string",
+                                                                "example": "Nigeria"
+                                                            },
+                                                            "state": {
+                                                                "type": "string",
+                                                                "example": "Lagos"
+                                                            },
+                                                            "lga": {
+                                                                "type": "string",
+                                                                "example": "Ikeja"
+                                                            },
+                                                            "phone": {
+                                                                "type": "string",
+                                                                "example": "+2348012345678"
+                                                            },
+                                                            "email": {
+                                                                "type": "string",
+                                                                "example": "info@abchs.edu.ng"
+                                                            },
+                                                            "vision": {
+                                                                "type": "string",
+                                                                "example": "To be the best learning institution."
+                                                            },
+                                                            "values": {
+                                                                "type": "string",
+                                                                "example": "Discipline, Excellence, Innovation"
+                                                            },
+                                                            "year": {
+                                                                "type": "string",
+                                                                "example": "2005"
+                                                            },
+                                                            "about": {
+                                                                "type": "string",
+                                                                "example": "ABC High School is committed to academic excellence."
+                                                            },
+                                                            "motto": {
+                                                                "type": "string",
+                                                                "example": "Knowledge is Power"
+                                                            },
+                                                            "facebook": {
+                                                                "type": "string",
+                                                                "example": "facebook.com/abchs"
+                                                            },
+                                                            "instagram": {
+                                                                "type": "string",
+                                                                "example": "instagram.com/abchs"
+                                                            },
+                                                            "youtube": {
+                                                                "type": "string",
+                                                                "example": "youtube.com/abchs"
+                                                            },
+                                                            "whatsapp": {
+                                                                "type": "string",
+                                                                "example": "+2348012345678"
+                                                            },
+                                                            "linkedin": {
+                                                                "type": "string",
+                                                                "example": "linkedin.com/company/abchs"
+                                                            },
+                                                            "twitter": {
+                                                                "type": "string",
+                                                                "example": "@abchs"
+                                                            },
+                                                            "created_at": {
+                                                                "type": "string",
+                                                                "example": "2025-09-23 05:00:21"
+                                                            },
+                                                            "updated_at": {
+                                                                "type": "string",
+                                                                "example": "2025-09-23 05:00:21"
+                                                            }
+                                                        },
+                                                        "type": "object",
+                                                        "nullable": true
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Error: Database connection failed"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
