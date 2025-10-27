@@ -33714,7 +33714,7 @@ public function updateAccountsBySchoolAndClass(Request $request)
     $newClsid = $request->new_clsid;
     $newPayHeadId = $request->pay_head_id;
 
-    // Fetch all accounts for the school with the selected class
+    // Fetch all accounts for the school with the selected class.
     $accounts = accts::where('schid', $schid)
                      ->where('clsid', $clsid)
                      ->get();
