@@ -33654,4 +33654,99 @@ public function getAllSchoolsInfoRecord(Request $request)
 
 
 
+/**
+ * @OA\Post(
+ *     path="/api/updateAccountsBySchoolAndClass",
+ *     summary="Update accounts and subaccounts for a school and class",
+ *     tags={"Accounts"},
+ *    security={{"bearerAuth":{}}},
+ *     description="Updates clsid and optionally pay_head_id for all accounts and subaccounts for a given school and current class",
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             required={"schid","clsid","new_clsid"},
+ *             @OA\Property(property="schid", type="integer", example=74, description="School ID"),
+ *             @OA\Property(property="clsid", type="integer", example=2, description="Current Class ID to match"),
+ *             @OA\Property(property="new_clsid", type="integer", example=5, description="New Class ID to update to"),
+ *             @OA\Property(property="pay_head_id", type="integer", example=214, description="Optional pay head ID")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Accounts and subaccounts updated successfully",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Accounts and subaccounts updated successfully."),
+ *             @OA\Property(property="updated_count", type="integer", example=3)
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="No accounts found for this school and class",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="No accounts found for this school and class.")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation error",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="message", type="string", example="The schid field is required."),
+ *             @OA\Property(property="errors", type="object")
+ *         )
+ *     )
+ * )
+ */
+
+public function updateAccountsBySchoolAndClass(Request $request)
+{
+    // Validate request
+    $request->validate([
+        'schid' => 'required|integer',          // school id
+        'clsid' => 'required|integer',          // current class id to match
+        'new_clsid' => 'required|integer',      // new class id to update to
+        'pay_head_id' => 'nullable|integer',    // new pay_head_id (optional)
+    ]);
+
+    $schid = $request->schid;
+    $clsid = $request->clsid;
+    $newClsid = $request->new_clsid;
+    $newPayHeadId = $request->pay_head_id;
+
+    // Fetch all accounts for the school with the selected class
+    $accounts = accts::where('schid', $schid)
+                     ->where('clsid', $clsid)
+                     ->get();
+
+    if ($accounts->isEmpty()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'No accounts found for this school and class.'
+        ], 404);
+    }
+
+    foreach ($accounts as $acct) {
+        // Update the accts table
+        $acct->update([
+            'clsid' => $newClsid,
+            'pay_head_id' => $newPayHeadId ?? $acct->pay_head_id,
+        ]);
+
+        // Update all related sub_accounts
+        $acct->subAccounts()->update([
+            'clsid' => $newClsid,
+            'pay_head_id' => $newPayHeadId ?? $acct->pay_head_id,
+        ]);
+    }
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Accounts and subaccounts updated successfully.',
+        'updated_count' => $accounts->count()
+    ]);
+}
+
+
+
 }

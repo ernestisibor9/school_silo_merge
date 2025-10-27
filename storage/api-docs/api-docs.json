@@ -27015,6 +27015,123 @@
                     }
                 ]
             }
+        },
+        "/api/updateAccountsBySchoolAndClass": {
+            "post": {
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "Update accounts and subaccounts for a school and class",
+                "description": "Updates clsid and optionally pay_head_id for all accounts and subaccounts for a given school and current class",
+                "operationId": "cda3656632893d8fa887c911e0cd2931",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "schid",
+                                    "clsid",
+                                    "new_clsid"
+                                ],
+                                "properties": {
+                                    "schid": {
+                                        "description": "School ID",
+                                        "type": "integer",
+                                        "example": 74
+                                    },
+                                    "clsid": {
+                                        "description": "Current Class ID to match",
+                                        "type": "integer",
+                                        "example": 2
+                                    },
+                                    "new_clsid": {
+                                        "description": "New Class ID to update to",
+                                        "type": "integer",
+                                        "example": 5
+                                    },
+                                    "pay_head_id": {
+                                        "description": "Optional pay head ID",
+                                        "type": "integer",
+                                        "example": 214
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Accounts and subaccounts updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Accounts and subaccounts updated successfully."
+                                        },
+                                        "updated_count": {
+                                            "type": "integer",
+                                            "example": 3
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No accounts found for this school and class",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No accounts found for this school and class."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The schid field is required."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {

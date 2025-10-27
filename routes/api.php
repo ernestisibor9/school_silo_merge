@@ -309,6 +309,8 @@ Route::group([
     // Route::get('verifyStudent', [ApiController::class, 'verifyStudent']);
     // Route::get('verifyStaff', [ApiController::class, 'verifyStaff']);
 
+    Route::post('updateAccountsBySchoolAndClass', [ApiController::class, 'updateAccountsBySchoolAndClass']);
+
     Route::get('/getClassArms/{schid}/{cls_id}', [ApiController::class, 'getClassArms']);
 
     Route::get('getExternalExpendituresByAdmin/{ssn}/{trm}', [ApiController::class, 'getExternalExpendituresByAdmin']);
