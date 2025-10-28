@@ -2424,49 +2424,137 @@
                 "tags": [
                     "Api"
                 ],
-                "summary": "Get a student's subjects",
-                "description": "Use this endpoint to get subjects of a student.",
-                "operationId": "e1d7416066720fe57aecf454275c96a7",
+                "summary": "Fetch student subjects by student ID, with optional session and term filters",
+                "description": "Retrieve subjects assigned to a particular student. You can optionally filter by session (ssn) and term (trm), and also control pagination using start and count parameters.",
+                "operationId": "getStudentSubjects",
                 "parameters": [
                     {
                         "name": "stid",
                         "in": "path",
-                        "description": "User Id of the student",
+                        "description": "The ID of the student",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "integer",
+                            "example": 207
+                        }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "query",
+                        "description": "Filter by academic session (e.g., 2025)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "2025"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "query",
+                        "description": "Filter by academic term (e.g., 1 for first term, 2 for second term)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
                         }
                     },
                     {
                         "name": "start",
                         "in": "query",
-                        "description": "Index to start at",
+                        "description": "Starting index for pagination",
                         "required": false,
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "example": 0
                         }
                     },
                     {
                         "name": "count",
                         "in": "query",
-                        "description": "No of records to retrieve",
+                        "description": "Number of records to return (default: 20)",
                         "required": false,
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "example": 20
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Success",
+                        "description": "Successful response",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "stid": {
+                                                        "type": "integer",
+                                                        "example": 207
+                                                    },
+                                                    "sbj": {
+                                                        "type": "string",
+                                                        "example": "Mathematics"
+                                                    },
+                                                    "comp": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "trm": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "ssn": {
+                                                        "type": "string",
+                                                        "example": "2025"
+                                                    },
+                                                    "schid": {
+                                                        "type": "integer",
+                                                        "example": 13
+                                                    },
+                                                    "clsid": {
+                                                        "type": "integer",
+                                                        "example": 10
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2025-03-04T14:04:57"
+                                                    },
+                                                    "updated_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2025-03-04T14:04:57"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
-                    "401": {
-                        "description": "Unauthorized"
+                    "400": {
+                        "description": "Invalid parameters"
+                    },
+                    "404": {
+                        "description": "Student not found or no subjects found"
                     }
                 },
                 "security": [

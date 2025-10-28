@@ -2890,53 +2890,126 @@ class ApiController extends Controller
     // }
 
 
-    /**
-     * @OA\Get(
-     *     path="/api/getStudentSubjects/{stid}",
-     *     tags={"Api"},
-     *     security={{"bearerAuth": {}}},
-     *     summary="Get a student's subjects",
-     *     description="Use this endpoint to get subjects of a student.",
-     *     @OA\Parameter(
-     *         name="stid",
-     *         in="path",
-     *         required=true,
-     *         description="User Id of the student",
-     *         @OA\Schema(type="string")
-     *     ),
-     *      @OA\Parameter(
-     *         name="start",
-     *         in="query",
-     *         required=false,
-     *         description="Index to start at",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Parameter(
-     *         name="count",
-     *         in="query",
-     *         required=false,
-     *         description="No of records to retrieve",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
-     * )
-     */
-    public function getStudentSubjects($stid)
-    {
-        $start = 0;
-        $count = 20;
-        if (request()->has('start') && request()->has('count')) {
-            $start = request()->input('start');
-            $count = request()->input('count');
-        }
-        $pld = student_subj::where("stid", $stid)->skip($start)->take($count)->get();
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $pld,
-        ]);
+/**
+ * @OA\Get(
+ *     path="/api/getStudentSubjects/{stid}",
+ *     summary="Fetch student subjects by student ID, with optional session and term filters",
+ *     description="Retrieve subjects assigned to a particular student. You can optionally filter by session (ssn) and term (trm), and also control pagination using start and count parameters.",
+ *     operationId="getStudentSubjects",
+ *     tags={"Api"},
+ *   security={{"bearerAuth": {}}},
+ *
+ *     @OA\Parameter(
+ *         name="stid",
+ *         in="path",
+ *         required=true,
+ *         description="The ID of the student",
+ *         @OA\Schema(type="integer", example=207)
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="ssn",
+ *         in="query",
+ *         required=false,
+ *         description="Filter by academic session (e.g., 2025)",
+ *         @OA\Schema(type="string", example="2025")
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="trm",
+ *         in="query",
+ *         required=false,
+ *         description="Filter by academic term (e.g., 1 for first term, 2 for second term)",
+ *         @OA\Schema(type="integer", example=1)
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="start",
+ *         in="query",
+ *         required=false,
+ *         description="Starting index for pagination",
+ *         @OA\Schema(type="integer", example=0)
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="count",
+ *         in="query",
+ *         required=false,
+ *         description="Number of records to return (default: 20)",
+ *         @OA\Schema(type="integer", example=20)
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful response",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(property="id", type="integer", example=1),
+ *                     @OA\Property(property="stid", type="integer", example=207),
+ *                     @OA\Property(property="sbj", type="string", example="Mathematics"),
+ *                     @OA\Property(property="comp", type="integer", example=1),
+ *                     @OA\Property(property="trm", type="integer", example=1),
+ *                     @OA\Property(property="ssn", type="string", example="2025"),
+ *                     @OA\Property(property="schid", type="integer", example=13),
+ *                     @OA\Property(property="clsid", type="integer", example=10),
+ *                     @OA\Property(property="created_at", type="string", format="date-time", example="2025-03-04T14:04:57"),
+ *                     @OA\Property(property="updated_at", type="string", format="date-time", example="2025-03-04T14:04:57")
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=400,
+ *         description="Invalid parameters"
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=404,
+ *         description="Student not found or no subjects found"
+ *     )
+ * )
+ */
+
+public function getStudentSubjects($stid)
+{
+    $start = request()->input('start', 0);
+    $count = request()->input('count', 20);
+    $ssn   = request()->input('ssn'); // session (optional)
+    $trm   = request()->input('trm'); // term (optional)
+
+    $query = student_subj::where('stid', $stid);
+
+    // Filter by session if provided
+    if (!empty($ssn)) {
+        $query->where('ssn', $ssn);
     }
+
+    // Filter by term if provided
+    if (!empty($trm)) {
+        $query->where('trm', $trm);
+    }
+
+    $pld = $query
+        ->skip($start)
+        ->take($count)
+        ->orderBy('id', 'asc')
+        ->get();
+
+    return response()->json([
+        "status"  => true,
+        "message" => "Success",
+        "pld"     => $pld,
+    ]);
+}
+
 
 
 
