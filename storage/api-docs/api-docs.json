@@ -25850,14 +25850,14 @@
                 "tags": [
                     "Admin"
                 ],
-                "summary": "Get staff enrollment information filtered by gender, state, and LGA",
-                "description": "Retrieves staff enrollment data with optional filters for state, LGA, and gender, including pagination support.",
+                "summary": "Get staff enrollment information by gender, school, and location",
+                "description": "Retrieve a paginated list of active staff filtered by gender, school, state, and LGA.",
                 "operationId": "getStaffsEnrollmentInfoGender",
                 "parameters": [
                     {
                         "name": "start",
                         "in": "query",
-                        "description": "Starting index for pagination (default: 0)",
+                        "description": "Starting index for pagination (default is 0)",
                         "required": false,
                         "schema": {
                             "type": "integer",
@@ -25867,7 +25867,7 @@
                     {
                         "name": "count",
                         "in": "query",
-                        "description": "Number of records to fetch (default: 20)",
+                        "description": "Number of records to fetch per page (default is 20)",
                         "required": false,
                         "schema": {
                             "type": "integer",
@@ -25877,41 +25877,47 @@
                     {
                         "name": "state",
                         "in": "query",
-                        "description": "Filter by school state",
+                        "description": "State where the school is located",
                         "required": false,
                         "schema": {
                             "type": "string",
-                            "example": "Lagos"
+                            "example": "Abia"
                         }
                     },
                     {
                         "name": "lga",
                         "in": "query",
-                        "description": "Filter by school LGA",
+                        "description": "Local Government Area (LGA) where the school is located",
                         "required": false,
                         "schema": {
                             "type": "string",
-                            "example": "Ikeja"
+                            "example": "Umuahia"
                         }
                     },
                     {
                         "name": "gender",
                         "in": "query",
-                        "description": "Filter by staff gender ('M' or 'F')",
+                        "description": "Gender of the staff to filter by (M or F)",
                         "required": false,
                         "schema": {
                             "type": "string",
-                            "enum": [
-                                "M",
-                                "F"
-                            ],
-                            "example": "F"
+                            "example": "M"
+                        }
+                    },
+                    {
+                        "name": "schid",
+                        "in": "query",
+                        "description": "School ID to filter staff records by a specific school",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 12
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Staff enrollment data retrieved successfully",
+                        "description": "Successful staff list retrieval",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -25926,40 +25932,63 @@
                                         },
                                         "total_records": {
                                             "type": "integer",
-                                            "example": 120
+                                            "example": 2
                                         },
                                         "pld": {
                                             "type": "array",
                                             "items": {
                                                 "properties": {
+                                                    "sid": {
+                                                        "type": "string",
+                                                        "example": "2091"
+                                                    },
                                                     "staff_id": {
                                                         "type": "string",
-                                                        "example": "STF0012"
+                                                        "example": "HGC/STAFF/18"
                                                     },
                                                     "fname": {
                                                         "type": "string",
-                                                        "example": "John"
+                                                        "example": "Paschael"
                                                     },
                                                     "mname": {
                                                         "type": "string",
-                                                        "example": "A."
+                                                        "example": "NIL"
                                                     },
                                                     "lname": {
                                                         "type": "string",
-                                                        "example": "Doe"
-                                                    },
-                                                    "role": {
-                                                        "type": "string",
-                                                        "example": "Teacher"
+                                                        "example": "Ajuomiwe"
                                                     },
                                                     "status": {
                                                         "type": "string",
                                                         "example": "active"
                                                     },
+                                                    "role": {
+                                                        "type": "string",
+                                                        "example": "*14"
+                                                    },
+                                                    "role2": {
+                                                        "type": "string",
+                                                        "example": "-1"
+                                                    },
+                                                    "role1_clean": {
+                                                        "type": "string",
+                                                        "example": "14"
+                                                    },
+                                                    "role2_clean": {
+                                                        "type": "string",
+                                                        "example": "-1"
+                                                    },
+                                                    "role1_name": {
+                                                        "type": "string",
+                                                        "example": "Subject Teacher"
+                                                    },
+                                                    "role2_name": {
+                                                        "type": "string",
+                                                        "example": null
+                                                    },
                                                     "dob": {
                                                         "type": "string",
-                                                        "format": "date",
-                                                        "example": "1988-05-12"
+                                                        "example": "1984-07-30"
                                                     },
                                                     "gender": {
                                                         "type": "string",
@@ -25967,27 +25996,27 @@
                                                     },
                                                     "staff_state": {
                                                         "type": "string",
-                                                        "example": "Ogun"
+                                                        "example": "00"
                                                     },
                                                     "staff_lga": {
                                                         "type": "string",
-                                                        "example": "Abeokuta"
+                                                        "example": "15"
                                                     },
                                                     "school_country": {
                                                         "type": "string",
-                                                        "example": "Nigeria"
+                                                        "example": "NG"
                                                     },
                                                     "school_state": {
                                                         "type": "string",
-                                                        "example": "Lagos"
+                                                        "example": "Abia"
                                                     },
                                                     "school_lga": {
                                                         "type": "string",
-                                                        "example": "Ikeja"
+                                                        "example": "Umuahia"
                                                     },
                                                     "school_name": {
                                                         "type": "string",
-                                                        "example": "Bright Future Academy"
+                                                        "example": "HOLY GHOST COLLEGE"
                                                     }
                                                 },
                                                 "type": "object"
@@ -26000,10 +26029,10 @@
                         }
                     },
                     "400": {
-                        "description": "Invalid request or parameters"
+                        "description": "Invalid parameters supplied"
                     },
                     "500": {
-                        "description": "Server error"
+                        "description": "Internal server error"
                     }
                 },
                 "security": [

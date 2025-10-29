@@ -31983,293 +31983,216 @@ public function getLearnersEnrollmentInfoGender(Request $request)
 
 
 
-    /**
-     * @OA\Get(
-     *     path="/api/getStaffsEnrollmentInfoGender",
-     *     summary="Get staff enrollment information filtered by gender, state, and LGA",
-     *     description="Retrieves staff enrollment data with optional filters for state, LGA, and gender, including pagination support.",
-     *     operationId="getStaffsEnrollmentInfoGender",
-     *     tags={"Admin"},
-     *     security={{"bearerAuth":{}}},
-     *
-     *     @OA\Parameter(
-     *         name="start",
-     *         in="query",
-     *         description="Starting index for pagination (default: 0)",
-     *         required=false,
-     *         @OA\Schema(type="integer", example=0)
-     *     ),
-     *     @OA\Parameter(
-     *         name="count",
-     *         in="query",
-     *         description="Number of records to fetch (default: 20)",
-     *         required=false,
-     *         @OA\Schema(type="integer", example=20)
-     *     ),
-     *     @OA\Parameter(
-     *         name="state",
-     *         in="query",
-     *         description="Filter by school state",
-     *         required=false,
-     *         @OA\Schema(type="string", example="Lagos")
-     *     ),
-     *     @OA\Parameter(
-     *         name="lga",
-     *         in="query",
-     *         description="Filter by school LGA",
-     *         required=false,
-     *         @OA\Schema(type="string", example="Ikeja")
-     *     ),
-     *     @OA\Parameter(
-     *         name="gender",
-     *         in="query",
-     *         description="Filter by staff gender ('M' or 'F')",
-     *         required=false,
-     *         @OA\Schema(type="string", enum={"M", "F"}, example="F")
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="Staff enrollment data retrieved successfully",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Success"),
-     *             @OA\Property(property="total_records", type="integer", example=120),
-     *             @OA\Property(
-     *                 property="pld",
-     *                 type="array",
-     *                 @OA\Items(
-     *                     type="object",
-     *                     @OA\Property(property="staff_id", type="string", example="STF0012"),
-     *                     @OA\Property(property="fname", type="string", example="John"),
-     *                     @OA\Property(property="mname", type="string", example="A."),
-     *                     @OA\Property(property="lname", type="string", example="Doe"),
-     *                     @OA\Property(property="role", type="string", example="Teacher"),
-     *                     @OA\Property(property="status", type="string", example="active"),
-     *                     @OA\Property(property="dob", type="string", format="date", example="1988-05-12"),
-     *                     @OA\Property(property="gender", type="string", example="M"),
-     *                     @OA\Property(property="staff_state", type="string", example="Ogun"),
-     *                     @OA\Property(property="staff_lga", type="string", example="Abeokuta"),
-     *                     @OA\Property(property="school_country", type="string", example="Nigeria"),
-     *                     @OA\Property(property="school_state", type="string", example="Lagos"),
-     *                     @OA\Property(property="school_lga", type="string", example="Ikeja"),
-     *                     @OA\Property(property="school_name", type="string", example="Bright Future Academy")
-     *                 )
-     *             )
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=400,
-     *         description="Invalid request or parameters"
-     *     ),
-     *     @OA\Response(
-     *         response=500,
-     *         description="Server error"
-     *     )
-     * )
-     */
-    // public function getStaffsEnrollmentInfoGender(Request $request)
-    // {
-    //     $start = $request->input('start', 0);
-    //     $count = $request->input('count', 20);
-    //     $state = $request->input('state');
-    //     $lga   = $request->input('lga');
-    //     $gender = $request->input('gender'); // 'M' or 'F'
+/**
+ * @OA\Get(
+ *     path="/api/getStaffsEnrollmentInfoGender",
+ *     summary="Get staff enrollment information by gender, school, and location",
+ *     description="Retrieve a paginated list of active staff filtered by gender, school, state, and LGA.",
+ *     operationId="getStaffsEnrollmentInfoGender",
+ *     tags={"Admin"},
+ *    security={{"bearerAuth":{}}},
+ *
+ *     @OA\Parameter(
+ *         name="start",
+ *         in="query",
+ *         required=false,
+ *         description="Starting index for pagination (default is 0)",
+ *         @OA\Schema(type="integer", example=0)
+ *     ),
+ *     @OA\Parameter(
+ *         name="count",
+ *         in="query",
+ *         required=false,
+ *         description="Number of records to fetch per page (default is 20)",
+ *         @OA\Schema(type="integer", example=20)
+ *     ),
+ *     @OA\Parameter(
+ *         name="state",
+ *         in="query",
+ *         required=false,
+ *         description="State where the school is located",
+ *         @OA\Schema(type="string", example="Abia")
+ *     ),
+ *     @OA\Parameter(
+ *         name="lga",
+ *         in="query",
+ *         required=false,
+ *         description="Local Government Area (LGA) where the school is located",
+ *         @OA\Schema(type="string", example="Umuahia")
+ *     ),
+ *     @OA\Parameter(
+ *         name="gender",
+ *         in="query",
+ *         required=false,
+ *         description="Gender of the staff to filter by (M or F)",
+ *         @OA\Schema(type="string", example="M")
+ *     ),
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="query",
+ *         required=false,
+ *         description="School ID to filter staff records by a specific school",
+ *         @OA\Schema(type="integer", example=12)
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful staff list retrieval",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(property="total_records", type="integer", example=2),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     @OA\Property(property="sid", type="string", example="2091"),
+ *                     @OA\Property(property="staff_id", type="string", example="HGC/STAFF/18"),
+ *                     @OA\Property(property="fname", type="string", example="Paschael"),
+ *                     @OA\Property(property="mname", type="string", example="NIL"),
+ *                     @OA\Property(property="lname", type="string", example="Ajuomiwe"),
+ *                     @OA\Property(property="status", type="string", example="active"),
+ *                     @OA\Property(property="role", type="string", example="*14"),
+ *                     @OA\Property(property="role2", type="string", example="-1"),
+ *                     @OA\Property(property="role1_clean", type="string", example="14"),
+ *                     @OA\Property(property="role2_clean", type="string", example="-1"),
+ *                     @OA\Property(property="role1_name", type="string", example="Subject Teacher"),
+ *                     @OA\Property(property="role2_name", type="string", example=null),
+ *                     @OA\Property(property="dob", type="string", example="1984-07-30"),
+ *                     @OA\Property(property="gender", type="string", example="M"),
+ *                     @OA\Property(property="staff_state", type="string", example="00"),
+ *                     @OA\Property(property="staff_lga", type="string", example="15"),
+ *                     @OA\Property(property="school_country", type="string", example="NG"),
+ *                     @OA\Property(property="school_state", type="string", example="Abia"),
+ *                     @OA\Property(property="school_lga", type="string", example="Umuahia"),
+ *                     @OA\Property(property="school_name", type="string", example="HOLY GHOST COLLEGE")
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=400,
+ *         description="Invalid parameters supplied"
+ *     ),
+ *     @OA\Response(
+ *         response=500,
+ *         description="Internal server error"
+ *     )
+ * )
+ */
 
-    //     // ✅ Build base query
-    //     $query = DB::table('old_staff as os')
-    //         ->join('staff_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
-    //         ->join('school as sc', 'os.schid', '=', 'sc.sid')
-    //         ->join('school_web_data as swd', 'sc.sid', '=', 'swd.user_id')
-    //         ->select(
-    //             'os.sid',
-    //             'os.suid as staff_id', // unique staff code
-    //             'os.fname',
-    //             'os.mname',
-    //             'os.lname',
-    //             'os.role',
-    //             'os.status',
-    //             'sbd.dob',
-    //             'sbd.sex as gender',
-    //             'sbd.state as staff_state',
-    //             'sbd.lga as staff_lga',
-    //             'swd.country as school_country',
-    //             'swd.state as school_state',
-    //             'swd.lga as school_lga',
-    //             'sc.name as school_name'
-    //         )
-    //         ->where('os.status', 'active');
+public function getStaffsEnrollmentInfoGender(Request $request)
+{
+    $start = $request->input('start', 0);
+    $count = $request->input('count', 20);
+    $state = $request->input('state');
+    $lga   = $request->input('lga');
+    $gender = $request->input('gender'); // 'M' or 'F'
+    $schid  = $request->input('schid');  // ✅ School ID filter
 
-    //     // ✅ Apply filters
-    //     if (!empty($state)) {
-    //         $query->where('swd.state', $state);
-    //     }
-
-    //     if (!empty($lga)) {
-    //         $query->where('swd.lga', $lga);
-    //     }
-
-    //     if (!empty($gender)) {
-    //         $query->where('sbd.sex', $gender);
-    //     }
-
-    //     // ✅ Avoid duplicates by grouping or distinct
-    //     $query->groupBy('os.sid', 'os.suid', 'os.fname', 'os.mname', 'os.lname', 'os.role', 'os.status', 'sbd.dob', 'sbd.sex', 'sbd.state', 'sbd.lga', 'swd.country', 'swd.state', 'swd.lga', 'sc.name');
-    //     // OR shorter version:
-    //     // $query->distinct('os.sid');
-
-    //     // ✅ Get total records before pagination
-    //     $totalRecords = $query->count(DB::raw('distinct os.sid'));
-
-    //     // ✅ Fetch paginated results (distinct)
-    //     $staff = $query->orderBy('os.lname', 'asc')
-    //         ->skip($start)
-    //         ->take($count)
-    //         ->get();
-
-    //     // ✅ Format DOB (if numeric timestamps exist)
-    //     foreach ($staff as $member) {
-    //         $dob = null;
-
-    //         if (!empty($member->dob)) {
-    //             if (is_numeric($member->dob)) {
-    //                 try {
-    //                     $dob = \Carbon\Carbon::createFromTimestamp($member->dob / 1000)->format('Y-m-d');
-    //                 } catch (\Exception $e) {
-    //                     $dob = null;
-    //                 }
-    //             } else {
-    //                 try {
-    //                     $dob = \Carbon\Carbon::parse($member->dob)->format('Y-m-d');
-    //                 } catch (\Exception $e) {
-    //                     $dob = null;
-    //                 }
-    //             }
-    //         }
-
-    //         $member->dob = $dob;
-    //     }
-
-    //     // ✅ Return JSON response
-    //     return response()->json([
-    //         'status' => true,
-    //         'message' => 'Success',
-    //         'total_records' => $totalRecords,
-    //         'pld' => $staff->unique('sid')->values() // final unique filter on collection (just in case)
-    //     ]);
-    // }
-
-    public function getStaffsEnrollmentInfoGender(Request $request)
-    {
-        $start = $request->input('start', 0);
-        $count = $request->input('count', 20);
-        $state = $request->input('state');
-        $lga   = $request->input('lga');
-        $gender = $request->input('gender'); // 'M' or 'F'
-
-        // ✅ Build query
-        $query = DB::table('old_staff as os')
-            ->join('staff_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
-            ->join('school as sc', 'os.schid', '=', 'sc.sid')
-            ->join('school_web_data as swd', 'sc.sid', '=', 'swd.user_id')
-            // ✅ Join for role1
-            ->leftJoin('staff_role as sr1', DB::raw('REPLACE(os.role, "*", "")'), '=', 'sr1.id')
-            // ✅ Join for role2
-            ->leftJoin('staff_role as sr2', DB::raw('REPLACE(os.role2, "*", "")'), '=', 'sr2.id')
-            ->select(
-                'os.sid',
-                'os.suid as staff_id',
-                'os.fname',
-                'os.mname',
-                'os.lname',
-                'os.status',
-                'os.role',
-                'os.role2',
-                DB::raw('REPLACE(os.role, "*", "") as role1_clean'),
-                DB::raw('REPLACE(os.role2, "*", "") as role2_clean'),
-                'sr1.name as role1_name',
-                'sr2.name as role2_name',
-                'sbd.dob',
-                'sbd.sex as gender',
-                'sbd.state as staff_state',
-                'sbd.lga as staff_lga',
-                'swd.country as school_country',
-                'swd.state as school_state',
-                'swd.lga as school_lga',
-                'sc.name as school_name'
-            )
-            ->where('os.status', 'active');
-
-        // ✅ Apply filters
-        if (!empty($state)) {
-            $query->where('swd.state', $state);
-        }
-
-        if (!empty($lga)) {
-            $query->where('swd.lga', $lga);
-        }
-
-        if (!empty($gender)) {
-            $query->where('sbd.sex', $gender);
-        }
-
-        // ✅ Avoid duplicates
-        $query->groupBy(
+    // ✅ Build query
+    $query = DB::table('old_staff as os')
+        ->join('staff_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
+        ->join('school_web_data as swd', 'os.schid', '=', 'swd.user_id')
+        // ✅ Join for role1 and role2
+        ->leftJoin('staff_role as sr1', DB::raw('REPLACE(os.role, "*", "")'), '=', 'sr1.id')
+        ->leftJoin('staff_role as sr2', DB::raw('REPLACE(os.role2, "*", "")'), '=', 'sr2.id')
+        ->select(
             'os.sid',
-            'os.suid',
+            'os.suid as staff_id',
             'os.fname',
             'os.mname',
             'os.lname',
+            'os.status',
             'os.role',
             'os.role2',
-            'os.status',
+            DB::raw('REPLACE(os.role, "*", "") as role1_clean'),
+            DB::raw('REPLACE(os.role2, "*", "") as role2_clean'),
+            'sr1.name as role1_name',
+            'sr2.name as role2_name',
             'sbd.dob',
-            'sbd.sex',
-            'sbd.state',
-            'sbd.lga',
-            'swd.country',
-            'swd.state',
-            'swd.lga',
-            'sc.name',
-            'sr1.name',
-            'sr2.name'
-        );
+            'sbd.sex as gender',
+            'sbd.state as staff_state',
+            'sbd.lga as staff_lga',
+            'swd.country as school_country',
+            'swd.state as school_state',
+            DB::raw('TRIM(swd.lga) as school_lga'),
+            'swd.sname as school_name'
+        )
+        ->where('os.status', 'active');
 
-        // ✅ Get total records
-        $totalRecords = $query->count(DB::raw('distinct os.sid'));
-
-        // ✅ Fetch paginated results
-        $staff = $query->orderBy('os.lname', 'asc')
-            ->skip($start)
-            ->take($count)
-            ->get();
-
-        // ✅ Format DOBs
-        foreach ($staff as $member) {
-            $dob = null;
-            if (!empty($member->dob)) {
-                try {
-                    $dob = is_numeric($member->dob)
-                        ? \Carbon\Carbon::createFromTimestamp($member->dob / 1000)->format('Y-m-d')
-                        : \Carbon\Carbon::parse($member->dob)->format('Y-m-d');
-                } catch (\Exception $e) {
-                    $dob = null;
-                }
-            }
-            $member->dob = $dob;
-        }
-
-        // ✅ Return result
-        return response()->json([
-            'status' => true,
-            'message' => 'Success',
-            'total_records' => $totalRecords,
-            'pld' => $staff->unique('sid')->values()
-        ]);
+    // ✅ Apply filters
+    if (!empty($schid)) {
+        $query->where('os.schid', $schid); // 🔹 Filter by specific school
     }
 
+    if (!empty($state)) {
+        $query->where('swd.state', $state);
+    }
+
+    if (!empty($lga)) {
+        $query->whereRaw('TRIM(swd.lga) = ?', [$lga]);
+    }
+
+    if (!empty($gender)) {
+        $query->where('sbd.sex', $gender);
+    }
+
+    // ✅ Avoid duplicates
+    $query->groupBy(
+        'os.sid',
+        'os.suid',
+        'os.fname',
+        'os.mname',
+        'os.lname',
+        'os.role',
+        'os.role2',
+        'os.status',
+        'sbd.dob',
+        'sbd.sex',
+        'sbd.state',
+        'sbd.lga',
+        'swd.country',
+        'swd.state',
+        'swd.lga',
+        'swd.sname',
+        'sr1.name',
+        'sr2.name'
+    );
+
+    // ✅ Count total records
+    $totalRecords = $query->count(DB::raw('distinct os.sid'));
+
+    // ✅ Fetch paginated results
+    $staff = $query->orderBy('os.lname', 'asc')
+        ->skip($start)
+        ->take($count)
+        ->get();
+
+    // ✅ Format DOBs
+    foreach ($staff as $member) {
+        $dob = null;
+        if (!empty($member->dob)) {
+            try {
+                $dob = is_numeric($member->dob)
+                    ? \Carbon\Carbon::createFromTimestamp($member->dob / 1000)->format('Y-m-d')
+                    : \Carbon\Carbon::parse($member->dob)->format('Y-m-d');
+            } catch (\Exception $e) {
+                $dob = null;
+            }
+        }
+        $member->dob = $dob;
+    }
+
+    // ✅ Return response
+    return response()->json([
+        'status' => true,
+        'message' => 'Success',
+        'total_records' => $totalRecords,
+        'pld' => $staff->unique('sid')->values()
+    ]);
+}
 
 
 
