@@ -32587,372 +32587,232 @@ public function getStaffsEnrollmentInfoGender(Request $request)
 
 
 
-    /**
-     * @OA\Post(
-     *     path="/api/getLearnersStaffDetails",
-     *     summary="Get learners and staff gender summary by class",
-     *     description="Fetches learners (students) and staff gender details (Male/Female/Total) per class for a specific school and academic session. Only active students and staff are included.",
-     *     tags={"Admin"},
-     *     operationId="getLearnersStaffDetails",
-     *     security={{"bearerAuth":{}}},
-     *
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"schid", "ssn"},
-     *             @OA\Property(property="schid", type="integer", example=12, description="School ID"),
-     *             @OA\Property(property="ssn", type="string", example="2024", description="Academic session identifier")
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="Learner/Staff Ratio fetched successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Learner/Staff Ratio fetched successfully"),
-     *             @OA\Property(property="school_id", type="integer", example=12),
-     *             @OA\Property(property="session", type="string", example="2024"),
-     *             @OA\Property(
-     *                 property="ratios",
-     *                 type="array",
-     *                 @OA\Items(
-     *                     @OA\Property(property="class", type="string", example="Primary 3"),
-     *                     @OA\Property(
-     *                         property="learners",
-     *                         type="object",
-     *                         @OA\Property(property="male", type="integer", example=15),
-     *                         @OA\Property(property="female", type="integer", example=18),
-     *                         @OA\Property(property="total", type="integer", example=33)
-     *                     ),
-     *                     @OA\Property(
-     *                         property="staff",
-     *                         type="object",
-     *                         @OA\Property(property="male", type="integer", example=2),
-     *                         @OA\Property(property="female", type="integer", example=3),
-     *                         @OA\Property(property="total", type="integer", example=5)
-     *                     )
-     *                 )
-     *             )
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=400,
-     *         description="Missing or invalid parameters",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="School ID and session are required.")
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=500,
-     *         description="Internal server error",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="An unexpected error occurred.")
-     *         )
-     *     )
-     * )
-     */
+/**
+ * @OA\Post(
+ *     path="/api/getLearnersStaffDetails",
+ *     summary="Fetch learner and staff ratio for each class in a school",
+ *     description="Returns detailed learner and staff statistics (male/female/total) per class and an overall summary for a given school and session.",
+ *     operationId="getLearnersStaffDetails",
+ *     tags={"Admin"},
+ *   security={{"bearerAuth":{}}},
+ *
+ *     @OA\RequestBody(
+ *         required=true,
+ *         description="School and session details",
+ *         @OA\JsonContent(
+ *             required={"schid", "ssn"},
+ *             @OA\Property(property="schid", type="integer", example=12, description="School ID"),
+ *             @OA\Property(property="ssn", type="string", example="2024", description="Academic session")
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Learner/Staff Ratio fetched successfully",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Learner/Staff Ratio fetched successfully"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="object",
+ *                 @OA\Property(
+ *                     property="details",
+ *                     type="array",
+ *                     @OA\Items(
+ *                         @OA\Property(property="clsid", type="integer", example=11),
+ *                         @OA\Property(property="school_id", type="integer", example=12),
+ *                         @OA\Property(property="session", type="string", example="2024"),
+ *                         @OA\Property(property="class", type="string", example="JSS 1"),
+ *                         @OA\Property(
+ *                             property="learners",
+ *                             type="object",
+ *                             @OA\Property(property="male", type="integer", example=15),
+ *                             @OA\Property(property="female", type="integer", example=9),
+ *                             @OA\Property(property="total", type="integer", example=24)
+ *                         ),
+ *                         @OA\Property(
+ *                             property="staff",
+ *                             type="object",
+ *                             @OA\Property(property="male", type="integer", example=5),
+ *                             @OA\Property(property="female", type="integer", example=6),
+ *                             @OA\Property(property="total", type="integer", example=11)
+ *                         )
+ *                     )
+ *                 ),
+ *                 @OA\Property(
+ *                     property="summary",
+ *                     type="object",
+ *                     @OA\Property(property="total_male_students", type="integer", example=55),
+ *                     @OA\Property(property="total_female_students", type="integer", example=29),
+ *                     @OA\Property(property="total_students", type="integer", example=84),
+ *                     @OA\Property(property="total_male_staff", type="integer", example=18),
+ *                     @OA\Property(property="total_female_staff", type="integer", example=17),
+ *                     @OA\Property(property="total_staff", type="integer", example=35),
+ *                     @OA\Property(property="overall_male", type="integer", example=73),
+ *                     @OA\Property(property="overall_female", type="integer", example=46),
+ *                     @OA\Property(property="overall_total", type="integer", example=119)
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=400,
+ *         description="Missing required parameters",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="School ID and session are required.")
+ *         )
+ *     )
+ * )
+ */
 
+public function getLearnersStaffDetails(Request $request)
+{
+    $schid = $request->input('schid');
+    $ssn   = $request->input('ssn'); // academic session (required)
 
-    // public function getLearnersStaffDetails(Request $request)
-    // {
-    //     $schid = $request->input('schid');
-    //     $ssn   = $request->input('ssn'); // academic session (required)
+    // ✅ Validate required parameters
+    if (empty($schid) || empty($ssn)) {
+        return response()->json([
+            'status' => false,
+            'message' => 'School ID and session are required.'
+        ], 400);
+    }
 
-    //     if (empty($schid) || empty($ssn)) {
-    //         return response()->json([
-    //             'status' => false,
-    //             'message' => 'School ID and session are required.'
-    //         ], 400);
-    //     }
+    // ✅ Fetch all unique classes for the given school only
+    $classes = DB::table('sch_cls')
+        ->join('cls', 'cls.id', '=', 'sch_cls.cls_id')
+        ->where('sch_cls.schid', $schid)
+        ->select(
+            'cls.id as clsid',
+            'cls.name as class_name'
+        )
+        ->distinct()
+        ->orderBy('cls.id', 'asc')
+        ->get();
 
-    //     // Fetch all unique classes belonging to this school
-    //     $classes = DB::table('sch_cls')
-    //         ->join('cls', 'cls.id', '=', 'sch_cls.cls_id')
-    //         ->where('sch_cls.schid', $schid)
-    //         ->select('cls.id as class_id', 'cls.name as class_name')
-    //         ->distinct()
-    //         ->orderBy('cls.id', 'asc')
-    //         ->get();
+    $data = [];
 
-    //     $data = [];
+    // Initialize totals
+    $totalMaleStudents = 0;
+    $totalFemaleStudents = 0;
+    $totalMaleStaff = 0;
+    $totalFemaleStaff = 0;
 
-    //     // Initialize totals
-    //     $totalMaleStudents = 0;
-    //     $totalFemaleStudents = 0;
-    //     $totalMaleStaff = 0;
-    //     $totalFemaleStaff = 0;
-
-    //     foreach ($classes as $class) {
-    //         $classId = $class->class_id;
-    //         $className = $class->class_name;
-
-    //         /**
-    //          * ===========================
-    //          * STUDENT SECTION
-    //          * ===========================
-    //          */
-    //         $studentIds = DB::table('old_student')
-    //             ->where('schid', $schid)
-    //             ->where('status', 'active')
-    //             ->where('ssn', $ssn)
-    //             ->where('clsm', $classId)
-    //             ->distinct()
-    //             ->pluck('sid')
-    //             ->toArray();
-
-    //         $studentGender = DB::table('student_basic_data')
-    //             ->whereIn('user_id', $studentIds)
-    //             ->whereNotNull('sex')
-    //             ->select('sex', DB::raw('COUNT(*) as total'))
-    //             ->groupBy('sex')
-    //             ->pluck('total', 'sex')
-    //             ->toArray();
-
-    //         $maleStudents   = $studentGender['M'] ?? 0;
-    //         $femaleStudents = $studentGender['F'] ?? 0;
-    //         $totalStudents  = $maleStudents + $femaleStudents;
-
-    //         // Accumulate overall student totals
-    //         $totalMaleStudents += $maleStudents;
-    //         $totalFemaleStudents += $femaleStudents;
-
-    //         /**
-    //          * ===========================
-    //          * STAFF SECTION
-    //          * ===========================
-    //          */
-    //         $staffIds = DB::table('old_staff')
-    //             ->where('schid', $schid)
-    //             ->where('status', 'active')
-    //             ->where('ssn', $ssn)
-    //             ->where('clsm', $classId)
-    //             ->distinct()
-    //             ->pluck('sid')
-    //             ->toArray();
-
-    //         $staffGender = DB::table('staff_basic_data')
-    //             ->whereIn('user_id', $staffIds)
-    //             ->whereNotNull('sex')
-    //             ->select('sex', DB::raw('COUNT(*) as total'))
-    //             ->groupBy('sex')
-    //             ->pluck('total', 'sex')
-    //             ->toArray();
-
-    //         $maleStaff   = $staffGender['M'] ?? 0;
-    //         $femaleStaff = $staffGender['F'] ?? 0;
-    //         $totalStaff  = $maleStaff + $femaleStaff;
-
-    //         // Accumulate overall staff totals
-    //         $totalMaleStaff += $maleStaff;
-    //         $totalFemaleStaff += $femaleStaff;
-
-    //         /**
-    //          * ===========================
-    //          * BUILD CLASS RATIO DATA
-    //          * ===========================
-    //          */
-    //         $data[] = [
-    //             'school_id' => $schid,
-    //             'session' => $ssn,
-    //             'class' => $className,
-    //             'learners' => [
-    //                 'male' => $maleStudents,
-    //                 'female' => $femaleStudents,
-    //                 'total' => $totalStudents,
-    //             ],
-    //             'staff' => [
-    //                 'male' => $maleStaff,
-    //                 'female' => $femaleStaff,
-    //                 'total' => $totalStaff,
-    //             ],
-    //         ];
-    //     }
-
-    //     /**
-    //      * ===========================
-    //      * OVERALL SUMMARY
-    //      * ===========================
-    //      */
-    //     $overallSummary = [
-    //         'total_male_students' => $totalMaleStudents,
-    //         'total_female_students' => $totalFemaleStudents,
-    //         'total_students' => $totalMaleStudents + $totalFemaleStudents,
-
-    //         'total_male_staff' => $totalMaleStaff,
-    //         'total_female_staff' => $totalFemaleStaff,
-    //         'total_staff' => $totalMaleStaff + $totalFemaleStaff,
-
-    //         'overall_male' => $totalMaleStudents + $totalMaleStaff,
-    //         'overall_female' => $totalFemaleStudents + $totalFemaleStaff,
-    //         'overall_total' => $totalMaleStudents + $totalFemaleStudents + $totalMaleStaff + $totalFemaleStaff,
-    //     ];
-
-    //     return response()->json([
-    //         'status' => true,
-    //         'message' => 'Learner/Staff Ratio fetched successfully',
-    //         'pld' => [
-    //             'details' => $data,
-    //             'summary' => $overallSummary
-    //         ]
-    //     ], 200, [], JSON_PRETTY_PRINT);
-    // }
-
-
-    public function getLearnersStaffDetails(Request $request)
-    {
-        $schid = $request->input('schid');
-        $ssn   = $request->input('ssn'); // academic session (required)
-
-        if (empty($schid) || empty($ssn)) {
-            return response()->json([
-                'status' => false,
-                'message' => 'School ID and session are required.'
-            ], 400);
-        }
-
-        // Fetch all unique classes belonging to this school
-        $classes = DB::table('sch_cls')
-            ->join('cls', 'cls.id', '=', 'sch_cls.cls_id')
-            ->where('sch_cls.schid', $schid)
-            ->select(
-                'cls.id as clsid',        // ✅ class id from cls table
-                'cls.name as class_name'
-            )
-            ->distinct()
-            ->orderBy('cls.id', 'asc')
-            ->get();
-
-        $data = [];
-
-        // Initialize totals
-        $totalMaleStudents = 0;
-        $totalFemaleStudents = 0;
-        $totalMaleStaff = 0;
-        $totalFemaleStaff = 0;
-
-        foreach ($classes as $class) {
-            $clsid = $class->clsid;       // ✅ get clsid
-            $className = $class->class_name;
-
-            /**
-             * ===========================
-             * STUDENT SECTION
-             * ===========================
-             */
-            $studentIds = DB::table('old_student')
-                ->where('schid', $schid)
-                ->where('status', 'active')
-                ->where('ssn', $ssn)
-                ->where('clsm', $clsid) // ✅ match using clsid
-                ->distinct()
-                ->pluck('sid')
-                ->toArray();
-
-            $studentGender = DB::table('student_basic_data')
-                ->whereIn('user_id', $studentIds)
-                ->whereNotNull('sex')
-                ->select('sex', DB::raw('COUNT(*) as total'))
-                ->groupBy('sex')
-                ->pluck('total', 'sex')
-                ->toArray();
-
-            $maleStudents   = $studentGender['M'] ?? 0;
-            $femaleStudents = $studentGender['F'] ?? 0;
-            $totalStudents  = $maleStudents + $femaleStudents;
-
-            // Accumulate overall student totals
-            $totalMaleStudents += $maleStudents;
-            $totalFemaleStudents += $femaleStudents;
-
-            /**
-             * ===========================
-             * STAFF SECTION
-             * ===========================
-             */
-            $staffIds = DB::table('old_staff')
-                ->where('schid', $schid)
-                ->where('status', 'active')
-                ->where('ssn', $ssn)
-                ->where('clsm', $clsid) // ✅ match using clsid
-                ->distinct()
-                ->pluck('sid')
-                ->toArray();
-
-            $staffGender = DB::table('staff_basic_data')
-                ->whereIn('user_id', $staffIds)
-                ->whereNotNull('sex')
-                ->select('sex', DB::raw('COUNT(*) as total'))
-                ->groupBy('sex')
-                ->pluck('total', 'sex')
-                ->toArray();
-
-            $maleStaff   = $staffGender['M'] ?? 0;
-            $femaleStaff = $staffGender['F'] ?? 0;
-            $totalStaff  = $maleStaff + $femaleStaff;
-
-            // Accumulate overall staff totals
-            $totalMaleStaff += $maleStaff;
-            $totalFemaleStaff += $femaleStaff;
-
-            /**
-             * ===========================
-             * BUILD CLASS RATIO DATA
-             * ===========================
-             */
-            $data[] = [
-                'clsid' => $clsid,  // ✅ now included in the pld
-                'school_id' => $schid,
-                'session' => $ssn,
-                'class' => $className,
-                'learners' => [
-                    'male' => $maleStudents,
-                    'female' => $femaleStudents,
-                    'total' => $totalStudents,
-                ],
-                'staff' => [
-                    'male' => $maleStaff,
-                    'female' => $femaleStaff,
-                    'total' => $totalStaff,
-                ],
-            ];
-        }
+    foreach ($classes as $class) {
+        $clsid = $class->clsid;
+        $className = $class->class_name;
 
         /**
          * ===========================
-         * OVERALL SUMMARY
+         * STUDENT SECTION (By School)
          * ===========================
          */
-        $overallSummary = [
-            'total_male_students' => $totalMaleStudents,
-            'total_female_students' => $totalFemaleStudents,
-            'total_students' => $totalMaleStudents + $totalFemaleStudents,
+        $studentIds = DB::table('old_student')
+            ->where('schid', $schid)
+            ->where('status', 'active')
+            ->where('ssn', $ssn)
+            ->where('clsm', $clsid)
+            ->distinct()
+            ->pluck('sid')
+            ->toArray();
 
-            'total_male_staff' => $totalMaleStaff,
-            'total_female_staff' => $totalFemaleStaff,
-            'total_staff' => $totalMaleStaff + $totalFemaleStaff,
+        $studentGender = DB::table('student_basic_data')
+            ->whereIn('user_id', $studentIds)
+            ->whereNotNull('sex')
+            ->select('sex', DB::raw('COUNT(*) as total'))
+            ->groupBy('sex')
+            ->pluck('total', 'sex')
+            ->toArray();
 
-            'overall_male' => $totalMaleStudents + $totalMaleStaff,
-            'overall_female' => $totalFemaleStudents + $totalFemaleStaff,
-            'overall_total' => $totalMaleStudents + $totalFemaleStudents + $totalMaleStaff + $totalFemaleStaff,
+        $maleStudents   = $studentGender['M'] ?? 0;
+        $femaleStudents = $studentGender['F'] ?? 0;
+        $totalStudents  = $maleStudents + $femaleStudents;
+
+        $totalMaleStudents += $maleStudents;
+        $totalFemaleStudents += $femaleStudents;
+
+        /**
+         * ===========================
+         * STAFF SECTION (By School)
+         * ===========================
+         */
+        $staffIds = DB::table('old_staff')
+            ->where('schid', $schid)
+            ->where('status', 'active')
+            ->where('ssn', $ssn)
+            ->where('clsm', $clsid)
+            ->distinct()
+            ->pluck('sid')
+            ->toArray();
+
+        $staffGender = DB::table('staff_basic_data')
+            ->whereIn('user_id', $staffIds)
+            ->whereNotNull('sex')
+            ->select('sex', DB::raw('COUNT(*) as total'))
+            ->groupBy('sex')
+            ->pluck('total', 'sex')
+            ->toArray();
+
+        $maleStaff   = $staffGender['M'] ?? 0;
+        $femaleStaff = $staffGender['F'] ?? 0;
+        $totalStaff  = $maleStaff + $femaleStaff;
+
+        $totalMaleStaff += $maleStaff;
+        $totalFemaleStaff += $femaleStaff;
+
+        /**
+         * ===========================
+         * CLASS-LEVEL RATIO
+         * ===========================
+         */
+        $data[] = [
+            'clsid' => $clsid,
+            'school_id' => $schid,
+            'session' => $ssn,
+            'class' => $className,
+            'learners' => [
+                'male' => $maleStudents,
+                'female' => $femaleStudents,
+                'total' => $totalStudents,
+            ],
+            'staff' => [
+                'male' => $maleStaff,
+                'female' => $femaleStaff,
+                'total' => $totalStaff,
+            ],
         ];
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Learner/Staff Ratio fetched successfully',
-            'pld' => [
-                'details' => $data,
-                'summary' => $overallSummary
-            ]
-        ], 200, [], JSON_PRETTY_PRINT);
     }
 
+    /**
+     * ===========================
+     * OVERALL SUMMARY
+     * ===========================
+     */
+    $overallSummary = [
+        'total_male_students' => $totalMaleStudents,
+        'total_female_students' => $totalFemaleStudents,
+        'total_students' => $totalMaleStudents + $totalFemaleStudents,
 
+        'total_male_staff' => $totalMaleStaff,
+        'total_female_staff' => $totalFemaleStaff,
+        'total_staff' => $totalMaleStaff + $totalFemaleStaff,
 
+        'overall_male' => $totalMaleStudents + $totalMaleStaff,
+        'overall_female' => $totalFemaleStudents + $totalFemaleStaff,
+        'overall_total' => $totalMaleStudents + $totalFemaleStudents + $totalMaleStaff + $totalFemaleStaff,
+    ];
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Learner/Staff Ratio fetched successfully',
+        'pld' => [
+            'details' => $data,
+            'summary' => $overallSummary
+        ]
+    ], 200, [], JSON_PRETTY_PRINT);
+}
 
 
     /**

@@ -26271,10 +26271,11 @@
                 "tags": [
                     "Admin"
                 ],
-                "summary": "Get learners and staff gender summary by class",
-                "description": "Fetches learners (students) and staff gender details (Male/Female/Total) per class for a specific school and academic session. Only active students and staff are included.",
+                "summary": "Fetch learner and staff ratio for each class in a school",
+                "description": "Returns detailed learner and staff statistics (male/female/total) per class and an overall summary for a given school and session.",
                 "operationId": "getLearnersStaffDetails",
                 "requestBody": {
+                    "description": "School and session details",
                     "required": true,
                     "content": {
                         "application/json": {
@@ -26290,7 +26291,7 @@
                                         "example": 12
                                     },
                                     "ssn": {
-                                        "description": "Academic session identifier",
+                                        "description": "Academic session",
                                         "type": "string",
                                         "example": "2024"
                                     }
@@ -26315,59 +26316,109 @@
                                             "type": "string",
                                             "example": "Learner/Staff Ratio fetched successfully"
                                         },
-                                        "school_id": {
-                                            "type": "integer",
-                                            "example": 12
-                                        },
-                                        "session": {
-                                            "type": "string",
-                                            "example": "2024"
-                                        },
-                                        "ratios": {
-                                            "type": "array",
-                                            "items": {
-                                                "properties": {
-                                                    "class": {
-                                                        "type": "string",
-                                                        "example": "Primary 3"
-                                                    },
-                                                    "learners": {
+                                        "pld": {
+                                            "properties": {
+                                                "details": {
+                                                    "type": "array",
+                                                    "items": {
                                                         "properties": {
-                                                            "male": {
+                                                            "clsid": {
                                                                 "type": "integer",
-                                                                "example": 15
+                                                                "example": 11
                                                             },
-                                                            "female": {
+                                                            "school_id": {
                                                                 "type": "integer",
-                                                                "example": 18
+                                                                "example": 12
                                                             },
-                                                            "total": {
-                                                                "type": "integer",
-                                                                "example": 33
-                                                            }
-                                                        },
-                                                        "type": "object"
-                                                    },
-                                                    "staff": {
-                                                        "properties": {
-                                                            "male": {
-                                                                "type": "integer",
-                                                                "example": 2
+                                                            "session": {
+                                                                "type": "string",
+                                                                "example": "2024"
                                                             },
-                                                            "female": {
-                                                                "type": "integer",
-                                                                "example": 3
+                                                            "class": {
+                                                                "type": "string",
+                                                                "example": "JSS 1"
                                                             },
-                                                            "total": {
-                                                                "type": "integer",
-                                                                "example": 5
+                                                            "learners": {
+                                                                "properties": {
+                                                                    "male": {
+                                                                        "type": "integer",
+                                                                        "example": 15
+                                                                    },
+                                                                    "female": {
+                                                                        "type": "integer",
+                                                                        "example": 9
+                                                                    },
+                                                                    "total": {
+                                                                        "type": "integer",
+                                                                        "example": 24
+                                                                    }
+                                                                },
+                                                                "type": "object"
+                                                            },
+                                                            "staff": {
+                                                                "properties": {
+                                                                    "male": {
+                                                                        "type": "integer",
+                                                                        "example": 5
+                                                                    },
+                                                                    "female": {
+                                                                        "type": "integer",
+                                                                        "example": 6
+                                                                    },
+                                                                    "total": {
+                                                                        "type": "integer",
+                                                                        "example": 11
+                                                                    }
+                                                                },
+                                                                "type": "object"
                                                             }
                                                         },
                                                         "type": "object"
                                                     }
                                                 },
-                                                "type": "object"
-                                            }
+                                                "summary": {
+                                                    "properties": {
+                                                        "total_male_students": {
+                                                            "type": "integer",
+                                                            "example": 55
+                                                        },
+                                                        "total_female_students": {
+                                                            "type": "integer",
+                                                            "example": 29
+                                                        },
+                                                        "total_students": {
+                                                            "type": "integer",
+                                                            "example": 84
+                                                        },
+                                                        "total_male_staff": {
+                                                            "type": "integer",
+                                                            "example": 18
+                                                        },
+                                                        "total_female_staff": {
+                                                            "type": "integer",
+                                                            "example": 17
+                                                        },
+                                                        "total_staff": {
+                                                            "type": "integer",
+                                                            "example": 35
+                                                        },
+                                                        "overall_male": {
+                                                            "type": "integer",
+                                                            "example": 73
+                                                        },
+                                                        "overall_female": {
+                                                            "type": "integer",
+                                                            "example": 46
+                                                        },
+                                                        "overall_total": {
+                                                            "type": "integer",
+                                                            "example": 119
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
                                         }
                                     },
                                     "type": "object"
@@ -26376,7 +26427,7 @@
                         }
                     },
                     "400": {
-                        "description": "Missing or invalid parameters",
+                        "description": "Missing required parameters",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -26388,26 +26439,6 @@
                                         "message": {
                                             "type": "string",
                                             "example": "School ID and session are required."
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "An unexpected error occurred."
                                         }
                                     },
                                     "type": "object"
