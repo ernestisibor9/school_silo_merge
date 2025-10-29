@@ -31543,177 +31543,171 @@ public function getLoggedInUserDetails(Request $request)
 
 
 
-    /**
-     * @OA\Get(
-     *     path="/api/getLearnersEnrollmentInfoGender",
-     *     summary="Get learners enrollment information filtered by gender, state, and LGA",
-     *     description="Fetches a paginated list of active learners filtered by gender (M/F), state, and LGA. Includes student details such as name, DOB, gender, class, and school name.",
-     *     operationId="getLearnersEnrollmentInfoGender",
-     *     tags={"Admin"},
-     *     security={{"bearerAuth":{}}},
-     *
-     *     @OA\Parameter(
-     *         name="start",
-     *         in="query",
-     *         description="The starting offset for pagination (default: 0)",
-     *         required=false,
-     *         @OA\Schema(type="integer", example=0)
-     *     ),
-     *     @OA\Parameter(
-     *         name="count",
-     *         in="query",
-     *         description="The number of records to return (default: 20)",
-     *         required=false,
-     *         @OA\Schema(type="integer", example=20)
-     *     ),
-     *     @OA\Parameter(
-     *         name="state",
-     *         in="query",
-     *         description="Filter results by state (optional)",
-     *         required=false,
-     *         @OA\Schema(type="string", example="Abia")
-     *     ),
-     *     @OA\Parameter(
-     *         name="lga",
-     *         in="query",
-     *         description="Filter results by Local Government Area (optional)",
-     *         required=false,
-     *         @OA\Schema(type="string", example="Umuahia South")
-     *     ),
-     *     @OA\Parameter(
-     *         name="gender",
-     *         in="query",
-     *         description="Filter learners by gender (M or F)",
-     *         required=false,
-     *         @OA\Schema(type="string", enum={"M", "F"}, example="M")
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="Successful operation",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Success"),
-     *             @OA\Property(property="total_records", type="integer", example=8),
-     *             @OA\Property(
-     *                 property="students",
-     *                 type="array",
-     *                 @OA\Items(
-     *                     type="object",
-     *                     @OA\Property(property="student_id", type="string", example="ST/2024/373336"),
-     *                     @OA\Property(property="surname", type="string", example="Ismail"),
-     *                     @OA\Property(property="middlename", type="string", example="Umar"),
-     *                     @OA\Property(property="firstname", type="string", example="Abdullahi"),
-     *                     @OA\Property(property="dob", type="string", example="2014-02-24"),
-     *                     @OA\Property(property="gender", type="string", example="M"),
-     *                     @OA\Property(property="class", type="string", example="PRI1A"),
-     *                     @OA\Property(property="school_name", type="string", example="Holy Rock Primary School")
-     *                 )
-     *             )
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=400,
-     *         description="Bad Request"
-     *     ),
-     *     @OA\Response(
-     *         response=500,
-     *         description="Internal Server Error"
-     *     )
-     * )
-     */
+/**
+ * @OA\Get(
+ *     path="/api/getLearnersEnrollmentInfoGender",
+ *     summary="Get learners' enrollment information filtered by gender, location, and school",
+ *     description="Fetch active learners filtered by gender, state, LGA, and optionally school ID, with pagination.",
+ *     tags={"Admin"},
+ *    security={{"bearerAuth":{}}},
+ *     @OA\Parameter(
+ *         name="start",
+ *         in="query",
+ *         required=false,
+ *         description="Starting offset for pagination (default 0)",
+ *         @OA\Schema(type="integer", example=0)
+ *     ),
+ *     @OA\Parameter(
+ *         name="count",
+ *         in="query",
+ *         required=false,
+ *         description="Number of records to fetch (default 20)",
+ *         @OA\Schema(type="integer", example=20)
+ *     ),
+ *     @OA\Parameter(
+ *         name="state",
+ *         in="query",
+ *         required=false,
+ *         description="Filter by school state",
+ *         @OA\Schema(type="string", example="Abia")
+ *     ),
+ *     @OA\Parameter(
+ *         name="lga",
+ *         in="query",
+ *         required=false,
+ *         description="Filter by school LGA",
+ *         @OA\Schema(type="string", example="Umuahia")
+ *     ),
+ *     @OA\Parameter(
+ *         name="gender",
+ *         in="query",
+ *         required=false,
+ *         description="Filter by student gender ('M' or 'F')",
+ *         @OA\Schema(type="string", example="M")
+ *     ),
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="query",
+ *         required=false,
+ *         description="Filter by specific school ID",
+ *         @OA\Schema(type="integer", example=13)
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful response with learners' data",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(property="total_records", type="integer", example=117),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     @OA\Property(property="student_id", type="string", example="HGC/2024/1/310"),
+ *                     @OA\Property(property="fname", type="string", example="FAVOUR"),
+ *                     @OA\Property(property="mname", type="string", example="UKAMAKA"),
+ *                     @OA\Property(property="lname", type="string", example="AGBO"),
+ *                     @OA\Property(property="dob", type="string", example="2008-06-19"),
+ *                     @OA\Property(property="gender", type="string", example="M"),
+ *                     @OA\Property(property="student_state", type="string", example="00"),
+ *                     @OA\Property(property="student_lga", type="string", example="15"),
+ *                     @OA\Property(property="school_country", type="string", example="NG"),
+ *                     @OA\Property(property="school_state", type="string", example="Abia"),
+ *                     @OA\Property(property="school_lga", type="string", example="Umuahia"),
+ *                     @OA\Property(property="class_name", type="string", example="SSS 3"),
+ *                     @OA\Property(property="class_arm_name", type="string", example="B"),
+ *                     @OA\Property(property="school_name", type="string", example="HOLY GHOST COLLEGE")
+ *                 )
+ *             )
+ *         )
+ *     )
+ * )
+ */
+public function getLearnersEnrollmentInfoGender(Request $request)
+{
+    $start = $request->input('start', 0);
+    $count = $request->input('count', 20);
+    $state = $request->input('state');
+    $lga   = $request->input('lga');
+    $gender = $request->input('gender');
+    $schid = $request->input('schid'); // ✅ new filter
 
+    // ✅ Build base query
+    $query = DB::table('old_student as os')
+        ->join('student_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
+        ->join('school as sc', 'os.schid', '=', 'sc.sid')
+        ->join('school_web_data as swd', 'sc.sid', '=', 'swd.user_id')
+        ->join('cls as c', 'os.clsm', '=', 'c.id')
+        ->join('sch_cls as scl', 'os.clsa', '=', 'scl.id')
+        ->select(
+            'os.suid as student_id',
+            'os.fname',
+            'os.mname',
+            'os.lname',
+            'sbd.dob',
+            'sbd.sex as gender',
+            'sbd.state as student_state',
+            'sbd.lga as student_lga',
+            'swd.country as school_country',
+            'swd.state as school_state',
+            'swd.lga as school_lga',
+            'c.name as class_name',
+            'scl.name as class_arm_name',
+            'sc.name as school_name'
+        )
+        ->where('os.status', 'active');
 
-    public function getLearnersEnrollmentInfoGender(Request $request)
-    {
-        $start = $request->input('start', 0);
-        $count = $request->input('count', 20);
-        $state = $request->input('state');
-        $lga   = $request->input('lga');
-        $gender = $request->input('gender'); // 'M' or 'F'
-
-        // ✅ Build base query
-        $query = DB::table('old_student as os')
-            ->join('student_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
-            ->join('school as sc', 'os.schid', '=', 'sc.sid')
-            ->join('school_web_data as swd', 'sc.sid', '=', 'swd.user_id')
-            ->join('cls as c', 'os.clsm', '=', 'c.id') // class name
-            ->join('sch_cls as scl', 'os.clsa', '=', 'scl.id') // ✅ join to get class arm name
-            ->select(
-                'os.suid as student_id',
-                'os.fname',
-                'os.mname',
-                'os.lname',
-                'sbd.dob',
-                'sbd.sex as gender',
-                'sbd.state as student_state',
-                'sbd.lga as student_lga',
-                'swd.country as school_country',
-                'swd.state as school_state',
-                'swd.lga as school_lga',
-                'c.name as class_name',
-                'scl.name as class_arm_name', // ✅ new field
-                'sc.name as school_name'
-            )
-            ->where('os.status', 'active');
-
-        // ✅ Apply filters
-        if (!empty($state)) {
-            $query->where('swd.state', $state);
-        }
-
-        if (!empty($lga)) {
-            $query->where('swd.lga', $lga);
-        }
-
-        if (!empty($gender)) {
-            $query->where('sbd.sex', $gender);
-        }
-
-        // ✅ Get total records before pagination
-        $totalRecords = $query->count(DB::raw('DISTINCT os.suid'));
-
-        // ✅ Fetch paginated distinct records
-        $students = $query
-            ->distinct('os.suid')
-            ->orderBy('os.lname', 'asc')
-            ->skip($start)
-            ->take($count)
-            ->get();
-
-        // ✅ Format DOBs
-        foreach ($students as $student) {
-            $dob = null;
-
-            if (!empty($student->dob)) {
-                if (is_numeric($student->dob)) {
-                    try {
-                        $dob = \Carbon\Carbon::createFromTimestamp($student->dob / 1000)->format('Y-m-d');
-                    } catch (\Exception $e) {
-                        $dob = null;
-                    }
-                } else {
-                    try {
-                        $dob = \Carbon\Carbon::parse($student->dob)->format('Y-m-d');
-                    } catch (\Exception $e) {
-                        $dob = null;
-                    }
-                }
-            }
-
-            $student->dob = $dob;
-        }
-
-        // ✅ Return response
-        return response()->json([
-            'status' => true,
-            'message' => 'Success',
-            'total_records' => $totalRecords,
-            'pld' => $students
-        ]);
+    // ✅ Apply filters
+    if (!empty($state)) {
+        $query->where('swd.state', $state);
     }
+
+    if (!empty($lga)) {
+        $query->where('swd.lga', $lga);
+    }
+
+    if (!empty($gender)) {
+        $query->where('sbd.sex', $gender);
+    }
+
+    if (!empty($schid)) {
+        $query->where('os.schid', $schid); // ✅ Only students from that school
+    }
+
+    // ✅ Count before pagination
+    $totalRecords = $query->count(DB::raw('DISTINCT os.suid'));
+
+    // ✅ Fetch paginated data
+    $students = $query
+        ->distinct('os.suid')
+        ->orderBy('os.lname', 'asc')
+        ->skip($start)
+        ->take($count)
+        ->get();
+
+    // ✅ Format DOB
+    foreach ($students as $student) {
+        if (!empty($student->dob)) {
+            try {
+                $student->dob = is_numeric($student->dob)
+                    ? \Carbon\Carbon::createFromTimestamp($student->dob / 1000)->format('Y-m-d')
+                    : \Carbon\Carbon::parse($student->dob)->format('Y-m-d');
+            } catch (\Exception $e) {
+                $student->dob = null;
+            }
+        } else {
+            $student->dob = null;
+        }
+    }
+
+    // ✅ Response
+    return response()->json([
+        'status' => true,
+        'message' => 'Success',
+        'total_records' => $totalRecords,
+        'pld' => $students,
+    ]);
+}
 
 
     /**

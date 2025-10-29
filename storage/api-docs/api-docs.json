@@ -25454,14 +25454,14 @@
                 "tags": [
                     "Admin"
                 ],
-                "summary": "Get learners enrollment information filtered by gender, state, and LGA",
-                "description": "Fetches a paginated list of active learners filtered by gender (M/F), state, and LGA. Includes student details such as name, DOB, gender, class, and school name.",
-                "operationId": "getLearnersEnrollmentInfoGender",
+                "summary": "Get learners' enrollment information filtered by gender, location, and school",
+                "description": "Fetch active learners filtered by gender, state, LGA, and optionally school ID, with pagination.",
+                "operationId": "fff6ba24a665c2b42a64d830ef245d9c",
                 "parameters": [
                     {
                         "name": "start",
                         "in": "query",
-                        "description": "The starting offset for pagination (default: 0)",
+                        "description": "Starting offset for pagination (default 0)",
                         "required": false,
                         "schema": {
                             "type": "integer",
@@ -25471,7 +25471,7 @@
                     {
                         "name": "count",
                         "in": "query",
-                        "description": "The number of records to return (default: 20)",
+                        "description": "Number of records to fetch (default 20)",
                         "required": false,
                         "schema": {
                             "type": "integer",
@@ -25481,7 +25481,7 @@
                     {
                         "name": "state",
                         "in": "query",
-                        "description": "Filter results by state (optional)",
+                        "description": "Filter by school state",
                         "required": false,
                         "schema": {
                             "type": "string",
@@ -25491,31 +25491,37 @@
                     {
                         "name": "lga",
                         "in": "query",
-                        "description": "Filter results by Local Government Area (optional)",
+                        "description": "Filter by school LGA",
                         "required": false,
                         "schema": {
                             "type": "string",
-                            "example": "Umuahia South"
+                            "example": "Umuahia"
                         }
                     },
                     {
                         "name": "gender",
                         "in": "query",
-                        "description": "Filter learners by gender (M or F)",
+                        "description": "Filter by student gender ('M' or 'F')",
                         "required": false,
                         "schema": {
                             "type": "string",
-                            "enum": [
-                                "M",
-                                "F"
-                            ],
                             "example": "M"
+                        }
+                    },
+                    {
+                        "name": "schid",
+                        "in": "query",
+                        "description": "Filter by specific school ID",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 13
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Successful operation",
+                        "description": "Successful response with learners' data",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -25530,43 +25536,67 @@
                                         },
                                         "total_records": {
                                             "type": "integer",
-                                            "example": 8
+                                            "example": 117
                                         },
-                                        "students": {
+                                        "pld": {
                                             "type": "array",
                                             "items": {
                                                 "properties": {
                                                     "student_id": {
                                                         "type": "string",
-                                                        "example": "ST/2024/373336"
+                                                        "example": "HGC/2024/1/310"
                                                     },
-                                                    "surname": {
+                                                    "fname": {
                                                         "type": "string",
-                                                        "example": "Ismail"
+                                                        "example": "FAVOUR"
                                                     },
-                                                    "middlename": {
+                                                    "mname": {
                                                         "type": "string",
-                                                        "example": "Umar"
+                                                        "example": "UKAMAKA"
                                                     },
-                                                    "firstname": {
+                                                    "lname": {
                                                         "type": "string",
-                                                        "example": "Abdullahi"
+                                                        "example": "AGBO"
                                                     },
                                                     "dob": {
                                                         "type": "string",
-                                                        "example": "2014-02-24"
+                                                        "example": "2008-06-19"
                                                     },
                                                     "gender": {
                                                         "type": "string",
                                                         "example": "M"
                                                     },
-                                                    "class": {
+                                                    "student_state": {
                                                         "type": "string",
-                                                        "example": "PRI1A"
+                                                        "example": "00"
+                                                    },
+                                                    "student_lga": {
+                                                        "type": "string",
+                                                        "example": "15"
+                                                    },
+                                                    "school_country": {
+                                                        "type": "string",
+                                                        "example": "NG"
+                                                    },
+                                                    "school_state": {
+                                                        "type": "string",
+                                                        "example": "Abia"
+                                                    },
+                                                    "school_lga": {
+                                                        "type": "string",
+                                                        "example": "Umuahia"
+                                                    },
+                                                    "class_name": {
+                                                        "type": "string",
+                                                        "example": "SSS 3"
+                                                    },
+                                                    "class_arm_name": {
+                                                        "type": "string",
+                                                        "example": "B"
                                                     },
                                                     "school_name": {
                                                         "type": "string",
-                                                        "example": "Holy Rock Primary School"
+                                                        "example": "HOLY GHOST COLLEGE"
                                                     }
                                                 },
                                                 "type": "object"
@@ -25577,12 +25607,6 @@
                                 }
                             }
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request"
-                    },
-                    "500": {
-                        "description": "Internal Server Error"
                     }
                 },
                 "security": [
