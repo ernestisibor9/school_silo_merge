@@ -32946,7 +32946,7 @@ public function getLearnersStaffDetails(Request $request)
      *     summary="Get staff gender details by school, session (ssn), and class (clsm)",
      *     description="Fetches a unique list of active staff filtered by school ID, session (ssn), class (clsm), and gender.",
      *     @OA\Parameter(
-     *         name="schid",
+     *         name="school_id",
      *         in="query",
      *         required=true,
      *         description="The ID of the school (maps to os.schid)",
@@ -33001,7 +33001,7 @@ public function getLearnersStaffDetails(Request $request)
      */
     public function getStaffGenderDetails(Request $request)
     {
-        $schoolId = $request->input('schid');
+        $schoolId = $request->input('school_id');
         $session  = $request->input('ssn'); // academic session
         $class    = $request->input('clsm'); // class ID
         $gender   = $request->input('gender'); // 'M' or 'F'
