@@ -31632,16 +31632,16 @@ public function getLearnersEnrollmentInfoGender(Request $request)
     $gender = $request->input('gender');
     $schid  = $request->input('schid');
 
-    // ✅ Subquery: Get the latest record per student (sid)
+    // ✅ Subquery: get latest unique record for each student by uid
     $latestStudents = DB::table('old_student as os2')
-        ->select(DB::raw('MAX(os2.id) as latest_id'))
+        ->select(DB::raw('MAX(os2.uid) as latest_uid'))
         ->where('os2.status', 'active')
         ->groupBy('os2.sid');
 
-    // ✅ Join only the latest record per student
+    // ✅ Join with main table on latest uid (ensures one record per student)
     $query = DB::table('old_student as os')
         ->joinSub($latestStudents, 'latest', function ($join) {
-            $join->on('os.id', '=', 'latest.latest_id');
+            $join->on('os.uid', '=', 'latest.latest_uid');
         })
         ->join('student_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
         ->join('school as sc', 'os.schid', '=', 'sc.sid')
@@ -31667,10 +31667,10 @@ public function getLearnersEnrollmentInfoGender(Request $request)
         ->where('os.status', 'active');
 
     // ✅ Apply filters dynamically
-    if (!empty($state)) $query->where('swd.state', $state);
-    if (!empty($lga)) $query->where('swd.lga', $lga);
+    if (!empty($state))  $query->where('swd.state', $state);
+    if (!empty($lga))    $query->where('swd.lga', $lga);
     if (!empty($gender)) $query->where('sbd.sex', $gender);
-    if (!empty($schid)) $query->where('os.schid', $schid);
+    if (!empty($schid))  $query->where('os.schid', $schid);
 
     // ✅ Count unique students
     $totalRecords = $query->count();
@@ -31682,7 +31682,7 @@ public function getLearnersEnrollmentInfoGender(Request $request)
         ->take($count)
         ->get();
 
-    // ✅ Format DOB properly
+    // ✅ Format date of birth properly
     foreach ($students as $student) {
         if (!empty($student->dob)) {
             try {
