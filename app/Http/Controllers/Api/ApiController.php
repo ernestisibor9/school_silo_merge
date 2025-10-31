@@ -31632,8 +31632,17 @@ public function getLearnersEnrollmentInfoGender(Request $request)
     $gender = $request->input('gender');
     $schid  = $request->input('schid');
 
-    // ✅ Base query selecting only DISTINCT student IDs (no duplicates)
-    $baseQuery = DB::table('old_student as os')
+    // ✅ Subquery: Get the latest record per student (sid)
+    $latestStudents = DB::table('old_student as os2')
+        ->select(DB::raw('MAX(os2.id) as latest_id'))
+        ->where('os2.status', 'active')
+        ->groupBy('os2.sid');
+
+    // ✅ Join only the latest record per student
+    $query = DB::table('old_student as os')
+        ->joinSub($latestStudents, 'latest', function ($join) {
+            $join->on('os.id', '=', 'latest.latest_id');
+        })
         ->join('student_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
         ->join('school as sc', 'os.schid', '=', 'sc.sid')
         ->join('school_web_data as swd', 'sc.sid', '=', 'swd.user_id')
@@ -31658,36 +31667,22 @@ public function getLearnersEnrollmentInfoGender(Request $request)
         ->where('os.status', 'active');
 
     // ✅ Apply filters dynamically
-    if (!empty($state)) {
-        $baseQuery->where('swd.state', $state);
-    }
+    if (!empty($state)) $query->where('swd.state', $state);
+    if (!empty($lga)) $query->where('swd.lga', $lga);
+    if (!empty($gender)) $query->where('sbd.sex', $gender);
+    if (!empty($schid)) $query->where('os.schid', $schid);
 
-    if (!empty($lga)) {
-        $baseQuery->where('swd.lga', $lga);
-    }
+    // ✅ Count unique students
+    $totalRecords = $query->count();
 
-    if (!empty($gender)) {
-        $baseQuery->where('sbd.sex', $gender);
-    }
-
-    if (!empty($schid)) {
-        $baseQuery->where('os.schid', $schid);
-    }
-
-    // ✅ Group by student ID to avoid duplicates
-    $baseQuery->groupBy('os.sid', 'os.fname', 'os.mname', 'os.lname', 'sbd.dob', 'sbd.sex', 'sbd.state', 'sbd.lga', 'swd.country', 'swd.state', 'swd.lga', 'c.name', 'scl.name', 'sc.name');
-
-    // ✅ Count distinct total students
-    $totalRecords = $baseQuery->get()->count();
-
-    // ✅ Fetch paginated students
-    $students = $baseQuery
+    // ✅ Fetch paginated data
+    $students = $query
         ->orderBy('os.lname', 'asc')
         ->skip($start)
         ->take($count)
         ->get();
 
-    // ✅ Format date of birth properly
+    // ✅ Format DOB properly
     foreach ($students as $student) {
         if (!empty($student->dob)) {
             try {
@@ -31709,6 +31704,7 @@ public function getLearnersEnrollmentInfoGender(Request $request)
         'pld'           => $students,
     ]);
 }
+
 
 
     /**
