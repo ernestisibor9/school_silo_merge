@@ -31625,98 +31625,95 @@ public function getLoggedInUserDetails(Request $request)
  */
 public function getLearnersEnrollmentInfoGender(Request $request)
 {
-    $start  = $request->input('start', 0);
-    $count  = $request->input('count', 20);
-    $state  = $request->input('state');
-    $lga    = $request->input('lga');
-    $gender = $request->input('gender');
-    $schid  = $request->input('schid');
+    try {
+        $start  = $request->input('start', 0);
+        $count  = $request->input('count', 20);
+        $state  = $request->input('state');
+        $lga    = $request->input('lga');
+        $gender = $request->input('gender');
+        $schid  = $request->input('schid');
 
-    // ✅ Step 1: Select only the latest or one record per student (sid)
-    $subQuery = DB::table('old_student as os')
-        ->select(
-            DB::raw('MAX(os.id) as latest_id')
-        )
-        ->where('os.status', 'active')
-        ->groupBy('os.sid');
+        // ✅ Step 1: Select only the latest or one record per student (sid)
+        $subQuery = DB::table('old_student as os2')
+            ->select(DB::raw('MAX(os2.id) as latest_id'))
+            ->where('os2.status', 'active')
+            ->groupBy('os2.sid');
 
-    // ✅ Step 2: Join that subquery to get unique students only
-    $query = DB::table('old_student as os')
-        ->joinSub($subQuery, 'unique_students', function ($join) {
-            $join->on('os.id', '=', 'unique_students.latest_id');
-        })
-        ->join('student_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
-        ->join('school as sc', 'os.schid', '=', 'sc.sid')
-        ->join('school_web_data as swd', 'sc.sid', '=', 'swd.user_id')
-        ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')
-        ->leftJoin('sch_cls as scl', 'os.clsa', '=', 'scl.id')
-        ->select(
-            'os.suid as student_id',
-            'os.sid as sid',
-            'os.fname',
-            'os.mname',
-            'os.lname',
-            'sbd.dob',
-            'sbd.sex as gender',
-            'sbd.state as student_state',
-            'sbd.lga as student_lga',
-            'swd.country as school_country',
-            'swd.state as school_state',
-            'swd.lga as school_lga',
-            'c.name as class_name',
-            'scl.name as class_arm_name',
-            'sc.name as school_name'
-        );
+        // ✅ Step 2: Join subquery properly
+        $query = DB::table('old_student as os')
+            ->join(DB::raw("({$subQuery->toSql()}) as unique_students"), function ($join) {
+                $join->on('os.id', '=', 'unique_students.latest_id');
+            })
+            ->mergeBindings($subQuery) // ⚠️ important for DB::raw() joins
+            ->join('student_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
+            ->join('school as sc', 'os.schid', '=', 'sc.sid')
+            ->join('school_web_data as swd', 'sc.sid', '=', 'swd.user_id')
+            ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')
+            ->leftJoin('sch_cls as scl', 'os.clsa', '=', 'scl.id')
+            ->select(
+                'os.suid as student_id',
+                'os.sid as sid',
+                'os.fname',
+                'os.mname',
+                'os.lname',
+                'sbd.dob',
+                'sbd.sex as gender',
+                'sbd.state as student_state',
+                'sbd.lga as student_lga',
+                'swd.country as school_country',
+                'swd.state as school_state',
+                'swd.lga as school_lga',
+                'c.name as class_name',
+                'scl.name as class_arm_name',
+                'sc.name as school_name'
+            );
 
-    // ✅ Step 3: Apply filters
-    if (!empty($state)) {
-        $query->where('swd.state', $state);
-    }
+        // ✅ Step 3: Apply filters
+        if (!empty($state)) $query->where('swd.state', $state);
+        if (!empty($lga)) $query->where('swd.lga', $lga);
+        if (!empty($gender)) $query->where('sbd.sex', $gender);
+        if (!empty($schid)) $query->where('os.schid', $schid);
 
-    if (!empty($lga)) {
-        $query->where('swd.lga', $lga);
-    }
+        // ✅ Step 4: Count total unique students
+        $totalRecords = $query->count();
 
-    if (!empty($gender)) {
-        $query->where('sbd.sex', $gender);
-    }
+        // ✅ Step 5: Fetch paginated data (still unique)
+        $students = $query
+            ->orderBy('os.lname', 'asc')
+            ->skip($start)
+            ->take($count)
+            ->get();
 
-    if (!empty($schid)) {
-        $query->where('os.schid', $schid);
-    }
-
-    // ✅ Step 4: Count total unique students
-    $totalRecords = $query->count();
-
-    // ✅ Step 5: Fetch paginated data (still unique)
-    $students = $query
-        ->orderBy('os.lname', 'asc')
-        ->skip($start)
-        ->take($count)
-        ->get();
-
-    // ✅ Step 6: Format DOB properly
-    foreach ($students as $student) {
-        if (!empty($student->dob)) {
-            try {
-                $student->dob = is_numeric($student->dob)
-                    ? \Carbon\Carbon::createFromTimestamp($student->dob / 1000)->format('Y-m-d')
-                    : \Carbon\Carbon::parse($student->dob)->format('Y-m-d');
-            } catch (\Exception $e) {
+        // ✅ Step 6: Format DOB properly
+        foreach ($students as $student) {
+            if (!empty($student->dob)) {
+                try {
+                    $student->dob = is_numeric($student->dob)
+                        ? \Carbon\Carbon::createFromTimestamp($student->dob / 1000)->format('Y-m-d')
+                        : \Carbon\Carbon::parse($student->dob)->format('Y-m-d');
+                } catch (\Exception $e) {
+                    $student->dob = null;
+                }
+            } else {
                 $student->dob = null;
             }
-        } else {
-            $student->dob = null;
         }
-    }
 
-    // ✅ Step 7: Return JSON
-    return response()->json([
-        'status'        => true,
-        'message'       => 'Success',
-        'total_records' => $totalRecords,
-        'pld'           => $students,
-    ]);
+        // ✅ Step 7: Return JSON
+        return response()->json([
+            'status'        => true,
+            'message'       => 'Success',
+            'total_records' => $totalRecords,
+            'pld'           => $students,
+        ]);
+    } catch (\Exception $e) {
+        //  Debugging output for you
+        return response()->json([
+            'status' => false,
+            'message' => 'Server Error',
+            'error' => $e->getMessage(), // 🔍 See actual SQL or PHP error
+        ], 500);
+    }
 }
 
 
