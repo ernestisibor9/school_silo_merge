@@ -31632,7 +31632,7 @@ public function getLearnersEnrollmentInfoGender(Request $request)
     $gender = $request->input('gender');
     $schid  = $request->input('schid');
 
-    // ✅ Base query selecting only distinct student IDs
+    // ✅ Base query selecting only DISTINCT student IDs (no duplicates)
     $baseQuery = DB::table('old_student as os')
         ->join('student_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
         ->join('school as sc', 'os.schid', '=', 'sc.sid')
@@ -31640,7 +31640,7 @@ public function getLearnersEnrollmentInfoGender(Request $request)
         ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')
         ->leftJoin('sch_cls as scl', 'os.clsa', '=', 'scl.id')
         ->select(
-            'os.suid as student_id',
+            'os.sid as student_id',
             'os.fname',
             'os.mname',
             'os.lname',
@@ -31674,21 +31674,20 @@ public function getLearnersEnrollmentInfoGender(Request $request)
         $baseQuery->where('os.schid', $schid);
     }
 
-    // ✅ Use subquery to count DISTINCT students properly
-    $totalRecords = DB::table(DB::raw("({$baseQuery->toSql()}) as sub"))
-        ->mergeBindings($baseQuery)
-        ->distinct('student_id')
-        ->count('student_id');
+    // ✅ Group by student ID to avoid duplicates
+    $baseQuery->groupBy('os.sid', 'os.fname', 'os.mname', 'os.lname', 'sbd.dob', 'sbd.sex', 'sbd.state', 'sbd.lga', 'swd.country', 'swd.state', 'swd.lga', 'c.name', 'scl.name', 'sc.name');
 
-    // ✅ Now fetch distinct student records with pagination
+    // ✅ Count distinct total students
+    $totalRecords = $baseQuery->get()->count();
+
+    // ✅ Fetch paginated students
     $students = $baseQuery
-        ->distinct('os.suid')
         ->orderBy('os.lname', 'asc')
         ->skip($start)
         ->take($count)
         ->get();
 
-    // ✅ Format date of birth cleanly
+    // ✅ Format date of birth properly
     foreach ($students as $student) {
         if (!empty($student->dob)) {
             try {
