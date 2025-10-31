@@ -31632,15 +31632,27 @@ public function getLearnersEnrollmentInfoGender(Request $request)
     $gender = $request->input('gender');
     $schid  = $request->input('schid');
 
-    // ✅ Base query selecting only DISTINCT student IDs (no duplicates)
-    $baseQuery = DB::table('old_student as os')
+    // ✅ Step 1: Select only the latest or one record per student (sid)
+    $subQuery = DB::table('old_student as os')
+        ->select(
+            DB::raw('MAX(os.id) as latest_id')
+        )
+        ->where('os.status', 'active')
+        ->groupBy('os.sid');
+
+    // ✅ Step 2: Join that subquery to get unique students only
+    $query = DB::table('old_student as os')
+        ->joinSub($subQuery, 'unique_students', function ($join) {
+            $join->on('os.id', '=', 'unique_students.latest_id');
+        })
         ->join('student_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
         ->join('school as sc', 'os.schid', '=', 'sc.sid')
         ->join('school_web_data as swd', 'sc.sid', '=', 'swd.user_id')
         ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')
         ->leftJoin('sch_cls as scl', 'os.clsa', '=', 'scl.id')
         ->select(
-            'os.sid as student_id',
+            'os.suid as student_id',
+            'os.sid as sid',
             'os.fname',
             'os.mname',
             'os.lname',
@@ -31654,40 +31666,36 @@ public function getLearnersEnrollmentInfoGender(Request $request)
             'c.name as class_name',
             'scl.name as class_arm_name',
             'sc.name as school_name'
-        )
-        ->where('os.status', 'active');
+        );
 
-    // ✅ Apply filters dynamically
+    // ✅ Step 3: Apply filters
     if (!empty($state)) {
-        $baseQuery->where('swd.state', $state);
+        $query->where('swd.state', $state);
     }
 
     if (!empty($lga)) {
-        $baseQuery->where('swd.lga', $lga);
+        $query->where('swd.lga', $lga);
     }
 
     if (!empty($gender)) {
-        $baseQuery->where('sbd.sex', $gender);
+        $query->where('sbd.sex', $gender);
     }
 
     if (!empty($schid)) {
-        $baseQuery->where('os.schid', $schid);
+        $query->where('os.schid', $schid);
     }
 
-    // ✅ Group by student ID to avoid duplicates
-    $baseQuery->groupBy('os.sid', 'os.fname', 'os.mname', 'os.lname', 'sbd.dob', 'sbd.sex', 'sbd.state', 'sbd.lga', 'swd.country', 'swd.state', 'swd.lga', 'c.name', 'scl.name', 'sc.name');
+    // ✅ Step 4: Count total unique students
+    $totalRecords = $query->count();
 
-    // ✅ Count distinct total students
-    $totalRecords = $baseQuery->get()->count();
-
-    // ✅ Fetch paginated students
-    $students = $baseQuery
+    // ✅ Step 5: Fetch paginated data (still unique)
+    $students = $query
         ->orderBy('os.lname', 'asc')
         ->skip($start)
         ->take($count)
         ->get();
 
-    // ✅ Format date of birth properly
+    // ✅ Step 6: Format DOB properly
     foreach ($students as $student) {
         if (!empty($student->dob)) {
             try {
@@ -31702,6 +31710,7 @@ public function getLearnersEnrollmentInfoGender(Request $request)
         }
     }
 
+    // ✅ Step 7: Return JSON
     return response()->json([
         'status'        => true,
         'message'       => 'Success',
