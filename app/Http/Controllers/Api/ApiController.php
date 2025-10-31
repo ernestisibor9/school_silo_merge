@@ -31625,20 +31625,20 @@ public function getLoggedInUserDetails(Request $request)
  */
 public function getLearnersEnrollmentInfoGender(Request $request)
 {
-    $start = $request->input('start', 0);
-    $count = $request->input('count', 20);
-    $state = $request->input('state');
-    $lga   = $request->input('lga');
+    $start  = $request->input('start', 0);
+    $count  = $request->input('count', 20);
+    $state  = $request->input('state');
+    $lga    = $request->input('lga');
     $gender = $request->input('gender');
-    $schid = $request->input('schid'); // ✅ new filter
+    $schid  = $request->input('schid');
 
-    // ✅ Build base query
-    $query = DB::table('old_student as os')
+    // ✅ Base query selecting only distinct student IDs
+    $baseQuery = DB::table('old_student as os')
         ->join('student_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
         ->join('school as sc', 'os.schid', '=', 'sc.sid')
         ->join('school_web_data as swd', 'sc.sid', '=', 'swd.user_id')
-        ->join('cls as c', 'os.clsm', '=', 'c.id')
-        ->join('sch_cls as scl', 'os.clsa', '=', 'scl.id')
+        ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')
+        ->leftJoin('sch_cls as scl', 'os.clsa', '=', 'scl.id')
         ->select(
             'os.suid as student_id',
             'os.fname',
@@ -31657,35 +31657,38 @@ public function getLearnersEnrollmentInfoGender(Request $request)
         )
         ->where('os.status', 'active');
 
-    // ✅ Apply filters
+    // ✅ Apply filters dynamically
     if (!empty($state)) {
-        $query->where('swd.state', $state);
+        $baseQuery->where('swd.state', $state);
     }
 
     if (!empty($lga)) {
-        $query->where('swd.lga', $lga);
+        $baseQuery->where('swd.lga', $lga);
     }
 
     if (!empty($gender)) {
-        $query->where('sbd.sex', $gender);
+        $baseQuery->where('sbd.sex', $gender);
     }
 
     if (!empty($schid)) {
-        $query->where('os.schid', $schid); // ✅ Only students from that school
+        $baseQuery->where('os.schid', $schid);
     }
 
-    // ✅ Count before pagination
-    $totalRecords = $query->count(DB::raw('DISTINCT os.suid'));
+    // ✅ Use subquery to count DISTINCT students properly
+    $totalRecords = DB::table(DB::raw("({$baseQuery->toSql()}) as sub"))
+        ->mergeBindings($baseQuery)
+        ->distinct('student_id')
+        ->count('student_id');
 
-    // ✅ Fetch paginated data
-    $students = $query
+    // ✅ Now fetch distinct student records with pagination
+    $students = $baseQuery
         ->distinct('os.suid')
         ->orderBy('os.lname', 'asc')
         ->skip($start)
         ->take($count)
         ->get();
 
-    // ✅ Format DOB
+    // ✅ Format date of birth cleanly
     foreach ($students as $student) {
         if (!empty($student->dob)) {
             try {
@@ -31700,12 +31703,11 @@ public function getLearnersEnrollmentInfoGender(Request $request)
         }
     }
 
-    // ✅ Response
     return response()->json([
-        'status' => true,
-        'message' => 'Success',
+        'status'        => true,
+        'message'       => 'Success',
         'total_records' => $totalRecords,
-        'pld' => $students,
+        'pld'           => $students,
     ]);
 }
 
