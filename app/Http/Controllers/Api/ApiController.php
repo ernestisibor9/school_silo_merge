@@ -12973,67 +12973,152 @@ public function getStaffClasses($stid)
      *     )
      * )
      */
+    // public function getSubAccount($acctid)
+    // {
+    //     // Fetch the existing subaccount linked to the account
+    //     $subaccount = sub_account::where('acct_id', $acctid)->first();
+
+    //     if (!$subaccount) {
+    //         // Step 1: Check if the account exists
+    //         $account = accts::where('id', $acctid)->first();
+
+    //         if (!$account) {
+    //             return response()->json([
+    //                 "status" => false,
+    //                 "message" => "Account not found",
+    //             ], 404);
+    //         }
+
+    //         // Step 2: Generate unique business name
+    //         $business_name = "Business_" . uniqid();
+
+    //         // Step 3: Prepare subaccount data for Paystack
+    //         $percentage_charge = 0;
+    //         $subaccountData = [
+    //             'business_name' => $business_name,
+    //             'account_number' => $request->anum ?? $account->anum,
+    //             'bank_code' => $request->bnk ?? $account->bnk,
+    //             'percentage_charge' => $percentage_charge,
+    //             'settlement_bank' => $request->settlement_bank ?? $account->bnk,
+    //         ];
+
+    //         // Step 4: Create Paystack subaccount
+    //         $response = Http::withHeaders([
+    //             'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
+    //             'Content-Type' => 'application/json',
+    //         ])->post('https://api.paystack.co/subaccount', $subaccountData);
+
+    //         if ($response->successful()) {
+    //             $data = $response->json();
+
+    //             // Step 5: Store subaccount details in the database
+    //             $subaccount = sub_account::create([
+    //                 'acct_id' => $account->id,
+    //                 'schid' => $account->schid ?? null,
+    //                 'clsid' => $account->clsid ?? null,
+    //                 'subaccount_code' => $data['data']['subaccount_code'],
+    //                 'percentage_charge' => $percentage_charge,
+    //             ]);
+    //         } else {
+    //             return response()->json([
+    //                 "status" => false,
+    //                 "message" => "Failed to create subaccount",
+    //                 "error" => $response->json()['message'] ?? 'Unknown error',
+    //             ], 400);
+    //         }
+    //     }
+
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Subaccount retrieved successfully",
+    //         "subaccount" => $subaccount,
+    //     ]);
+    // }
+
+
     public function getSubAccount($acctid)
-    {
-        // Fetch the existing subaccount linked to the account
-        $subaccount = sub_account::where('acct_id', $acctid)->first();
+{
+    // Step 1: Fetch the existing subaccount linked to the account
+    $subaccount = sub_account::where('acct_id', $acctid)->first();
 
-        if (!$subaccount) {
-            // Step 1: Check if the account exists
-            $account = accts::where('id', $acctid)->first();
+    if (!$subaccount) {
+        // Step 2: Check if the account exists
+        $account = accts::where('id', $acctid)->first();
 
-            if (!$account) {
-                return response()->json([
-                    "status" => false,
-                    "message" => "Account not found",
-                ], 404);
-            }
-
-            // Step 2: Generate unique business name
-            $business_name = "Business_" . uniqid();
-
-            // Step 3: Prepare subaccount data for Paystack
-            $percentage_charge = 0;
-            $subaccountData = [
-                'business_name' => $business_name,
-                'account_number' => $request->anum ?? $account->anum,
-                'bank_code' => $request->bnk ?? $account->bnk,
-                'percentage_charge' => $percentage_charge,
-                'settlement_bank' => $request->settlement_bank ?? $account->bnk,
-            ];
-
-            // Step 4: Create Paystack subaccount
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
-                'Content-Type' => 'application/json',
-            ])->post('https://api.paystack.co/subaccount', $subaccountData);
-
-            if ($response->successful()) {
-                $data = $response->json();
-
-                // Step 5: Store subaccount details in the database
-                $subaccount = sub_account::create([
-                    'acct_id' => $account->id,
-                    'schid' => $account->schid ?? null,
-                    'clsid' => $account->clsid ?? null,
-                    'subaccount_code' => $data['data']['subaccount_code'],
-                    'percentage_charge' => $percentage_charge,
-                ]);
-            } else {
-                return response()->json([
-                    "status" => false,
-                    "message" => "Failed to create subaccount",
-                    "error" => $response->json()['message'] ?? 'Unknown error',
-                ], 400);
-            }
+        if (!$account) {
+            return response()->json([
+                "status" => false,
+                "message" => "Account not found",
+            ], 404);
         }
 
-        return response()->json([
-            "status" => true,
-            "message" => "Subaccount retrieved successfully",
-            "subaccount" => $subaccount,
-        ]);
+        // Step 3: Generate unique business name
+        $business_name = "Business_" . uniqid();
+
+        // Step 4: Prepare subaccount data for Paystack
+        $percentage_charge = 0;
+        $subaccountData = [
+            'business_name' => $business_name,
+            'account_number' => $account->anum,
+            'bank_code' => $account->bnk,
+            'percentage_charge' => $percentage_charge,
+            'settlement_bank' => $account->bnk,
+        ];
+
+        // Step 5: Create Paystack subaccount
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
+            'Content-Type' => 'application/json',
+        ])->post('https://api.paystack.co/subaccount', $subaccountData);
+
+        if ($response->successful()) {
+            $data = $response->json();
+
+            // Step 6: Store subaccount details in the database
+            $subaccount = sub_account::create([
+                'acct_id' => $account->id,
+                'schid' => $account->schid,
+                'clsid' => $account->clsid,
+                'subaccount_code' => $data['data']['subaccount_code'],
+                'percentage_charge' => $percentage_charge,
+            ]);
+        } else {
+            return response()->json([
+                "status" => false,
+                "message" => "Failed to create subaccount",
+                "error" => $response->json()['message'] ?? 'Unknown error',
+            ], 400);
+        }
     }
+
+    // Step 7: Fetch related data (account and class)
+    $account = accts::find($subaccount->acct_id);
+    $class = DB::table('cls')->where('id', $subaccount->clsid)->first();
+
+    // Step 8: Combine all data
+    $responseData = [
+        "id" => $subaccount->id,
+        "acct_id" => $subaccount->acct_id,
+        "schid" => $subaccount->schid,
+        "clsid" => $subaccount->clsid,
+        "subaccount_code" => $subaccount->subaccount_code,
+        "percentage_charge" => $subaccount->percentage_charge,
+        "pay_head_id" => $subaccount->pay_head_id,
+        "account_name" => $account->aname ?? null,
+        "account_number" => $account->anum ?? null,
+        "class_name" => $class->name ?? null,
+        "created_at" => $subaccount->created_at,
+        "updated_at" => $subaccount->updated_at,
+    ];
+
+    // Step 9: Return the response
+    return response()->json([
+        "status" => true,
+        "message" => "Subaccount retrieved successfully",
+        "subaccount" => $responseData,
+    ]);
+}
+
 
 
 
