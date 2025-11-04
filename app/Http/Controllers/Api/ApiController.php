@@ -13107,6 +13107,7 @@ public function getStaffClasses($stid)
         "account_name" => $account->aname ?? null,
         "account_number" => $account->anum ?? null,
         "class_name" => $class->name ?? null,
+        "bank_id" => $account->bnk ?? null,
         "created_at" => $subaccount->created_at,
         "updated_at" => $subaccount->updated_at,
     ];
