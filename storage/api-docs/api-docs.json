@@ -2564,37 +2564,59 @@
                 ]
             }
         },
-        "/api/deleteStudentSubject/{uid}/{sbj}": {
+        "/api/deleteStudentSubject/{uid}/{sbj}/{ssn}/{trm}": {
             "delete": {
                 "tags": [
                     "Api"
                 ],
-                "summary": "Delete a student's subject if the score is 0",
-                "description": "Deletes a subject assigned to a student if the score is exactly 0. If the subject has a score greater than 0, deletion is not allowed.",
+                "summary": "Delete a student's subject if the score is 0 or null",
+                "description": "Deletes a subject assigned to a student only if all related scores are 0 or null. If the subject has scores greater than 0, deletion is not allowed.",
                 "operationId": "deleteStudentSubject",
                 "parameters": [
                     {
                         "name": "uid",
                         "in": "path",
-                        "description": "The unique ID of the student-subject association",
+                        "description": "Unique user ID of the student",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "example": "STU123"
                         }
                     },
                     {
                         "name": "sbj",
                         "in": "path",
-                        "description": "The subject code or name assigned to the student",
+                        "description": "Subject code or name to be deleted",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "example": "ENG101"
+                        }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "path",
+                        "description": "Academic session for the subject (e.g., 2024/2025)",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "2025"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "path",
+                        "description": "Term for the subject (e.g., 1st, 2nd, 3rd)",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "1"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Subject deleted successfully",
+                        "description": "Subject and related zero/null scores deleted successfully.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2605,7 +2627,7 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "Subject deleted successfully"
+                                            "example": "Subject and related zero/null scores deleted successfully."
                                         }
                                     },
                                     "type": "object"
@@ -2614,7 +2636,7 @@
                         }
                     },
                     "404": {
-                        "description": "Subject not found",
+                        "description": "Subject not found.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2634,7 +2656,7 @@
                         }
                     },
                     "400": {
-                        "description": "Cannot delete subject due to score conditions",
+                        "description": "Cannot delete subject because it has scores greater than 0.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2645,7 +2667,7 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "Cannot delete subject. It has existing scores greater than 0."
+                                            "example": "Cannot delete subject. It has scores greater than 0."
                                         }
                                     },
                                     "type": "object"

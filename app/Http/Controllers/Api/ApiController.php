@@ -3015,54 +3015,72 @@ public function getStudentSubjects($stid)
 
 
 
-    /**
-     * @OA\Delete(
-     *     path="/api/deleteStudentSubject/{uid}/{sbj}",
-     *     summary="Delete a student's subject if the score is 0",
-     *     description="Deletes a subject assigned to a student if the score is exactly 0. If the subject has a score greater than 0, deletion is not allowed.",
-     *     operationId="deleteStudentSubject",
-     *      security={{"bearerAuth": {}}},
-     *     tags={"Api"},
-     *     @OA\Parameter(
-     *         name="uid",
-     *         in="path",
-     *         required=true,
-     *         description="The unique ID of the student-subject association",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="sbj",
-     *         in="path",
-     *         required=true,
-     *         description="The subject code or name assigned to the student",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Subject deleted successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Subject deleted successfully")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Subject not found",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Subject not found.")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=400,
-     *         description="Cannot delete subject due to score conditions",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Cannot delete subject. It has existing scores greater than 0.")
-     *         )
-     *     )
-     * )
-     */
+/**
+ * @OA\Delete(
+ *     path="/api/deleteStudentSubject/{uid}/{sbj}/{ssn}/{trm}",
+ *     summary="Delete a student's subject if the score is 0 or null",
+ *     description="Deletes a subject assigned to a student only if all related scores are 0 or null. If the subject has scores greater than 0, deletion is not allowed.",
+ *     operationId="deleteStudentSubject",
+ *     tags={"Api"},
+ *     security={{"bearerAuth": {}}},
+ *
+ *     @OA\Parameter(
+ *         name="uid",
+ *         in="path",
+ *         required=true,
+ *         description="Unique user ID of the student",
+ *         @OA\Schema(type="string", example="STU123")
+ *     ),
+ *     @OA\Parameter(
+ *         name="sbj",
+ *         in="path",
+ *         required=true,
+ *         description="Subject code or name to be deleted",
+ *         @OA\Schema(type="string", example="ENG101")
+ *     ),
+ *     @OA\Parameter(
+ *         name="ssn",
+ *         in="path",
+ *         required=true,
+ *         description="Academic session for the subject (e.g., 2024/2025)",
+ *         @OA\Schema(type="string", example="2025")
+ *     ),
+ *     @OA\Parameter(
+ *         name="trm",
+ *         in="path",
+ *         required=true,
+ *         description="Term for the subject (e.g., 1st, 2nd, 3rd)",
+ *         @OA\Schema(type="string", example="1")
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Subject and related zero/null scores deleted successfully.",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Subject and related zero/null scores deleted successfully.")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="Subject not found.",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="Subject not found.")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=400,
+ *         description="Cannot delete subject because it has scores greater than 0.",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="Cannot delete subject. It has scores greater than 0.")
+ *         )
+ *     )
+ * )
+ */
+
+
     // public function deleteStudentSubject($uid, $sbj)
     // {
     //     // Retrieve the specific subject assigned to the student
@@ -3154,7 +3172,7 @@ public function getStudentSubjects($stid)
 
     return response()->json([
         "status" => true,
-        "message" => "Subject and related zero/null scores deleted successfully."
+        "message" => "Subject deleted successfully."
     ]);
 }
 
