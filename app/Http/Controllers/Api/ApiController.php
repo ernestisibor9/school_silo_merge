@@ -3063,48 +3063,100 @@ public function getStudentSubjects($stid)
      *     )
      * )
      */
-    public function deleteStudentSubject($uid, $sbj)
-    {
-        // Retrieve the specific subject assigned to the student
-        $subject = student_subj::where('uid', $uid)->where('sbj', $sbj)->first();
+    // public function deleteStudentSubject($uid, $sbj)
+    // {
+    //     // Retrieve the specific subject assigned to the student
+    //     $subject = student_subj::where('uid', $uid)->where('sbj', $sbj)->first();
 
-        if (!$subject) {
-            return response()->json([
-                "status" => false,
-                "message" => "Subject not found."
-            ], 404);
-        }
+    //     if (!$subject) {
+    //         return response()->json([
+    //             "status" => false,
+    //             "message" => "Subject not found."
+    //         ], 404);
+    //     }
 
-        // Check if the subject has any score that is NOT zero or null
-        $hasValidScores = std_score::where('stid', $subject->stid)
-            ->where('sbj', $sbj)
-            ->where(function ($query) {
-                $query->where('scr', '>', 0);
-            })
-            ->exists();
+    //     // Check if the subject has any score that is NOT zero or null
+    //     $hasValidScores = std_score::where('stid', $subject->stid)
+    //         ->where('sbj', $sbj)
+    //         ->where(function ($query) {
+    //             $query->where('scr', '>', 0);
+    //         })
+    //         ->exists();
 
-        if ($hasValidScores) {
-            return response()->json([
-                "status" => false,
-                "message" => "Cannot delete subject. It has scores greater than 0."
-            ], 400);
-        }
+    //     if ($hasValidScores) {
+    //         return response()->json([
+    //             "status" => false,
+    //             "message" => "Cannot delete subject. It has scores greater than 0."
+    //         ], 400);
+    //     }
 
-        // Delete the student subject and any zero or null scores
-        std_score::where('stid', $subject->stid)
-            ->where('sbj', $sbj)
-            ->where(function ($query) {
-                $query->whereNull('scr')
-                    ->orWhere('scr', '=', 0);
-            })->delete();
+    //     // Delete the student subject and any zero or null scores
+    //     std_score::where('stid', $subject->stid)
+    //         ->where('sbj', $sbj)
+    //         ->where(function ($query) {
+    //             $query->whereNull('scr')
+    //                 ->orWhere('scr', '=', 0);
+    //         })->delete();
 
-        $subject->delete();
+    //     $subject->delete();
 
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Subject and related zero/null scores deleted successfully."
+    //     ]);
+    // }
+
+    public function deleteStudentSubject($uid, $sbj, $ssn, $trm)
+{
+    // Retrieve the specific subject assigned to the student
+    $subject = student_subj::where('uid', $uid)
+        ->where('sbj', $sbj)
+        ->where('ssn', $ssn)
+        ->where('trm', $trm)
+        ->first();
+
+    if (!$subject) {
         return response()->json([
-            "status" => true,
-            "message" => "Subject and related zero/null scores deleted successfully."
-        ]);
+            "status" => false,
+            "message" => "Subject not found."
+        ], 404);
     }
+
+    // Check if the subject has any score that is NOT zero or null
+    $hasValidScores = std_score::where('stid', $subject->stid)
+        ->where('sbj', $sbj)
+        ->where('ssn', $ssn)
+        ->where('trm', $trm)
+        ->where(function ($query) {
+            $query->where('scr', '>', 0);
+        })
+        ->exists();
+
+    if ($hasValidScores) {
+        return response()->json([
+            "status" => false,
+            "message" => "Cannot delete subject. It has scores greater than 0."
+        ], 400);
+    }
+
+    // Delete the student subject and any zero or null scores
+    std_score::where('stid', $subject->stid)
+        ->where('sbj', $sbj)
+        ->where('ssn', $ssn)
+        ->where('trm', $trm)
+        ->where(function ($query) {
+            $query->whereNull('scr')
+                ->orWhere('scr', '=', 0);
+        })
+        ->delete();
+
+    $subject->delete();
+
+    return response()->json([
+        "status" => true,
+        "message" => "Subject and related zero/null scores deleted successfully."
+    ]);
+}
 
 
 
@@ -12660,91 +12712,191 @@ public function getStaffClasses($stid)
 
 
 
+    // public function setAcct(Request $request)
+    // {
+    //     $request->validate([
+    //         'schid' => 'required',
+    //         'clsid' => 'required',
+    //         'anum' => 'required',
+    //         'bnk'  => 'required',
+    //         'aname' => 'required',
+    //         'pay_head_id'  => 'nullable',
+    //     ]);
+
+    //     $data = [
+    //         'schid' => $request->schid,
+    //         'clsid' => $request->clsid,
+    //         'anum' => $request->anum,
+    //         'bnk' => $request->bnk,
+    //         'aname' => $request->aname,
+    //         'pay_head_id' => $request->pay_head_id ?? null,
+    //     ];
+
+    //     if ($request->has('id')) {
+    //         $acct = accts::find($request->id);
+    //         if ($acct) {
+    //             $acct->update($data);
+    //             return response()->json([
+    //                 "status" => true,
+    //                 "message" => "Account Updated",
+    //             ]);
+    //         } else {
+    //             return response()->json([
+    //                 "status" => false,
+    //                 "message" => "Account Not Found",
+    //             ], 404);
+    //         }
+    //     } else {
+    //         $acct = accts::create($data);
+
+    //         // Automatically generate Paystack-required fields
+    //         $business_name = "Business_" . uniqid(); // Generate a unique business name
+    //         $percentage_charge = 0; // Default percentage charge
+    //         $settlement_bank = $request->bnk; // Use the bank user provided
+
+    //         // Step 1: Create Paystack subaccount
+    //         $response = Http::withHeaders([
+    //             'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
+    //             'Content-Type' => 'application/json',
+    //         ])->post('https://api.paystack.co/subaccount', [
+    //             'business_name' => $business_name,
+    //             'account_number' => $request->anum,
+    //             'bank_code' => $request->bnk,
+    //             'percentage_charge' => $percentage_charge,
+    //             'settlement_bank' => $settlement_bank,
+    //         ]);
+
+    //         if ($response->successful()) {
+    //             $data = $response->json();
+
+    //             // Step 2: Store subaccount details in the database
+    //             sub_account::create([
+    //                 'acct_id' => $acct->id,
+    //                 'schid' => $request->schid,
+    //                 'clsid' => $request->clsid,
+    //                 'pay_head_id' => $request->pay_head_id ?? null,
+    //                 'subaccount_code' => $data['data']['subaccount_code'],
+    //                 'percentage_charge' => $percentage_charge,
+    //             ]);
+
+    //             return response()->json([
+    //                 "status" => true,
+    //                 "message" => "Account and Paystack Subaccount Created Successfully",
+    //                 "paystack_data" => $data,
+    //             ]);
+    //         } else {
+    //             // Delete the main account if Paystack subaccount creation fails
+    //             $acct->delete();
+
+    //             return response()->json([
+    //                 "status" => false,
+    //                 "message" => "Failed to Create Paystack Subaccount",
+    //                 "error" => $response->body(),
+    //             ], 400);
+    //         }
+    //     }
+    // }
+
+
+
     public function setAcct(Request $request)
-    {
-        $request->validate([
-            'schid' => 'required',
-            'clsid' => 'required',
-            'anum' => 'required',
-            'bnk'  => 'required',
-            'aname' => 'required',
-            'pay_head_id'  => 'nullable',
-        ]);
+{
+    $request->validate([
+        'schid' => 'required',
+        'clsid' => 'required',
+        'anum' => 'required',
+        'bnk'  => 'required',
+        'aname' => 'required',
+        'pay_head_id'  => 'nullable',
+    ]);
 
-        $data = [
-            'schid' => $request->schid,
-            'clsid' => $request->clsid,
-            'anum' => $request->anum,
-            'bnk' => $request->bnk,
-            'aname' => $request->aname,
-            'pay_head_id' => $request->pay_head_id ?? null,
-        ];
+    $data = [
+        'schid' => $request->schid,
+        'clsid' => $request->clsid,
+        'anum' => $request->anum,
+        'bnk' => $request->bnk,
+        'aname' => $request->aname,
+        'pay_head_id' => $request->pay_head_id ?? null,
+    ];
 
-        if ($request->has('id')) {
-            $acct = accts::find($request->id);
-            if ($acct) {
-                $acct->update($data);
-                return response()->json([
-                    "status" => true,
-                    "message" => "Account Updated",
-                ]);
-            } else {
-                return response()->json([
-                    "status" => false,
-                    "message" => "Account Not Found",
-                ], 404);
-            }
-        } else {
-            $acct = accts::create($data);
-
-            // Automatically generate Paystack-required fields
-            $business_name = "Business_" . uniqid(); // Generate a unique business name
-            $percentage_charge = 0; // Default percentage charge
-            $settlement_bank = $request->bnk; // Use the bank user provided
-
-            // Step 1: Create Paystack subaccount
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
-                'Content-Type' => 'application/json',
-            ])->post('https://api.paystack.co/subaccount', [
-                'business_name' => $business_name,
-                'account_number' => $request->anum,
-                'bank_code' => $request->bnk,
-                'percentage_charge' => $percentage_charge,
-                'settlement_bank' => $settlement_bank,
+    // ✅ If updating existing account
+    if ($request->has('id')) {
+        $acct = accts::find($request->id);
+        if ($acct) {
+            $acct->update($data);
+            return response()->json([
+                "status" => true,
+                "message" => "Account Updated",
             ]);
-
-            if ($response->successful()) {
-                $data = $response->json();
-
-                // Step 2: Store subaccount details in the database
-                sub_account::create([
-                    'acct_id' => $acct->id,
-                    'schid' => $request->schid,
-                    'clsid' => $request->clsid,
-                    'pay_head_id' => $request->pay_head_id ?? null,
-                    'subaccount_code' => $data['data']['subaccount_code'],
-                    'percentage_charge' => $percentage_charge,
-                ]);
-
-                return response()->json([
-                    "status" => true,
-                    "message" => "Account and Paystack Subaccount Created Successfully",
-                    "paystack_data" => $data,
-                ]);
-            } else {
-                // Delete the main account if Paystack subaccount creation fails
-                $acct->delete();
-
-                return response()->json([
-                    "status" => false,
-                    "message" => "Failed to Create Paystack Subaccount",
-                    "error" => $response->body(),
-                ], 400);
-            }
+        } else {
+            return response()->json([
+                "status" => false,
+                "message" => "Account Not Found",
+            ], 404);
         }
     }
 
+    // ✅ Check if this schid & clsid already has a subaccount
+    $existingSubAcct = sub_account::where('schid', $request->schid)
+        ->where('clsid', $request->clsid)
+        ->first();
+
+    if ($existingSubAcct) {
+        return response()->json([
+            "status" => false,
+            "message" => "A subaccount already exists for this school and class.",
+        ], 409);
+    }
+
+    // ✅ Create main account
+    $acct = accts::create($data);
+
+    // Generate Paystack-required fields
+    $business_name = "Business_" . uniqid();
+    $percentage_charge = 0;
+    $settlement_bank = $request->bnk;
+
+    // ✅ Step 1: Create Paystack subaccount
+    $response = Http::withHeaders([
+        'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
+        'Content-Type' => 'application/json',
+    ])->post('https://api.paystack.co/subaccount', [
+        'business_name' => $business_name,
+        'account_number' => $request->anum,
+        'bank_code' => $request->bnk,
+        'percentage_charge' => $percentage_charge,
+        'settlement_bank' => $settlement_bank,
+    ]);
+
+    if ($response->successful()) {
+        $data = $response->json();
+
+        // ✅ Step 2: Store subaccount details
+        sub_account::create([
+            'acct_id' => $acct->id,
+            'schid' => $request->schid,
+            'clsid' => $request->clsid,
+            'pay_head_id' => $request->pay_head_id ?? null,
+            'subaccount_code' => $data['data']['subaccount_code'],
+            'percentage_charge' => $percentage_charge,
+        ]);
+
+        return response()->json([
+            "status" => true,
+            "message" => "Account and Paystack Subaccount Created Successfully",
+            "paystack_data" => $data,
+        ]);
+    } else {
+        // Rollback main account creation if Paystack fails
+        $acct->delete();
+
+        return response()->json([
+            "status" => false,
+            "message" => "Failed to Create Paystack Subaccount",
+            "error" => $response->body(),
+        ], 400);
+    }
+}
 
 
 

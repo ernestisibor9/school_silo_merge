@@ -262,8 +262,8 @@ Route::group([
     Route::get('getStaffProfInfo/{uid}', [ApiController::class, 'getStaffProfInfo']);
     Route::get('getSchoolGradeInfo/{uid}', [ApiController::class, 'getSchoolGradeInfo']);
     Route::get('getStudentSubjects/{stid}', [ApiController::class, 'getStudentSubjects']);
-    Route::delete('deleteStudentSubject/{uid}/{sbj}', [ApiController::class, 'deleteStudentSubject']);
-    Route::delete('deleteStudentSubject/{uid}/{sbj}/{term}', [ApiController::class, 'deleteStudentSubject']);
+    Route::delete('deleteStudentSubject/{uid}/{sbj}/{ssn}/{trm}', [ApiController::class, 'deleteStudentSubject']);
+    // Route::delete('deleteStudentSubject/{uid}/{sbj}/{term}', [ApiController::class, 'deleteStudentSubject']);
     Route::get('getStaffSubjects/{stid}/{sesn}/{trm}', [ApiController::class, 'getStaffSubjects']);
     Route::get('deleteStaffSubject/{uid}', [ApiController::class, 'deleteStaffSubject']);
     Route::get('getStaffClasses/{stid}', [ApiController::class, 'getStaffClasses']);
