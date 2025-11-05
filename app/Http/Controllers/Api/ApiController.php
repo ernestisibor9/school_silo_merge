@@ -5893,7 +5893,11 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
             'ssn',
             'trm',
             'clsm',
-            'clsa'
+            'clsa',
+            'adm_ssn',
+            'adm_trm',
+            'cls_adm',
+            'date_of_adm'
         )
             ->distinct('sid') // ✅ ensures unique student records
              ->orderBy('lname', 'asc') // ✅ sort alphabetically by first name
@@ -33847,6 +33851,92 @@ public function updateAccountsBySchoolAndClass(Request $request)
         'status' => true,
         'message' => 'Accounts and subaccounts updated successfully.',
         'updated_count' => $accounts->count()
+    ]);
+}
+
+
+
+
+/**
+ * @OA\Post(
+ *     path="/api/addAdmissionInfo",
+ *     summary="Add or update admission information for an existing student",
+ *     description="Updates the admission details (session, term, class, and date) for a specific student based on `sid` and `schid`.",
+ *     tags={"Api"},
+ *     security={{"bearerAuth":{}}},
+ *     operationId="addAdmissionInfo",
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             required={"sid","schid","adm_ssn","adm_trm","cls_of_adm","date_of_adm"},
+ *             @OA\Property(property="sid", type="string", example="1000", description="Unique student ID"),
+ *             @OA\Property(property="schid", type="string", example="13", description="School ID"),
+ *             @OA\Property(property="adm_ssn", type="string", example="2024/2025", description="Admission Session"),
+ *             @OA\Property(property="adm_trm", type="string", example="2nd Term", description="Admission Term"),
+ *             @OA\Property(property="cls_of_adm", type="string", example="JSS1", description="Class of Admission"),
+ *             @OA\Property(property="date_of_adm", type="string", format="date", example="2025-11-13", description="Date of Admission")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Admission information added successfully",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Admission information added successfully.")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="No record found or update failed",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="No record found for this student and school or update failed.")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation error",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="message", type="string", example="The adm_ssn field is required.")
+ *         )
+ *     )
+ * )
+ */
+
+
+public function addAdmissionInfo(Request $request)
+{
+    // Validate input
+    $request->validate([
+        "sid" => "required",
+        "schid" => "required",
+        "adm_ssn" => "required",            // Admission Session
+        "adm_trm" => "required",            // Admission Term
+        "cls_of_adm" => "required",         // Class of Admission
+        "date_of_adm" => "required"         // Date of Admission
+    ]);
+
+    // Update based on sid and schid
+    $updated = old_student::where('sid', $request->sid)
+        ->where('schid', $request->schid)
+        ->update([
+            'adm_ssn' => $request->adm_ssn,
+            'adm_trm' => $request->adm_trm,
+            'cls_of_adm' => $request->cls_of_adm,
+            'date_of_adm' => $request->date_of_adm,
+        ]);
+
+    // Handle case where no record was updated
+    if (!$updated) {
+        return response()->json([
+            "status" => false,
+            "message" => "No record found for this student and school or update failed."
+        ], 404);
+    }
+
+    return response()->json([
+        "status" => true,
+        "message" => "Admission information added successfully."
     ]);
 }
 

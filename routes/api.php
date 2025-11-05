@@ -177,6 +177,7 @@ Route::group([
     Route::post('setStudentRes', [ApiController::class, 'setStudentRes']);
     Route::post('setResultMeta', [ApiController::class, 'setResultMeta']);
     Route::post('setStudentSubjPos', [ApiController::class, 'setStudentSubjPos']);
+    Route::post('addAdmissionInfo', [ApiController::class, 'addAdmissionInfo']);
 
     Route::post('setAcceptanceAcct', [ApiController::class, 'setAcceptanceAcct']);
     Route::post('setApplicationAcct', [ApiController::class, 'setApplicationAcct']);

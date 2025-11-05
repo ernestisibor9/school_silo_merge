@@ -27326,6 +27326,130 @@
                     }
                 ]
             }
+        },
+        "/api/addAdmissionInfo": {
+            "post": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Add or update admission information for an existing student",
+                "description": "Updates the admission details (session, term, class, and date) for a specific student based on `sid` and `schid`.",
+                "operationId": "addAdmissionInfo",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "sid",
+                                    "schid",
+                                    "adm_ssn",
+                                    "adm_trm",
+                                    "cls_of_adm",
+                                    "date_of_adm"
+                                ],
+                                "properties": {
+                                    "sid": {
+                                        "description": "Unique student ID",
+                                        "type": "string",
+                                        "example": "1000"
+                                    },
+                                    "schid": {
+                                        "description": "School ID",
+                                        "type": "string",
+                                        "example": "13"
+                                    },
+                                    "adm_ssn": {
+                                        "description": "Admission Session",
+                                        "type": "string",
+                                        "example": "2024/2025"
+                                    },
+                                    "adm_trm": {
+                                        "description": "Admission Term",
+                                        "type": "string",
+                                        "example": "2nd Term"
+                                    },
+                                    "cls_of_adm": {
+                                        "description": "Class of Admission",
+                                        "type": "string",
+                                        "example": "JSS1"
+                                    },
+                                    "date_of_adm": {
+                                        "description": "Date of Admission",
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2025-11-13"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Admission information added successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Admission information added successfully."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No record found or update failed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No record found for this student and school or update failed."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The adm_ssn field is required."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
