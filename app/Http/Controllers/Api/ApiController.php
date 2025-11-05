@@ -5896,7 +5896,7 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
             'clsa',
             'adm_ssn',
             'adm_trm',
-            'cls_adm',
+            'cls_of_adm',
             'date_of_adm'
         )
             ->distinct('sid') // ✅ ensures unique student records
@@ -5919,7 +5919,7 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
                     "new_class_main" => $student->academicData?->new_class_main,
                      "adm_ssn"           => $student->adm_ssn,
                      "adm_trm"           => $student->adm_trm,
-                     "cls_adm"           => $student->cls_adm,
+                     "cls_of_adm"           => $student->cls_of_adm,
                      "date_of_adm"       => $student->date_of_adm,
                 ];
             });
