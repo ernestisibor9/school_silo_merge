@@ -5917,6 +5917,10 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
                     "last_class"     => $student->academicData?->last_class,
                     "new_class"      => $student->academicData?->new_class,
                     "new_class_main" => $student->academicData?->new_class_main,
+                     "adm_ssn"           => $student->adm_ssn,
+                     "adm_trm"           => $student->adm_trm,
+                     "cls_adm"           => $student->cls_adm,
+                     "date_of_adm"       => $student->date_of_adm,
                 ];
             });
 
