@@ -33990,11 +33990,12 @@ public function approveAdmission(Request $request)
         "schid" => "required|integer"
     ]);
 
-    //  Update adm_status to true
+    // ✅ Update adm_status to 1 (approved)
     $updated = old_student::where('sid', $request->sid)
         ->where('schid', $request->schid)
-        ->update(['adm_status' => true]);
+        ->update(['adm_status' => 1]);
 
+    // ✅ Handle case where no record was updated
     if (!$updated) {
         return response()->json([
             "status"  => false,
