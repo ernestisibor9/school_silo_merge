@@ -3585,7 +3585,7 @@ public function getStudentSubjects($stid)
     //         ->where('class_subj.schid', $schid)
     //         ->where('class_subj.clsid', $clsid)
     //         ->where('staff_subj.stid', $stid)
-    //         // ✅ Correct column-to-column comparison
+    //         // Correct column-to-column comparison
     //         ->whereColumn('class_subj.sesn', 'staff_subj.sesn')
     //         ->whereColumn('class_subj.trm', 'staff_subj.trm')
     //         ->select(
@@ -3597,7 +3597,7 @@ public function getStudentSubjects($stid)
     //             'class_subj.sesn',
     //             'class_subj.trm'
     //         )
-    //         ->distinct() // ✅ Ensures unique subjects
+    //         ->distinct() // Ensures unique subjects
     //         ->skip($start)
     //         ->take($count)
     //         ->get();
@@ -3677,10 +3677,10 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
 
     $pld = $query->get();
 
-    // ✅ Remove duplicates manually based on subj_id
+    // Remove duplicates manually based on subj_id
     $pld = $pld->unique('subj_id')->values();
 
-    // ✅ Paginate after deduplication
+    // Paginate after deduplication
     $pld = $pld->slice($start, $count)->values();
 
     return response()->json([
@@ -4554,18 +4554,18 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
 
     public function getStudentResultsByArm($schid, $clsid, $ssn, $trm, $arm)
     {
-        // ✅ Ensure we only fetch students for the selected session + class + arm + term
+        // Ensure we only fetch students for the selected session + class + arm + term
         $members = student::join('old_student', 'student.sid', '=', 'old_student.sid')
             ->where('student.schid', $schid)
             ->where('student.stat', "1")
             ->where('student.status', "active")
             ->where('old_student.ssn', $ssn)
-            ->where('old_student.trm', $trm)   // ✅ filter by term
+            ->where('old_student.trm', $trm)   // filter by term
             ->where('old_student.clsm', $clsid)
             ->where('old_student.status', "active")
             ->where('old_student.clsa', $arm)
-            ->select('student.*', 'old_student.uid as old_uid') // ✅ FIX: use uid instead of id
-            ->distinct('student.sid') // ✅ one record per student
+            ->select('student.*', 'old_student.uid as old_uid') // FIX: use uid instead of id
+            ->distinct('student.sid') // one record per student
             ->get();
 
         $totalStd = count($members);
@@ -4578,7 +4578,7 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
             ->where('class_subj.schid', $schid)
             ->where('class_subj.clsid', $clsid)
             ->pluck('sbj')
-            ->unique(); // ✅ prevent duplicates
+            ->unique(); // prevent duplicates
 
         $nof = result_meta::where([
             ['schid', $schid],
@@ -4609,7 +4609,7 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
 
             $std = old_student::where("schid", $schid)
                 ->where("ssn", $ssn)
-                ->where("trm", $trm) // ✅ make sure it's the selected term
+                ->where("trm", $trm) // make sure it's the selected term
                 ->where("clsm", $clsid)
                 ->where("status", "active")
                 ->where("clsa", $arm)
@@ -4639,7 +4639,7 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
                 if (!in_array($sbid, $relevantSubjects)) {
                     $schSbj = subj::where('id', $sbid)->first();
                     if ($schSbj) {
-                        $clsSbj[$sbid] = $schSbj; // ✅ prevent duplicate subjects
+                        $clsSbj[$sbid] = $schSbj; // prevent duplicate subjects
                         $relevantSubjects[] = $sbid;
                     }
                 }
@@ -4726,7 +4726,7 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
 
         $pld = [
             'std-pld' => $cstds,
-            'cls-sbj' => array_values($clsSbj), // ✅ return unique subjects only
+            'cls-sbj' => array_values($clsSbj), // return unique subjects only
             'num_of_days' => $nof,
         ];
 
@@ -5532,7 +5532,7 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
             "suid"           => "required",
         ]);
 
-        // ✅ Determine if we need to refresh subjects
+        // Determine if we need to refresh subjects
         $refreshSubjects = false;
         $oldData = student_academic_data::where('user_id', $request->user_id)->first();
         if ($oldData) {
@@ -5541,7 +5541,7 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
             $refreshSubjects = true;
         }
 
-        // ✅ Save/update student academic info
+        // Save/update student academic info
         student_academic_data::updateOrCreate(
             ["user_id" => $request->user_id],
             [
@@ -5552,7 +5552,7 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
             ]
         );
 
-        // ✅ If class changed, clear subjects
+        // If class changed, clear subjects
         if ($refreshSubjects) {
             student_subj::where('stid', $request->user_id)->delete();
 
@@ -5576,7 +5576,7 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
             // }
         }
 
-        // ✅ Fetch student
+        // Fetch student
         $std = student::where('sid', $request->user_id)->first();
         if (!$std) {
             return response()->json([
@@ -5585,7 +5585,7 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
             ], 404);
         }
 
-        // ✅ Record in old_student only if new_class is provided
+        // Record in old_student only if new_class is provided
         if (!empty($request->new_class) && $request->new_class != 'NIL') {
             $uid = $request->ssn . $request->user_id;
 
@@ -5606,7 +5606,7 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
             );
         }
 
-        // ✅ Mark student academic record as set
+        // Mark student academic record as set
         $std->update([
             "s_academic" => '1'
         ]);
@@ -5883,7 +5883,7 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
             $query->where("clsa", $clsa);
         }
 
-        // ✅ Select only needed columns and make students unique by sid
+        // Select only needed columns and make students unique by sid
         $pld = $query->select(
             'sid',
             'suid',
@@ -5899,8 +5899,8 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
             'cls_of_adm',
             'date_of_adm'
         )
-            ->distinct('sid') // ✅ ensures unique student records
-             ->orderBy('lname', 'asc') // ✅ sort alphabetically by first name
+            ->distinct('sid') // ensures unique student records
+             ->orderBy('lname', 'asc') // sort alphabetically by first name
             ->get()
             ->map(function ($student) {
                 return [
@@ -7250,7 +7250,7 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
 
     public function setStaffSubject(Request $request)
     {
-        // ✅ Data validation
+        // Data validation
         $request->validate([
             "stid"  => "required",
             "sbj"   => "required",
@@ -7259,10 +7259,10 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
             "trm"   => "required",
         ]);
 
-        // ✅ Generate unique UID
+        // Generate unique UID
         $uid = $request->sesn . $request->trm . $request->stid . rand(10000, 99999);
 
-        // ✅ Update or create based on UID only
+        // Update or create based on UID only
         $pld = staff_subj::updateOrCreate(
             ["uid" => $uid],
             [
@@ -9691,7 +9691,7 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
         $start = request()->input('start', 0);   // default 0
         $count = request()->input('count', 20);  // default 20
 
-        // ✅ Join staff_subj with staff to retrieve staff names
+        // Join staff_subj with staff to retrieve staff names
         $pld = staff_subj::where("staff_subj.stid", $stid)
             ->where("staff_subj.sesn", $sesn)
             ->where("staff_subj.trm", $trm)
@@ -9866,7 +9866,7 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
 
     public function setStaffClass(Request $request)
     {
-        // ✅ Data validation
+        // Data validation
         $request->validate([
             "stid"   => "required",
             "cls"    => "required",
@@ -9881,10 +9881,10 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
             "role2"  => "required",
         ]);
 
-        // ✅ Generate UID automatically (like setOldStaffInfo)
+        // Generate UID automatically (like setOldStaffInfo)
         $uid = $request->ssn . $request->trm . $request->stid . rand(10000, 99999);
 
-        // ✅ Save to staff_class
+        // Save to staff_class
         $pld = staff_class::updateOrCreate(
             ["uid" => $uid],
             [
@@ -9896,7 +9896,7 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
             ]
         );
 
-        // ✅ Save also to old_staff with same uid style
+        // Save also to old_staff with same uid style
         $old = old_staff::updateOrCreate(
             ["uid" => $uid],
             [
@@ -9915,7 +9915,7 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
             ]
         );
 
-        // ✅ Return JSON response
+        // Return JSON response
         return response()->json([
             "status"  => true,
             "message" => "Success",
@@ -10024,7 +10024,7 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
     //     $count = request()->input('count', 20);  // default 20
 
     //     $query = staff_class::where("staff_class.stid", $stid)
-    //         ->join("old_staff", "staff_class.stid", "=", "old_staff.sid") // ✅ join staff table
+    //         ->join("old_staff", "staff_class.stid", "=", "old_staff.sid") // join staff table
     //         ->select(
     //             "staff_class.*",
     //             "old_staff.fname",
@@ -10032,12 +10032,12 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
     //             "old_staff.lname"
     //         );
 
-    //     // ✅ Filter by session if provided
+    //     // Filter by session if provided
     //     if (request()->has('ssn')) {
     //         $query->where("staff_class.ssn", request()->input('ssn'));
     //     }
 
-    //     // ✅ Filter by term if provided
+    //     // Filter by term if provided
     //     if (request()->has('trm')) {
     //         $query->where("staff_class.trm", request()->input('trm'));
     //     }
@@ -10070,16 +10070,16 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
     //         old_staff.mname,
     //         old_staff.lname
     //     ")
-    //         ->groupBy("staff_class.stid", "staff_class.cls", "staff_class.schid", "old_staff.fname", "old_staff.mname", "old_staff.lname") // ✅ group by staff + class
+    //         ->groupBy("staff_class.stid", "staff_class.cls", "staff_class.schid", "old_staff.fname", "old_staff.mname", "old_staff.lname") // group by staff + class
     //         ->orderBy("ssn", "desc")
     //         ->orderBy("trm", "asc");
 
-    //     // ✅ Filter by session if provided
+    //     // Filter by session if provided
     //     if (request()->has('ssn')) {
     //         $query->where("staff_class.ssn", request()->input('ssn'));
     //     }
 
-    //     // ✅ Filter by term if provided
+    //     // Filter by term if provided
     //     if (request()->has('trm')) {
     //         $query->where("staff_class.trm", request()->input('trm'));
     //     }
@@ -10125,7 +10125,7 @@ public function getStaffClasses($stid)
         ->orderBy('ssn', 'desc')
         ->orderBy('trm', 'desc');
 
-    // ✅ Apply filters only if provided
+    // Apply filters only if provided
     if (!empty($ssn)) {
         $query->where('staff_class.ssn', $ssn);
     }
@@ -10134,10 +10134,10 @@ public function getStaffClasses($stid)
         $query->where('staff_class.trm', $trm);
     }
 
-    // ✅ Apply pagination
+    // Apply pagination
     $pld = $query->skip($start)->take($count)->get();
 
-    // ✅ Remove duplicate class entries if any
+    // Remove duplicate class entries if any
     $pld = $pld->unique(fn($item) => $item->cls . '-' . $item->ssn)->values();
 
     return response()->json([
@@ -10240,7 +10240,7 @@ public function getStaffClasses($stid)
 
     public function setStaffClassArm(Request $request)
     {
-        // ✅ Data validation
+        // Data validation
         $request->validate([
             "stid"  => "required",
             "cls"   => "required",
@@ -10250,10 +10250,10 @@ public function getStaffClasses($stid)
             "trm"   => "required",
         ]);
 
-        // ✅ Generate unique uid
+        // Generate unique uid
         $uid = $request->sesn . $request->trm . $request->stid . rand(10000, 99999);
 
-        // ✅ Update or create staff class arm record
+        // Update or create staff class arm record
         $pld = staff_class_arm::updateOrCreate(
             // [
             //     "stid"  => $request->stid,
@@ -10277,7 +10277,7 @@ public function getStaffClasses($stid)
             ]
         );
 
-        // ✅ Return JSON response
+        // Return JSON response
         return response()->json([
             "status"  => true,
             "message" => "Success",
@@ -10594,7 +10594,7 @@ public function getStaffClasses($stid)
 
     public function setOldStaffInfo(Request $request)
     {
-        // ✅ Data validation
+        // Data validation
         $request->validate([
             "sid"   => "required",
             "schid" => "required",
@@ -10610,10 +10610,10 @@ public function getStaffClasses($stid)
             "more"  => "required",
         ]);
 
-        // ✅ Generate UID automatically
+        // Generate UID automatically
         $uid = $request->ssn . $request->trm . $request->sid . rand(10000, 99999);
 
-        // ✅ Update or create record based only on uid
+        // Update or create record based only on uid
         $pld = old_staff::updateOrCreate(
             [
                 "uid" => $uid,   // uniqueness check is ONLY on uid
@@ -10722,7 +10722,7 @@ public function getStaffClasses($stid)
             ->where('old_staff.status', 'active')
             ->where('old_staff.clsm', $clsm);
 
-        // ✅ Clean "*" when filtering
+        // Clean "*" when filtering
         if ($role != '-1') {
             $query->where(function ($q) use ($role) {
                 $q->whereRaw("REPLACE(old_staff.role, '*', '') = ?", [$role])
@@ -10730,7 +10730,7 @@ public function getStaffClasses($stid)
             });
         }
 
-        // ✅ Join to get role names
+        // Join to get role names
         $pld = $query
             ->leftJoin('staff_role as r1', DB::raw("REPLACE(old_staff.role, '*', '')"), '=', 'r1.id')
             ->leftJoin('staff_role as r2', DB::raw("REPLACE(old_staff.role2, '*', '')"), '=', 'r2.id')
@@ -10801,7 +10801,7 @@ public function getStaffClasses($stid)
         $female = 0;
 
         if ($role == '-1') {
-            // ✅ No role filter
+            // No role filter
             $male = old_staff::join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
                 ->where('old_staff.schid', $schid)
                 ->where('old_staff.ssn', $ssn)
@@ -10820,7 +10820,7 @@ public function getStaffClasses($stid)
                 ->where('staff_basic_data.sex', 'F')
                 ->count();
         } else {
-            // ✅ Clean "*" before comparing roles
+            // Clean "*" before comparing roles
             $male = old_staff::join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
                 ->where('old_staff.schid', $schid)
                 ->where('old_staff.ssn', $ssn)
@@ -12084,19 +12084,19 @@ public function getStaffClasses($stid)
     public function getStudentPayments($stid)
     {
         try {
-            // ✅ Get latest record where total_split_amount is NOT NULL
+            // Get latest record where total_split_amount is NOT NULL
             $latestNonNull = payments::where('stid', $stid)
                 ->whereNotNull('total_split_amount')
                 ->latest()
                 ->first();
 
-            // ✅ Get all records where total_split_amount IS NULL
+            // Get all records where total_split_amount IS NULL
             $nullRecords = payments::where('stid', $stid)
                 ->whereNull('total_split_amount')
                 ->orderByDesc('created_at')
                 ->get();
 
-            // ✅ Combine them into one payload
+            // Combine them into one payload
             $pld = collect();
 
             if ($latestNonNull) {
@@ -12107,7 +12107,7 @@ public function getStaffClasses($stid)
                 $pld = $pld->merge($nullRecords);
             }
 
-            // ✅ Return response with everything inside `pld`
+            // Return response with everything inside `pld`
             return response()->json([
                 "status"  => true,
                 "message" => "Success",
@@ -12845,7 +12845,7 @@ public function getStaffClasses($stid)
         'pay_head_id' => $request->pay_head_id ?? null,
     ];
 
-    // ✅ If updating existing account
+    // If updating existing account
     if ($request->has('id')) {
         $acct = accts::find($request->id);
         if ($acct) {
@@ -12862,7 +12862,7 @@ public function getStaffClasses($stid)
         }
     }
 
-    // ✅ Check if this schid & clsid already has a subaccount
+    // Check if this schid & clsid already has a subaccount
     $existingSubAcct = sub_account::where('schid', $request->schid)
         ->where('clsid', $request->clsid)
         ->first();
@@ -12874,7 +12874,7 @@ public function getStaffClasses($stid)
         ], 409);
     }
 
-    // ✅ Create main account
+    // Create main account
     $acct = accts::create($data);
 
     // Generate Paystack-required fields
@@ -12882,7 +12882,7 @@ public function getStaffClasses($stid)
     $percentage_charge = 0;
     $settlement_bank = $request->bnk;
 
-    // ✅ Step 1: Create Paystack subaccount
+    // Step 1: Create Paystack subaccount
     $response = Http::withHeaders([
         'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
         'Content-Type' => 'application/json',
@@ -12897,7 +12897,7 @@ public function getStaffClasses($stid)
     if ($response->successful()) {
         $data = $response->json();
 
-        // ✅ Step 2: Store subaccount details
+        // Step 2: Store subaccount details
         sub_account::create([
             'acct_id' => $acct->id,
             'schid' => $request->schid,
@@ -13265,12 +13265,12 @@ public function getStaffClasses($stid)
         if ($existing && !empty($existing->split_code)) {
             return [
                 'split_code'  => $existing->split_code,
-                'total_amount' => null, // ✅ Let Paystack handle the actual total during transaction
+                'total_amount' => null, // Let Paystack handle the actual total during transaction
                 'subaccounts' => $subaccounts
             ];
         }
 
-        // ✅ Normalize subaccount shares based on split type
+        // Normalize subaccount shares based on split type
         foreach ($subaccounts as &$acc) {
             if ($splitType === 'flat') {
                 // Convert Naira to Kobo if using flat split
@@ -13281,7 +13281,7 @@ public function getStaffClasses($stid)
             }
         }
 
-        // ✅ Prepare payload for Paystack
+        // Prepare payload for Paystack
         $payload = [
             'name'        => "Split-{$schid}-{$clsid}-" . uniqid(),
             'type'        => $splitType,
@@ -13299,7 +13299,7 @@ public function getStaffClasses($stid)
             if ($response->successful() && isset($respData['data']['split_code'])) {
                 $splitCode = $respData['data']['split_code'];
 
-                // ✅ Save split to DB
+                // Save split to DB
                 subaccount_split::create([
                     'schid'      => $schid,
                     'clsid'      => $clsid,
@@ -13308,7 +13308,7 @@ public function getStaffClasses($stid)
 
                 return [
                     'split_code'   => $splitCode,
-                    'total_amount' => null, // ✅ Paystack will compute this dynamically
+                    'total_amount' => null, // Paystack will compute this dynamically
                     'subaccounts'  => $subaccounts
                 ];
             }
@@ -13392,7 +13392,7 @@ public function getStaffClasses($stid)
         try {
             $totalAmountKobo = $amount * 100;
 
-            // ✅ Validate subaccounts
+            // Validate subaccounts
             foreach ($subaccounts as $acc) {
                 $exists = \DB::table('sub_accounts')
                     ->where('schid', $schid)
@@ -13408,14 +13408,14 @@ public function getStaffClasses($stid)
                 }
             }
 
-            // ✅ Get or create split data (handles total_split_amount & subaccounts)
+            // Get or create split data (handles total_split_amount & subaccounts)
             $splitData = $this->createOrGetSplit($schid, $clsid, $subaccounts, $splitType);
 
             $splitCode        = $splitData['split_code'] ?? null;   // Paystack split code
             $totalSplitAmount = $splitData['total_amount'] ?? null; // Total split amount (₦)
             $subaccountsData  = $splitData['subaccounts'] ?? [];    // Subaccount info
 
-            // ✅ Build reference
+            // Build reference
             $host  = preg_replace('/^api\./', '', $request->getHost());
             $typ   = $request->typ ?? 0;
             $stid  = $request->stid ?? 0;
@@ -13424,7 +13424,7 @@ public function getStaffClasses($stid)
 
             $ref = "{$host}-{$schid}-{$amount}-{$typ}-{$stid}-{$ssnid}-{$trmid}-{$clsid}-" . uniqid();
 
-            // ✅ Merge metadata
+            // Merge metadata
             $metadata = array_merge($metadata, [
                 'stid'  => $stid,
                 'ssnid' => $ssnid,
@@ -13439,7 +13439,7 @@ public function getStaffClasses($stid)
                 'time'  => now()->timestamp,
             ]);
 
-            // ✅ Build Paystack payload
+            // Build Paystack payload
             $payload = [
                 'email'        => $email,
                 'amount'       => $totalAmountKobo,
@@ -13459,11 +13459,11 @@ public function getStaffClasses($stid)
                 $payload['transaction_charge'] = intval($request->transaction_charge) * 100;
             }
 
-            // ✅ Initialize payment on Paystack
+            // Initialize payment on Paystack
             $response = Http::withToken(env('PAYSTACK_SECRET'))
                 ->post('https://api.paystack.co/transaction/initialize', $payload);
 
-            // ✅ Handle Paystack response
+            // Handle Paystack response
             if ($response->successful()) {
                 $paystackData = $response->json();
 
@@ -14553,7 +14553,7 @@ public function getStaffClasses($stid)
     //                 );
     //             }
 
-    //             // ✅ If split exists, save each subaccount payment separately
+    //             // If split exists, save each subaccount payment separately
     //             if (!empty($payload['data']['split']['shares']['subaccounts'])) {
     //                 foreach ($payload['data']['split']['shares']['subaccounts'] as $sub) {
     //                     payments::create([
@@ -14566,12 +14566,12 @@ public function getStaffClasses($stid)
     //                         'exp'             => $exp,
     //                         'amt'             => $sub['amount'] / 100, // convert kobo to Naira
     //                         'lid'             => $lid,
-    //                         'subaccount_code' => $sub['subaccount_code'], // ✅ added
-    //                         'main_ref'        => $ref, // ✅ added
+    //                         'subaccount_code' => $sub['subaccount_code'], // added
+    //                         'main_ref'        => $ref, // added
     //                     ]);
     //                 }
     //             } else {
-    //                 // ✅ If no split, save total payment
+    //                 // If no split, save total payment
     //                 payments::create([
     //                     'schid'    => $schid,
     //                     'stid'     => $stid,
@@ -14582,7 +14582,7 @@ public function getStaffClasses($stid)
     //                     'exp'      => $exp,
     //                     'amt'      => $amt,
     //                     'lid'      => $lid,
-    //                     'main_ref' => $ref, // ✅ added
+    //                     'main_ref' => $ref, // added
     //                 ]);
     //             }
 
@@ -14676,7 +14676,7 @@ public function getStaffClasses($stid)
             $totalSplitAmount = $totalAmountPaid;
             $hasRealShares = false;
 
-            // ✅ Check if there are valid share values
+            // Check if there are valid share values
             foreach ($splitData as $sub) {
                 if (isset($sub['share']) && floatval($sub['share']) > 0) {
                     $hasRealShares = true;
@@ -14684,7 +14684,7 @@ public function getStaffClasses($stid)
                 }
             }
 
-            // ✅ Insert payments
+            // Insert payments
             foreach ($splitData as $sub) {
                 $subCode = $sub['subaccount'] ?? null;
                 $subShare = 0;
@@ -14721,12 +14721,12 @@ public function getStaffClasses($stid)
                     'email'              => $eml,
                 ]);
 
-                Log::info("✅ Recorded subaccount {$subCode} share: ₦{$subShare}");
+                Log::info("Recorded subaccount {$subCode} share: ₦{$subShare}");
             }
 
-            Log::info("✅ Split payment recorded successfully for ref {$ref}");
+            Log::info("Split payment recorded successfully for ref {$ref}");
         } else {
-            // ✅ Non-split transaction
+            // Non-split transaction
             payments::create([
                 'schid'    => $schid,
                 'stid'     => $stid,
@@ -14741,7 +14741,7 @@ public function getStaffClasses($stid)
                 'email'    => $eml,
             ]);
 
-            Log::info("✅ Non-split payment recorded for ref {$ref}");
+            Log::info("Non-split payment recorded for ref {$ref}");
         }
 
         // 🟢 Update payment_refs
@@ -17719,14 +17719,14 @@ public function getStaffClasses($stid)
     //     if ($cls !== 'zzz') {
     //         $query = student::join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
     //             ->where('student.schid', $schid)
-    //             ->where('student.status', 'active') // ✅ keep only active
+    //             ->where('student.status', 'active') // keep only active
     //             ->where('student.stat', $stat)
     //             ->where('student_academic_data.new_class_main', $cls)
     //             ->select('student.*');
     //     } else {
     //         $query = student::where('schid', $schid)
     //             ->where('stat', $stat)
-    //             ->where('status', 'active'); // ✅ add this
+    //             ->where('status', 'active'); // add this
     //     }
 
 
@@ -19704,7 +19704,7 @@ public function getStaffClasses($stid)
             $query->where('exit_class_arm', $exitClassArm);
         }
 
-        // ✅ Sort alphabetically by fname (A → Z)
+        // Sort alphabetically by fname (A → Z)
         $query->orderBy('lname', 'asc');
 
         // Get total count before pagination.
@@ -23806,7 +23806,7 @@ public function getStaffClasses($stid)
         $subjectNames = subj::whereIn('id', $subjectCodes)
             ->pluck('name', 'id');
 
-        // ✅ Fetch school-defined grade brackets from `sch_grade`
+        // Fetch school-defined grade brackets from `sch_grade`
         $grades = sch_grade::where('schid', $schid)
             ->where('clsid', $clsm)
             ->where('ssn', $ssn)
@@ -24922,7 +24922,7 @@ public function getStaffClasses($stid)
 
 
     //     $response[] = [
-    //         'sid' => $stid, // ✅ Add student ID here
+    //         'sid' => $stid, // Add student ID here
     //         'student_id' => $suid,
     //         'student_name' => $student->lname . ' ' . $student->fname,
     //         'gender' => $gender ?? 'Unknown',
@@ -25553,7 +25553,7 @@ public function getStaffClasses($stid)
             ? number_format($classTotalAverage / $totalStudentsWithScores, 2, '.', '')
             : '0.00';
 
-        // ✅ Inject class average into each student's data
+        // Inject class average into each student's data
         foreach ($response as &$student) {
             $student['class_average'] = $classAverage;
         }
@@ -26278,11 +26278,11 @@ public function getLoggedInUserDetails(Request $request)
             return response()->json(['message' => 'User not found'], 404);
         }
 
-        // ✅ Get ssn & trm from query
+        // Get ssn & trm from query
         $ssn = $request->input('ssn');
         $trm = $request->input('trm');
 
-        // ✅ Fetch staff record for this user, respecting ssn/trm if provided
+        // Fetch staff record for this user, respecting ssn/trm if provided
         $staffQuery = $user->oldStaff();
 
         if (!empty($ssn)) {
@@ -26295,7 +26295,7 @@ public function getLoggedInUserDetails(Request $request)
 
         $staff = $staffQuery->first();
 
-        // ✅ If no match for ssn/trm, fallback to latest session
+        // If no match for ssn/trm, fallback to latest session
         if (!$staff) {
             $staff = $user->oldStaff()->latest('ssn')->latest('trm')->first();
         }
@@ -26439,7 +26439,7 @@ public function getLoggedInUserDetails(Request $request)
 
     public function getCummulativeBroadsheet($schid, $ssn, $clsm, $clsa)
     {
-        // ✅ Ensure one row per student (avoid duplicates across terms)
+        // Ensure one row per student (avoid duplicates across terms)
         $students = old_student::where('schid', $schid)
             ->where('ssn', $ssn)
             ->where('clsm', $clsm)
@@ -26448,10 +26448,10 @@ public function getLoggedInUserDetails(Request $request)
             ->groupBy('sid', 'schid', 'fname', 'lname', 'mname', 'suid', 'clsm', 'clsa')
             ->get();
 
-        // ✅ Unique student IDs
+        // Unique student IDs
         $allClassStudentIds = $students->pluck('sid')->unique()->values();
 
-        // ✅ Class/Arm names
+        // Class/Arm names
         $className = cls::where('id', $clsm)->value('name') ?? "CLS-$clsm";
         $armName = $clsa !== '-1'
             ? sch_cls::where('cls_id', $clsm)
@@ -26460,7 +26460,7 @@ public function getLoggedInUserDetails(Request $request)
             ->value('name')
             : null;
 
-        // ✅ Subjects for class
+        // Subjects for class
         $subjects = class_subj::where('schid', $schid)
             ->where('clsid', $clsm)
             ->pluck('subj_id')
@@ -26469,7 +26469,7 @@ public function getLoggedInUserDetails(Request $request)
         $subjectPositions = [];
         $subjectAverages = [];
 
-        // ✅ Process each subject
+        // Process each subject
         foreach ($subjects as $sbj) {
             $subjectScores = std_score::select(
                 'stid',
@@ -26506,7 +26506,7 @@ public function getLoggedInUserDetails(Request $request)
                 ->sortByDesc('average')
                 ->values();
 
-            // ✅ Ranking
+            // Ranking
             $rank = [];
             $position = 1;
             $lastAvg = null;
@@ -26529,7 +26529,7 @@ public function getLoggedInUserDetails(Request $request)
             }
         }
 
-        // ✅ Final averages
+        // Final averages
         $finalAverages = [];
         foreach ($students as $std) {
             $stid = $std->sid;
@@ -26550,7 +26550,7 @@ public function getLoggedInUserDetails(Request $request)
             }
         }
 
-        // ✅ Overall ranking
+        // Overall ranking
         $overallSorted = collect($finalAverages)->sortDesc();
         $overallPosition = [];
         $rank = 1;
@@ -26568,7 +26568,7 @@ public function getLoggedInUserDetails(Request $request)
             $last = $avg;
         }
 
-        // ✅ Final output
+        // Final output
         $final = [];
 
         foreach ($students as $std) {
@@ -26598,7 +26598,7 @@ public function getLoggedInUserDetails(Request $request)
                 ];
             }
 
-            // ✅ Psychomotor
+            // Psychomotor
             $psy = student_psy::where('stid', $stid)
                 ->where('schid', $schid)
                 ->where('ssn', $ssn)
@@ -27173,7 +27173,7 @@ public function getLoggedInUserDetails(Request $request)
         $students = old_student::where("schid", $schid)
             ->where("status", "active")
             ->where("ssn", $ssn)
-            ->where("trm", $trm)   // ✅ filter by term to avoid duplicates
+            ->where("trm", $trm)   // filter by term to avoid duplicates
             ->where("clsm", $clsm)
             ->when($clsa !== '-1', fn($q) => $q->where("clsa", $clsa))
             ->get();
@@ -27574,7 +27574,7 @@ public function getLoggedInUserDetails(Request $request)
         foreach ($students as $std) {
             $avg = $std['avg_score'];
 
-            // ✅ Get grade from dynamic sch_grade table
+            // Get grade from dynamic sch_grade table
             $grade = $this->gradeFromAvg($avg, $std['schid'], $std['clsid'], $std['ssn'], $std['trm']);
 
             // Check for manually entered comment
@@ -27776,7 +27776,7 @@ public function getLoggedInUserDetails(Request $request)
     //     // 2. Make sure this arm belongs to the new class
     //     $validArm = DB::table('sch_cls')
     //         ->where('id', $request->clsa)
-    //         ->where('cls_id', $request->clsm)   // ✅ ensure arm belongs to this class
+    //         ->where('cls_id', $request->clsm)   // ensure arm belongs to this class
     //         ->where('schid', $request->schid)
     //         ->first();
 
@@ -27802,8 +27802,8 @@ public function getLoggedInUserDetails(Request $request)
     //         'suid'   => $request->suid,
     //         'ssn'    => $request->sesn,
     //         'trm'    => $request->trm,
-    //         'clsm'   => $request->clsm,      // ✅ new class
-    //         'clsa'   => $validArm->id,       // ✅ new arm from sch_cls
+    //         'clsm'   => $request->clsm,      // new class
+    //         'clsa'   => $validArm->id,       // new arm from sch_cls
     //         'more'   => '',
     //     ]);
 
@@ -27824,7 +27824,7 @@ public function getLoggedInUserDetails(Request $request)
     //             'trm'       => $promotion->trm,
     //             'clsm'      => $promotion->clsm,
     //             'clsa'      => $promotion->clsa,
-    //             'clsa_name' => $validArm->name,   // ✅ arm name
+    //             'clsa_name' => $validArm->name,   // arm name
     //         ],
     //     ]);
     // }
@@ -27848,7 +27848,7 @@ public function getLoggedInUserDetails(Request $request)
         // 2. Make sure this arm belongs to the new class
         $validArm = DB::table('sch_cls')
             ->where('id', $request->clsa)
-            ->where('cls_id', $request->clsm)   // ✅ ensure arm belongs to this class
+            ->where('cls_id', $request->clsm)   // ensure arm belongs to this class
             ->where('schid', $request->schid)
             ->first();
 
@@ -27859,7 +27859,7 @@ public function getLoggedInUserDetails(Request $request)
             ], 422);
         }
 
-        // 3. ✅ Check if already promoted for this session + term
+        // 3. Check if already promoted for this session + term
         $alreadyPromoted = old_student::where('sid', $request->sid)
             ->where('schid', $request->schid)
             ->where('ssn', $request->sesn)
@@ -27888,8 +27888,8 @@ public function getLoggedInUserDetails(Request $request)
             'suid'   => $request->suid,
             'ssn'    => $request->sesn,
             'trm'    => $request->trm,
-            'clsm'   => $request->clsm,      // ✅ new class
-            'clsa'   => $validArm->id,       // ✅ new arm from sch_cls
+            'clsm'   => $request->clsm,      // new class
+            'clsa'   => $validArm->id,       // new arm from sch_cls
             'more'   => '',
         ]);
 
@@ -27910,7 +27910,7 @@ public function getLoggedInUserDetails(Request $request)
                 'trm'       => $promotion->trm,
                 'clsm'      => $promotion->clsm,
                 'clsa'      => $promotion->clsa,
-                'clsa_name' => $validArm->name,   // ✅ arm name
+                'clsa_name' => $validArm->name,   // arm name
             ],
         ]);
     }
@@ -28271,7 +28271,7 @@ public function getLoggedInUserDetails(Request $request)
      */
     public function setSubjStaff(Request $request)
     {
-        // ✅ Data validation
+        // Data validation
         $request->validate([
             "stid"  => "required",
             "sbj"   => "required",
@@ -28280,10 +28280,10 @@ public function getLoggedInUserDetails(Request $request)
             "trm"   => "required",
         ]);
 
-        // ✅ Generate unique UID
+        // Generate unique UID
         $uid = $request->sesn . $request->trm . $request->stid . rand(10000, 99999);
 
-        // ✅ Update or create based on UID only
+        // Update or create based on UID only
         $pld = subject_dest::updateOrCreate(
             ["uid" => $uid],
             [
@@ -28446,7 +28446,7 @@ public function getLoggedInUserDetails(Request $request)
      */
     public function assignSubjectStaff(Request $request)
     {
-        // ✅ Data validation
+        // Data validation
         $request->validate([
             "stid"  => "required",
             "sbj"   => "required",
@@ -28455,10 +28455,10 @@ public function getLoggedInUserDetails(Request $request)
             "trm"   => "required",
         ]);
 
-        // ✅ Generate unique UID
+        // Generate unique UID
         $uid = $request->sesn . $request->trm . $request->stid . rand(10000, 99999);
 
-        // ✅ Update or create based on UID only
+        // Update or create based on UID only
         $pld = staff_subj::updateOrCreate(
             ["uid" => $uid],
             [
@@ -28544,7 +28544,7 @@ public function getLoggedInUserDetails(Request $request)
 
     public function setRepostStaff(Request $request)
     {
-        // ✅ Data validation
+        // Data validation
         $request->validate([
             "sid"   => "required",
             "schid" => "required",
@@ -28560,10 +28560,10 @@ public function getLoggedInUserDetails(Request $request)
             "more"  => "required",
         ]);
 
-        // ✅ Generate UID automatically
+        // Generate UID automatically
         $uid = $request->ssn . $request->trm . $request->sid . rand(10000, 99999);
 
-        // ✅ Update or create record based only on uid
+        // Update or create record based only on uid
         $pld = old_staff::updateOrCreate(
             [
                 "uid" => $uid,   // uniqueness check is ONLY on uid
@@ -28732,7 +28732,7 @@ public function getLoggedInUserDetails(Request $request)
         // 2. Make sure this arm belongs to the new class
         $validArm = DB::table('sch_cls')
             ->where('id', $request->clsa)
-            ->where('cls_id', $request->clsm)   // ✅ ensure arm belongs to this class
+            ->where('cls_id', $request->clsm)   // ensure arm belongs to this class
             ->where('schid', $request->schid)
             ->first();
 
@@ -28894,7 +28894,7 @@ public function getLoggedInUserDetails(Request $request)
             ], 404);
         }
 
-        // ✅ Only Student or Staff passwords can be reset
+        // Only Student or Staff passwords can be reset
         if (!in_array($targetUser->typ, ['z', 'w'])) {
             return response()->json([
                 'status'  => false,
@@ -29376,26 +29376,26 @@ public function getLoggedInUserDetails(Request $request)
         foreach ($schools as $school) {
             $user_id = $school->sid;
 
-            // ✅ Count active learners
+            // Count active learners
             $activeLearners = DB::table('old_student')
                 ->where('schid', $user_id)
                 ->where('status', 'active')
                 ->distinct('sid')
                 ->count('sid');
 
-            // ✅ Count alumni
+            // Count alumni
             $alumniCount = DB::table('alumnis')
                 ->where('schid', $user_id)
                 ->count();
 
-            // ✅ Count active staff
+            // Count active staff
             $activeStaff = DB::table('old_staff')
                 ->where('schid', $user_id)
                 ->where('status', 'active')
                 ->distinct('sid')
                 ->count('sid');
 
-            // ✅ Fetch class arms grouped by cls_id
+            // Fetch class arms grouped by cls_id
             $classArms = DB::table('sch_cls')
                 ->where('schid', $user_id)
                 ->get(['cls_id', 'name'])
@@ -29403,12 +29403,12 @@ public function getLoggedInUserDetails(Request $request)
                 ->map(fn($items) => $items->pluck('name')->toArray())
                 ->toArray();
 
-            // ✅ Total class count
+            // Total class count
             $totalClasses = DB::table('sch_cls')
                 ->where('schid', $user_id)
                 ->count();
 
-            // ✅ Proper school code
+            // Proper school code
             $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
 
             // 🔹 Fetch web data (including country)
@@ -29976,7 +29976,7 @@ public function getLoggedInUserDetails(Request $request)
                 'schid' => $vendor->schid,
                 'school_name' => $vendor->school_name,
                 'sch3' => $vendor->sch3,
-                'school_id' => $vendor->sch3 . '/' . str_pad($serial++, 4, '0', STR_PAD_LEFT), // ✅ AMB/0001
+                'school_id' => $vendor->sch3 . '/' . str_pad($serial++, 4, '0', STR_PAD_LEFT), // AMB/0001
                 'created_at' => $vendor->created_at,
                 'updated_at' => $vendor->updated_at,
             ];
@@ -30081,7 +30081,7 @@ public function getLoggedInUserDetails(Request $request)
                 'schid' => $exp->schid,
                 'school_name' => $exp->school_name,
                 'sch3' => $exp->sch3,
-                'school_id' => $exp->sch3 . '/' . str_pad($serial++, 4, '0', STR_PAD_LEFT), // ✅ AMB/0001
+                'school_id' => $exp->sch3 . '/' . str_pad($serial++, 4, '0', STR_PAD_LEFT), // AMB/0001
                 'created_at' => $exp->created_at,
                 'updated_at' => $exp->updated_at,
             ];
@@ -30648,10 +30648,10 @@ public function getLoggedInUserDetails(Request $request)
     {
         $query = DB::table('old_student as os')
             ->leftJoin('school as s', 'os.schid', '=', 's.sid')
-            ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')              // ✅ main class
-            ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')        // ✅ class arm
-            ->leftJoin('student_basic_data as bd', 'os.sid', '=', 'bd.user_id') // ✅ join by sid
-            ->leftJoin('school_web_data as swd', 'os.schid', '=', 'swd.user_id') // ✅ join school_web_data
+            ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')              // main class
+            ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')        // class arm
+            ->leftJoin('student_basic_data as bd', 'os.sid', '=', 'bd.user_id') // join by sid
+            ->leftJoin('school_web_data as swd', 'os.schid', '=', 'swd.user_id') // join school_web_data
             ->where("os.schid", $schid)
             ->where("os.ssn", $ssn)
             ->where("os.trm", $trm)
@@ -30669,12 +30669,12 @@ public function getLoggedInUserDetails(Request $request)
             'os.suid as student_id',
             's.name as school_name',
             's.sbd as subdomain',
-            'swd.phn as school_phone', // ✅ get school phone
+            'swd.phn as school_phone', // get school phone
             'c.id as class_id',
             'c.name as class_name',
             'sc.id as class_arm_id',
             'sc.name as class_arm',
-            'bd.dob' // ✅ added date of birth
+            'bd.dob' // added date of birth
         )
             ->distinct('os.sid')
             ->get();
@@ -30683,7 +30683,7 @@ public function getLoggedInUserDetails(Request $request)
             $status = $student->status === 'inactive' ? 'Alumni' : $student->status;
             $currentClass = $student->status === 'inactive' ? 'Alumni' : $student->class_name;
 
-            // ✅ Convert numeric dob (milliseconds) to YYYY-MM-DD
+            // Convert numeric dob (milliseconds) to YYYY-MM-DD
             $dob = null;
             if (!empty($student->dob) && is_numeric($student->dob)) {
                 try {
@@ -30701,7 +30701,7 @@ public function getLoggedInUserDetails(Request $request)
                 "status"        => $status,
                 "school_name"   => $student->school_name,
                 "subdomain"     => $student->subdomain,
-                "school_phone"  => $student->school_phone ?? 'N/A', // ✅ added to response
+                "school_phone"  => $student->school_phone ?? 'N/A', // added to response
                 "student_id"    => $student->student_id,
                 "class_id"      => $student->class_id,
                 "class_name"    => $student->class_name,
@@ -30790,7 +30790,7 @@ public function getLoggedInUserDetails(Request $request)
 
     public function verifyStudent(Request $request)
     {
-        $studentId = $request->query('studentId'); // ✅ use query param instead of path param
+        $studentId = $request->query('studentId'); // use query param instead of path param
 
         if (!$studentId) {
             return response()->json([
@@ -30802,7 +30802,7 @@ public function getLoggedInUserDetails(Request $request)
 
         $student = DB::table('old_student as os')
             ->leftJoin('school as s', 'os.schid', '=', 's.sid')
-            ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id') // ✅ join to get school phone
+            ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id') // join to get school phone
             ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')                  // main class
             ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')            // class arm
             ->leftJoin('student_basic_data as sb', 'os.sid', '=', 'sb.user_id') // join with basic data
@@ -30822,7 +30822,7 @@ public function getLoggedInUserDetails(Request $request)
                 'sb.dob',
                 'sb.sex',
                 'sb.addr',
-                'sw.phn as school_phone' // ✅ added school phone
+                'sw.phn as school_phone' // added school phone
             )
             ->first();
 
@@ -30845,11 +30845,11 @@ public function getLoggedInUserDetails(Request $request)
             }
         }
 
-        // ✅ Alumni handling
+        // Alumni handling
         $status = $student->status === 'inactive' ? 'Alumni' : $student->status;
         $currentClass = $student->status === 'inactive' ? 'Alumni' : $student->class_name;
 
-        // ✅ Build payload
+        // Build payload
         $pld = [
             "sid"           => (string) $student->sid,
             "fname"         => $student->fname,
@@ -30857,7 +30857,7 @@ public function getLoggedInUserDetails(Request $request)
             "status"        => $status,
             "school_name"   => $student->school_name,
             "subdomain"     => $student->subdomain,
-            "school_phone"  => $student->school_phone ?? 'N/A', // ✅ display phone number
+            "school_phone"  => $student->school_phone ?? 'N/A', // display phone number
             "student_id"    => $student->student_id,
             "class_id"      => $student->class_id,
             "class_name"    => $student->class_name,
@@ -30968,7 +30968,7 @@ public function getLoggedInUserDetails(Request $request)
             ->leftJoin('staff as s', 'os.sid', '=', 's.sid')
             ->leftJoin('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
             ->leftJoin('school as sch', 'os.schid', '=', 'sch.sid')
-            ->leftJoin('school_web_data as sw', 'sch.sid', '=', 'sw.user_id') // ✅ join to get school phone
+            ->leftJoin('school_web_data as sw', 'sch.sid', '=', 'sw.user_id') // join to get school phone
             ->leftJoin('staff_role as r1', 'os.role', '=', 'r1.id')
             ->leftJoin('staff_role as r2', 'os.role2', '=', 'r2.id')
             ->where('os.schid', $schid)
@@ -30988,8 +30988,8 @@ public function getLoggedInUserDetails(Request $request)
                 DB::raw('MAX(sb.phn) as phn'),
                 DB::raw('MAX(sb.addr) as addr'),
                 DB::raw('MAX(sch.name) as school_name'),
-                DB::raw('MAX(sch.sbd) as subdomain'), // ✅ include sbd column
-                DB::raw('MAX(sw.phn) as school_phone'), // ✅ get school phone number
+                DB::raw('MAX(sch.sbd) as subdomain'), // include sbd column
+                DB::raw('MAX(sw.phn) as school_phone'), // get school phone number
                 DB::raw('MAX(os.fname) as fname'),
                 DB::raw('MAX(os.mname) as mname'),
                 DB::raw('MAX(os.lname) as lname'),
@@ -31013,7 +31013,7 @@ public function getLoggedInUserDetails(Request $request)
         $pld = $staff->map(function ($stf) use (&$counter, $schid, $ssn, $trm) {
             $schoolCode = $stf->sch3 ?? 'SCH';
 
-            // ✅ Convert DOB from milliseconds → YYYY-MM-DD
+            // Convert DOB from milliseconds → YYYY-MM-DD
             $dob = null;
             if (!empty($stf->dob) && is_numeric($stf->dob)) {
                 try {
@@ -31023,11 +31023,11 @@ public function getLoggedInUserDetails(Request $request)
                 }
             }
 
-            // ✅ Check if staff is ex-staff
+            // Check if staff is ex-staff
             $isExStaff = DB::table('ex_staffs')->where('stid', $stf->sid)->exists();
             $status = $isExStaff ? 'Ex Staff' : 'Staff';
 
-            // ✅ Only assign new suid if missing
+            // Only assign new suid if missing
             if (empty($stf->suid)) {
                 $staffId = sprintf("%s/STAFF/%03d", $schoolCode, $counter);
                 DB::table('old_staff')
@@ -31050,7 +31050,7 @@ public function getLoggedInUserDetails(Request $request)
                 "school_code"   => $schoolCode,
                 "school_name"   => $stf->school_name,
                 "school_phone"  => $stf->school_phone ?? 'N/A',
-                "subdomain"    => $stf->subdomain ?? 'N/A', // ✅ include sbd in payload
+                "subdomain"    => $stf->subdomain ?? 'N/A', // include sbd in payload
                 "staff_id"      => $staffId,
                 "dob"           => $dob ?: 'N/A',
                 "sex"           => $stf->sex,
@@ -31138,7 +31138,7 @@ public function getLoggedInUserDetails(Request $request)
 
     public function verifyStaff(Request $request)
     {
-        $staffId = $request->query('staffId'); // ✅ ?staffId=SCS/STAFF/003
+        $staffId = $request->query('staffId'); // ?staffId=SCS/STAFF/003
 
         if (!$staffId) {
             return response()->json([
@@ -31153,10 +31153,10 @@ public function getLoggedInUserDetails(Request $request)
             ->leftJoin('staff as s', 'os.sid', '=', 's.sid')
             ->leftJoin('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
             ->leftJoin('school as sch', 'os.schid', '=', 'sch.sid')
-            ->leftJoin('school_web_data as sw', 'sch.sid', '=', 'sw.user_id') // ✅ join to get school phone
+            ->leftJoin('school_web_data as sw', 'sch.sid', '=', 'sw.user_id') // join to get school phone
             ->leftJoin('staff_role as r1', 'os.role', '=', 'r1.id')
             ->leftJoin('staff_role as r2', 'os.role2', '=', 'r2.id')
-            ->where('os.suid', $staffId) // ✅ Filter by unique staff ID
+            ->where('os.suid', $staffId) // Filter by unique staff ID
             ->select(
                 'os.sid',
                 'os.fname',
@@ -31165,7 +31165,7 @@ public function getLoggedInUserDetails(Request $request)
                 'os.status',
                 'os.suid as staff_id',
                 'sch.name as school_name',
-                'sch.sbd as subdomain',   // ✅ include school.sbd here
+                'sch.sbd as subdomain',   // include school.sbd here
                 'sw.phn as school_phone',
                 'r1.name as role_name',
                 'r2.name as role2_name',
@@ -31186,7 +31186,7 @@ public function getLoggedInUserDetails(Request $request)
             ], 404);
         }
 
-        // ✅ Check if staff is in ex_staffs table
+        // Check if staff is in ex_staffs table
         $isExStaff = DB::table('ex_staffs')->where('stid', $staff->sid)->exists();
         $currentStatus = $isExStaff ? 'Ex Staff' : 'Staff';
 
@@ -31200,16 +31200,16 @@ public function getLoggedInUserDetails(Request $request)
             }
         }
 
-        // ✅ Combine names
+        // Combine names
         $fullName = trim("{$staff->fname} {$staff->mname} {$staff->lname}");
 
-        // ✅ Build payload
+        // Build payload
         $pld = [
             "sid"           => (string) $staff->sid,
             "full_name"     => $fullName,
             "status"        => $currentStatus,
             "school_name"   => $staff->school_name,
-            "subdomain"   => $staff->subdomain, // ✅ Added school.sbd to pld
+            "subdomain"   => $staff->subdomain, // Added school.sbd to pld
             "school_phone"  => $staff->school_phone ?? 'N/A',
             "staff_id"      => $staff->staff_id,
             "role"          => $staff->role_name ?? 'N/A',
@@ -31351,20 +31351,20 @@ public function getLoggedInUserDetails(Request $request)
         $count = $request->input('count', 20);
         $state = $request->input('state'); // e.g. "Abia", "abia", or "ALL"
 
-        // ✅ Base query
+        // Base query
         $query = school::orderBy('name', 'asc');
 
-        // ✅ Filter by state (case-insensitive)
+        // Filter by state (case-insensitive)
         if (!empty($state) && strtolower($state) !== 'all') {
             $query->join('school_web_data as swd', 'school.sid', '=', 'swd.user_id')
                 ->whereRaw('LOWER(swd.state) = ?', [strtolower($state)])
                 ->select('school.*'); // ensure only school columns are returned
         }
 
-        // ✅ Count total results (before pagination)
+        // Count total results (before pagination)
         $totalRecords = $query->count();
 
-        // ✅ Pagination
+        // Pagination
         $schools = $query->skip($start)->take($count)->get();
 
         $pld = [];
@@ -31372,25 +31372,25 @@ public function getLoggedInUserDetails(Request $request)
         foreach ($schools as $school) {
             $user_id = $school->sid;
 
-            // ✅ Fetch school web data (contains state, lga, phone, etc.)
+            // Fetch school web data (contains state, lga, phone, etc.)
             $webData = school_web_data::where('user_id', $user_id)->first();
 
-            // ✅ Count active learners (unique)
+            // Count active learners (unique)
             $activeLearners = old_student::where('schid', $user_id)
                 ->where('status', 'active')
                 ->distinct('sid')
                 ->count('sid');
 
-            // ✅ Alumni count
+            // Alumni count
             $alumniCount = alumni::where('schid', $user_id)->count();
 
-            // ✅ Active staff count
+            // Active staff count
             $activeStaff = old_staff::where('schid', $user_id)
                 ->where('status', 'active')
                 ->distinct('sid')
                 ->count('sid');
 
-            // ✅ Group class arms by class ID
+            // Group class arms by class ID
             $classArms = sch_cls::where('schid', $user_id)
                 ->get(['cls_id', 'name'])
                 ->groupBy('cls_id')
@@ -31399,7 +31399,7 @@ public function getLoggedInUserDetails(Request $request)
 
             $totalClasses = sch_cls::where('schid', $user_id)->count();
 
-            // ✅ School code format (e.g., ABJCE/0001)
+            // School code format (e.g., ABJCE/0001)
             $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
 
             $pld[] = [
@@ -31429,7 +31429,7 @@ public function getLoggedInUserDetails(Request $request)
             ];
         }
 
-        // ✅ Final response
+        // Final response
         return response()->json([
             "status"  => true,
             "message" => "Success",
@@ -31475,20 +31475,20 @@ public function getLoggedInUserDetails(Request $request)
             ->orderBy('school.name', 'asc')
             ->select('school.*');
 
-        // ✅ Filter by state (if provided)
+        // Filter by state (if provided)
         if (!empty($state) && strtolower($state) !== 'all') {
             $query->whereRaw('LOWER(swd.state) = ?', [strtolower($state)]);
         }
 
-        // ✅ Filter by LGA (if provided)
+        // Filter by LGA (if provided)
         if (!empty($lga) && strtolower($lga) !== 'all') {
             $query->whereRaw('LOWER(swd.lga) = ?', [strtolower($lga)]);
         }
 
-        // ✅ Count total matching records
+        // Count total matching records
         $totalRecords = $query->count();
 
-        // ✅ Pagination
+        // Pagination
         $schools = $query->skip($start)->take($count)->get();
 
         $pld = [];
@@ -31651,26 +31651,26 @@ public function getLoggedInUserDetails(Request $request)
         foreach ($schools as $school) {
             $user_id = $school->sid;
 
-            // ✅ Count active learners
+            // Count active learners
             $activeLearners = DB::table('old_student')
                 ->where('schid', $user_id)
                 ->where('status', 'active')
                 ->distinct('sid')
                 ->count('sid');
 
-            // ✅ Count alumni
+            // Count alumni
             $alumniCount = DB::table('alumnis')
                 ->where('schid', $user_id)
                 ->count();
 
-            // ✅ Count active staff
+            // Count active staff
             $activeStaff = DB::table('old_staff')
                 ->where('schid', $user_id)
                 ->where('status', 'active')
                 ->distinct('sid')
                 ->count('sid');
 
-            // ✅ Fetch class arms grouped by cls_id
+            // Fetch class arms grouped by cls_id
             $classArms = DB::table('sch_cls')
                 ->where('schid', $user_id)
                 ->get(['cls_id', 'name'])
@@ -31678,19 +31678,19 @@ public function getLoggedInUserDetails(Request $request)
                 ->map(fn($items) => $items->pluck('name')->toArray())
                 ->toArray();
 
-            // ✅ Total class count
+            // Total class count
             $totalClasses = DB::table('sch_cls')
                 ->where('schid', $user_id)
                 ->count();
 
-            // ✅ Proper school code
+            // Proper school code
             $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
 
             // 🔹 Fetch web data
             $webData = DB::table('school_web_data')->where('user_id', $user_id)->first();
 
             /**
-             * ✅ GENDER SUMMARY FOR ACTIVE STUDENTS
+             * GENDER SUMMARY FOR ACTIVE STUDENTS
              */
             $activeStudentIds = DB::table('old_student')
                 ->where('schid', $user_id)
@@ -31710,7 +31710,7 @@ public function getLoggedInUserDetails(Request $request)
             $totalActive  = $activeMale + $activeFemale;
 
             /**
-             * ✅ GENDER SUMMARY FOR ALUMNI (INACTIVE)
+             * GENDER SUMMARY FOR ALUMNI (INACTIVE)
              */
             $alumniStudentIds = DB::table('alumnis')
                 ->where('schid', $user_id)
@@ -31728,7 +31728,7 @@ public function getLoggedInUserDetails(Request $request)
             $alumniFemale = $alumniGender['F'] ?? 0;
             $totalAlumni  = $alumniMale + $alumniFemale;
 
-            // ✅ Add to payload
+            // Add to payload
             $pld[] = [
                 's' => [
                     'sid'             => $school->sid,
@@ -31896,13 +31896,13 @@ public function getLearnersEnrollmentInfoGender(Request $request)
     $gender = $request->input('gender');
     $schid  = $request->input('schid');
 
-    // ✅ Subquery: get latest unique record for each student by uid
+    // Subquery: get latest unique record for each student by uid
     $latestStudents = DB::table('old_student as os2')
         ->select(DB::raw('MAX(os2.uid) as latest_uid'))
         ->where('os2.status', 'active')
         ->groupBy('os2.sid');
 
-    // ✅ Join with main table on latest uid (ensures one record per student)
+    // Join with main table on latest uid (ensures one record per student)
     $query = DB::table('old_student as os')
         ->joinSub($latestStudents, 'latest', function ($join) {
             $join->on('os.uid', '=', 'latest.latest_uid');
@@ -31930,23 +31930,23 @@ public function getLearnersEnrollmentInfoGender(Request $request)
         )
         ->where('os.status', 'active');
 
-    // ✅ Apply filters dynamically
+    // Apply filters dynamically
     if (!empty($state))  $query->where('swd.state', $state);
     if (!empty($lga))    $query->where('swd.lga', $lga);
     if (!empty($gender)) $query->where('sbd.sex', $gender);
     if (!empty($schid))  $query->where('os.schid', $schid);
 
-    // ✅ Count unique students
+    // Count unique students
     $totalRecords = $query->count();
 
-    // ✅ Fetch paginated data
+    // Fetch paginated data
     $students = $query
         ->orderBy('os.lname', 'asc')
         ->skip($start)
         ->take($count)
         ->get();
 
-    // ✅ Format date of birth properly
+    // Format date of birth properly
     foreach ($students as $student) {
         if (!empty($student->dob)) {
             try {
@@ -32118,7 +32118,7 @@ public function getLearnersEnrollmentInfoGender(Request $request)
             $user_id = $school->sid;
 
             /**
-             * ✅ STAFF COUNTS
+             * STAFF COUNTS
              */
             $activeStaffCount = DB::table('old_staff')
                 ->where('schid', $user_id)
@@ -32135,7 +32135,7 @@ public function getLearnersEnrollmentInfoGender(Request $request)
             $totalStaff = $activeStaffCount + $inactiveStaffCount;
 
             /**
-             * ✅ GENDER SUMMARY (by status)
+             * GENDER SUMMARY (by status)
              */
             $genderSummary = [
                 'active' => [
@@ -32179,7 +32179,7 @@ public function getLearnersEnrollmentInfoGender(Request $request)
             $genderSummary['inactive']['total'] = $genderSummary['inactive']['male'] + $genderSummary['inactive']['female'];
 
             /**
-             * ✅ JOB ROLE SUMMARY (e.g., teacher, principal, admin, etc.)
+             * JOB ROLE SUMMARY (e.g., teacher, principal, admin, etc.)
              */
             $roleSummary = DB::table('old_staff')
                 ->where('schid', $user_id)
@@ -32189,12 +32189,12 @@ public function getLearnersEnrollmentInfoGender(Request $request)
                 ->toArray();
 
             /**
-             * ✅ SCHOOL CODE + WEB DATA
+             * SCHOOL CODE + WEB DATA
              */
             $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
             $webData = DB::table('school_web_data')->where('user_id', $user_id)->first();
 
-            // ✅ Build Payload
+            // Build Payload
             $pld[] = [
                 's' => [
                     'sid'            => $school->sid,
@@ -32350,13 +32350,13 @@ public function getStaffsEnrollmentInfoGender(Request $request)
     $state = $request->input('state');
     $lga   = $request->input('lga');
     $gender = $request->input('gender'); // 'M' or 'F'
-    $schid  = $request->input('schid');  // ✅ School ID filter
+    $schid  = $request->input('schid');  // School ID filter
 
-    // ✅ Build query
+    // Build query
     $query = DB::table('old_staff as os')
         ->join('staff_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
         ->join('school_web_data as swd', 'os.schid', '=', 'swd.user_id')
-        // ✅ Join for role1 and role2
+        // Join for role1 and role2
         ->leftJoin('staff_role as sr1', DB::raw('REPLACE(os.role, "*", "")'), '=', 'sr1.id')
         ->leftJoin('staff_role as sr2', DB::raw('REPLACE(os.role2, "*", "")'), '=', 'sr2.id')
         ->select(
@@ -32383,7 +32383,7 @@ public function getStaffsEnrollmentInfoGender(Request $request)
         )
         ->where('os.status', 'active');
 
-    // ✅ Apply filters
+    // Apply filters
     if (!empty($schid)) {
         $query->where('os.schid', $schid); // 🔹 Filter by specific school
     }
@@ -32400,7 +32400,7 @@ public function getStaffsEnrollmentInfoGender(Request $request)
         $query->where('sbd.sex', $gender);
     }
 
-    // ✅ Avoid duplicates
+    // Avoid duplicates
     $query->groupBy(
         'os.sid',
         'os.suid',
@@ -32422,16 +32422,16 @@ public function getStaffsEnrollmentInfoGender(Request $request)
         'sr2.name'
     );
 
-    // ✅ Count total records
+    // Count total records
     $totalRecords = $query->count(DB::raw('distinct os.sid'));
 
-    // ✅ Fetch paginated results
+    // Fetch paginated results
     $staff = $query->orderBy('os.lname', 'asc')
         ->skip($start)
         ->take($count)
         ->get();
 
-    // ✅ Format DOBs
+    // Format DOBs
     foreach ($staff as $member) {
         $dob = null;
         if (!empty($member->dob)) {
@@ -32446,7 +32446,7 @@ public function getStaffsEnrollmentInfoGender(Request $request)
         $member->dob = $dob;
     }
 
-    // ✅ Return response
+    // Return response
     return response()->json([
         'status' => true,
         'message' => 'Success',
@@ -32933,7 +32933,7 @@ public function getLearnersStaffDetails(Request $request)
     $schid = $request->input('schid');
     $ssn   = $request->input('ssn'); // academic session (required)
 
-    // ✅ Validate required parameters
+    // Validate required parameters
     if (empty($schid) || empty($ssn)) {
         return response()->json([
             'status' => false,
@@ -32941,7 +32941,7 @@ public function getLearnersStaffDetails(Request $request)
         ], 400);
     }
 
-    // ✅ Fetch all unique classes for the given school only
+    // Fetch all unique classes for the given school only
     $classes = DB::table('sch_cls')
         ->join('cls', 'cls.id', '=', 'sch_cls.cls_id')
         ->where('sch_cls.schid', $schid)
@@ -33630,7 +33630,7 @@ public function getAllSchoolsInfoRecord(Request $request)
             ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id')
             ->select('s.*', 'sw.state as web_state', 'sw.lga as web_lga', 'sw.country as web_country');
 
-        // ✅ Optional filters
+        // Optional filters
         if (!empty($state)) $query->where('sw.state', $state);
         if (!empty($lga)) $query->where('sw.lga', $lga);
 
@@ -33648,7 +33648,7 @@ public function getAllSchoolsInfoRecord(Request $request)
         foreach ($schools as $school) {
             $user_id = $school->sid;
 
-            // ✅ Count active learners
+            // Count active learners
             $learnersQuery = DB::table('old_student')
                 ->where('schid', $user_id)
                 ->where('status', 'active');
@@ -33658,12 +33658,12 @@ public function getAllSchoolsInfoRecord(Request $request)
 
             $activeLearners = $learnersQuery->distinct('sid')->count('sid');
 
-            // ✅ Count alumni
+            // Count alumni
             $alumniCount = DB::table('alumnis')
                 ->where('schid', $user_id)
                 ->count();
 
-            // ✅ Count active staff
+            // Count active staff
             $staffQuery = DB::table('old_staff')
                 ->where('schid', $user_id)
                 ->where('status', 'active');
@@ -33673,7 +33673,7 @@ public function getAllSchoolsInfoRecord(Request $request)
 
             $activeStaff = $staffQuery->distinct('sid')->count('sid');
 
-            // ✅ Class arms and total
+            // Class arms and total
             $classArms = DB::table('sch_cls')
                 ->where('schid', $user_id)
                 ->get(['cls_id', 'name'])
@@ -33685,13 +33685,13 @@ public function getAllSchoolsInfoRecord(Request $request)
                 ->where('schid', $user_id)
                 ->count();
 
-            // ✅ Generate school code
+            // Generate school code
             $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
 
-            // ✅ Web data
+            // Web data
             $webData = DB::table('school_web_data')->where('user_id', $user_id)->first();
 
-            // ✅ Structured format
+            // Structured format
             $pld[] = [
                 's' => [
                     'sid'             => (string) $school->sid,
@@ -33745,7 +33745,7 @@ public function getAllSchoolsInfoRecord(Request $request)
             ];
         }
 
-        // ✅ Response
+        // Response
         return response()->json([
             "status"        => true,
             "message"       => "Success",
@@ -33944,6 +33944,69 @@ public function addAdmissionInfo(Request $request)
     ]);
 }
 
+
+
+
+
+/**
+ * @OA\Put(
+ *     path="/api/approveAdmission",
+ *     summary="Approve a student's admission",
+ *     description="Updates the adm_status to true when the user clicks the approve button.",
+ *     operationId="approveAdmission",
+ *     tags={"Api"},
+ *    security={{"bearerAuth":{}}},
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             required={"sid", "schid"},
+ *             @OA\Property(property="sid", type="integer", example=1000),
+ *             @OA\Property(property="schid", type="integer", example=13)
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Admission approved successfully",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Admission approved successfully.")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="Student record not found or update failed"
+ *     ),
+ *     @OA\Response(
+ *         response=500,
+ *         description="Internal server error"
+ *     )
+ * )
+ */
+public function approveAdmission(Request $request)
+{
+    // ✅ Validate input
+    $request->validate([
+        "sid"   => "required|integer",
+        "schid" => "required|integer"
+    ]);
+
+    //  Update adm_status to true
+    $updated = old_student::where('sid', $request->sid)
+        ->where('schid', $request->schid)
+        ->update(['adm_status' => true]);
+
+    if (!$updated) {
+        return response()->json([
+            "status"  => false,
+            "message" => "No record found for this student or update failed."
+        ], 404);
+    }
+
+    return response()->json([
+        "status"  => true,
+        "message" => "Admission approved successfully."
+    ]);
+}
 
 
 }

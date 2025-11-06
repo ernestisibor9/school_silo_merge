@@ -27450,6 +27450,73 @@
                     }
                 ]
             }
+        },
+        "/api/approveAdmission": {
+            "put": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Approve a student's admission",
+                "description": "Updates the adm_status to true when the user clicks the approve button.",
+                "operationId": "approveAdmission",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "sid",
+                                    "schid"
+                                ],
+                                "properties": {
+                                    "sid": {
+                                        "type": "integer",
+                                        "example": 1000
+                                    },
+                                    "schid": {
+                                        "type": "integer",
+                                        "example": 13
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Admission approved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Admission approved successfully."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Student record not found or update failed"
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
