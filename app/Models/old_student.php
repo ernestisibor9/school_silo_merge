@@ -25,6 +25,7 @@ class old_student extends Model
         'adm_trm',
         'cls_of_adm',
         'date_of_adm',
+        'adm_status',
         'more'
     ];
     /*protected $hidden = [
