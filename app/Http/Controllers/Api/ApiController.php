@@ -33912,37 +33912,45 @@ public function updateAccountsBySchoolAndClass(Request $request)
 
 public function addAdmissionInfo(Request $request)
 {
-    // Validate input
+    // ✅ Validate input
     $request->validate([
-        "sid" => "required",
-        "schid" => "required",
-        "adm_ssn" => "required",            // Admission Session
-        "adm_trm" => "required",            // Admission Term
-        "cls_of_adm" => "required",         // Class of Admission
-        "date_of_adm" => "required"         // Date of Admission
+        "sid" => "required|integer",
+        "schid" => "required|integer",
+        "adm_ssn" => "required|string",       // Admission Session
+        "adm_trm" => "required|string",       // Admission Term
+        "cls_of_adm" => "required|string",    // Class of Admission
+        "date_of_adm" => "required|date"      // Date of Admission
     ]);
 
-    // Update based on sid and schid
-    $updated = old_student::where('sid', $request->sid)
-        ->where('schid', $request->schid)
-        ->update([
-            'adm_ssn' => $request->adm_ssn,
-            'adm_trm' => $request->adm_trm,
-            'cls_of_adm' => $request->cls_of_adm,
-            'date_of_adm' => $request->date_of_adm,
-        ]);
+    // Data to update in both tables
+    $updateData = [
+        'adm_ssn' => $request->adm_ssn,
+        'adm_trm' => $request->adm_trm,
+        'cls_of_adm' => $request->cls_of_adm,
+        'date_of_adm' => $request->date_of_adm,
+    ];
 
-    // Handle case where no record was updated
-    if (!$updated) {
+    // Update old_student table
+    $oldStudentUpdated = old_student::where('sid', $request->sid)
+        ->where('schid', $request->schid)
+        ->update($updateData);
+
+    // Update student table
+    $studentUpdated = student::where('sid', $request->sid)
+        ->where('schid', $request->schid)
+        ->update($updateData);
+
+    // Handle no record updated
+    if (!$oldStudentUpdated && !$studentUpdated) {
         return response()->json([
             "status" => false,
-            "message" => "No record found for this student and school or update failed."
+            "message" => "No matching record found in either table or update failed."
         ], 404);
     }
 
     return response()->json([
         "status" => true,
-        "message" => "Admission information added successfully."
+        "message" => "Admission information updated successfully in both tables."
     ]);
 }
 
@@ -33992,13 +34000,17 @@ public function approveAdmission(Request $request)
         "schid" => "required|integer"
     ]);
 
+        $updated = student::where('sid', $request->sid)
+        ->where('schid', $request->schid)
+        ->update(['adm_status' => 1]);
+
     // Update adm_status to 1 (approved)
-    $updated = old_student::where('sid', $request->sid)
+    $updatedOld = old_student::where('sid', $request->sid)
         ->where('schid', $request->schid)
         ->update(['adm_status' => 1]);
 
     //  Handle case where no record was updated
-    if (!$updated) {
+    if (!$updated && !$updatedOld) {
         return response()->json([
             "status"  => false,
             "message" => "No record found for this student or update failed."
