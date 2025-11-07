@@ -5897,7 +5897,8 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
             'adm_ssn',
             'adm_trm',
             'cls_of_adm',
-            'date_of_adm'
+            'date_of_adm',
+            'adm_status'
         )
             ->distinct('sid') // ensures unique student records
              ->orderBy('lname', 'asc') // sort alphabetically by first name
@@ -5921,6 +5922,7 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
                      "adm_trm"           => $student->adm_trm,
                      "cls_of_adm"           => $student->cls_of_adm,
                      "date_of_adm"       => $student->date_of_adm,
+                    "adm_status"       => $student->adm_status,
                 ];
             });
 
@@ -33984,18 +33986,18 @@ public function addAdmissionInfo(Request $request)
  */
 public function approveAdmission(Request $request)
 {
-    // ✅ Validate input
+    // Validate input
     $request->validate([
         "sid"   => "required|integer",
         "schid" => "required|integer"
     ]);
 
-    // ✅ Update adm_status to 1 (approved)
+    // Update adm_status to 1 (approved)
     $updated = old_student::where('sid', $request->sid)
         ->where('schid', $request->schid)
         ->update(['adm_status' => 1]);
 
-    // ✅ Handle case where no record was updated
+    //  Handle case where no record was updated
     if (!$updated) {
         return response()->json([
             "status"  => false,
