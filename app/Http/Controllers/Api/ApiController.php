@@ -5161,59 +5161,139 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
+    // public function getStudent()
+    // {
+    //     $combined = false;
+    //     if (request()->has('combined')) {
+    //         $combined = request()->input('combined');
+    //     }
+    //     $uid = '';
+    //     if (request()->has('uid')) {
+    //         $uid = request()->input('uid');
+    //     }
+    //     $schid = '';
+    //     if (request()->has('schid')) {
+    //         $schid = request()->input('schid');
+    //     }
+    //     if ($uid == '' || $schid == '') {
+    //         return response()->json([
+    //             "status" => false,
+    //             "message" => "No UID/School ID provided",
+    //         ], 400);
+    //     }
+    //     $pld = [];
+    //     if ($combined) {
+    //         $members = [];
+    //         $compo = explode("/", $uid);
+    //         if (count($compo) == 4) {
+    //             $sch3 = $compo[0];
+    //             $year = $compo[1];
+    //             $term = $compo[2];
+    //             $count = $compo[3];
+    //             $members = student::where("schid", $schid)->where("stat", "1")->where("sch3", $sch3)->where("year", $year)->where("term", $term)
+    //                 ->where("count", $count)->get();
+    //         } else {
+    //             $members = student::where("schid", $schid)->where("stat", "1")->where("cuid", $uid)->get();
+    //         }
+    //         foreach ($members as $member) {
+    //             $user_id = $member->sid;
+    //             $academicData = student_academic_data::where('user_id', $user_id)->first();
+    //             $basicData = student_basic_data::where('user_id', $user_id)->first();
+    //             $pld[] = [
+    //                 's' => $member,
+    //                 'b' => $basicData,
+    //                 'a' => $academicData,
+    //             ];
+    //         }
+    //     } else {
+    //         $pld = student::where("schid", $schid)->where("stat", "1")->where("sid", $uid)->first();
+    //     }
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => $pld,
+    //     ]);
+    // }
+
     public function getStudent()
-    {
-        $combined = false;
-        if (request()->has('combined')) {
-            $combined = request()->input('combined');
-        }
-        $uid = '';
-        if (request()->has('uid')) {
-            $uid = request()->input('uid');
-        }
-        $schid = '';
-        if (request()->has('schid')) {
-            $schid = request()->input('schid');
-        }
-        if ($uid == '' || $schid == '') {
-            return response()->json([
-                "status" => false,
-                "message" => "No UID/School ID provided",
-            ], 400);
-        }
-        $pld = [];
-        if ($combined) {
-            $members = [];
-            $compo = explode("/", $uid);
-            if (count($compo) == 4) {
-                $sch3 = $compo[0];
-                $year = $compo[1];
-                $term = $compo[2];
-                $count = $compo[3];
-                $members = student::where("schid", $schid)->where("stat", "1")->where("sch3", $sch3)->where("year", $year)->where("term", $term)
-                    ->where("count", $count)->get();
-            } else {
-                $members = student::where("schid", $schid)->where("stat", "1")->where("cuid", $uid)->get();
-            }
-            foreach ($members as $member) {
-                $user_id = $member->sid;
-                $academicData = student_academic_data::where('user_id', $user_id)->first();
-                $basicData = student_basic_data::where('user_id', $user_id)->first();
-                $pld[] = [
-                    's' => $member,
-                    'b' => $basicData,
-                    'a' => $academicData,
-                ];
-            }
-        } else {
-            $pld = student::where("schid", $schid)->where("stat", "1")->where("sid", $uid)->first();
-        }
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $pld,
-        ]);
+{
+    $combined = false;
+    if (request()->has('combined')) {
+        $combined = request()->input('combined');
     }
+
+    $uid = request()->input('uid', '');
+    $schid = request()->input('schid', '');
+
+    if ($uid === '' || $schid === '') {
+        return response()->json([
+            "status" => false,
+            "message" => "No UID/School ID provided",
+        ], 400);
+    }
+
+    if ($combined) {
+        $pld = [];
+        $compo = explode("/", $uid);
+        $members = [];
+
+        if (count($compo) == 4) {
+            [$sch3, $year, $term, $count] = $compo;
+            $members = student::where("schid", $schid)
+                ->where("stat", "1")
+                ->where("sch3", $sch3)
+                ->where("year", $year)
+                ->where("term", $term)
+                ->where("count", $count)
+                ->get();
+        } else {
+            $members = student::where("schid", $schid)
+                ->where("stat", "1")
+                ->where("cuid", $uid)
+                ->get();
+        }
+
+        foreach ($members as $member) {
+            $user_id = $member->sid;
+            $academicData = student_academic_data::where('user_id', $user_id)->first();
+            $basicData = student_basic_data::where('user_id', $user_id)->first();
+
+            $oldStudent = old_student::where('sid', $user_id)
+                ->where('schid', $schid)
+                ->first();
+            $suid = $oldStudent ? $oldStudent->suid : null;
+
+            $pld[] = [
+                's' => $member,
+                'b' => $basicData,
+                'a' => $academicData,
+                'suid' => $suid, // added suid here
+            ];
+        }
+    } else {
+        $student = student::where("schid", $schid)
+            ->where("stat", "1")
+            ->where("sid", $uid)
+            ->first();
+
+        $oldStudent = old_student::where('sid', $uid)
+            ->where('schid', $schid)
+            ->first();
+        $suid = $oldStudent ? $oldStudent->suid : null;
+
+        $pld = $student ? $student->toArray() : [];
+        if ($student) {
+            $pld['suid'] = $suid; // add suid to the response
+        }
+    }
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => $pld,
+    ]);
+}
+
 
     /**
      * @OA\Post(
