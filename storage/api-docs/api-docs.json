@@ -5430,14 +5430,14 @@
                 ]
             }
         },
-        "/api/setStaffSubjectsetStaffSubject": {
+        "/api/setStaffSubjects": {
             "post": {
                 "tags": [
                     "Api"
                 ],
                 "summary": "Assign subject(s) to staff",
                 "description": "Creates or updates a staff subject assignment with a unique UID for the given session and term.",
-                "operationId": "16a970a747d7b109871dca5c6e3ed022",
+                "operationId": "67b8d0ae32fc6d99241c43ed9d0e5b38",
                 "requestBody": {
                     "required": true,
                     "content": {

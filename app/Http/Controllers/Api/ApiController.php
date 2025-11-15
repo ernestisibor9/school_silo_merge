@@ -3341,46 +3341,47 @@ public function getStudentSubjects($stid)
     // }
 
 
-    public function setClassSubject(Request $request)
-    {
-        // Data validation
-        $request->validate([
-            "schid"   => "required",
-            "subj_id" => "required",
-            "name"    => "required",
-            "comp"    => "required",
-            "clsid"   => "required",
-            "sesn"    => "required",
-            "trm"     => "required",
-        ]);
+public function setClassSubject(Request $request)
+{
+    // Data validation
+    $request->validate([
+        "schid"   => "required",
+        "subj_id" => "required",
+        "name"    => "required",
+        "comp"    => "required",
+        "clsid"   => "required",
+        "sesn"    => "required",
+        "trm"     => "required",
+    ]);
 
-        // Generate a unique numeric UID
-        $uid = $request->subj_id
-            . $request->schid
-            . $request->clsid
-            . $request->sesn
-            . $request->trm
-            . rand(10000, 99999);
+    // Generate deterministic UID without random number
+    $uid = $request->subj_id
+        . $request->schid
+        . $request->clsid
+        . $request->sesn
+        . $request->trm;
 
-        // Insert or update subject
-        class_subj::updateOrCreate(
-            ["uid" => $uid],
-            [
-                "schid"   => $request->schid,
-                "subj_id" => $request->subj_id,
-                "name"    => $request->name,
-                "comp"    => $request->comp,
-                "clsid"   => $request->clsid,
-                "sesn"    => $request->sesn,
-                "trm"     => $request->trm,
-            ]
-        );
+    // Insert or update subject
+    $pld = class_subj::updateOrCreate(
+        ["uid" => $uid],
+        [
+            "schid"   => $request->schid,
+            "subj_id" => $request->subj_id,
+            "name"    => $request->name,
+            "comp"    => $request->comp,
+            "clsid"   => $request->clsid,
+            "sesn"    => $request->sesn,
+            "trm"     => $request->trm,
+        ]
+    );
 
-        return response()->json([
-            "status"  => true,
-            "message" => "Subject added successfully",
-        ]);
-    }
+    return response()->json([
+        "status"  => true,
+        "message" => "Subject added successfully",
+        "pld"     => $pld
+    ]);
+}
+
 
 
 
@@ -7332,9 +7333,42 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
      * )
      */
 
-public function setStaffSubject(Request $request)
+    // public function setStaffSubject(Request $request)
+    // {
+    //     // Data validation
+    //     $request->validate([
+    //         "stid"  => "required",
+    //         "sbj"   => "required",
+    //         "schid" => "required",
+    //         "sesn"  => "required",
+    //         "trm"   => "required",
+    //     ]);
+
+    //     // Generate unique UID
+    //     $uid = $request->sesn . $request->trm . $request->stid . rand(10000, 99999);
+
+    //     // Update or create based on UID only
+    //     $pld = staff_subj::updateOrCreate(
+    //         ["uid" => $uid],
+    //         [
+    //             "stid"  => $request->stid,
+    //             "sbj"   => $request->sbj,
+    //             "schid" => $request->schid,
+    //             "sesn"  => $request->sesn,
+    //             "trm"   => $request->trm,
+    //         ]
+    //     );
+
+    //     return response()->json([
+    //         "status"  => true,
+    //         "message" => "Success",
+    //         "pld"     => $pld
+    //     ]);
+    // }
+
+
+    public function setStaffSubject(Request $request)
 {
-    // Data validation
     $request->validate([
         "stid"  => "required",
         "sbj"   => "required",
@@ -7343,20 +7377,21 @@ public function setStaffSubject(Request $request)
         "trm"   => "required",
     ]);
 
-    // Generate UID without random number to avoid integer overflow
-    $uid = $request->sesn . $request->trm . $request->stid;
+    // Look for existing record by business keys
+    $pld = staff_subj::firstOrNew([
+        "stid"  => $request->stid,
+        "sbj"   => $request->sbj,
+        "schid" => $request->schid,
+        "trm"   => $request->trm,
+    ]);
 
-    // Update or create based on UID only
-    $pld = staff_subj::updateOrCreate(
-        ["uid" => $uid],
-        [
-            "stid"  => $request->stid,
-            "sbj"   => $request->sbj,
-            "schid" => $request->schid,
-            "sesn"  => (string)$request->sesn, // ensure sesn is stored correctly
-            "trm"   => (int)$request->trm,
-        ]
-    );
+    // Assign sesn and uid
+    $pld->sesn = $request->sesn;
+    if (!$pld->exists) {
+        $pld->uid = $request->sesn . $request->trm . $request->stid;
+    }
+
+    $pld->save();
 
     return response()->json([
         "status"  => true,
@@ -7364,6 +7399,8 @@ public function setStaffSubject(Request $request)
         "pld"     => $pld
     ]);
 }
+
+
 
     /**
      * @OA\Get(
@@ -9948,67 +9985,67 @@ public function setStaffSubject(Request $request)
     // }
 
 
-    public function setStaffClass(Request $request)
-    {
-        // Data validation
-        $request->validate([
-            "stid"   => "required",
-            "cls"    => "required",
-            "schid"  => "required",
-            "ssn"    => "required",
-            "trm"    => "required",
-            "fname"  => "required",
-            "lname"  => "required",
-            "mname"  => "nullable",
-            "suid"   => "required",
-            "role"   => "required",
-            "role2"  => "required",
-        ]);
+public function setStaffClass(Request $request)
+{
+    // Data validation
+    $request->validate([
+        "stid"   => "required",
+        "cls"    => "required",
+        "schid"  => "required",
+        "ssn"    => "required",
+        "trm"    => "required",
+        "fname"  => "required",
+        "lname"  => "required",
+        "mname"  => "nullable",
+        "suid"   => "required",
+        "role"   => "required",
+        "role2"  => "required",
+    ]);
 
-        // Generate UID automatically (like setOldStaffInfo)
-        $uid = $request->ssn . $request->trm . $request->stid . rand(10000, 99999);
+    // Generate deterministic UID without random numbers
+    $uid = $request->ssn . $request->trm . $request->stid . $request->cls;
 
-        // Save to staff_class
-        $pld = staff_class::updateOrCreate(
-            ["uid" => $uid],
-            [
-                "stid"  => $request->stid,
-                "cls"   => $request->cls,
-                "schid" => $request->schid,
-                "ssn"   => $request->ssn,
-                "trm"   => $request->trm,
-            ]
-        );
+    // Save to staff_class
+    $pld = staff_class::updateOrCreate(
+        ["uid" => $uid],
+        [
+            "stid"  => $request->stid,
+            "cls"   => $request->cls,
+            "schid" => $request->schid,
+            "ssn"   => $request->ssn,
+            "trm"   => $request->trm,
+        ]
+    );
 
-        // Save also to old_staff with same uid style
-        $old = old_staff::updateOrCreate(
-            ["uid" => $uid],
-            [
-                'sid'   => $request->stid,
-                'schid' => $request->schid,
-                'fname' => $request->fname,
-                'mname' => $request->mname,
-                'lname' => $request->lname,
-                'suid'  => $request->suid,
-                'ssn'   => $request->ssn,
-                'trm'   => $request->trm,
-                'clsm'  => $request->cls,
-                'role'  => $request->role,
-                'role2' => $request->role2,
-                'more'  => "",
-            ]
-        );
+    // Save also to old_staff with the same UID style
+    $old = old_staff::updateOrCreate(
+        ["uid" => $uid],
+        [
+            'sid'   => $request->stid,
+            'schid' => $request->schid,
+            'fname' => $request->fname,
+            'mname' => $request->mname,
+            'lname' => $request->lname,
+            'suid'  => $request->suid,
+            'ssn'   => $request->ssn,
+            'trm'   => $request->trm,
+            'clsm'  => $request->cls,
+            'role'  => $request->role,
+            'role2' => $request->role2,
+            'more'  => "",
+        ]
+    );
 
-        // Return JSON response
-        return response()->json([
-            "status"  => true,
-            "message" => "Success",
-            "pld"     => [
-                "staff_class" => $pld,
-                "old_staff"   => $old,
-            ]
-        ]);
-    }
+    // Return JSON response
+    return response()->json([
+        "status"  => true,
+        "message" => "Success",
+        "pld"     => [
+            "staff_class" => $pld,
+            "old_staff"   => $old,
+        ]
+    ]);
+}
 
 
 
@@ -10322,52 +10359,41 @@ public function getStaffClasses($stid)
      */
 
 
-    public function setStaffClassArm(Request $request)
-    {
-        // Data validation
-        $request->validate([
-            "stid"  => "required",
-            "cls"   => "required",
-            "arm"   => "required",
-            "schid" => "required",
-            "sesn"  => "required",
-            "trm"   => "required",
-        ]);
+public function setStaffClassArm(Request $request)
+{
+    // Data validation
+    $request->validate([
+        "stid"  => "required",
+        "cls"   => "required",
+        "arm"   => "required",
+        "schid" => "required",
+        "sesn"  => "required",
+        "trm"   => "required",
+    ]);
 
-        // Generate unique uid
-        $uid = $request->sesn . $request->trm . $request->stid . rand(10000, 99999);
+    // Generate deterministic UID (no random numbers)
+    $uid = $request->sesn . $request->trm . $request->stid . $request->cls . $request->arm;
 
-        // Update or create staff class arm record
-        $pld = staff_class_arm::updateOrCreate(
-            // [
-            //     "stid"  => $request->stid,
-            //     "cls"   => $request->cls,
-            //     "arm"   => $request->arm,
-            //     "schid" => $request->schid,
-            //     "sesn"  => $request->sesn,
-            //     "trm"   => $request->trm,
-            // ],
-            // [
-            //     "uid"   => $uid,
-            // ]
-                        ["uid" => $uid],
-            [
-                "stid"  => $request->stid,
-                "cls"   => $request->cls,
-                "arm"   => $request->arm,
-                "schid" => $request->schid,
-                "sesn"  => $request->sesn,
-                "trm"   => $request->trm,
-            ]
-        );
+    // Update or create staff class arm record
+    $pld = staff_class_arm::updateOrCreate(
+        ["uid" => $uid],
+        [
+            "stid"  => $request->stid,
+            "cls"   => $request->cls,
+            "arm"   => $request->arm,
+            "schid" => $request->schid,
+            "sesn"  => $request->sesn,
+            "trm"   => $request->trm,
+        ]
+    );
 
-        // Return JSON response
-        return response()->json([
-            "status"  => true,
-            "message" => "Success",
-            "pld"     => $pld
-        ]);
-    }
+    // Return JSON response
+    return response()->json([
+        "status"  => true,
+        "message" => "Success",
+        "pld"     => $pld
+    ]);
+}
 
 
 
@@ -10676,54 +10702,52 @@ public function getStaffClasses($stid)
      */
 
 
-    public function setOldStaffInfo(Request $request)
-    {
-        // Data validation
-        $request->validate([
-            "sid"   => "required",
-            "schid" => "required",
-            "fname" => "required",
-            "mname" => "required",
-            "lname" => "required",
-            "suid"  => "required",
-            "ssn"   => "required",
-            "trm"   => "required",
-            "clsm"  => "required",
-            "role"  => "required",
-            "role2" => "required",
-            "more"  => "required",
-        ]);
+public function setOldStaffInfo(Request $request)
+{
+    // Data validation
+    $request->validate([
+        "sid"   => "required",
+        "schid" => "required",
+        "fname" => "required",
+        "mname" => "required",
+        "lname" => "required",
+        "suid"  => "required",
+        "ssn"   => "required",
+        "trm"   => "required",
+        "clsm"  => "required",
+        "role"  => "required",
+        "role2" => "required",
+        "more"  => "required",
+    ]);
 
-        // Generate UID automatically
-        $uid = $request->ssn . $request->trm . $request->sid . rand(10000, 99999);
+    // Generate deterministic UID (no random numbers)
+    $uid = $request->ssn . $request->trm . $request->sid;
 
-        // Update or create record based only on uid
-        $pld = old_staff::updateOrCreate(
-            [
-                "uid" => $uid,   // uniqueness check is ONLY on uid
-            ],
-            [
-                "sid"   => $request->sid,
-                "schid" => $request->schid,
-                "fname" => $request->fname,
-                "mname" => $request->mname,
-                "lname" => $request->lname,
-                "suid"  => $request->suid,
-                "ssn"   => $request->ssn,
-                "trm"   => $request->trm,
-                "clsm"  => $request->clsm,
-                "role"  => $request->role,
-                "role2" => $request->role2,
-                "more"  => $request->more,
-            ]
-        );
+    // Update or create record based only on uid
+    $pld = old_staff::updateOrCreate(
+        ["uid" => $uid],  // uniqueness check is ONLY on uid
+        [
+            "sid"   => $request->sid,
+            "schid" => $request->schid,
+            "fname" => $request->fname,
+            "mname" => $request->mname,
+            "lname" => $request->lname,
+            "suid"  => $request->suid,
+            "ssn"   => $request->ssn,
+            "trm"   => $request->trm,
+            "clsm"  => $request->clsm,
+            "role"  => $request->role,
+            "role2" => $request->role2,
+            "more"  => $request->more,
+        ]
+    );
 
-        return response()->json([
-            "status"  => true,
-            "message" => "Info Updated",
-            "pld"     => $pld
-        ]);
-    }
+    return response()->json([
+        "status"  => true,
+        "message" => "Info Updated",
+        "pld"     => $pld
+    ]);
+}
 
 
     /**
@@ -16130,6 +16154,21 @@ public function getStaffClasses($stid)
             ->where('student_basic_data.sex', 'F')
             ->count();
 
+
+        $activeStudentsMale = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
+            ->where('old_student.schid', $schid)
+            ->where('old_student.status', 'active')
+            ->where('student_basic_data.sex', 'M')
+            ->distinct('old_student.sid')
+            ->count();
+
+        $activeStudentsFemale = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
+            ->where('old_student.schid', $schid)
+            ->where('old_student.status', 'active')
+            ->where('student_basic_data.sex', 'F')
+            ->distinct('old_student.sid')
+            ->count();
+
         $declinedStudents = student::where('schid', $schid)->where('stat', '2')->count();
         $deletedStudents = student::where('schid', $schid)->where('stat', '3')->count();
 
@@ -16221,6 +16260,8 @@ public function getStaffClasses($stid)
                 "pendingStudents" => $pendingStudents,
                 "approvedStudentsMale" => $approvedStudentsMale,
                 "approvedStudentsFemale" => $approvedStudentsFemale,
+                "activeStudentsMale" => $activeStudentsMale,
+                "activeStudentsFemale" => $activeStudentsFemale,
                 "declinedStudents" => $declinedStudents,
                 "deletedStudents" => $deletedStudents,
 
@@ -27914,91 +27955,90 @@ public function getLoggedInUserDetails(Request $request)
     // }
 
 
-    public function promoteStudent(Request $request)
-    {
-        $request->validate([
-            'sid'   => 'required',
-            'schid' => 'required',
-            'sesn'  => 'required',  // session
-            'trm'   => 'required',  // term
-            'clsm'  => 'required',  // new main class
-            'clsa'  => 'required',  // requested new class arm (sch_cls.id)
-            'suid'  => 'required',  // student unique id
-        ]);
+public function promoteStudent(Request $request)
+{
+    $request->validate([
+        'sid'   => 'required',
+        'schid' => 'required',
+        'sesn'  => 'required',  // session
+        'trm'   => 'required',  // term
+        'clsm'  => 'required',  // new main class
+        'clsa'  => 'required',  // requested new class arm (sch_cls.id)
+        'suid'  => 'required',  // student unique id
+    ]);
 
-        // 1. Find the student
-        $student = student::where('sid', $request->sid)->firstOrFail();
+    // 1. Find the student
+    $student = student::where('sid', $request->sid)->firstOrFail();
 
-        // 2. Make sure this arm belongs to the new class
-        $validArm = DB::table('sch_cls')
-            ->where('id', $request->clsa)
-            ->where('cls_id', $request->clsm)   // ensure arm belongs to this class
-            ->where('schid', $request->schid)
-            ->first();
+    // 2. Make sure this arm belongs to the new class
+    $validArm = DB::table('sch_cls')
+        ->where('id', $request->clsa)
+        ->where('cls_id', $request->clsm)   // ensure arm belongs to this class
+        ->where('schid', $request->schid)
+        ->first();
 
-        if (!$validArm) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'Invalid class arm for the selected class',
-            ], 422);
-        }
-
-        // 3. Check if already promoted for this session + term
-        $alreadyPromoted = old_student::where('sid', $request->sid)
-            ->where('schid', $request->schid)
-            ->where('ssn', $request->sesn)
-            ->where('trm', $request->trm)
-            ->first();
-
-        if ($alreadyPromoted) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'This student has already been promoted for the selected session and term',
-            ], 409); // conflict
-        }
-
-        // 4. Generate a unique promotion ID
-        $uid = $request->sesn . $request->trm . $request->sid . rand(10000, 99999);
-
-        // 5. Create promotion record
-        $promotion = old_student::create([
-            'uid'    => $uid,
-            'sid'    => $request->sid,
-            'schid'  => $request->schid,
-            'fname'  => $student->fname,
-            'mname'  => $student->mname,
-            'lname'  => $student->lname,
-            'status' => 'active',
-            'suid'   => $request->suid,
-            'ssn'    => $request->sesn,
-            'trm'    => $request->trm,
-            'clsm'   => $request->clsm,      // new class
-            'clsa'   => $validArm->id,       // new arm from sch_cls
-            'more'   => '',
-        ]);
-
-        // 6. Update student_academic_data table
-        student_academic_data::where('user_id', $request->sid)
-            ->update([
-                'new_class_main' => $request->clsm,
-                'new_class'      => $validArm->id, // optional if you want to also track the arm
-            ]);
-
+    if (!$validArm) {
         return response()->json([
-            'status'    => true,
-            'message'   => 'Student promoted successfully for this term',
-            'data'      => [
-                'sid'       => $promotion->sid,
-                'suid'      => $promotion->suid,
-                'ssn'       => $promotion->ssn,
-                'trm'       => $promotion->trm,
-                'clsm'      => $promotion->clsm,
-                'clsa'      => $promotion->clsa,
-                'clsa_name' => $validArm->name,   // arm name
-            ],
-        ]);
+            'status'  => false,
+            'message' => 'Invalid class arm for the selected class',
+        ], 422);
     }
 
+    // 3. Check if already promoted for this session + term
+    $alreadyPromoted = old_student::where('sid', $request->sid)
+        ->where('schid', $request->schid)
+        ->where('ssn', $request->sesn)
+        ->where('trm', $request->trm)
+        ->first();
+
+    if ($alreadyPromoted) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'This student has already been promoted for the selected session and term',
+        ], 409); // conflict
+    }
+
+    // 4. Generate deterministic UID (no random numbers)
+    $uid = $request->sesn . $request->trm . $request->sid;
+
+    // 5. Create promotion record
+    $promotion = old_student::create([
+        'uid'    => $uid,
+        'sid'    => $request->sid,
+        'schid'  => $request->schid,
+        'fname'  => $student->fname,
+        'mname'  => $student->mname,
+        'lname'  => $student->lname,
+        'status' => 'active',
+        'suid'   => $request->suid,
+        'ssn'    => $request->sesn,
+        'trm'    => $request->trm,
+        'clsm'   => $request->clsm,      // new class
+        'clsa'   => $validArm->id,       // new arm from sch_cls
+        'more'   => '',
+    ]);
+
+    // 6. Update student_academic_data table
+    student_academic_data::where('user_id', $request->sid)
+        ->update([
+            'new_class_main' => $request->clsm,
+            'new_class'      => $validArm->id,
+        ]);
+
+    return response()->json([
+        'status'    => true,
+        'message'   => 'Student promoted successfully for this term',
+        'data'      => [
+            'sid'       => $promotion->sid,
+            'suid'      => $promotion->suid,
+            'ssn'       => $promotion->ssn,
+            'trm'       => $promotion->trm,
+            'clsm'      => $promotion->clsm,
+            'clsa'      => $promotion->clsa,
+            'clsa_name' => $validArm->name,   // arm name
+        ],
+    ]);
+}
 
 
 
@@ -28251,61 +28291,46 @@ public function getLoggedInUserDetails(Request $request)
     //     ]);
     // }
 
-    public function repeatStudent(Request $request)
-    {
-        $request->validate([
-            'sid'   => 'required',
-            'schid' => 'required',
-            'sesn'  => 'required',
-            'trm'   => 'required',
-            'clsm'  => 'required', // main class
-            'clsa'  => 'required', // class arm
-            'suid'  => 'required|string'
-        ]);
+public function repeatStudent(Request $request)
+{
+    $request->validate([
+        'sid'   => 'required',
+        'schid' => 'required',
+        'sesn'  => 'required',
+        'trm'   => 'required',
+        'clsm'  => 'required', // main class
+        'clsa'  => 'required', // class arm
+        'suid'  => 'required|string'
+    ]);
 
-        // Find the student
-        $student = student::where('sid', $request->sid)->firstOrFail();
+    // Find the student
+    $student = student::where('sid', $request->sid)->firstOrFail();
 
-        // Check if student is already marked to repeat for the same session, term, and class/arm
-        // $existingRepeat = old_student::where('sid', $request->sid)
-        //     ->where('ssn', $request->sesn)
-        //     ->where('trm', $request->trm)
-        //     ->where('clsm', $request->clsm)
-        //     ->where('clsa', $request->clsa)
-        //     ->first();
+    // Generate deterministic UID (no random numbers)
+    $uid = $request->sesn . $request->trm . $request->sid;
 
-        // if ($existingRepeat) {
-        //     return response()->json([
-        //         'status'  => false,
-        //         'message' => 'Student is already marked to repeat for this session and term',
-        //     ], 409); // 409 Conflict
-        // }
+    // Create a new old_student record for repeating
+    old_student::create([
+        'uid'    => $uid,
+        'sid'    => $request->sid,
+        'schid'  => $request->schid,
+        'fname'  => $student->fname,
+        'mname'  => $student->mname,
+        'lname'  => $student->lname,
+        'status' => 'active',
+        'suid'   => $request->suid,
+        'ssn'    => $request->sesn,
+        'trm'    => $request->trm,
+        'clsm'   => $request->clsm,
+        'clsa'   => $request->clsa,
+        'more'   => '', // mark as repeat
+    ]);
 
-        // 3. Generate a unique numeric promotion ID (session + term + sid + random 5-digit number)
-        $uid = $request->sesn . $request->trm . $request->sid . rand(10000, 99999);
-
-        // Create a new old_student record for repeating
-        old_student::create([
-            'uid'    => $uid,
-            'sid'    => $request->sid,
-            'schid'  => $request->schid,
-            'fname'  => $student->fname,
-            'mname'  => $student->mname,
-            'lname'  => $student->lname,
-            'status' => 'active',
-            'suid'   => $request->suid,
-            'ssn'    => $request->sesn,
-            'trm'    => $request->trm,
-            'clsm'   => $request->clsm,
-            'clsa'   => $request->clsa,
-            'more'   => '', // mark as repeat
-        ]);
-
-        return response()->json([
-            'status'  => true,
-            'message' => 'Student marked to repeat successfully',
-        ]);
-    }
+    return response()->json([
+        'status'  => true,
+        'message' => 'Student marked to repeat successfully',
+    ]);
+}
 
 
 
@@ -28353,38 +28378,38 @@ public function getLoggedInUserDetails(Request $request)
      *     )
      * )
      */
-    public function setSubjStaff(Request $request)
-    {
-        // Data validation
-        $request->validate([
-            "stid"  => "required",
-            "sbj"   => "required",
-            "schid" => "required",
-            "sesn"  => "required",
-            "trm"   => "required",
-        ]);
+public function setSubjStaff(Request $request)
+{
+    // Data validation
+    $request->validate([
+        "stid"  => "required",
+        "sbj"   => "required",
+        "schid" => "required",
+        "sesn"  => "required",
+        "trm"   => "required",
+    ]);
 
-        // Generate unique UID
-        $uid = $request->sesn . $request->trm . $request->stid . rand(10000, 99999);
+    // Generate deterministic UID (no random numbers)
+    $uid = $request->sesn . $request->trm . $request->stid . $request->sbj;
 
-        // Update or create based on UID only
-        $pld = subject_dest::updateOrCreate(
-            ["uid" => $uid],
-            [
-                "stid"  => $request->stid,
-                "sbj"   => $request->sbj,
-                "schid" => $request->schid,
-                "sesn"  => $request->sesn,
-                "trm"   => $request->trm,
-            ]
-        );
+    // Update or create based on UID only
+    $pld = subject_dest::updateOrCreate(
+        ["uid" => $uid],
+        [
+            "stid"  => $request->stid,
+            "sbj"   => $request->sbj,
+            "schid" => $request->schid,
+            "sesn"  => $request->sesn,
+            "trm"   => $request->trm,
+        ]
+    );
 
-        return response()->json([
-            "status"  => true,
-            "message" => "Subject Successfully Assigned to Staff",
-            "pld"     => $pld
-        ]);
-    }
+    return response()->json([
+        "status"  => true,
+        "message" => "Subject Successfully Assigned to Staff",
+        "pld"     => $pld
+    ]);
+}
 
 
 
@@ -28528,38 +28553,38 @@ public function getLoggedInUserDetails(Request $request)
      *     )
      * )
      */
-    public function assignSubjectStaff(Request $request)
-    {
-        // Data validation
-        $request->validate([
-            "stid"  => "required",
-            "sbj"   => "required",
-            "schid" => "required",
-            "sesn"  => "required",
-            "trm"   => "required",
-        ]);
+public function assignSubjectStaff(Request $request)
+{
+    // Data validation
+    $request->validate([
+        "stid"  => "required",
+        "sbj"   => "required",
+        "schid" => "required",
+        "sesn"  => "required",
+        "trm"   => "required",
+    ]);
 
-        // Generate unique UID
-        $uid = $request->sesn . $request->trm . $request->stid . rand(10000, 99999);
+    // Generate deterministic UID (no random numbers)
+    $uid = $request->sesn . $request->trm . $request->stid . $request->sbj;
 
-        // Update or create based on UID only
-        $pld = staff_subj::updateOrCreate(
-            ["uid" => $uid],
-            [
-                "stid"  => $request->stid,
-                "sbj"   => $request->sbj,
-                "schid" => $request->schid,
-                "sesn"  => $request->sesn,
-                "trm"   => $request->trm,
-            ]
-        );
+    // Update or create based on UID only
+    $pld = staff_subj::updateOrCreate(
+        ["uid" => $uid],
+        [
+            "stid"  => $request->stid,
+            "sbj"   => $request->sbj,
+            "schid" => $request->schid,
+            "sesn"  => $request->sesn,
+            "trm"   => $request->trm,
+        ]
+    );
 
-        return response()->json([
-            "status"  => true,
-            "message" => "Subject Successfully Assigned to Staff",
-            "pld"     => $pld
-        ]);
-    }
+    return response()->json([
+        "status"  => true,
+        "message" => "Subject Successfully Assigned to Staff",
+        "pld"     => $pld
+    ]);
+}
 
 
 
@@ -28626,54 +28651,52 @@ public function getLoggedInUserDetails(Request $request)
      */
 
 
-    public function setRepostStaff(Request $request)
-    {
-        // Data validation
-        $request->validate([
-            "sid"   => "required",
-            "schid" => "required",
-            "fname" => "required",
-            "mname" => "required",
-            "lname" => "required",
-            "suid"  => "required",
-            "ssn"   => "required",
-            "trm"   => "required",
-            "clsm"  => "required",
-            "role"  => "required",
-            "role2" => "required",
-            "more"  => "required",
-        ]);
+public function setRepostStaff(Request $request)
+{
+    // Data validation
+    $request->validate([
+        "sid"   => "required",
+        "schid" => "required",
+        "fname" => "required",
+        "mname" => "required",
+        "lname" => "required",
+        "suid"  => "required",
+        "ssn"   => "required",
+        "trm"   => "required",
+        "clsm"  => "required",
+        "role"  => "required",
+        "role2" => "required",
+        "more"  => "required",
+    ]);
 
-        // Generate UID automatically
-        $uid = $request->ssn . $request->trm . $request->sid . rand(10000, 99999);
+    // Generate deterministic UID (no random numbers)
+    $uid = $request->ssn . $request->trm . $request->sid;
 
-        // Update or create record based only on uid
-        $pld = old_staff::updateOrCreate(
-            [
-                "uid" => $uid,   // uniqueness check is ONLY on uid
-            ],
-            [
-                "sid"   => $request->sid,
-                "schid" => $request->schid,
-                "fname" => $request->fname,
-                "mname" => $request->mname,
-                "lname" => $request->lname,
-                "suid"  => $request->suid,
-                "ssn"   => $request->ssn,
-                "trm"   => $request->trm,
-                "clsm"  => $request->clsm,
-                "role"  => $request->role,
-                "role2" => $request->role2,
-                "more"  => $request->more,
-            ]
-        );
+    // Update or create record based only on uid
+    $pld = old_staff::updateOrCreate(
+        ["uid" => $uid],
+        [
+            "sid"   => $request->sid,
+            "schid" => $request->schid,
+            "fname" => $request->fname,
+            "mname" => $request->mname,
+            "lname" => $request->lname,
+            "suid"  => $request->suid,
+            "ssn"   => $request->ssn,
+            "trm"   => $request->trm,
+            "clsm"  => $request->clsm,
+            "role"  => $request->role,
+            "role2" => $request->role2,
+            "more"  => $request->more,
+        ]
+    );
 
-        return response()->json([
-            "status"  => true,
-            "message" => "Info Updated",
-            "pld"     => $pld
-        ]);
-    }
+    return response()->json([
+        "status"  => true,
+        "message" => "Info Updated",
+        "pld"     => $pld
+    ]);
+}
 
 
 
@@ -28798,104 +28821,98 @@ public function getLoggedInUserDetails(Request $request)
      * )
      */
 
-    public function rePromoteStudent(Request $request)
-    {
-        $request->validate([
-            'sid'   => 'required',
-            'schid' => 'required',
-            'sesn'  => 'required',  // session
-            'trm'   => 'required',  // term
-            'clsm'  => 'required',  // new main class
-            'clsa'  => 'required',  // requested new class arm (sch_cls.id)
-            'suid'  => 'required',  // student unique id
-        ]);
+public function rePromoteStudent(Request $request)
+{
+    $request->validate([
+        'sid'   => 'required',
+        'schid' => 'required',
+        'sesn'  => 'required',  // session
+        'trm'   => 'required',  // term
+        'clsm'  => 'required',  // new main class
+        'clsa'  => 'required',  // requested new class arm (sch_cls.id)
+        'suid'  => 'required',  // student unique id
+    ]);
 
-        // 1. Find the student
-        $student = student::where('sid', $request->sid)->firstOrFail();
+    $student = student::where('sid', $request->sid)->firstOrFail();
 
-        // 2. Make sure this arm belongs to the new class
-        $validArm = DB::table('sch_cls')
-            ->where('id', $request->clsa)
-            ->where('cls_id', $request->clsm)   // ensure arm belongs to this class
-            ->where('schid', $request->schid)
-            ->first();
+    $validArm = DB::table('sch_cls')
+        ->where('id', $request->clsa)
+        ->where('cls_id', $request->clsm)
+        ->where('schid', $request->schid)
+        ->first();
 
-        if (!$validArm) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'Invalid class arm for the selected class',
-            ], 422);
-        }
-
-        // 3. Check if student already has scores for this session, term, and class
-        $hasScores = std_score::where('stid', $request->sid)
-            ->where('ssn', $request->sesn)
-            ->where('trm', $request->trm)
-            ->where('clsid', $request->clsm)
-            ->exists();
-
-        if ($hasScores) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'Cannot re-promote student: scores/results already exist for this class, session, and term.',
-            ], 422);
-        }
-
-        // 4. Generate a unique promotion ID
-        $uid = $request->sesn . $request->trm . $request->sid . rand(10000, 99999);
-
-        // 5. Remove any mistaken promotion records (wrong class/arm for same session & term)
-        old_student::where('sid', $request->sid)
-            ->where('ssn', $request->sesn)
-            ->where('trm', $request->trm)
-            ->where(function ($q) use ($request) {
-                $q->where('clsm', '!=', $request->clsm)
-                    ->orWhere('clsa', '!=', $request->clsa);
-            })
-            ->delete();
-
-        // 6. Create or update promotion record (correct one)
-        $promotion = old_student::updateOrCreate(
-            [
-                'sid'  => $request->sid,
-                'ssn'  => $request->sesn,
-                'trm'  => $request->trm,
-            ],
-            [
-                'uid'    => $uid,
-                'schid'  => $request->schid,
-                'fname'  => $student->fname,
-                'mname'  => $student->mname,
-                'lname'  => $student->lname,
-                'status' => 'active',
-                'suid'   => $request->suid,
-                'clsm'   => $request->clsm,
-                'clsa'   => $validArm->id,
-                'more'   => '',
-            ]
-        );
-
-        // 7. Update student_academic_data table
-        student_academic_data::where('user_id', $request->sid)
-            ->update([
-                'new_class_main' => $request->clsm,
-                'new_class'      => $validArm->id,
-            ]);
-
+    if (!$validArm) {
         return response()->json([
-            'status'    => true,
-            'message'   => 'Student re-promoted successfully for this term',
-            'data'      => [
-                'sid'       => $promotion->sid,
-                'suid'      => $promotion->suid,
-                'ssn'       => $promotion->ssn,
-                'trm'       => $promotion->trm,
-                'clsm'      => $promotion->clsm,
-                'clsa'      => $promotion->clsa,
-                'clsa_name' => $validArm->name,
-            ],
-        ]);
+            'status'  => false,
+            'message' => 'Invalid class arm for the selected class',
+        ], 422);
     }
+
+    $hasScores = std_score::where('stid', $request->sid)
+        ->where('ssn', $request->sesn)
+        ->where('trm', $request->trm)
+        ->where('clsid', $request->clsm)
+        ->exists();
+
+    if ($hasScores) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'Cannot re-promote student: scores/results already exist for this class, session, and term.',
+        ], 422);
+    }
+
+    // Deterministic UID (no random numbers)
+    $uid = $request->sesn . $request->trm . $request->sid;
+
+    old_student::where('sid', $request->sid)
+        ->where('ssn', $request->sesn)
+        ->where('trm', $request->trm)
+        ->where(function ($q) use ($request) {
+            $q->where('clsm', '!=', $request->clsm)
+              ->orWhere('clsa', '!=', $request->clsa);
+        })
+        ->delete();
+
+    $promotion = old_student::updateOrCreate(
+        [
+            'sid' => $request->sid,
+            'ssn' => $request->sesn,
+            'trm' => $request->trm,
+        ],
+        [
+            'uid'    => $uid,
+            'schid'  => $request->schid,
+            'fname'  => $student->fname,
+            'mname'  => $student->mname,
+            'lname'  => $student->lname,
+            'status' => 'active',
+            'suid'   => $request->suid,
+            'clsm'   => $request->clsm,
+            'clsa'   => $validArm->id,
+            'more'   => '',
+        ]
+    );
+
+    student_academic_data::where('user_id', $request->sid)
+        ->update([
+            'new_class_main' => $request->clsm,
+            'new_class'      => $validArm->id,
+        ]);
+
+    return response()->json([
+        'status'    => true,
+        'message'   => 'Student re-promoted successfully for this term',
+        'data'      => [
+            'sid'       => $promotion->sid,
+            'suid'      => $promotion->suid,
+            'ssn'       => $promotion->ssn,
+            'trm'       => $promotion->trm,
+            'clsm'      => $promotion->clsm,
+            'clsa'      => $promotion->clsa,
+            'clsa_name' => $validArm->name,
+        ],
+    ]);
+}
 
 
 
@@ -33477,27 +33494,28 @@ public function rePostStaff(Request $request)
         ], 404);
     }
 
+    // 2️⃣ Check if already assigned
     $exists = DB::table('staff_class')->where([
-    'stid' => $request->stid,
-    'cls'  => $request->clsm,
-    'ssn'  => $request->sesn,
-    'trm'  => $request->trm,
-])->exists();
+        'stid' => $request->stid,
+        'cls'  => $request->clsm,
+        'ssn'  => $request->sesn,
+        'trm'  => $request->trm,
+    ])->exists();
 
-if ($exists) {
-    return response()->json([
-        'status' => false,
-        'message' => 'This staff has already been assigned to this class for the selected session and term.',
-    ]);
-}
+    if ($exists) {
+        return response()->json([
+            'status' => false,
+            'message' => 'This staff has already been assigned to this class for the selected session and term.',
+        ]);
+    }
 
+    //  Generate deterministic UID (no random numbers)
+    $uid = $request->sesn . $request->trm . $request->stid . $request->clsm;
+     $uid2 = $request->sesn . $request->trm . $request->stid;
 
-    // 2️⃣ Generate unique repost UID
-    $uid = $request->sesn . $request->trm . $request->stid . rand(10000, 99999);
-
-    // 3️⃣ Insert a new record in old_staff (no update)
+    //  Insert a new record in old_staff (no update)
     DB::table('old_staff')->insert([
-        'uid'        => $uid,
+        'uid'        => $uid2,
         'sid'        => $request->stid,
         'schid'      => $request->schid,
         'fname'      => $staff->fname,
@@ -33515,7 +33533,7 @@ if ($exists) {
         'updated_at' => now(),
     ]);
 
-    // 4️⃣ Insert a new record in staff_class (no update)
+    // 5️⃣ Insert a new record in staff_class (no update)
     DB::table('staff_class')->insert([
         'uid'        => $uid,
         'stid'       => $request->stid,
