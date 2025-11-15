@@ -16169,6 +16169,13 @@ public function setOldStaffInfo(Request $request)
             ->distinct('old_student.sid')
             ->count();
 
+
+        $activeLearners = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
+            ->where('old_student.schid', $schid)
+            ->where('old_student.status', 'active')
+            ->distinct('old_student.sid')
+            ->count();
+
         $declinedStudents = student::where('schid', $schid)->where('stat', '2')->count();
         $deletedStudents = student::where('schid', $schid)->where('stat', '3')->count();
 
@@ -16183,6 +16190,27 @@ public function setOldStaffInfo(Request $request)
             ->where('staff.schid', $schid)
             ->where('staff.stat', '1')
             ->where('staff_basic_data.sex', 'F')
+            ->count();
+
+
+
+        $activeStaffMale = old_staff::join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
+            ->where('old_staff.schid', $schid)
+            ->where('old_staff.status', 'active')
+            ->where('staff_basic_data.sex', 'M')
+            ->distinct('old_staff.sid')
+            ->count();
+        $activeStaffFemale = old_staff::join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
+            ->where('old_staff.schid', $schid)
+            ->where('old_staff.status', 'active')
+            ->where('staff_basic_data.sex', 'F')
+            ->distinct('old_staff.sid')
+            ->count();
+
+        $activeStaff = old_staff::join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
+            ->where('old_staff.schid', $schid)
+            ->where('old_staff.status', 'active')
+            ->distinct('old_staff.sid')
             ->count();
 
         $declinedStaff = staff::where('schid', $schid)->where('stat', '2')->count();
@@ -16264,12 +16292,16 @@ public function setOldStaffInfo(Request $request)
                 "activeStudentsFemale" => $activeStudentsFemale,
                 "declinedStudents" => $declinedStudents,
                 "deletedStudents" => $deletedStudents,
+                "totalActiveLearners" => $activeLearners,
 
                 "pendingStaff" => $pendingStaff,
                 "approvedStaffMale" => $approvedStaffMale,
                 "approvedStaffFemale" => $approvedStaffFemale,
+                "activeStaffMale" => $activeStaffMale,
+                "activeStaffFemale" => $activeStaffFemale,
                 "declinedStaff" => $declinedStaff,
                 "deletedStaff" => $deletedStaff,
+                "totalActiveStaff" => $activeStaff,
 
                 "totalStudentPaidRegFee" => $totalStudentPaidRegFee,
                 "totalStudentNotPaidRegFee" => $totalStudentNotPaidRegFee,
