@@ -7287,7 +7287,7 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
 
     /**
      * @OA\Post(
-     *     path="/api/setStaffSubjectsetStaffSubject",
+     *     path="/api/setStaffSubjects",
      *     tags={"Api"},
      *     security={{"bearerAuth": {}}},
      *     summary="Assign subject(s) to staff",
@@ -7332,38 +7332,38 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
      * )
      */
 
-    public function setStaffSubject(Request $request)
-    {
-        // Data validation
-        $request->validate([
-            "stid"  => "required",
-            "sbj"   => "required",
-            "schid" => "required",
-            "sesn"  => "required",
-            "trm"   => "required",
-        ]);
+public function setStaffSubject(Request $request)
+{
+    // Data validation
+    $request->validate([
+        "stid"  => "required",
+        "sbj"   => "required",
+        "schid" => "required",
+        "sesn"  => "required",
+        "trm"   => "required",
+    ]);
 
-        // Generate unique UID
-        $uid = $request->sesn . $request->trm . $request->stid . rand(10000, 99999);
+    // Generate UID without random number to avoid integer overflow
+    $uid = $request->sesn . $request->trm . $request->stid;
 
-        // Update or create based on UID only
-        $pld = staff_subj::updateOrCreate(
-            ["uid" => $uid],
-            [
-                "stid"  => $request->stid,
-                "sbj"   => $request->sbj,
-                "schid" => $request->schid,
-                "sesn"  => $request->sesn,
-                "trm"   => $request->trm,
-            ]
-        );
+    // Update or create based on UID only
+    $pld = staff_subj::updateOrCreate(
+        ["uid" => $uid],
+        [
+            "stid"  => $request->stid,
+            "sbj"   => $request->sbj,
+            "schid" => $request->schid,
+            "sesn"  => (string)$request->sesn, // ensure sesn is stored correctly
+            "trm"   => (int)$request->trm,
+        ]
+    );
 
-        return response()->json([
-            "status"  => true,
-            "message" => "Success",
-            "pld"     => $pld
-        ]);
-    }
+    return response()->json([
+        "status"  => true,
+        "message" => "Success",
+        "pld"     => $pld
+    ]);
+}
 
     /**
      * @OA\Get(
