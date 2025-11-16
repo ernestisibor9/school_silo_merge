@@ -13713,7 +13713,7 @@ class ApiController extends Controller
             if ($response->successful()) {
                 $paystackData = $response->json();
 
-                // 🟢 Upsert reference so callback can use it
+                //  Upsert reference so callback can use it
                 payment_refs::updateOrCreate(
                     ['ref' => $ref],
                     [
@@ -14872,30 +14872,30 @@ class ApiController extends Controller
         //    $payload = json_decode($request->getContent(), true);
         $payload = json_decode($request->input('payload'), true);
 
-        // 🟢 Verify Paystack event type
+        // Verify Paystack event type
         if (!isset($payload['event']) || $payload['event'] !== "charge.success") {
             Log::warning('Invalid Paystack event received.');
             return response()->json(['status' => 'ignored'], 200);
         }
 
-        // 🟢 Extract reference
+        //  Extract reference
         $ref = $payload['data']['reference'] ?? null;
         if (!$ref) {
             Log::error('Missing payment reference.');
             return response()->json(['status' => 'error', 'message' => 'Missing reference'], 400);
         }
 
-        // 🟢 Prevent duplicate webhook saves
+        //  Prevent duplicate webhook saves
         if (payments::where('main_ref', $ref)->exists()) {
             Log::info("Duplicate webhook ignored for ref {$ref}");
             return response()->json(['status' => 'duplicate'], 200);
         }
 
-        // 🟢 Parse identifiers from reference
+        //  Parse identifiers from reference
         $payinfo = explode('-', $ref);
         [$host, $schid, $amt, $typ, $stid, $ssnid, $trmid, $clsid] = $payinfo;
 
-        // 🟢 Extract metadata
+        //  Extract metadata
         $metadata = $payload['data']['metadata'] ?? [];
         $nm = $metadata['name'] ?? '';
         $exp = $metadata['exp'] ?? '';
@@ -14905,7 +14905,7 @@ class ApiController extends Controller
 
         $totalAmountPaid = ($payload['data']['amount'] ?? ($amt * 100)) / 100;
 
-        // 🟢 Get split data (from webhook or stored reference)
+        //  Get split data (from webhook or stored reference)
         $splitData = $payload['data']['split']['subaccounts'] ?? [];
 
         if (!$splitData || !is_array($splitData)) {
@@ -14915,7 +14915,7 @@ class ApiController extends Controller
             }
         }
 
-        // 🟢 Record payments (split or non-split)
+        //  Record payments (split or non-split)
         if ($splitData && is_array($splitData) && count($splitData) > 0) {
             Log::info('Split Data detected:', $splitData);
 
@@ -14990,7 +14990,7 @@ class ApiController extends Controller
             Log::info("Non-split payment recorded for ref {$ref}");
         }
 
-        // 🟢 Update payment_refs
+        //  Update payment_refs
         payment_refs::updateOrCreate(
             ['ref' => $ref],
             [
@@ -15002,7 +15002,7 @@ class ApiController extends Controller
             ]
         );
 
-        // 🟢 Send confirmation email
+        //  Send confirmation email
         try {
             $data = [
                 'name' => $nm,
@@ -16308,6 +16308,21 @@ class ApiController extends Controller
             ->count();
 
 
+
+        // Alumni
+        $alumniStudentsMale = alumni::join('student_basic_data', 'alumnis.stid', '=', 'student_basic_data.user_id')
+            ->where('alumnis.schid', $schid)
+            ->where('student_basic_data.sex', 'M')
+            ->distinct('alumnis.stid')
+            ->count();
+
+        $alumniStudentsFemale = alumni::join('student_basic_data', 'alumnis.stid', '=', 'student_basic_data.user_id')
+            ->where('alumnis.schid', $schid)
+            ->where('student_basic_data.sex', 'F')
+            ->distinct('alumnis.stid')
+            ->count();
+
+
         $activeLearners = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
             ->where('old_student.schid', $schid)
             ->where('old_student.status', 'active')
@@ -16431,6 +16446,8 @@ class ApiController extends Controller
                 "declinedStudents" => $declinedStudents,
                 "deletedStudents" => $deletedStudents,
                 "totalActiveLearners" => $activeLearners,
+                "alumniStudentsMale" => $alumniStudentsMale,
+                "alumniStudentsFemale" => $alumniStudentsFemale,
 
                 "pendingStaff" => $pendingStaff,
                 "approvedStaffMale" => $approvedStaffMale,
