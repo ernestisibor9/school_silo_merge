@@ -120,27 +120,27 @@ use Illuminate\Support\Facades\Hash;
 class ApiController extends Controller
 {
 
-/**
- * @OA\Post(
- *     path="/api/registerSchool",
- *     tags={"Unprotected"},
- *     summary="Register a new school",
- *     operationId="registerSchool",
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             type="object",
- *             required={"email","name","sbd","sch3","password"},
- *             @OA\Property(property="email", type="string", format="email"),
- *             @OA\Property(property="name", type="string"),
- *             @OA\Property(property="sbd", type="string", description="Sub-Domain ID"),
- *             @OA\Property(property="sch3", type="string", description="3-letter acronym for the school"),
- *             @OA\Property(property="password", type="string", description="The password for the school")
- *         )
- *     ),
- *     @OA\Response(response=200, description="School registered successfully")
- * )
- */
+    /**
+     * @OA\Post(
+     *     path="/api/registerSchool",
+     *     tags={"Unprotected"},
+     *     summary="Register a new school",
+     *     operationId="registerSchool",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             required={"email","name","sbd","sch3","password"},
+     *             @OA\Property(property="email", type="string", format="email"),
+     *             @OA\Property(property="name", type="string"),
+     *             @OA\Property(property="sbd", type="string", description="Sub-Domain ID"),
+     *             @OA\Property(property="sch3", type="string", description="3-letter acronym for the school"),
+     *             @OA\Property(property="password", type="string", description="The password for the school")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="School registered successfully")
+     * )
+     */
 
 
 
@@ -1932,7 +1932,7 @@ class ApiController extends Controller
             "ssn" => "required",
             "sch3" => "required",
             "stat" => "required",
-            "cuid"     => "nullable|unique:student,cuid",
+            "cuid" => "nullable|unique:student,cuid",
         ]);
         if (strlen($request->password) < 6) {
             return response()->json([
@@ -2771,18 +2771,18 @@ class ApiController extends Controller
     {
         // Validate request
         $request->validate([
-            "uid"   => "required",
-            "stid"  => "required", // single or array of student IDs
-            "sbj"   => "required", // single or array of subject IDs
-            "comp"  => "required",
+            "uid" => "required",
+            "stid" => "required", // single or array of student IDs
+            "sbj" => "required", // single or array of subject IDs
+            "comp" => "required",
             "schid" => "required",
             "clsid" => "nullable",
-            "trm"   => "nullable",
-            "ssn"   => "nullable"
+            "trm" => "nullable",
+            "ssn" => "nullable"
         ]);
 
         $students = is_array($request->stid) ? $request->stid : [$request->stid];
-        $subjects = is_array($request->sbj)  ? $request->sbj  : [$request->sbj];
+        $subjects = is_array($request->sbj) ? $request->sbj : [$request->sbj];
 
         $assigned = [];
         $skipped = [];
@@ -2802,14 +2802,14 @@ class ApiController extends Controller
 
                 if (!$exists) {
                     student_subj::create([
-                        "uid"   => $request->uid,
-                        "stid"  => $stid,
-                        "sbj"   => $sbj,
-                        "comp"  => $request->comp,
+                        "uid" => $request->uid,
+                        "stid" => $stid,
+                        "sbj" => $sbj,
+                        "comp" => $request->comp,
                         "schid" => $request->schid,
                         "clsid" => $request->clsid,
-                        "trm"   => $request->trm,
-                        "ssn"   => $request->ssn
+                        "trm" => $request->trm,
+                        "ssn" => $request->ssn
                     ]);
                     $assigned[] = ["stid" => $stid, "sbj" => $sbj];
                 } else {
@@ -2822,25 +2822,25 @@ class ApiController extends Controller
                 class_subj::updateOrCreate(
                     [
                         "subj_id" => $sbj,
-                        "schid"   => $request->schid,
-                        "clsid"   => $request->clsid,
-                        "sesn"    => $request->ssn,
-                        "trm"     => $request->trm,
+                        "schid" => $request->schid,
+                        "clsid" => $request->clsid,
+                        "sesn" => $request->ssn,
+                        "trm" => $request->trm,
                     ],
                     [
-                        "uid"   => $request->uid,
-                        "comp"  => $request->comp,
-                        "name"  => subj::find($sbj)?->name, // assuming Subject model exists
+                        "uid" => $request->uid,
+                        "comp" => $request->comp,
+                        "name" => subj::find($sbj)?->name, // assuming Subject model exists
                     ]
                 );
             }
         }
 
         return response()->json([
-            "status"   => true,
-            "message"  => "Subjects assignment completed.",
+            "status" => true,
+            "message" => "Subjects assignment completed.",
             "assigned" => $assigned,
-            "skipped"  => $skipped,
+            "skipped" => $skipped,
         ]);
     }
 
@@ -2890,195 +2890,195 @@ class ApiController extends Controller
     // }
 
 
-/**
- * @OA\Get(
- *     path="/api/getStudentSubjects/{stid}",
- *     summary="Fetch student subjects by student ID, with optional session and term filters",
- *     description="Retrieve subjects assigned to a particular student. You can optionally filter by session (ssn) and term (trm), and also control pagination using start and count parameters.",
- *     operationId="getStudentSubjects",
- *     tags={"Api"},
- *   security={{"bearerAuth": {}}},
- *
- *     @OA\Parameter(
- *         name="stid",
- *         in="path",
- *         required=true,
- *         description="The ID of the student",
- *         @OA\Schema(type="integer", example=207)
- *     ),
- *
- *     @OA\Parameter(
- *         name="ssn",
- *         in="query",
- *         required=false,
- *         description="Filter by academic session (e.g., 2025)",
- *         @OA\Schema(type="string", example="2025")
- *     ),
- *
- *     @OA\Parameter(
- *         name="trm",
- *         in="query",
- *         required=false,
- *         description="Filter by academic term (e.g., 1 for first term, 2 for second term)",
- *         @OA\Schema(type="integer", example=1)
- *     ),
- *
- *     @OA\Parameter(
- *         name="start",
- *         in="query",
- *         required=false,
- *         description="Starting index for pagination",
- *         @OA\Schema(type="integer", example=0)
- *     ),
- *
- *     @OA\Parameter(
- *         name="count",
- *         in="query",
- *         required=false,
- *         description="Number of records to return (default: 20)",
- *         @OA\Schema(type="integer", example=20)
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Successful response",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Success"),
- *             @OA\Property(
- *                 property="pld",
- *                 type="array",
- *                 @OA\Items(
- *                     type="object",
- *                     @OA\Property(property="id", type="integer", example=1),
- *                     @OA\Property(property="stid", type="integer", example=207),
- *                     @OA\Property(property="sbj", type="string", example="Mathematics"),
- *                     @OA\Property(property="comp", type="integer", example=1),
- *                     @OA\Property(property="trm", type="integer", example=1),
- *                     @OA\Property(property="ssn", type="string", example="2025"),
- *                     @OA\Property(property="schid", type="integer", example=13),
- *                     @OA\Property(property="clsid", type="integer", example=10),
- *                     @OA\Property(property="created_at", type="string", format="date-time", example="2025-03-04T14:04:57"),
- *                     @OA\Property(property="updated_at", type="string", format="date-time", example="2025-03-04T14:04:57")
- *                 )
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=400,
- *         description="Invalid parameters"
- *     ),
- *
- *     @OA\Response(
- *         response=404,
- *         description="Student not found or no subjects found"
- *     )
- * )
- */
+    /**
+     * @OA\Get(
+     *     path="/api/getStudentSubjects/{stid}",
+     *     summary="Fetch student subjects by student ID, with optional session and term filters",
+     *     description="Retrieve subjects assigned to a particular student. You can optionally filter by session (ssn) and term (trm), and also control pagination using start and count parameters.",
+     *     operationId="getStudentSubjects",
+     *     tags={"Api"},
+     *   security={{"bearerAuth": {}}},
+     *
+     *     @OA\Parameter(
+     *         name="stid",
+     *         in="path",
+     *         required=true,
+     *         description="The ID of the student",
+     *         @OA\Schema(type="integer", example=207)
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="query",
+     *         required=false,
+     *         description="Filter by academic session (e.g., 2025)",
+     *         @OA\Schema(type="string", example="2025")
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="query",
+     *         required=false,
+     *         description="Filter by academic term (e.g., 1 for first term, 2 for second term)",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         required=false,
+     *         description="Starting index for pagination",
+     *         @OA\Schema(type="integer", example=0)
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         required=false,
+     *         description="Number of records to return (default: 20)",
+     *         @OA\Schema(type="integer", example=20)
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful response",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="stid", type="integer", example=207),
+     *                     @OA\Property(property="sbj", type="string", example="Mathematics"),
+     *                     @OA\Property(property="comp", type="integer", example=1),
+     *                     @OA\Property(property="trm", type="integer", example=1),
+     *                     @OA\Property(property="ssn", type="string", example="2025"),
+     *                     @OA\Property(property="schid", type="integer", example=13),
+     *                     @OA\Property(property="clsid", type="integer", example=10),
+     *                     @OA\Property(property="created_at", type="string", format="date-time", example="2025-03-04T14:04:57"),
+     *                     @OA\Property(property="updated_at", type="string", format="date-time", example="2025-03-04T14:04:57")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=400,
+     *         description="Invalid parameters"
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="Student not found or no subjects found"
+     *     )
+     * )
+     */
 
-public function getStudentSubjects($stid)
-{
-    $start = request()->input('start', 0);
-    $count = request()->input('count', 20);
-    $ssn   = request()->input('ssn'); // session (optional)
-    $trm   = request()->input('trm'); // term (optional)
+    public function getStudentSubjects($stid)
+    {
+        $start = request()->input('start', 0);
+        $count = request()->input('count', 20);
+        $ssn = request()->input('ssn'); // session (optional)
+        $trm = request()->input('trm'); // term (optional)
 
-    $query = student_subj::where('stid', $stid);
+        $query = student_subj::where('stid', $stid);
 
-    // Filter by session if provided
-    if (!empty($ssn)) {
-        $query->where('ssn', $ssn);
+        // Filter by session if provided
+        if (!empty($ssn)) {
+            $query->where('ssn', $ssn);
+        }
+
+        // Filter by term if provided
+        if (!empty($trm)) {
+            $query->where('trm', $trm);
+        }
+
+        $pld = $query
+            ->skip($start)
+            ->take($count)
+            ->orderBy('id', 'asc')
+            ->get();
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld,
+        ]);
     }
 
-    // Filter by term if provided
-    if (!empty($trm)) {
-        $query->where('trm', $trm);
-    }
-
-    $pld = $query
-        ->skip($start)
-        ->take($count)
-        ->orderBy('id', 'asc')
-        ->get();
-
-    return response()->json([
-        "status"  => true,
-        "message" => "Success",
-        "pld"     => $pld,
-    ]);
-}
 
 
 
 
 
-
-/**
- * @OA\Delete(
- *     path="/api/deleteStudentSubject/{uid}/{sbj}/{ssn}/{trm}",
- *     summary="Delete a student's subject if the score is 0 or null",
- *     description="Deletes a subject assigned to a student only if all related scores are 0 or null. If the subject has scores greater than 0, deletion is not allowed.",
- *     operationId="deleteStudentSubject",
- *     tags={"Api"},
- *     security={{"bearerAuth": {}}},
- *
- *     @OA\Parameter(
- *         name="uid",
- *         in="path",
- *         required=true,
- *         description="Unique user ID of the student",
- *         @OA\Schema(type="string", example="STU123")
- *     ),
- *     @OA\Parameter(
- *         name="sbj",
- *         in="path",
- *         required=true,
- *         description="Subject code or name to be deleted",
- *         @OA\Schema(type="string", example="ENG101")
- *     ),
- *     @OA\Parameter(
- *         name="ssn",
- *         in="path",
- *         required=true,
- *         description="Academic session for the subject (e.g., 2024/2025)",
- *         @OA\Schema(type="string", example="2025")
- *     ),
- *     @OA\Parameter(
- *         name="trm",
- *         in="path",
- *         required=true,
- *         description="Term for the subject (e.g., 1st, 2nd, 3rd)",
- *         @OA\Schema(type="string", example="1")
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Subject and related zero/null scores deleted successfully.",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Subject and related zero/null scores deleted successfully.")
- *         )
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="Subject not found.",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="Subject not found.")
- *         )
- *     ),
- *     @OA\Response(
- *         response=400,
- *         description="Cannot delete subject because it has scores greater than 0.",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="Cannot delete subject. It has scores greater than 0.")
- *         )
- *     )
- * )
- */
+    /**
+     * @OA\Delete(
+     *     path="/api/deleteStudentSubject/{uid}/{sbj}/{ssn}/{trm}",
+     *     summary="Delete a student's subject if the score is 0 or null",
+     *     description="Deletes a subject assigned to a student only if all related scores are 0 or null. If the subject has scores greater than 0, deletion is not allowed.",
+     *     operationId="deleteStudentSubject",
+     *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
+     *
+     *     @OA\Parameter(
+     *         name="uid",
+     *         in="path",
+     *         required=true,
+     *         description="Unique user ID of the student",
+     *         @OA\Schema(type="string", example="STU123")
+     *     ),
+     *     @OA\Parameter(
+     *         name="sbj",
+     *         in="path",
+     *         required=true,
+     *         description="Subject code or name to be deleted",
+     *         @OA\Schema(type="string", example="ENG101")
+     *     ),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="path",
+     *         required=true,
+     *         description="Academic session for the subject (e.g., 2024/2025)",
+     *         @OA\Schema(type="string", example="2025")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Term for the subject (e.g., 1st, 2nd, 3rd)",
+     *         @OA\Schema(type="string", example="1")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Subject and related zero/null scores deleted successfully.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Subject and related zero/null scores deleted successfully.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Subject not found.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Subject not found.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Cannot delete subject because it has scores greater than 0.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Cannot delete subject. It has scores greater than 0.")
+     *         )
+     *     )
+     * )
+     */
 
 
     // public function deleteStudentSubject($uid, $sbj)
@@ -3125,56 +3125,56 @@ public function getStudentSubjects($stid)
     // }
 
     public function deleteStudentSubject($uid, $sbj, $ssn, $trm)
-{
-    // Retrieve the specific subject assigned to the student
-    $subject = student_subj::where('uid', $uid)
-        ->where('sbj', $sbj)
-        ->where('ssn', $ssn)
-        ->where('trm', $trm)
-        ->first();
+    {
+        // Retrieve the specific subject assigned to the student
+        $subject = student_subj::where('uid', $uid)
+            ->where('sbj', $sbj)
+            ->where('ssn', $ssn)
+            ->where('trm', $trm)
+            ->first();
 
-    if (!$subject) {
+        if (!$subject) {
+            return response()->json([
+                "status" => false,
+                "message" => "Subject not found."
+            ], 404);
+        }
+
+        // Check if the subject has any score that is NOT zero or null
+        $hasValidScores = std_score::where('stid', $subject->stid)
+            ->where('sbj', $sbj)
+            ->where('ssn', $ssn)
+            ->where('trm', $trm)
+            ->where(function ($query) {
+                $query->where('scr', '>', 0);
+            })
+            ->exists();
+
+        if ($hasValidScores) {
+            return response()->json([
+                "status" => false,
+                "message" => "Cannot delete subject. It has scores greater than 0."
+            ], 400);
+        }
+
+        // Delete the student subject and any zero or null scores
+        std_score::where('stid', $subject->stid)
+            ->where('sbj', $sbj)
+            ->where('ssn', $ssn)
+            ->where('trm', $trm)
+            ->where(function ($query) {
+                $query->whereNull('scr')
+                    ->orWhere('scr', '=', 0);
+            })
+            ->delete();
+
+        $subject->delete();
+
         return response()->json([
-            "status" => false,
-            "message" => "Subject not found."
-        ], 404);
+            "status" => true,
+            "message" => "Subject deleted successfully."
+        ]);
     }
-
-    // Check if the subject has any score that is NOT zero or null
-    $hasValidScores = std_score::where('stid', $subject->stid)
-        ->where('sbj', $sbj)
-        ->where('ssn', $ssn)
-        ->where('trm', $trm)
-        ->where(function ($query) {
-            $query->where('scr', '>', 0);
-        })
-        ->exists();
-
-    if ($hasValidScores) {
-        return response()->json([
-            "status" => false,
-            "message" => "Cannot delete subject. It has scores greater than 0."
-        ], 400);
-    }
-
-    // Delete the student subject and any zero or null scores
-    std_score::where('stid', $subject->stid)
-        ->where('sbj', $sbj)
-        ->where('ssn', $ssn)
-        ->where('trm', $trm)
-        ->where(function ($query) {
-            $query->whereNull('scr')
-                ->orWhere('scr', '=', 0);
-        })
-        ->delete();
-
-    $subject->delete();
-
-    return response()->json([
-        "status" => true,
-        "message" => "Subject deleted successfully."
-    ]);
-}
 
 
 
@@ -3341,46 +3341,46 @@ public function getStudentSubjects($stid)
     // }
 
 
-public function setClassSubject(Request $request)
-{
-    // Data validation
-    $request->validate([
-        "schid"   => "required",
-        "subj_id" => "required",
-        "name"    => "required",
-        "comp"    => "required",
-        "clsid"   => "required",
-        "sesn"    => "required",
-        "trm"     => "required",
-    ]);
+    public function setClassSubject(Request $request)
+    {
+        // Data validation
+        $request->validate([
+            "schid" => "required",
+            "subj_id" => "required",
+            "name" => "required",
+            "comp" => "required",
+            "clsid" => "required",
+            "sesn" => "required",
+            "trm" => "required",
+        ]);
 
-    // Generate deterministic UID without random number
-    $uid = $request->subj_id
-        . $request->schid
-        . $request->clsid
-        . $request->sesn
-        . $request->trm;
+        // Generate deterministic UID without random number
+        $uid = $request->subj_id
+            . $request->schid
+            . $request->clsid
+            . $request->sesn
+            . $request->trm;
 
-    // Insert or update subject
-    $pld = class_subj::updateOrCreate(
-        ["uid" => $uid],
-        [
-            "schid"   => $request->schid,
-            "subj_id" => $request->subj_id,
-            "name"    => $request->name,
-            "comp"    => $request->comp,
-            "clsid"   => $request->clsid,
-            "sesn"    => $request->sesn,
-            "trm"     => $request->trm,
-        ]
-    );
+        // Insert or update subject
+        $pld = class_subj::updateOrCreate(
+            ["uid" => $uid],
+            [
+                "schid" => $request->schid,
+                "subj_id" => $request->subj_id,
+                "name" => $request->name,
+                "comp" => $request->comp,
+                "clsid" => $request->clsid,
+                "sesn" => $request->sesn,
+                "trm" => $request->trm,
+            ]
+        );
 
-    return response()->json([
-        "status"  => true,
-        "message" => "Subject added successfully",
-        "pld"     => $pld
-    ]);
-}
+        return response()->json([
+            "status" => true,
+            "message" => "Subject added successfully",
+            "pld" => $pld
+        ]);
+    }
 
 
 
@@ -3484,97 +3484,97 @@ public function setClassSubject(Request $request)
 
 
 
-/**
- * @OA\Get(
- *     path="/api/getClassSubjectsByStaff/{schid}/{clsid}/{stid}",
- *     summary="Get subjects assigned to a staff for a class",
- *     description="Fetches all subjects that a staff member teaches for a specific class, session, and term.",
- *     tags={"Api"},
- *    security={{"bearerAuth": {}}},
- *     operationId="getClassSubjectsByStaff",
- *
- *     @OA\Parameter(
- *         name="schid",
- *         in="path",
- *         description="School ID",
- *         required=true,
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Parameter(
- *         name="clsid",
- *         in="path",
- *         description="Class ID",
- *         required=true,
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Parameter(
- *         name="stid",
- *         in="path",
- *         description="Staff ID",
- *         required=true,
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Parameter(
- *         name="sesn",
- *         in="query",
- *         description="Session (e.g., 2024, 2025)",
- *         required=true,
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Parameter(
- *         name="trm",
- *         in="query",
- *         description="Term (e.g., 1, 2, 3)",
- *         required=true,
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Parameter(
- *         name="start",
- *         in="query",
- *         description="Pagination start index",
- *         required=false,
- *         @OA\Schema(type="integer", default=0)
- *     ),
- *     @OA\Parameter(
- *         name="count",
- *         in="query",
- *         description="Number of records to return",
- *         required=false,
- *         @OA\Schema(type="integer", default=20)
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Successful response with subjects",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Success"),
- *             @OA\Property(
- *                 property="pld",
- *                 type="array",
- *                 @OA\Items(
- *                     type="object",
- *                     @OA\Property(property="subj_id", type="integer", example=100),
- *                     @OA\Property(property="name", type="string", example="FRENCH"),
- *                     @OA\Property(property="comp", type="string", example="Core"),
- *                     @OA\Property(property="clsid", type="integer", example=11),
- *                     @OA\Property(property="schid", type="integer", example=31),
- *                     @OA\Property(property="sesn", type="integer", example=2024),
- *                     @OA\Property(property="trm", type="integer", example=1)
- *                 )
- *             )
- *         )
- *     ),
- *     @OA\Response(
- *         response=400,
- *         description="Bad request"
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="Data not found"
- *     )
- * )
- */
+    /**
+     * @OA\Get(
+     *     path="/api/getClassSubjectsByStaff/{schid}/{clsid}/{stid}",
+     *     summary="Get subjects assigned to a staff for a class",
+     *     description="Fetches all subjects that a staff member teaches for a specific class, session, and term.",
+     *     tags={"Api"},
+     *    security={{"bearerAuth": {}}},
+     *     operationId="getClassSubjectsByStaff",
+     *
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="path",
+     *         description="School ID",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="clsid",
+     *         in="path",
+     *         description="Class ID",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="stid",
+     *         in="path",
+     *         description="Staff ID",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="sesn",
+     *         in="query",
+     *         description="Session (e.g., 2024, 2025)",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="query",
+     *         description="Term (e.g., 1, 2, 3)",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         description="Pagination start index",
+     *         required=false,
+     *         @OA\Schema(type="integer", default=0)
+     *     ),
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         description="Number of records to return",
+     *         required=false,
+     *         @OA\Schema(type="integer", default=20)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful response with subjects",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="subj_id", type="integer", example=100),
+     *                     @OA\Property(property="name", type="string", example="FRENCH"),
+     *                     @OA\Property(property="comp", type="string", example="Core"),
+     *                     @OA\Property(property="clsid", type="integer", example=11),
+     *                     @OA\Property(property="schid", type="integer", example=31),
+     *                     @OA\Property(property="sesn", type="integer", example=2024),
+     *                     @OA\Property(property="trm", type="integer", example=1)
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Bad request"
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Data not found"
+     *     )
+     * )
+     */
 
 
     // public function getClassSubjectsByStaff($schid, $clsid, $stid)
@@ -3611,14 +3611,14 @@ public function setClassSubject(Request $request)
     // }
 
 
-// public function getClassSubjectsByStaff($schid, $clsid, $stid)
+    // public function getClassSubjectsByStaff($schid, $clsid, $stid)
 // {
 //     $sesn = request()->input('sesn'); // session from query
 //     $trm = request()->input('trm');   // term from query
 //     $start = request()->input('start', 0);
 //     $count = request()->input('count', 20);
 
-//     $pld = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
+    //     $pld = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
 //         ->where('class_subj.schid', $schid)
 //         ->where('class_subj.clsid', $clsid)
 //         ->where('staff_subj.stid', $stid)
@@ -3638,7 +3638,7 @@ public function setClassSubject(Request $request)
 //         ->take($count)
 //         ->get();
 
-//     return response()->json([
+    //     return response()->json([
 //         "status" => true,
 //         "message" => "Success",
 //         "pld" => $pld,
@@ -3646,50 +3646,50 @@ public function setClassSubject(Request $request)
 // }
 
 
-public function getClassSubjectsByStaff($schid, $clsid, $stid)
-{
-    $sesn = request()->input('sesn');
-    $trm  = request()->input('trm');
-    $start = request()->input('start', 0);
-    $count = request()->input('count', 20);
+    public function getClassSubjectsByStaff($schid, $clsid, $stid)
+    {
+        $sesn = request()->input('sesn');
+        $trm = request()->input('trm');
+        $start = request()->input('start', 0);
+        $count = request()->input('count', 20);
 
-    $query = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
-        ->where('class_subj.schid', $schid)
-        ->where('class_subj.clsid', $clsid)
-        ->where('staff_subj.stid', $stid)
-        ->when($sesn, function ($q) use ($sesn) {
-            $q->where('class_subj.sesn', $sesn)
-              ->where('staff_subj.sesn', $sesn);
-        })
-        ->when($trm, function ($q) use ($trm) {
-            $q->where('class_subj.trm', $trm)
-              ->where('staff_subj.trm', $trm);
-        })
-        ->select(
-            'class_subj.subj_id',
-            'class_subj.name',
-            'class_subj.comp',
-            'class_subj.clsid',
-            'class_subj.schid',
-            'class_subj.sesn',
-            'class_subj.trm'
-        )
-        ->orderBy('class_subj.name', 'asc');
+        $query = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
+            ->where('class_subj.schid', $schid)
+            ->where('class_subj.clsid', $clsid)
+            ->where('staff_subj.stid', $stid)
+            ->when($sesn, function ($q) use ($sesn) {
+                $q->where('class_subj.sesn', $sesn)
+                    ->where('staff_subj.sesn', $sesn);
+            })
+            ->when($trm, function ($q) use ($trm) {
+                $q->where('class_subj.trm', $trm)
+                    ->where('staff_subj.trm', $trm);
+            })
+            ->select(
+                'class_subj.subj_id',
+                'class_subj.name',
+                'class_subj.comp',
+                'class_subj.clsid',
+                'class_subj.schid',
+                'class_subj.sesn',
+                'class_subj.trm'
+            )
+            ->orderBy('class_subj.name', 'asc');
 
-    $pld = $query->get();
+        $pld = $query->get();
 
-    // Remove duplicates manually based on subj_id
-    $pld = $pld->unique('subj_id')->values();
+        // Remove duplicates manually based on subj_id
+        $pld = $pld->unique('subj_id')->values();
 
-    // Paginate after deduplication
-    $pld = $pld->slice($start, $count)->values();
+        // Paginate after deduplication
+        $pld = $pld->slice($start, $count)->values();
 
-    return response()->json([
-        'status' => true,
-        'message' => 'Success',
-        'pld' => $pld,
-    ]);
-}
+        return response()->json([
+            'status' => true,
+            'message' => 'Success',
+            'pld' => $pld,
+        ]);
+    }
 
 
 
@@ -4736,7 +4736,7 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
         return response()->json([
             "status" => true,
             "message" => "Success",
-            "pld" =>  $pld,
+            "pld" => $pld,
         ]);
     }
 
@@ -5219,83 +5219,83 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
     // }
 
     public function getStudent()
-{
-    $combined = false;
-    if (request()->has('combined')) {
-        $combined = request()->input('combined');
-    }
-
-    $uid = request()->input('uid', '');
-    $schid = request()->input('schid', '');
-
-    if ($uid === '' || $schid === '') {
-        return response()->json([
-            "status" => false,
-            "message" => "No UID/School ID provided",
-        ], 400);
-    }
-
-    if ($combined) {
-        $pld = [];
-        $compo = explode("/", $uid);
-        $members = [];
-
-        if (count($compo) == 4) {
-            [$sch3, $year, $term, $count] = $compo;
-            $members = student::where("schid", $schid)
-                ->where("stat", "1")
-                ->where("sch3", $sch3)
-                ->where("year", $year)
-                ->where("term", $term)
-                ->where("count", $count)
-                ->get();
-        } else {
-            $members = student::where("schid", $schid)
-                ->where("stat", "1")
-                ->where("cuid", $uid)
-                ->get();
+    {
+        $combined = false;
+        if (request()->has('combined')) {
+            $combined = request()->input('combined');
         }
 
-        foreach ($members as $member) {
-            $user_id = $member->sid;
-            $academicData = student_academic_data::where('user_id', $user_id)->first();
-            $basicData = student_basic_data::where('user_id', $user_id)->first();
+        $uid = request()->input('uid', '');
+        $schid = request()->input('schid', '');
 
-            $oldStudent = old_student::where('sid', $user_id)
+        if ($uid === '' || $schid === '') {
+            return response()->json([
+                "status" => false,
+                "message" => "No UID/School ID provided",
+            ], 400);
+        }
+
+        if ($combined) {
+            $pld = [];
+            $compo = explode("/", $uid);
+            $members = [];
+
+            if (count($compo) == 4) {
+                [$sch3, $year, $term, $count] = $compo;
+                $members = student::where("schid", $schid)
+                    ->where("stat", "1")
+                    ->where("sch3", $sch3)
+                    ->where("year", $year)
+                    ->where("term", $term)
+                    ->where("count", $count)
+                    ->get();
+            } else {
+                $members = student::where("schid", $schid)
+                    ->where("stat", "1")
+                    ->where("cuid", $uid)
+                    ->get();
+            }
+
+            foreach ($members as $member) {
+                $user_id = $member->sid;
+                $academicData = student_academic_data::where('user_id', $user_id)->first();
+                $basicData = student_basic_data::where('user_id', $user_id)->first();
+
+                $oldStudent = old_student::where('sid', $user_id)
+                    ->where('schid', $schid)
+                    ->first();
+                $suid = $oldStudent ? $oldStudent->suid : null;
+
+                $pld[] = [
+                    's' => $member,
+                    'b' => $basicData,
+                    'a' => $academicData,
+                    'suid' => $suid, // added suid here
+                ];
+            }
+        } else {
+            $student = student::where("schid", $schid)
+                ->where("stat", "1")
+                ->where("sid", $uid)
+                ->first();
+
+            $oldStudent = old_student::where('sid', $uid)
                 ->where('schid', $schid)
                 ->first();
             $suid = $oldStudent ? $oldStudent->suid : null;
 
-            $pld[] = [
-                's' => $member,
-                'b' => $basicData,
-                'a' => $academicData,
-                'suid' => $suid, // added suid here
-            ];
+            $pld = $student ? $student->toArray() : [];
+            if ($student) {
+                $pld['suid'] = $suid; // add suid to the response
+            }
         }
-    } else {
-        $student = student::where("schid", $schid)
-            ->where("stat", "1")
-            ->where("sid", $uid)
-            ->first();
 
-        $oldStudent = old_student::where('sid', $uid)
-            ->where('schid', $schid)
-            ->first();
-        $suid = $oldStudent ? $oldStudent->suid : null;
-
-        $pld = $student ? $student->toArray() : [];
-        if ($student) {
-            $pld['suid'] = $suid; // add suid to the response
-        }
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld,
+        ]);
     }
-
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => $pld,
-    ]);
-}
 
 
     /**
@@ -5605,14 +5605,14 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
     {
         // Data validation
         $request->validate([
-            "user_id"        => "required",
-            "schid"          => "required",
-            "last_school"    => "required",
-            "last_class"     => "nullable",      // optional
-            "new_class"      => "nullable",      // optional
+            "user_id" => "required",
+            "schid" => "required",
+            "last_school" => "required",
+            "last_class" => "nullable",      // optional
+            "new_class" => "nullable",      // optional
             "new_class_main" => "nullable",      // optional
-            "ssn"            => "required",
-            "suid"           => "required",
+            "ssn" => "required",
+            "suid" => "required",
         ]);
 
         // Determine if we need to refresh subjects
@@ -5628,9 +5628,9 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
         student_academic_data::updateOrCreate(
             ["user_id" => $request->user_id],
             [
-                "last_school"    => $request->last_school,
-                "last_class"     => $request->last_class ?? null,
-                "new_class"      => $request->new_class ?? null,
+                "last_school" => $request->last_school,
+                "last_class" => $request->last_class ?? null,
+                "new_class" => $request->new_class ?? null,
                 "new_class_main" => $request->new_class_main ?? null,
             ]
         );
@@ -5675,16 +5675,16 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
             old_student::updateOrCreate(
                 ["uid" => $uid],
                 [
-                    'sid'   => $request->user_id,
+                    'sid' => $request->user_id,
                     'schid' => $request->schid,
                     'fname' => $std->fname,
                     'mname' => $std->mname,
                     'lname' => $std->lname,
-                    'suid'  => $request->suid,
-                    'ssn'   => $request->ssn,
-                    'clsm'  => $request->new_class_main ?? null,
-                    'clsa'  => $request->new_class ?? null,
-                    'more'  => "",
+                    'suid' => $request->suid,
+                    'ssn' => $request->ssn,
+                    'clsm' => $request->new_class_main ?? null,
+                    'clsa' => $request->new_class ?? null,
+                    'more' => "",
                 ]
             );
         }
@@ -5695,7 +5695,7 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
         ]);
 
         return response()->json([
-            "status"  => true,
+            "status" => true,
             "message" => "Success",
         ]);
     }
@@ -5984,35 +5984,35 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
             'adm_status'
         )
             ->distinct('sid') // ensures unique student records
-             ->orderBy('lname', 'asc') // sort alphabetically by first name
+            ->orderBy('lname', 'asc') // sort alphabetically by first name
             ->get()
             ->map(function ($student) {
                 return [
-                    "sid"            => $student->sid,
-                    "suid"           => $student->suid,
-                    "fname"          => $student->fname,
-                    "mname"          => $student->mname,
-                    "lname"          => $student->lname,
-                    "ssn"            => $student->ssn,
-                    "trm"            => $student->trm,
-                    "clsm"           => $student->clsm,
-                    "clsa"           => $student->clsa,
-                    "last_school"    => $student->academicData?->last_school,
-                    "last_class"     => $student->academicData?->last_class,
-                    "new_class"      => $student->academicData?->new_class,
+                    "sid" => $student->sid,
+                    "suid" => $student->suid,
+                    "fname" => $student->fname,
+                    "mname" => $student->mname,
+                    "lname" => $student->lname,
+                    "ssn" => $student->ssn,
+                    "trm" => $student->trm,
+                    "clsm" => $student->clsm,
+                    "clsa" => $student->clsa,
+                    "last_school" => $student->academicData?->last_school,
+                    "last_class" => $student->academicData?->last_class,
+                    "new_class" => $student->academicData?->new_class,
                     "new_class_main" => $student->academicData?->new_class_main,
-                     "adm_ssn"           => $student->adm_ssn,
-                     "adm_trm"           => $student->adm_trm,
-                     "cls_of_adm"           => $student->cls_of_adm,
-                     "date_of_adm"       => $student->date_of_adm,
-                    "adm_status"       => $student->adm_status,
+                    "adm_ssn" => $student->adm_ssn,
+                    "adm_trm" => $student->adm_trm,
+                    "cls_of_adm" => $student->cls_of_adm,
+                    "date_of_adm" => $student->date_of_adm,
+                    "adm_status" => $student->adm_status,
                 ];
             });
 
         return response()->json([
-            "status"  => true,
+            "status" => true,
             "message" => "Success",
-            "pld"     => $pld,
+            "pld" => $pld,
         ]);
     }
 
@@ -6932,22 +6932,80 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
      *     ),
      * )
      */
+    // public function staffLoginByEmail(Request $request)
+    // {
+    //     //Data validation
+    //     $request->validate([
+    //         "email" => "required|email",
+    //         "password" => "required",
+    //     ]);
+    //     $typ = 'w';
+    //     $usr = User::where("typ", $typ)->where("email", $request->email)->first();
+    //     if ($usr) {
+    //         $token = JWTAuth::attempt([
+    //             "email" => $request->email,
+    //             "password" => $request->password,
+    //         ]);
+    //         if (!empty($token)) {
+    //             $stf = staff::where('sid', strval($usr->id))->first();
+    //             return response()->json([
+    //                 "status" => true,
+    //                 "message" => "Login successful",
+    //                 "token" => $token,
+    //                 "pld" => $usr,
+    //                 "std" => $stf,
+    //             ]);
+    //         }
+    //     }
+    //     // Respond
+    //     return response()->json([
+    //         "status" => false,
+    //         "message" => "Invalid login details",
+    //     ], 400);
+    // }
+
     public function staffLoginByEmail(Request $request)
     {
-        //Data validation
+        // Data validation
         $request->validate([
             "email" => "required|email",
             "password" => "required",
         ]);
+
         $typ = 'w';
-        $usr = User::where("typ", $typ)->where("email", $request->email)->first();
+
+        // GET USER
+        $usr = User::where("typ", $typ)
+            ->where("email", $request->email)
+            ->first();
+
         if ($usr) {
+
+            // FIND STAFF RECORD
+            $stf = staff::where('sid', strval($usr->id))->first();
+
+            // If staff record found, check old_staff status
+            if ($stf) {
+                $oldStatus = old_staff::where('sid', $stf->sid)
+                    ->where('schid', $stf->schid)
+                    ->value('status');
+
+                // Block inactive staff
+                if ($oldStatus !== 'active') {
+                    return response()->json([
+                        "status" => false,
+                        "message" => "Your account is inactive. Contact the school admin."
+                    ], 403);
+                }
+            }
+
+            // ATTEMPT LOGIN
             $token = JWTAuth::attempt([
                 "email" => $request->email,
                 "password" => $request->password,
             ]);
+
             if (!empty($token)) {
-                $stf = staff::where('sid', strval($usr->id))->first();
                 return response()->json([
                     "status" => true,
                     "message" => "Login successful",
@@ -6957,12 +7015,14 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
                 ]);
             }
         }
-        // Respond
+
+        // INVALID LOGIN
         return response()->json([
             "status" => false,
             "message" => "Invalid login details",
         ], 400);
     }
+
 
     /**
      * @OA\Post(
@@ -6988,30 +7048,98 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
      *     ),
      * )
      */
+    // public function staffLoginByID(Request $request)
+    // {
+    //     //Data validation
+    //     $request->validate([
+    //         "stid" => "required",
+    //         "schid" => "required",
+    //         "password" => "required",
+    //     ]);
+    //     $typ = 'w';
+    //     $stf = [];
+    //     $compo = explode("/", $request->stid);
+    //     if (count($compo) == 3) {
+    //         $sch3 = $compo[0];
+    //         $count = $compo[2];
+    //         $stf = staff::where("schid", $request->schid)->where("count", $count)->where("status", "active")->first();
+    //     } else {
+    //         $stf = staff::where("cuid", $request->stid)->first();
+    //     }
+    //     if ($stf) {
+    //         $usr = User::where("typ", $typ)->where("id", $stf->sid)->first();
+    //         $token = JWTAuth::attempt([
+    //             "email" => $usr->email,
+    //             "password" => $request->password,
+    //         ]);
+    //         if (!empty($token)) {
+    //             return response()->json([
+    //                 "status" => true,
+    //                 "message" => "Login successful",
+    //                 "token" => $token,
+    //                 "pld" => $usr,
+    //             ]);
+    //         }
+    //     }
+    //     // Respond
+    //     return response()->json([
+    //         "status" => false,
+    //         "message" => "Invalid login details",
+    //     ], 400);
+    // }
+
     public function staffLoginByID(Request $request)
     {
-        //Data validation
+        // Data validation
         $request->validate([
             "stid" => "required",
             "schid" => "required",
             "password" => "required",
         ]);
+
         $typ = 'w';
         $stf = [];
         $compo = explode("/", $request->stid);
+
+        // FIND STAFF RECORD
         if (count($compo) == 3) {
             $sch3 = $compo[0];
             $count = $compo[2];
-            $stf = staff::where("schid", $request->schid)->where("count", $count)->where("status", "active")->first();
+            $stf = staff::where("schid", $request->schid)->where("count", $count)->first();
         } else {
-            $stf = staff::where("cuid", $request->stid)->where("status", "active")->first();
+            $stf = staff::where("cuid", $request->stid)->first();
         }
+
         if ($stf) {
+
+            //  CHECK STATUS IN old_staff TABLE
+            $oldStatus = old_staff::where('sid', $stf->sid)
+                ->where('schid', $request->schid)
+                ->value('status');
+
+            if ($oldStatus !== 'active') {
+                return response()->json([
+                    "status" => false,
+                    "message" => "Your account is inactive. Contact the school admin."
+                ], 403);
+            }
+
+            // GET USER
             $usr = User::where("typ", $typ)->where("id", $stf->sid)->first();
+
+            if (!$usr) {
+                return response()->json([
+                    "status" => false,
+                    "message" => "User not found",
+                ], 400);
+            }
+
+            // ATTEMPT LOGIN
             $token = JWTAuth::attempt([
                 "email" => $usr->email,
                 "password" => $request->password,
             ]);
+
             if (!empty($token)) {
                 return response()->json([
                     "status" => true,
@@ -7021,12 +7149,16 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
                 ]);
             }
         }
-        // Respond
+
+        // INVALID LOGIN
         return response()->json([
             "status" => false,
             "message" => "Invalid login details",
         ], 400);
     }
+
+
+
 
     /**
      * @OA\Post(
@@ -7368,37 +7500,37 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
 
 
     public function setStaffSubject(Request $request)
-{
-    $request->validate([
-        "stid"  => "required",
-        "sbj"   => "required",
-        "schid" => "required",
-        "sesn"  => "required",
-        "trm"   => "required",
-    ]);
+    {
+        $request->validate([
+            "stid" => "required",
+            "sbj" => "required",
+            "schid" => "required",
+            "sesn" => "required",
+            "trm" => "required",
+        ]);
 
-    // Look for existing record by business keys
-    $pld = staff_subj::firstOrNew([
-        "stid"  => $request->stid,
-        "sbj"   => $request->sbj,
-        "schid" => $request->schid,
-        "trm"   => $request->trm,
-    ]);
+        // Look for existing record by business keys
+        $pld = staff_subj::firstOrNew([
+            "stid" => $request->stid,
+            "sbj" => $request->sbj,
+            "schid" => $request->schid,
+            "trm" => $request->trm,
+        ]);
 
-    // Assign sesn and uid
-    $pld->sesn = $request->sesn;
-    if (!$pld->exists) {
-        $pld->uid = $request->sesn . $request->trm . $request->stid;
+        // Assign sesn and uid
+        $pld->sesn = $request->sesn;
+        if (!$pld->exists) {
+            $pld->uid = $request->sesn . $request->trm . $request->stid;
+        }
+
+        $pld->save();
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld
+        ]);
     }
-
-    $pld->save();
-
-    return response()->json([
-        "status"  => true,
-        "message" => "Success",
-        "pld"     => $pld
-    ]);
-}
 
 
 
@@ -7752,12 +7884,18 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
 
     private function gradeFromAvg2($avg)
     {
-        if ($avg >= 70) return 'A';
-        elseif ($avg >= 60) return 'B';
-        elseif ($avg >= 50) return 'C';
-        elseif ($avg >= 45) return 'D';
-        elseif ($avg >= 40) return 'E';
-        else return 'F';
+        if ($avg >= 70)
+            return 'A';
+        elseif ($avg >= 60)
+            return 'B';
+        elseif ($avg >= 50)
+            return 'C';
+        elseif ($avg >= 45)
+            return 'D';
+        elseif ($avg >= 40)
+            return 'E';
+        else
+            return 'F';
     }
 
 
@@ -7911,7 +8049,7 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
             $scores = [];
 
             foreach ($studentSubjects as $sbj) {
-                $sbid = (string)$sbj->sbj;
+                $sbid = (string) $sbj->sbj;
                 $mySbjs[] = $sbid;
 
                 // 4. Fetch scores (filtered by session, term, class)
@@ -7924,7 +8062,7 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
                     ->get();
 
                 $scores[] = [
-                    'sbid'   => $sbid,
+                    'sbid' => $sbid,
                     'scores' => $subjectScores
                 ];
             }
@@ -7956,11 +8094,11 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
 
             // 6. Push result (no duplicate sbj/scr)
             $stdPld[] = [
-                'std'   => $std,
-                'sbj'   => array_values(array_unique($mySbjs)),
-                'scr'   => collect($scores)->unique('sbid')->values(),
-                'psy'   => $psy,
-                'res'   => $res,
+                'std' => $std,
+                'sbj' => array_values(array_unique($mySbjs)),
+                'scr' => collect($scores)->unique('sbid')->values(),
+                'psy' => $psy,
+                'res' => $res,
                 'rinfo' => $rinfo ?: []
             ];
         }
@@ -7969,9 +8107,9 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
         $clsSbj = subj::whereIn('id', $relevantSubjects)->get();
 
         return response()->json([
-            "status"  => true,
+            "status" => true,
             "message" => "Success",
-            "pld"     => [
+            "pld" => [
                 'std-pld' => $stdPld,
                 'cls-sbj' => $clsSbj
             ],
@@ -9985,67 +10123,67 @@ public function getClassSubjectsByStaff($schid, $clsid, $stid)
     // }
 
 
-public function setStaffClass(Request $request)
-{
-    // Data validation
-    $request->validate([
-        "stid"   => "required",
-        "cls"    => "required",
-        "schid"  => "required",
-        "ssn"    => "required",
-        "trm"    => "required",
-        "fname"  => "required",
-        "lname"  => "required",
-        "mname"  => "nullable",
-        "suid"   => "required",
-        "role"   => "required",
-        "role2"  => "required",
-    ]);
+    public function setStaffClass(Request $request)
+    {
+        // Data validation
+        $request->validate([
+            "stid" => "required",
+            "cls" => "required",
+            "schid" => "required",
+            "ssn" => "required",
+            "trm" => "required",
+            "fname" => "required",
+            "lname" => "required",
+            "mname" => "nullable",
+            "suid" => "required",
+            "role" => "required",
+            "role2" => "required",
+        ]);
 
-    // Generate deterministic UID without random numbers
-    $uid = $request->ssn . $request->trm . $request->stid . $request->cls;
+        // Generate deterministic UID without random numbers
+        $uid = $request->ssn . $request->trm . $request->stid . $request->cls;
 
-    // Save to staff_class
-    $pld = staff_class::updateOrCreate(
-        ["uid" => $uid],
-        [
-            "stid"  => $request->stid,
-            "cls"   => $request->cls,
-            "schid" => $request->schid,
-            "ssn"   => $request->ssn,
-            "trm"   => $request->trm,
-        ]
-    );
+        // Save to staff_class
+        $pld = staff_class::updateOrCreate(
+            ["uid" => $uid],
+            [
+                "stid" => $request->stid,
+                "cls" => $request->cls,
+                "schid" => $request->schid,
+                "ssn" => $request->ssn,
+                "trm" => $request->trm,
+            ]
+        );
 
-    // Save also to old_staff with the same UID style
-    $old = old_staff::updateOrCreate(
-        ["uid" => $uid],
-        [
-            'sid'   => $request->stid,
-            'schid' => $request->schid,
-            'fname' => $request->fname,
-            'mname' => $request->mname,
-            'lname' => $request->lname,
-            'suid'  => $request->suid,
-            'ssn'   => $request->ssn,
-            'trm'   => $request->trm,
-            'clsm'  => $request->cls,
-            'role'  => $request->role,
-            'role2' => $request->role2,
-            'more'  => "",
-        ]
-    );
+        // Save also to old_staff with the same UID style
+        $old = old_staff::updateOrCreate(
+            ["uid" => $uid],
+            [
+                'sid' => $request->stid,
+                'schid' => $request->schid,
+                'fname' => $request->fname,
+                'mname' => $request->mname,
+                'lname' => $request->lname,
+                'suid' => $request->suid,
+                'ssn' => $request->ssn,
+                'trm' => $request->trm,
+                'clsm' => $request->cls,
+                'role' => $request->role,
+                'role2' => $request->role2,
+                'more' => "",
+            ]
+        );
 
-    // Return JSON response
-    return response()->json([
-        "status"  => true,
-        "message" => "Success",
-        "pld"     => [
-            "staff_class" => $pld,
-            "old_staff"   => $old,
-        ]
-    ]);
-}
+        // Return JSON response
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => [
+                "staff_class" => $pld,
+                "old_staff" => $old,
+            ]
+        ]);
+    }
 
 
 
@@ -10214,59 +10352,59 @@ public function setStaffClass(Request $request)
     //     ]);
     // }
 
-public function getStaffClasses($stid)
-{
-    $start = request()->input('start', 0);
-    $count = request()->input('count', 20);
-    $ssn   = request()->input('ssn');
-    $trm   = request()->input('trm');
+    public function getStaffClasses($stid)
+    {
+        $start = request()->input('start', 0);
+        $count = request()->input('count', 20);
+        $ssn = request()->input('ssn');
+        $trm = request()->input('trm');
 
-    $query = staff_class::query()
-        ->join('old_staff', 'staff_class.stid', '=', 'old_staff.sid')
-        ->where('staff_class.stid', $stid)
-        ->select([
-            DB::raw('MAX(staff_class.uid) as uid'), // latest UID
-            'staff_class.stid',
-            'staff_class.cls',
-            'staff_class.schid',
-            DB::raw('MAX(staff_class.ssn) as ssn'),
-            DB::raw('MAX(staff_class.trm) as trm'),
-            'old_staff.fname',
-            'old_staff.mname',
-            'old_staff.lname',
-        ])
-        ->groupBy([
-            'staff_class.stid',
-            'staff_class.cls',
-            'staff_class.schid',
-            'old_staff.fname',
-            'old_staff.mname',
-            'old_staff.lname',
-        ])
-        ->orderBy('ssn', 'desc')
-        ->orderBy('trm', 'desc');
+        $query = staff_class::query()
+            ->join('old_staff', 'staff_class.stid', '=', 'old_staff.sid')
+            ->where('staff_class.stid', $stid)
+            ->select([
+                DB::raw('MAX(staff_class.uid) as uid'), // latest UID
+                'staff_class.stid',
+                'staff_class.cls',
+                'staff_class.schid',
+                DB::raw('MAX(staff_class.ssn) as ssn'),
+                DB::raw('MAX(staff_class.trm) as trm'),
+                'old_staff.fname',
+                'old_staff.mname',
+                'old_staff.lname',
+            ])
+            ->groupBy([
+                'staff_class.stid',
+                'staff_class.cls',
+                'staff_class.schid',
+                'old_staff.fname',
+                'old_staff.mname',
+                'old_staff.lname',
+            ])
+            ->orderBy('ssn', 'desc')
+            ->orderBy('trm', 'desc');
 
-    // Apply filters only if provided
-    if (!empty($ssn)) {
-        $query->where('staff_class.ssn', $ssn);
+        // Apply filters only if provided
+        if (!empty($ssn)) {
+            $query->where('staff_class.ssn', $ssn);
+        }
+
+        if (!empty($trm)) {
+            $query->where('staff_class.trm', $trm);
+        }
+
+        // Apply pagination
+        $pld = $query->skip($start)->take($count)->get();
+
+        // Remove duplicate class entries if any
+        $pld = $pld->unique(fn($item) => $item->cls . '-' . $item->ssn)->values();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Success',
+            'pld' => $pld,
+        ]);
     }
-
-    if (!empty($trm)) {
-        $query->where('staff_class.trm', $trm);
-    }
-
-    // Apply pagination
-    $pld = $query->skip($start)->take($count)->get();
-
-    // Remove duplicate class entries if any
-    $pld = $pld->unique(fn($item) => $item->cls . '-' . $item->ssn)->values();
-
-    return response()->json([
-        'status'  => true,
-        'message' => 'Success',
-        'pld'     => $pld,
-    ]);
-}
 
 
 
@@ -10359,41 +10497,41 @@ public function getStaffClasses($stid)
      */
 
 
-public function setStaffClassArm(Request $request)
-{
-    // Data validation
-    $request->validate([
-        "stid"  => "required",
-        "cls"   => "required",
-        "arm"   => "required",
-        "schid" => "required",
-        "sesn"  => "required",
-        "trm"   => "required",
-    ]);
+    public function setStaffClassArm(Request $request)
+    {
+        // Data validation
+        $request->validate([
+            "stid" => "required",
+            "cls" => "required",
+            "arm" => "required",
+            "schid" => "required",
+            "sesn" => "required",
+            "trm" => "required",
+        ]);
 
-    // Generate deterministic UID (no random numbers)
-    $uid = $request->sesn . $request->trm . $request->stid . $request->cls . $request->arm;
+        // Generate deterministic UID (no random numbers)
+        $uid = $request->sesn . $request->trm . $request->stid . $request->cls . $request->arm;
 
-    // Update or create staff class arm record
-    $pld = staff_class_arm::updateOrCreate(
-        ["uid" => $uid],
-        [
-            "stid"  => $request->stid,
-            "cls"   => $request->cls,
-            "arm"   => $request->arm,
-            "schid" => $request->schid,
-            "sesn"  => $request->sesn,
-            "trm"   => $request->trm,
-        ]
-    );
+        // Update or create staff class arm record
+        $pld = staff_class_arm::updateOrCreate(
+            ["uid" => $uid],
+            [
+                "stid" => $request->stid,
+                "cls" => $request->cls,
+                "arm" => $request->arm,
+                "schid" => $request->schid,
+                "sesn" => $request->sesn,
+                "trm" => $request->trm,
+            ]
+        );
 
-    // Return JSON response
-    return response()->json([
-        "status"  => true,
-        "message" => "Success",
-        "pld"     => $pld
-    ]);
-}
+        // Return JSON response
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld
+        ]);
+    }
 
 
 
@@ -10702,52 +10840,52 @@ public function setStaffClassArm(Request $request)
      */
 
 
-public function setOldStaffInfo(Request $request)
-{
-    // Data validation
-    $request->validate([
-        "sid"   => "required",
-        "schid" => "required",
-        "fname" => "required",
-        "mname" => "required",
-        "lname" => "required",
-        "suid"  => "required",
-        "ssn"   => "required",
-        "trm"   => "required",
-        "clsm"  => "required",
-        "role"  => "required",
-        "role2" => "required",
-        "more"  => "required",
-    ]);
+    public function setOldStaffInfo(Request $request)
+    {
+        // Data validation
+        $request->validate([
+            "sid" => "required",
+            "schid" => "required",
+            "fname" => "required",
+            "mname" => "required",
+            "lname" => "required",
+            "suid" => "required",
+            "ssn" => "required",
+            "trm" => "required",
+            "clsm" => "required",
+            "role" => "required",
+            "role2" => "required",
+            "more" => "required",
+        ]);
 
-    // Generate deterministic UID (no random numbers)
-    $uid = $request->ssn . $request->trm . $request->sid;
+        // Generate deterministic UID (no random numbers)
+        $uid = $request->ssn . $request->trm . $request->sid;
 
-    // Update or create record based only on uid
-    $pld = old_staff::updateOrCreate(
-        ["uid" => $uid],  // uniqueness check is ONLY on uid
-        [
-            "sid"   => $request->sid,
-            "schid" => $request->schid,
-            "fname" => $request->fname,
-            "mname" => $request->mname,
-            "lname" => $request->lname,
-            "suid"  => $request->suid,
-            "ssn"   => $request->ssn,
-            "trm"   => $request->trm,
-            "clsm"  => $request->clsm,
-            "role"  => $request->role,
-            "role2" => $request->role2,
-            "more"  => $request->more,
-        ]
-    );
+        // Update or create record based only on uid
+        $pld = old_staff::updateOrCreate(
+            ["uid" => $uid],  // uniqueness check is ONLY on uid
+            [
+                "sid" => $request->sid,
+                "schid" => $request->schid,
+                "fname" => $request->fname,
+                "mname" => $request->mname,
+                "lname" => $request->lname,
+                "suid" => $request->suid,
+                "ssn" => $request->ssn,
+                "trm" => $request->trm,
+                "clsm" => $request->clsm,
+                "role" => $request->role,
+                "role2" => $request->role2,
+                "more" => $request->more,
+            ]
+        );
 
-    return response()->json([
-        "status"  => true,
-        "message" => "Info Updated",
-        "pld"     => $pld
-    ]);
-}
+        return response()->json([
+            "status" => true,
+            "message" => "Info Updated",
+            "pld" => $pld
+        ]);
+    }
 
 
     /**
@@ -10850,9 +10988,9 @@ public function setOldStaffInfo(Request $request)
             ->get();
 
         return response()->json([
-            "status"  => true,
+            "status" => true,
             "message" => "Success",
-            "pld"     => $pld,
+            "pld" => $pld,
         ]);
     }
 
@@ -11582,9 +11720,9 @@ public function setOldStaffInfo(Request $request)
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
         ])->get('https://api.paystack.co/bank/resolve', [
-            'account_number' => $anum,
-            'bank_code' => $bnk,
-        ]);
+                    'account_number' => $anum,
+                    'bank_code' => $bnk,
+                ]);
 
         if ($response->successful()) {
             $data = $response->json();
@@ -12217,16 +12355,16 @@ public function setOldStaffInfo(Request $request)
 
             // Return response with everything inside `pld`
             return response()->json([
-                "status"  => true,
+                "status" => true,
                 "message" => "Success",
-                "pld"     => $pld,
+                "pld" => $pld,
             ]);
         } catch (\Exception $e) {
             Log::error('Error fetching student payments: ' . $e->getMessage());
             return response()->json([
-                "status"  => false,
+                "status" => false,
                 "message" => "Failed to fetch records",
-                "error"   => $e->getMessage(),
+                "error" => $e->getMessage(),
             ], 500);
         }
     }
@@ -12934,103 +13072,103 @@ public function setOldStaffInfo(Request $request)
 
 
     public function setAcct(Request $request)
-{
-    $request->validate([
-        'schid' => 'required',
-        'clsid' => 'required',
-        'anum' => 'required',
-        'bnk'  => 'required',
-        'aname' => 'required',
-        'pay_head_id'  => 'nullable',
-    ]);
+    {
+        $request->validate([
+            'schid' => 'required',
+            'clsid' => 'required',
+            'anum' => 'required',
+            'bnk' => 'required',
+            'aname' => 'required',
+            'pay_head_id' => 'nullable',
+        ]);
 
-    $data = [
-        'schid' => $request->schid,
-        'clsid' => $request->clsid,
-        'anum' => $request->anum,
-        'bnk' => $request->bnk,
-        'aname' => $request->aname,
-        'pay_head_id' => $request->pay_head_id ?? null,
-    ];
-
-    // If updating existing account
-    if ($request->has('id')) {
-        $acct = accts::find($request->id);
-        if ($acct) {
-            $acct->update($data);
-            return response()->json([
-                "status" => true,
-                "message" => "Account Updated",
-            ]);
-        } else {
-            return response()->json([
-                "status" => false,
-                "message" => "Account Not Found",
-            ], 404);
-        }
-    }
-
-    // Check if this schid & clsid already has a subaccount
-    $existingSubAcct = sub_account::where('schid', $request->schid)
-        ->where('clsid', $request->clsid)
-        ->first();
-
-    if ($existingSubAcct) {
-        return response()->json([
-            "status" => false,
-            "message" => "A subaccount already exists for this school and class.",
-        ], 409);
-    }
-
-    // Create main account
-    $acct = accts::create($data);
-
-    // Generate Paystack-required fields
-    $business_name = "Business_" . uniqid();
-    $percentage_charge = 0;
-    $settlement_bank = $request->bnk;
-
-    // Step 1: Create Paystack subaccount
-    $response = Http::withHeaders([
-        'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
-        'Content-Type' => 'application/json',
-    ])->post('https://api.paystack.co/subaccount', [
-        'business_name' => $business_name,
-        'account_number' => $request->anum,
-        'bank_code' => $request->bnk,
-        'percentage_charge' => $percentage_charge,
-        'settlement_bank' => $settlement_bank,
-    ]);
-
-    if ($response->successful()) {
-        $data = $response->json();
-
-        // Step 2: Store subaccount details
-        sub_account::create([
-            'acct_id' => $acct->id,
+        $data = [
             'schid' => $request->schid,
             'clsid' => $request->clsid,
+            'anum' => $request->anum,
+            'bnk' => $request->bnk,
+            'aname' => $request->aname,
             'pay_head_id' => $request->pay_head_id ?? null,
-            'subaccount_code' => $data['data']['subaccount_code'],
-            'percentage_charge' => $percentage_charge,
-        ]);
+        ];
 
-        return response()->json([
-            "status" => true,
-            "message" => "Account and Paystack Subaccount Created Successfully",
-            "paystack_data" => $data,
-        ]);
-    } else {
-        // Rollback main account creation if Paystack fails
-        $acct->delete();
+        // If updating existing account
+        if ($request->has('id')) {
+            $acct = accts::find($request->id);
+            if ($acct) {
+                $acct->update($data);
+                return response()->json([
+                    "status" => true,
+                    "message" => "Account Updated",
+                ]);
+            } else {
+                return response()->json([
+                    "status" => false,
+                    "message" => "Account Not Found",
+                ], 404);
+            }
+        }
 
-        return response()->json([
-            "status" => false,
-            "message" => "Failed to Create Paystack Subaccount",
-            "error" => $response->body(),
-        ], 400);
+        // Check if this schid & clsid already has a subaccount
+        $existingSubAcct = sub_account::where('schid', $request->schid)
+            ->where('clsid', $request->clsid)
+            ->first();
+
+        if ($existingSubAcct) {
+            return response()->json([
+                "status" => false,
+                "message" => "A subaccount already exists for this school and class.",
+            ], 409);
+        }
+
+        // Create main account
+        $acct = accts::create($data);
+
+        // Generate Paystack-required fields
+        $business_name = "Business_" . uniqid();
+        $percentage_charge = 0;
+        $settlement_bank = $request->bnk;
+
+        // Step 1: Create Paystack subaccount
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
+            'Content-Type' => 'application/json',
+        ])->post('https://api.paystack.co/subaccount', [
+                    'business_name' => $business_name,
+                    'account_number' => $request->anum,
+                    'bank_code' => $request->bnk,
+                    'percentage_charge' => $percentage_charge,
+                    'settlement_bank' => $settlement_bank,
+                ]);
+
+        if ($response->successful()) {
+            $data = $response->json();
+
+            // Step 2: Store subaccount details
+            sub_account::create([
+                'acct_id' => $acct->id,
+                'schid' => $request->schid,
+                'clsid' => $request->clsid,
+                'pay_head_id' => $request->pay_head_id ?? null,
+                'subaccount_code' => $data['data']['subaccount_code'],
+                'percentage_charge' => $percentage_charge,
+            ]);
+
+            return response()->json([
+                "status" => true,
+                "message" => "Account and Paystack Subaccount Created Successfully",
+                "paystack_data" => $data,
+            ]);
+        } else {
+            // Rollback main account creation if Paystack fails
+            $acct->delete();
+
+            return response()->json([
+                "status" => false,
+                "message" => "Failed to Create Paystack Subaccount",
+                "error" => $response->body(),
+            ], 400);
+        }
     }
-}
 
 
 
@@ -13153,88 +13291,88 @@ public function setOldStaffInfo(Request $request)
 
 
     public function getSubAccount($acctid)
-{
-    // Step 1: Fetch the existing subaccount linked to the account
-    $subaccount = sub_account::where('acct_id', $acctid)->first();
+    {
+        // Step 1: Fetch the existing subaccount linked to the account
+        $subaccount = sub_account::where('acct_id', $acctid)->first();
 
-    if (!$subaccount) {
-        // Step 2: Check if the account exists
-        $account = accts::where('id', $acctid)->first();
+        if (!$subaccount) {
+            // Step 2: Check if the account exists
+            $account = accts::where('id', $acctid)->first();
 
-        if (!$account) {
-            return response()->json([
-                "status" => false,
-                "message" => "Account not found",
-            ], 404);
+            if (!$account) {
+                return response()->json([
+                    "status" => false,
+                    "message" => "Account not found",
+                ], 404);
+            }
+
+            // Step 3: Generate unique business name
+            $business_name = "Business_" . uniqid();
+
+            // Step 4: Prepare subaccount data for Paystack
+            $percentage_charge = 0;
+            $subaccountData = [
+                'business_name' => $business_name,
+                'account_number' => $account->anum,
+                'bank_code' => $account->bnk,
+                'percentage_charge' => $percentage_charge,
+                'settlement_bank' => $account->bnk,
+            ];
+
+            // Step 5: Create Paystack subaccount
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
+                'Content-Type' => 'application/json',
+            ])->post('https://api.paystack.co/subaccount', $subaccountData);
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                // Step 6: Store subaccount details in the database
+                $subaccount = sub_account::create([
+                    'acct_id' => $account->id,
+                    'schid' => $account->schid,
+                    'clsid' => $account->clsid,
+                    'subaccount_code' => $data['data']['subaccount_code'],
+                    'percentage_charge' => $percentage_charge,
+                ]);
+            } else {
+                return response()->json([
+                    "status" => false,
+                    "message" => "Failed to create subaccount",
+                    "error" => $response->json()['message'] ?? 'Unknown error',
+                ], 400);
+            }
         }
 
-        // Step 3: Generate unique business name
-        $business_name = "Business_" . uniqid();
+        // Step 7: Fetch related data (account and class)
+        $account = accts::find($subaccount->acct_id);
+        $class = DB::table('cls')->where('id', $subaccount->clsid)->first();
 
-        // Step 4: Prepare subaccount data for Paystack
-        $percentage_charge = 0;
-        $subaccountData = [
-            'business_name' => $business_name,
-            'account_number' => $account->anum,
-            'bank_code' => $account->bnk,
-            'percentage_charge' => $percentage_charge,
-            'settlement_bank' => $account->bnk,
+        // Step 8: Combine all data
+        $responseData = [
+            "id" => $subaccount->id,
+            "acct_id" => $subaccount->acct_id,
+            "schid" => $subaccount->schid,
+            "clsid" => $subaccount->clsid,
+            "subaccount_code" => $subaccount->subaccount_code,
+            "percentage_charge" => $subaccount->percentage_charge,
+            "pay_head_id" => $subaccount->pay_head_id,
+            "account_name" => $account->aname ?? null,
+            "account_number" => $account->anum ?? null,
+            "class_name" => $class->name ?? null,
+            "bank_id" => $account->bnk ?? null,
+            "created_at" => $subaccount->created_at,
+            "updated_at" => $subaccount->updated_at,
         ];
 
-        // Step 5: Create Paystack subaccount
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
-            'Content-Type' => 'application/json',
-        ])->post('https://api.paystack.co/subaccount', $subaccountData);
-
-        if ($response->successful()) {
-            $data = $response->json();
-
-            // Step 6: Store subaccount details in the database
-            $subaccount = sub_account::create([
-                'acct_id' => $account->id,
-                'schid' => $account->schid,
-                'clsid' => $account->clsid,
-                'subaccount_code' => $data['data']['subaccount_code'],
-                'percentage_charge' => $percentage_charge,
-            ]);
-        } else {
-            return response()->json([
-                "status" => false,
-                "message" => "Failed to create subaccount",
-                "error" => $response->json()['message'] ?? 'Unknown error',
-            ], 400);
-        }
+        // Step 9: Return the response
+        return response()->json([
+            "status" => true,
+            "message" => "Subaccount retrieved successfully",
+            "subaccount" => $responseData,
+        ]);
     }
-
-    // Step 7: Fetch related data (account and class)
-    $account = accts::find($subaccount->acct_id);
-    $class = DB::table('cls')->where('id', $subaccount->clsid)->first();
-
-    // Step 8: Combine all data
-    $responseData = [
-        "id" => $subaccount->id,
-        "acct_id" => $subaccount->acct_id,
-        "schid" => $subaccount->schid,
-        "clsid" => $subaccount->clsid,
-        "subaccount_code" => $subaccount->subaccount_code,
-        "percentage_charge" => $subaccount->percentage_charge,
-        "pay_head_id" => $subaccount->pay_head_id,
-        "account_name" => $account->aname ?? null,
-        "account_number" => $account->anum ?? null,
-        "class_name" => $class->name ?? null,
-        "bank_id" => $account->bnk ?? null,
-        "created_at" => $subaccount->created_at,
-        "updated_at" => $subaccount->updated_at,
-    ];
-
-    // Step 9: Return the response
-    return response()->json([
-        "status" => true,
-        "message" => "Subaccount retrieved successfully",
-        "subaccount" => $responseData,
-    ]);
-}
 
 
 
@@ -13372,7 +13510,7 @@ public function setOldStaffInfo(Request $request)
 
         if ($existing && !empty($existing->split_code)) {
             return [
-                'split_code'  => $existing->split_code,
+                'split_code' => $existing->split_code,
                 'total_amount' => null, // Let Paystack handle the actual total during transaction
                 'subaccounts' => $subaccounts
             ];
@@ -13391,9 +13529,9 @@ public function setOldStaffInfo(Request $request)
 
         // Prepare payload for Paystack
         $payload = [
-            'name'        => "Split-{$schid}-{$clsid}-" . uniqid(),
-            'type'        => $splitType,
-            'currency'    => 'NGN',
+            'name' => "Split-{$schid}-{$clsid}-" . uniqid(),
+            'type' => $splitType,
+            'currency' => 'NGN',
             'subaccounts' => $subaccounts,
             'bearer_type' => 'account',
         ];
@@ -13409,15 +13547,15 @@ public function setOldStaffInfo(Request $request)
 
                 // Save split to DB
                 subaccount_split::create([
-                    'schid'      => $schid,
-                    'clsid'      => $clsid,
+                    'schid' => $schid,
+                    'clsid' => $clsid,
                     'split_code' => $splitCode,
                 ]);
 
                 return [
-                    'split_code'   => $splitCode,
+                    'split_code' => $splitCode,
                     'total_amount' => null, // Paystack will compute this dynamically
-                    'subaccounts'  => $subaccounts
+                    'subaccounts' => $subaccounts
                 ];
             }
 
@@ -13480,22 +13618,22 @@ public function setOldStaffInfo(Request $request)
     public function initializePayment(Request $request)
     {
         $request->validate([
-            'email'           => 'required|email',
-            'amount'          => 'required|numeric|min:100',
-            'schid'           => 'required|integer',
-            'clsid'           => 'required|integer',
+            'email' => 'required|email',
+            'amount' => 'required|numeric|min:100',
+            'schid' => 'required|integer',
+            'clsid' => 'required|integer',
             'subaccount_code' => 'required|array|min:1',
-            'metadata'        => 'required|array',
-            'type'            => 'nullable|string', // 'flat' or 'percentage'
+            'metadata' => 'required|array',
+            'type' => 'nullable|string', // 'flat' or 'percentage'
         ]);
 
-        $email       = $request->email;
-        $amount      = $request->amount;
-        $schid       = $request->schid;
-        $clsid       = $request->clsid;
+        $email = $request->email;
+        $amount = $request->amount;
+        $schid = $request->schid;
+        $clsid = $request->clsid;
         $subaccounts = $request->subaccount_code;
-        $metadata    = $request->metadata;
-        $splitType   = $request->type ?? 'percentage';
+        $metadata = $request->metadata;
+        $splitType = $request->type ?? 'percentage';
 
         try {
             $totalAmountKobo = $amount * 100;
@@ -13510,7 +13648,7 @@ public function setOldStaffInfo(Request $request)
 
                 if (!$exists) {
                     return response()->json([
-                        'status'  => false,
+                        'status' => false,
                         'message' => "Invalid subaccount: {$acc['subaccount']}",
                     ], 400);
                 }
@@ -13519,14 +13657,14 @@ public function setOldStaffInfo(Request $request)
             // Get or create split data (handles total_split_amount & subaccounts)
             $splitData = $this->createOrGetSplit($schid, $clsid, $subaccounts, $splitType);
 
-            $splitCode        = $splitData['split_code'] ?? null;   // Paystack split code
+            $splitCode = $splitData['split_code'] ?? null;   // Paystack split code
             $totalSplitAmount = $splitData['total_amount'] ?? null; // Total split amount (₦)
-            $subaccountsData  = $splitData['subaccounts'] ?? [];    // Subaccount info
+            $subaccountsData = $splitData['subaccounts'] ?? [];    // Subaccount info
 
             // Build reference
-            $host  = preg_replace('/^api\./', '', $request->getHost());
-            $typ   = $request->typ ?? 0;
-            $stid  = $request->stid ?? 0;
+            $host = preg_replace('/^api\./', '', $request->getHost());
+            $typ = $request->typ ?? 0;
+            $stid = $request->stid ?? 0;
             $ssnid = $request->ssnid ?? 0;
             $trmid = $request->trmid ?? 0;
 
@@ -13534,28 +13672,28 @@ public function setOldStaffInfo(Request $request)
 
             // Merge metadata
             $metadata = array_merge($metadata, [
-                'stid'  => $stid,
+                'stid' => $stid,
                 'ssnid' => $ssnid,
                 'trmid' => $trmid,
                 'clsid' => $clsid,
                 'schid' => $schid,
-                'typ'   => $typ,
-                'name'  => $metadata['name'] ?? '',
-                'exp'   => $metadata['exp'] ?? '',
-                'eml'   => $email,
-                'lid'   => $metadata['lid'] ?? '',
-                'time'  => now()->timestamp,
+                'typ' => $typ,
+                'name' => $metadata['name'] ?? '',
+                'exp' => $metadata['exp'] ?? '',
+                'eml' => $email,
+                'lid' => $metadata['lid'] ?? '',
+                'time' => now()->timestamp,
             ]);
 
             // Build Paystack payload
             $payload = [
-                'email'        => $email,
-                'amount'       => $totalAmountKobo,
-                'currency'     => 'NGN',
-                'reference'    => $ref,
+                'email' => $email,
+                'amount' => $totalAmountKobo,
+                'currency' => 'NGN',
+                'reference' => $ref,
                 'callback_url' => $this->getFrontendUrl($schid, '/studentPortal'),
-                'metadata'     => $metadata,
-                'channels'     => ['card', 'bank', 'ussd'],
+                'metadata' => $metadata,
+                'channels' => ['card', 'bank', 'ussd'],
             ];
 
             // Only attach split_code if it exists
@@ -13579,22 +13717,22 @@ public function setOldStaffInfo(Request $request)
                 payment_refs::updateOrCreate(
                     ['ref' => $ref],
                     [
-                        'split_code'  => $splitCode,
+                        'split_code' => $splitCode,
                         'subaccounts' => json_encode($subaccountsData),
-                        'amt'         => $amount,
-                        'time'        => now(),
+                        'amt' => $amount,
+                        'time' => now(),
                     ]
                 );
 
 
                 return response()->json([
-                    'status'  => true,
+                    'status' => true,
                     'message' => 'Payment Initialized Successfully',
-                    'data'    => $paystackData,
-                    'ref'     => $ref,
-                    'split_code'         => $splitCode,
+                    'data' => $paystackData,
+                    'ref' => $ref,
+                    'split_code' => $splitCode,
                     'total_split_amount' => $totalSplitAmount,
-                    'subaccounts'        => $subaccountsData,
+                    'subaccounts' => $subaccountsData,
                 ]);
             }
 
@@ -13602,16 +13740,16 @@ public function setOldStaffInfo(Request $request)
             // Log and return error if not successful
             Log::error('Paystack Transaction Error: ' . $response->body());
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'Payment Initialization Failed',
-                'error'   => $response->body(),
+                'error' => $response->body(),
             ], 400);
         } catch (\Exception $e) {
             Log::error('Initialize Payment Exception: ' . $e->getMessage());
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'Server Error: Unable to initialize payment',
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -13715,9 +13853,9 @@ public function setOldStaffInfo(Request $request)
             ->get();
 
         return response()->json([
-            "status"  => true,
+            "status" => true,
             "message" => "Success",
-            "pld"     => $pld,
+            "pld" => $pld,
         ]);
     }
 
@@ -14759,11 +14897,11 @@ public function setOldStaffInfo(Request $request)
 
         // 🟢 Extract metadata
         $metadata = $payload['data']['metadata'] ?? [];
-        $nm  = $metadata['name'] ?? '';
+        $nm = $metadata['name'] ?? '';
         $exp = $metadata['exp'] ?? '';
         $lid = $metadata['lid'] ?? '';
         $eml = $metadata['eml'] ?? '';
-        $tm  = $metadata['time'] ?? now()->timestamp;
+        $tm = $metadata['time'] ?? now()->timestamp;
 
         $totalAmountPaid = ($payload['data']['amount'] ?? ($amt * 100)) / 100;
 
@@ -14813,20 +14951,20 @@ public function setOldStaffInfo(Request $request)
                 }
 
                 payments::create([
-                    'schid'              => $schid,
-                    'stid'               => $stid,
-                    'ssnid'              => $ssnid,
-                    'trmid'              => $trmid,
-                    'clsid'              => $clsid,
-                    'name'               => $nm,
-                    'exp'                => $exp,
-                    'amt'                => $totalSplitAmount,
-                    'share'              => $subShare,         // each subaccount share (₦200, ₦300, etc.)
-                    'lid'                => $lid,
-                    'subaccount_code'    => $subCode,
-                    'main_ref'           => $ref,
+                    'schid' => $schid,
+                    'stid' => $stid,
+                    'ssnid' => $ssnid,
+                    'trmid' => $trmid,
+                    'clsid' => $clsid,
+                    'name' => $nm,
+                    'exp' => $exp,
+                    'amt' => $totalSplitAmount,
+                    'share' => $subShare,         // each subaccount share (₦200, ₦300, etc.)
+                    'lid' => $lid,
+                    'subaccount_code' => $subCode,
+                    'main_ref' => $ref,
                     'total_split_amount' => $totalSplitAmount,
-                    'email'              => $eml,
+                    'email' => $eml,
                 ]);
 
                 Log::info("Recorded subaccount {$subCode} share: ₦{$subShare}");
@@ -14836,17 +14974,17 @@ public function setOldStaffInfo(Request $request)
         } else {
             // Non-split transaction
             payments::create([
-                'schid'    => $schid,
-                'stid'     => $stid,
-                'ssnid'    => $ssnid,
-                'trmid'    => $trmid,
-                'clsid'    => $clsid,
-                'name'     => $nm,
-                'exp'      => $exp,
-                'amt'      => $totalAmountPaid,
-                'lid'      => $lid,
+                'schid' => $schid,
+                'stid' => $stid,
+                'ssnid' => $ssnid,
+                'trmid' => $trmid,
+                'clsid' => $clsid,
+                'name' => $nm,
+                'exp' => $exp,
+                'amt' => $totalAmountPaid,
+                'lid' => $lid,
                 'main_ref' => $ref,
-                'email'    => $eml,
+                'email' => $eml,
             ]);
 
             Log::info("Non-split payment recorded for ref {$ref}");
@@ -14856,10 +14994,10 @@ public function setOldStaffInfo(Request $request)
         payment_refs::updateOrCreate(
             ['ref' => $ref],
             [
-                'amt'          => $totalAmountPaid,
-                'time'         => $tm,
-                'metadata'     => json_encode($metadata),
-                'subaccounts'  => json_encode($splitData), // store the actual subaccounts array
+                'amt' => $totalAmountPaid,
+                'time' => $tm,
+                'metadata' => json_encode($metadata),
+                'subaccounts' => json_encode($splitData), // store the actual subaccounts array
                 'confirmed_at' => now(),
             ]
         );
@@ -14867,10 +15005,10 @@ public function setOldStaffInfo(Request $request)
         // 🟢 Send confirmation email
         try {
             $data = [
-                'name'    => $nm,
+                'name' => $nm,
                 'subject' => 'Payment Received',
-                'body'    => "Your payment of ₦{$totalAmountPaid} was received successfully.",
-                'link'    => env('PORTAL_URL') . '/studentLogin/' . $schid,
+                'body' => "Your payment of ₦{$totalAmountPaid} was received successfully.",
+                'link' => env('PORTAL_URL') . '/studentLogin/' . $schid,
             ];
             Mail::to($eml)->send(new SSSMails($data));
         } catch (\Exception $e) {
@@ -17990,8 +18128,8 @@ public function setOldStaffInfo(Request $request)
     {
         $start = request()->input('start', 0);
         $count = request()->input('count', 20);
-        $year  = request()->input('year');   // optional
-        $cls   = request()->input('cls', 'zzz'); // 👈 read class from query string
+        $year = request()->input('year');   // optional
+        $cls = request()->input('cls', 'zzz'); // 👈 read class from query string
 
         $query = student::query()
             ->leftJoin('student_academic_data as sad', function ($join) {
@@ -18310,18 +18448,18 @@ public function setOldStaffInfo(Request $request)
     {
         // Required
         $schid = $request->query('schid');
-        $stat  = $request->query('stat');
+        $stat = $request->query('stat');
 
         if (!$schid) {
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'schid and stat are required',
-                'pld'     => []
+                'pld' => []
             ], 400);
         }
 
         // Optional filters
-        $cls  = $request->query('cls', 'zzz');
+        $cls = $request->query('cls', 'zzz');
         $term = $request->query('term', null);
         $year = $request->query('year', null);
 
@@ -18345,9 +18483,9 @@ public function setOldStaffInfo(Request $request)
         $total = $query->count();
 
         return response()->json([
-            'status'  => true,
+            'status' => true,
             'message' => 'Success',
-            'pld'     => ['total' => $total],
+            'pld' => ['total' => $total],
         ]);
     }
 
@@ -18840,9 +18978,9 @@ public function setOldStaffInfo(Request $request)
         $total = $query->count();
 
         return response()->json([
-            "status"  => true,
+            "status" => true,
             "message" => "Success",
-            "pld"     => [
+            "pld" => [
                 "total" => $total,
             ],
         ]);
@@ -19092,7 +19230,7 @@ public function setOldStaffInfo(Request $request)
         $request->validate([
             'schid' => 'required',
             'anum' => 'required',
-            'bnk'  => 'required',
+            'bnk' => 'required',
             'aname' => 'required',
         ]);
 
@@ -19130,12 +19268,12 @@ public function setOldStaffInfo(Request $request)
                 'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
                 'Content-Type' => 'application/json',
             ])->post('https://api.paystack.co/subaccount', [
-                'business_name' => $business_name,
-                'account_number' => $request->anum,
-                'bank_code' => $request->bnk,
-                'percentage_charge' => $percentage_charge,
-                'settlement_bank' => $settlement_bank,
-            ]);
+                        'business_name' => $business_name,
+                        'account_number' => $request->anum,
+                        'bank_code' => $request->bnk,
+                        'percentage_charge' => $percentage_charge,
+                        'settlement_bank' => $settlement_bank,
+                    ]);
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -19235,7 +19373,7 @@ public function setOldStaffInfo(Request $request)
         $request->validate([
             'schid' => 'required',
             'anum' => 'required',
-            'bnk'  => 'required',
+            'bnk' => 'required',
             'aname' => 'required',
         ]);
 
@@ -19273,12 +19411,12 @@ public function setOldStaffInfo(Request $request)
                 'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
                 'Content-Type' => 'application/json',
             ])->post('https://api.paystack.co/subaccount', [
-                'business_name' => $business_name,
-                'account_number' => $request->anum,
-                'bank_code' => $request->bnk,
-                'percentage_charge' => $percentage_charge,
-                'settlement_bank' => $settlement_bank,
-            ]);
+                        'business_name' => $business_name,
+                        'account_number' => $request->anum,
+                        'bank_code' => $request->bnk,
+                        'percentage_charge' => $percentage_charge,
+                        'settlement_bank' => $settlement_bank,
+                    ]);
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -20382,7 +20520,7 @@ public function setOldStaffInfo(Request $request)
                 ]);
             }
         } else {
-            $payment_instruction  = payment_instruction::create($data);
+            $payment_instruction = payment_instruction::create($data);
         }
         return response()->json([
             "status" => true,
@@ -24459,7 +24597,7 @@ public function setOldStaffInfo(Request $request)
             ->orderByDesc('g0')
             ->get()
             ->mapWithKeys(function ($item) {
-                return [$item->grd => [(float)$item->g0, (float)$item->g1]];
+                return [$item->grd => [(float) $item->g0, (float) $item->g1]];
             })
             ->toArray();
 
@@ -25646,7 +25784,8 @@ public function setOldStaffInfo(Request $request)
                 $t2 = $grouped->where('trm', 2)->sum('scr');
                 $t3 = $grouped->where('trm', 3)->sum('scr');
 
-                if (($t1 + $t2 + $t3) == 0) continue;
+                if (($t1 + $t2 + $t3) == 0)
+                    continue;
 
                 $termCount = collect([$t1, $t2, $t3])->filter(fn($v) => $v > 0)->count();
                 $average = $termCount > 0 ? number_format(($t1 + $t2 + $t3) / $termCount, 2, '.', '') : number_format(0, 2, '.', '');
@@ -25888,8 +26027,8 @@ public function setOldStaffInfo(Request $request)
     {
         $validated = $request->validate([
             'schid' => 'required',
-            'stid'  => 'required',
-            'ssn'   => 'required'
+            'stid' => 'required',
+            'ssn' => 'required'
         ]);
 
         // Get student from old_student for class info
@@ -26117,9 +26256,9 @@ public function setOldStaffInfo(Request $request)
     {
         $validated = $request->validate([
             'schid' => 'required',
-            'ssn'   => 'required',
-            'clsm'  => 'required', // class main id (from cls)
-            'clsa'  => 'required'  // class arm id (from sch_cls)
+            'ssn' => 'required',
+            'clsm' => 'required', // class main id (from cls)
+            'clsa' => 'required'  // class arm id (from sch_cls)
         ]);
 
         $start = $request->input('start', 0);
@@ -26307,82 +26446,82 @@ public function setOldStaffInfo(Request $request)
 
     ////////////////////////////
 
-/**
- * @OA\Get(
- *     path="/api/getLoggedInUserDetails",
- *     summary="Get logged-in user details (with optional session & term filters)",
- *     description="This endpoint retrieves the authenticated user's details along with staff information.
- *     You can optionally pass 'ssn' (session) and 'trm' (term) as query parameters to filter the staff record.
- *     If no matching record is found, the system will return the latest available session/term record.",
- *     operationId="getLoggedInUserDetails",
- *     tags={"Authentication"},
- *     security={{"bearerAuth":{}}},
- *
- *     @OA\Parameter(
- *         name="ssn",
- *         in="query",
- *         required=false,
- *         description="Session to filter staff records (e.g., 2024)",
- *         @OA\Schema(type="string", example="2024")
- *     ),
- *     @OA\Parameter(
- *         name="trm",
- *         in="query",
- *         required=false,
- *         description="Term to filter staff records (e.g., 1)",
- *         @OA\Schema(type="string", example="1")
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="User details successfully retrieved",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="user", type="object",
- *                 description="Authenticated user data",
- *                 example={
- *                     "id": 1932,
- *                     "email": "user@example.com",
- *                     "name": "John Doe"
- *                 }
- *             ),
- *             @OA\Property(property="profile", type="object",
- *                 description="Staff profile with role names",
- *                 example={
- *                     "id": 15,
- *                     "fname": "Onyinyechi",
- *                     "lname": "Ahiabuike",
- *                     "ssn": "2024",
- *                     "trm": "1",
- *                     "clsm": "11",
- *                     "role": "13",
- *                     "role2": "14",
- *                     "role_name": "Head Teacher",
- *                     "role2_name": "Subject Teacher"
- *                 }
- *             ),
- *             @OA\Property(property="ssn", type="string", example="2024"),
- *             @OA\Property(property="trm", type="string", example="1")
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=401,
- *         description="Unauthorized - Invalid or missing JWT token",
- *         @OA\JsonContent(
- *             @OA\Property(property="message", type="string", example="Token not provided or invalid")
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=404,
- *         description="User not found",
- *         @OA\JsonContent(
- *             @OA\Property(property="message", type="string", example="User not found")
- *         )
- *     )
- * )
- */
+    /**
+     * @OA\Get(
+     *     path="/api/getLoggedInUserDetails",
+     *     summary="Get logged-in user details (with optional session & term filters)",
+     *     description="This endpoint retrieves the authenticated user's details along with staff information.
+     *     You can optionally pass 'ssn' (session) and 'trm' (term) as query parameters to filter the staff record.
+     *     If no matching record is found, the system will return the latest available session/term record.",
+     *     operationId="getLoggedInUserDetails",
+     *     tags={"Authentication"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="query",
+     *         required=false,
+     *         description="Session to filter staff records (e.g., 2024)",
+     *         @OA\Schema(type="string", example="2024")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="query",
+     *         required=false,
+     *         description="Term to filter staff records (e.g., 1)",
+     *         @OA\Schema(type="string", example="1")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="User details successfully retrieved",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="user", type="object",
+     *                 description="Authenticated user data",
+     *                 example={
+     *                     "id": 1932,
+     *                     "email": "user@example.com",
+     *                     "name": "John Doe"
+     *                 }
+     *             ),
+     *             @OA\Property(property="profile", type="object",
+     *                 description="Staff profile with role names",
+     *                 example={
+     *                     "id": 15,
+     *                     "fname": "Onyinyechi",
+     *                     "lname": "Ahiabuike",
+     *                     "ssn": "2024",
+     *                     "trm": "1",
+     *                     "clsm": "11",
+     *                     "role": "13",
+     *                     "role2": "14",
+     *                     "role_name": "Head Teacher",
+     *                     "role2_name": "Subject Teacher"
+     *                 }
+     *             ),
+     *             @OA\Property(property="ssn", type="string", example="2024"),
+     *             @OA\Property(property="trm", type="string", example="1")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized - Invalid or missing JWT token",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Token not provided or invalid")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="User not found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="User not found")
+     *         )
+     *     )
+     * )
+     */
 
     // public function getLoggedInUserDetails()
     // {
@@ -26426,74 +26565,74 @@ public function setOldStaffInfo(Request $request)
     // }
 
 
-public function getLoggedInUserDetails(Request $request)
-{
-    try {
-        $user = JWTAuth::parseToken()->authenticate();
+    public function getLoggedInUserDetails(Request $request)
+    {
+        try {
+            $user = JWTAuth::parseToken()->authenticate();
 
-        if (!$user) {
-            return response()->json(['message' => 'User not found'], 404);
+            if (!$user) {
+                return response()->json(['message' => 'User not found'], 404);
+            }
+
+            // Get ssn & trm from query
+            $ssn = $request->input('ssn');
+            $trm = $request->input('trm');
+
+            // Fetch staff record for this user, respecting ssn/trm if provided
+            $staffQuery = $user->oldStaff();
+
+            if (!empty($ssn)) {
+                $staffQuery->where('ssn', $ssn);
+            }
+
+            if (!empty($trm)) {
+                $staffQuery->where('trm', $trm);
+            }
+
+            $staff = $staffQuery->first();
+
+            // If no match for ssn/trm, fallback to latest session
+            if (!$staff) {
+                $staff = $user->oldStaff()->latest('ssn')->latest('trm')->first();
+            }
+
+            if ($staff) {
+                $role = ltrim($staff->role, '*-');
+                $role2 = ltrim($staff->role2, '*-');
+
+                $roleName = \App\Models\sch_staff_role::where('role', $role)
+                    ->where('schid', $staff->schid)
+                    ->value('name');
+
+                $role2Name = \App\Models\sch_staff_role::where('role', $role2)
+                    ->where('schid', $staff->schid)
+                    ->value('name');
+
+                $profile = [
+                    ...$staff->toArray(),
+                    'role_name' => $roleName,
+                    'role2_name' => $role2Name,
+                ];
+            } else {
+                $profile = null;
+            }
+
+            return response()->json([
+                'user' => $user,
+                'profile' => $profile,
+                'ssn' => $ssn,
+                'trm' => $trm,
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Server Error',
+                'error' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
+            ], 500);
         }
-
-        // Get ssn & trm from query
-        $ssn = $request->input('ssn');
-        $trm = $request->input('trm');
-
-        // Fetch staff record for this user, respecting ssn/trm if provided
-        $staffQuery = $user->oldStaff();
-
-        if (!empty($ssn)) {
-            $staffQuery->where('ssn', $ssn);
-        }
-
-        if (!empty($trm)) {
-            $staffQuery->where('trm', $trm);
-        }
-
-        $staff = $staffQuery->first();
-
-        // If no match for ssn/trm, fallback to latest session
-        if (!$staff) {
-            $staff = $user->oldStaff()->latest('ssn')->latest('trm')->first();
-        }
-
-        if ($staff) {
-            $role = ltrim($staff->role, '*-');
-            $role2 = ltrim($staff->role2, '*-');
-
-            $roleName = \App\Models\sch_staff_role::where('role', $role)
-                ->where('schid', $staff->schid)
-                ->value('name');
-
-            $role2Name = \App\Models\sch_staff_role::where('role', $role2)
-                ->where('schid', $staff->schid)
-                ->value('name');
-
-            $profile = [
-                ...$staff->toArray(),
-                'role_name' => $roleName,
-                'role2_name' => $role2Name,
-            ];
-        } else {
-            $profile = null;
-        }
-
-        return response()->json([
-            'user'    => $user,
-            'profile' => $profile,
-            'ssn'     => $ssn,
-            'trm'     => $trm,
-        ]);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'message' => 'Server Error',
-            'error'   => $e->getMessage(),
-            'line'    => $e->getLine(),
-            'file'    => $e->getFile(),
-        ], 500);
     }
-}
 
 
 
@@ -26612,9 +26751,9 @@ public function getLoggedInUserDetails(Request $request)
         $className = cls::where('id', $clsm)->value('name') ?? "CLS-$clsm";
         $armName = $clsa !== '-1'
             ? sch_cls::where('cls_id', $clsm)
-            ->where('schid', $schid)
-            ->where('id', $clsa)
-            ->value('name')
+                ->where('schid', $schid)
+                ->where('id', $clsa)
+                ->value('name')
             : null;
 
         // Subjects for class
@@ -26732,7 +26871,8 @@ public function getLoggedInUserDetails(Request $request)
             $stid = $std->sid;
 
             // skip students with no average
-            if (!isset($finalAverages[$stid])) continue;
+            if (!isset($finalAverages[$stid]))
+                continue;
 
             $name = strtoupper(trim($std->lname . ' ' . $std->fname));
             $subjectsTaken = student_subj::where('stid', $stid)->pluck('sbj')->toArray();
@@ -26742,7 +26882,8 @@ public function getLoggedInUserDetails(Request $request)
 
             foreach ($subjectsTaken as $sbj) {
                 $avg = $subjectAverages[$stid][$sbj] ?? 0;
-                if ($avg <= 0) continue;
+                if ($avg <= 0)
+                    continue;
 
                 $pos = $subjectPositions[$stid][$sbj] ?? null;
                 $count++;
@@ -26761,24 +26902,24 @@ public function getLoggedInUserDetails(Request $request)
                 ->where('ssn', $ssn)
                 ->where('trm', 2)
                 ->where('clsm', $clsm)
-                ->when($clsa !== '-1', fn($q) => $q->where('clsa', (int)$clsa))
+                ->when($clsa !== '-1', fn($q) => $q->where('clsa', (int) $clsa))
                 ->first();
 
             $psychomotor = $psy ? [
                 'punc' => $psy->punc,
-                'hon'  => $psy->hon,
-                'pol'  => $psy->pol,
+                'hon' => $psy->hon,
+                'pol' => $psy->pol,
                 'neat' => $psy->neat,
                 'pers' => $psy->pers,
-                'rel'  => $psy->rel,
-                'dil'  => $psy->dil,
-                'cre'  => $psy->cre,
-                'pat'  => $psy->pat,
+                'rel' => $psy->rel,
+                'dil' => $psy->dil,
+                'cre' => $psy->cre,
+                'pat' => $psy->pat,
                 'verb' => $psy->verb,
-                'gam'  => $psy->gam,
+                'gam' => $psy->gam,
                 'musc' => $psy->musc,
-                'drw'  => $psy->drw,
-                'wrt'  => $psy->wrt,
+                'drw' => $psy->drw,
+                'wrt' => $psy->wrt,
             ] : [];
 
             $finalAvg = $finalAverages[$stid] ?? 0;
@@ -27311,19 +27452,19 @@ public function getLoggedInUserDetails(Request $request)
     public function getStudentScoreSummary(Request $request)
     {
         $schid = $request->schid;
-        $ssn   = $request->ssn;
-        $trm   = $request->trm;
-        $clsm  = $request->clsm;
-        $clsa  = $request->clsa;
+        $ssn = $request->ssn;
+        $trm = $request->trm;
+        $clsm = $request->clsm;
+        $clsa = $request->clsa;
 
         // Get class name and class arm name
         $className = cls::where('id', $clsm)->value('name') ?? "CLS-$clsm";
 
         $classArmName = $clsa !== '-1'
             ? sch_cls::where('schid', $schid)
-            ->where('cls_id', $clsm)
-            ->where('id', $clsa)
-            ->value('name') ?? 'N/A'
+                ->where('cls_id', $clsm)
+                ->where('id', $clsa)
+                ->value('name') ?? 'N/A'
             : 'All Arms';
 
         // 🔑 Get all active students for this session + term + class (+ arm if specified)
@@ -27524,11 +27665,11 @@ public function getLoggedInUserDetails(Request $request)
     {
         $validated = $request->validate([
             'schid' => 'required|string',
-            'ssn'   => 'required|string',
-            'trm'   => 'required|string',
-            'clsm'  => 'required|string',
-            'clsa'  => 'required|string',
-            'role'  => 'required|string|in:Principal,Head Teacher,School Admin',
+            'ssn' => 'required|string',
+            'trm' => 'required|string',
+            'clsm' => 'required|string',
+            'clsa' => 'required|string',
+            'role' => 'required|string|in:Principal,Head Teacher,School Admin',
             'comment' => 'required|array',
             'comment.*.grade' => 'required|string|in:A,B,C,D,E,F',
             'comment.*.comment' => 'required|string|max:500',
@@ -27539,11 +27680,11 @@ public function getLoggedInUserDetails(Request $request)
             auto_comment_template::updateOrCreate(
                 [
                     'schid' => $validated['schid'],
-                    'ssn'   => $validated['ssn'],
-                    'trm'   => $validated['trm'],
-                    'clsm'  => $validated['clsm'],
-                    'clsa'  => $validated['clsa'],
-                    'role'  => $validated['role'],  // using role name directly
+                    'ssn' => $validated['ssn'],
+                    'trm' => $validated['trm'],
+                    'clsm' => $validated['clsm'],
+                    'clsa' => $validated['clsa'],
+                    'role' => $validated['role'],  // using role name directly
                     'grade' => $entry['grade'],
                 ],
                 ['comment' => $entry['comment']]
@@ -27557,11 +27698,11 @@ public function getLoggedInUserDetails(Request $request)
         foreach ($grades as $grade) {
             $comment = auto_comment_template::where([
                 'schid' => $validated['schid'],
-                'ssn'   => $validated['ssn'],
-                'trm'   => $validated['trm'],
-                'clsm'  => $validated['clsm'],
-                'clsa'  => $validated['clsa'],
-                'role'  => $validated['role'],
+                'ssn' => $validated['ssn'],
+                'trm' => $validated['trm'],
+                'clsm' => $validated['clsm'],
+                'clsa' => $validated['clsa'],
+                'role' => $validated['role'],
                 'grade' => $grade,
             ])->value('comment') ?? '';
 
@@ -27716,11 +27857,11 @@ public function getLoggedInUserDetails(Request $request)
     {
         $request->validate([
             'schid' => 'required|string',
-            'ssn'   => 'required|string',
-            'trm'   => 'required|string',
-            'clsm'  => 'required|string',
-            'clsa'  => 'required|string',
-            'role'  => 'required|string|in:Principal,Head Teacher,School Admin',
+            'ssn' => 'required|string',
+            'trm' => 'required|string',
+            'clsm' => 'required|string',
+            'clsa' => 'required|string',
+            'role' => 'required|string|in:Principal,Head Teacher,School Admin',
         ]);
 
         // Get score summary for the selected class
@@ -27752,11 +27893,11 @@ public function getLoggedInUserDetails(Request $request)
             // Auto comment from configured template
             $autoComment = auto_comment_template::where([
                 'schid' => $std['schid'],
-                'ssn'   => $std['ssn'],
-                'trm'   => $std['trm'],
-                'clsm'  => $std['clsid'],
-                'clsa'  => $std['clsa'],
-                'role'  => $request->role,
+                'ssn' => $std['ssn'],
+                'trm' => $std['trm'],
+                'clsm' => $std['clsid'],
+                'clsa' => $std['clsa'],
+                'role' => $request->role,
                 'grade' => $grade,
             ])->value('comment') ?? 'No comment configured for this grade.';
 
@@ -27987,90 +28128,90 @@ public function getLoggedInUserDetails(Request $request)
     // }
 
 
-public function promoteStudent(Request $request)
-{
-    $request->validate([
-        'sid'   => 'required',
-        'schid' => 'required',
-        'sesn'  => 'required',  // session
-        'trm'   => 'required',  // term
-        'clsm'  => 'required',  // new main class
-        'clsa'  => 'required',  // requested new class arm (sch_cls.id)
-        'suid'  => 'required',  // student unique id
-    ]);
-
-    // 1. Find the student
-    $student = student::where('sid', $request->sid)->firstOrFail();
-
-    // 2. Make sure this arm belongs to the new class
-    $validArm = DB::table('sch_cls')
-        ->where('id', $request->clsa)
-        ->where('cls_id', $request->clsm)   // ensure arm belongs to this class
-        ->where('schid', $request->schid)
-        ->first();
-
-    if (!$validArm) {
-        return response()->json([
-            'status'  => false,
-            'message' => 'Invalid class arm for the selected class',
-        ], 422);
-    }
-
-    // 3. Check if already promoted for this session + term
-    $alreadyPromoted = old_student::where('sid', $request->sid)
-        ->where('schid', $request->schid)
-        ->where('ssn', $request->sesn)
-        ->where('trm', $request->trm)
-        ->first();
-
-    if ($alreadyPromoted) {
-        return response()->json([
-            'status'  => false,
-            'message' => 'This student has already been promoted for the selected session and term',
-        ], 409); // conflict
-    }
-
-    // 4. Generate deterministic UID (no random numbers)
-    $uid = $request->sesn . $request->trm . $request->sid;
-
-    // 5. Create promotion record
-    $promotion = old_student::create([
-        'uid'    => $uid,
-        'sid'    => $request->sid,
-        'schid'  => $request->schid,
-        'fname'  => $student->fname,
-        'mname'  => $student->mname,
-        'lname'  => $student->lname,
-        'status' => 'active',
-        'suid'   => $request->suid,
-        'ssn'    => $request->sesn,
-        'trm'    => $request->trm,
-        'clsm'   => $request->clsm,      // new class
-        'clsa'   => $validArm->id,       // new arm from sch_cls
-        'more'   => '',
-    ]);
-
-    // 6. Update student_academic_data table
-    student_academic_data::where('user_id', $request->sid)
-        ->update([
-            'new_class_main' => $request->clsm,
-            'new_class'      => $validArm->id,
+    public function promoteStudent(Request $request)
+    {
+        $request->validate([
+            'sid' => 'required',
+            'schid' => 'required',
+            'sesn' => 'required',  // session
+            'trm' => 'required',  // term
+            'clsm' => 'required',  // new main class
+            'clsa' => 'required',  // requested new class arm (sch_cls.id)
+            'suid' => 'required',  // student unique id
         ]);
 
-    return response()->json([
-        'status'    => true,
-        'message'   => 'Student promoted successfully for this term',
-        'data'      => [
-            'sid'       => $promotion->sid,
-            'suid'      => $promotion->suid,
-            'ssn'       => $promotion->ssn,
-            'trm'       => $promotion->trm,
-            'clsm'      => $promotion->clsm,
-            'clsa'      => $promotion->clsa,
-            'clsa_name' => $validArm->name,   // arm name
-        ],
-    ]);
-}
+        // 1. Find the student
+        $student = student::where('sid', $request->sid)->firstOrFail();
+
+        // 2. Make sure this arm belongs to the new class
+        $validArm = DB::table('sch_cls')
+            ->where('id', $request->clsa)
+            ->where('cls_id', $request->clsm)   // ensure arm belongs to this class
+            ->where('schid', $request->schid)
+            ->first();
+
+        if (!$validArm) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Invalid class arm for the selected class',
+            ], 422);
+        }
+
+        // 3. Check if already promoted for this session + term
+        $alreadyPromoted = old_student::where('sid', $request->sid)
+            ->where('schid', $request->schid)
+            ->where('ssn', $request->sesn)
+            ->where('trm', $request->trm)
+            ->first();
+
+        if ($alreadyPromoted) {
+            return response()->json([
+                'status' => false,
+                'message' => 'This student has already been promoted for the selected session and term',
+            ], 409); // conflict
+        }
+
+        // 4. Generate deterministic UID (no random numbers)
+        $uid = $request->sesn . $request->trm . $request->sid;
+
+        // 5. Create promotion record
+        $promotion = old_student::create([
+            'uid' => $uid,
+            'sid' => $request->sid,
+            'schid' => $request->schid,
+            'fname' => $student->fname,
+            'mname' => $student->mname,
+            'lname' => $student->lname,
+            'status' => 'active',
+            'suid' => $request->suid,
+            'ssn' => $request->sesn,
+            'trm' => $request->trm,
+            'clsm' => $request->clsm,      // new class
+            'clsa' => $validArm->id,       // new arm from sch_cls
+            'more' => '',
+        ]);
+
+        // 6. Update student_academic_data table
+        student_academic_data::where('user_id', $request->sid)
+            ->update([
+                'new_class_main' => $request->clsm,
+                'new_class' => $validArm->id,
+            ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Student promoted successfully for this term',
+            'data' => [
+                'sid' => $promotion->sid,
+                'suid' => $promotion->suid,
+                'ssn' => $promotion->ssn,
+                'trm' => $promotion->trm,
+                'clsm' => $promotion->clsm,
+                'clsa' => $promotion->clsa,
+                'clsa_name' => $validArm->name,   // arm name
+            ],
+        ]);
+    }
 
 
 
@@ -28323,46 +28464,46 @@ public function promoteStudent(Request $request)
     //     ]);
     // }
 
-public function repeatStudent(Request $request)
-{
-    $request->validate([
-        'sid'   => 'required',
-        'schid' => 'required',
-        'sesn'  => 'required',
-        'trm'   => 'required',
-        'clsm'  => 'required', // main class
-        'clsa'  => 'required', // class arm
-        'suid'  => 'required|string'
-    ]);
+    public function repeatStudent(Request $request)
+    {
+        $request->validate([
+            'sid' => 'required',
+            'schid' => 'required',
+            'sesn' => 'required',
+            'trm' => 'required',
+            'clsm' => 'required', // main class
+            'clsa' => 'required', // class arm
+            'suid' => 'required|string'
+        ]);
 
-    // Find the student
-    $student = student::where('sid', $request->sid)->firstOrFail();
+        // Find the student
+        $student = student::where('sid', $request->sid)->firstOrFail();
 
-    // Generate deterministic UID (no random numbers)
-    $uid = $request->sesn . $request->trm . $request->sid;
+        // Generate deterministic UID (no random numbers)
+        $uid = $request->sesn . $request->trm . $request->sid;
 
-    // Create a new old_student record for repeating
-    old_student::create([
-        'uid'    => $uid,
-        'sid'    => $request->sid,
-        'schid'  => $request->schid,
-        'fname'  => $student->fname,
-        'mname'  => $student->mname,
-        'lname'  => $student->lname,
-        'status' => 'active',
-        'suid'   => $request->suid,
-        'ssn'    => $request->sesn,
-        'trm'    => $request->trm,
-        'clsm'   => $request->clsm,
-        'clsa'   => $request->clsa,
-        'more'   => '', // mark as repeat
-    ]);
+        // Create a new old_student record for repeating
+        old_student::create([
+            'uid' => $uid,
+            'sid' => $request->sid,
+            'schid' => $request->schid,
+            'fname' => $student->fname,
+            'mname' => $student->mname,
+            'lname' => $student->lname,
+            'status' => 'active',
+            'suid' => $request->suid,
+            'ssn' => $request->sesn,
+            'trm' => $request->trm,
+            'clsm' => $request->clsm,
+            'clsa' => $request->clsa,
+            'more' => '', // mark as repeat
+        ]);
 
-    return response()->json([
-        'status'  => true,
-        'message' => 'Student marked to repeat successfully',
-    ]);
-}
+        return response()->json([
+            'status' => true,
+            'message' => 'Student marked to repeat successfully',
+        ]);
+    }
 
 
 
@@ -28410,38 +28551,38 @@ public function repeatStudent(Request $request)
      *     )
      * )
      */
-public function setSubjStaff(Request $request)
-{
-    // Data validation
-    $request->validate([
-        "stid"  => "required",
-        "sbj"   => "required",
-        "schid" => "required",
-        "sesn"  => "required",
-        "trm"   => "required",
-    ]);
+    public function setSubjStaff(Request $request)
+    {
+        // Data validation
+        $request->validate([
+            "stid" => "required",
+            "sbj" => "required",
+            "schid" => "required",
+            "sesn" => "required",
+            "trm" => "required",
+        ]);
 
-    // Generate deterministic UID (no random numbers)
-    $uid = $request->sesn . $request->trm . $request->stid . $request->sbj;
+        // Generate deterministic UID (no random numbers)
+        $uid = $request->sesn . $request->trm . $request->stid . $request->sbj;
 
-    // Update or create based on UID only
-    $pld = subject_dest::updateOrCreate(
-        ["uid" => $uid],
-        [
-            "stid"  => $request->stid,
-            "sbj"   => $request->sbj,
-            "schid" => $request->schid,
-            "sesn"  => $request->sesn,
-            "trm"   => $request->trm,
-        ]
-    );
+        // Update or create based on UID only
+        $pld = subject_dest::updateOrCreate(
+            ["uid" => $uid],
+            [
+                "stid" => $request->stid,
+                "sbj" => $request->sbj,
+                "schid" => $request->schid,
+                "sesn" => $request->sesn,
+                "trm" => $request->trm,
+            ]
+        );
 
-    return response()->json([
-        "status"  => true,
-        "message" => "Subject Successfully Assigned to Staff",
-        "pld"     => $pld
-    ]);
-}
+        return response()->json([
+            "status" => true,
+            "message" => "Subject Successfully Assigned to Staff",
+            "pld" => $pld
+        ]);
+    }
 
 
 
@@ -28585,38 +28726,38 @@ public function setSubjStaff(Request $request)
      *     )
      * )
      */
-public function assignSubjectStaff(Request $request)
-{
-    // Data validation
-    $request->validate([
-        "stid"  => "required",
-        "sbj"   => "required",
-        "schid" => "required",
-        "sesn"  => "required",
-        "trm"   => "required",
-    ]);
+    public function assignSubjectStaff(Request $request)
+    {
+        // Data validation
+        $request->validate([
+            "stid" => "required",
+            "sbj" => "required",
+            "schid" => "required",
+            "sesn" => "required",
+            "trm" => "required",
+        ]);
 
-    // Generate deterministic UID (no random numbers)
-    $uid = $request->sesn . $request->trm . $request->stid . $request->sbj;
+        // Generate deterministic UID (no random numbers)
+        $uid = $request->sesn . $request->trm . $request->stid . $request->sbj;
 
-    // Update or create based on UID only
-    $pld = staff_subj::updateOrCreate(
-        ["uid" => $uid],
-        [
-            "stid"  => $request->stid,
-            "sbj"   => $request->sbj,
-            "schid" => $request->schid,
-            "sesn"  => $request->sesn,
-            "trm"   => $request->trm,
-        ]
-    );
+        // Update or create based on UID only
+        $pld = staff_subj::updateOrCreate(
+            ["uid" => $uid],
+            [
+                "stid" => $request->stid,
+                "sbj" => $request->sbj,
+                "schid" => $request->schid,
+                "sesn" => $request->sesn,
+                "trm" => $request->trm,
+            ]
+        );
 
-    return response()->json([
-        "status"  => true,
-        "message" => "Subject Successfully Assigned to Staff",
-        "pld"     => $pld
-    ]);
-}
+        return response()->json([
+            "status" => true,
+            "message" => "Subject Successfully Assigned to Staff",
+            "pld" => $pld
+        ]);
+    }
 
 
 
@@ -28683,52 +28824,52 @@ public function assignSubjectStaff(Request $request)
      */
 
 
-public function setRepostStaff(Request $request)
-{
-    // Data validation
-    $request->validate([
-        "sid"   => "required",
-        "schid" => "required",
-        "fname" => "required",
-        "mname" => "required",
-        "lname" => "required",
-        "suid"  => "required",
-        "ssn"   => "required",
-        "trm"   => "required",
-        "clsm"  => "required",
-        "role"  => "required",
-        "role2" => "required",
-        "more"  => "required",
-    ]);
+    public function setRepostStaff(Request $request)
+    {
+        // Data validation
+        $request->validate([
+            "sid" => "required",
+            "schid" => "required",
+            "fname" => "required",
+            "mname" => "required",
+            "lname" => "required",
+            "suid" => "required",
+            "ssn" => "required",
+            "trm" => "required",
+            "clsm" => "required",
+            "role" => "required",
+            "role2" => "required",
+            "more" => "required",
+        ]);
 
-    // Generate deterministic UID (no random numbers)
-    $uid = $request->ssn . $request->trm . $request->sid;
+        // Generate deterministic UID (no random numbers)
+        $uid = $request->ssn . $request->trm . $request->sid;
 
-    // Update or create record based only on uid
-    $pld = old_staff::updateOrCreate(
-        ["uid" => $uid],
-        [
-            "sid"   => $request->sid,
-            "schid" => $request->schid,
-            "fname" => $request->fname,
-            "mname" => $request->mname,
-            "lname" => $request->lname,
-            "suid"  => $request->suid,
-            "ssn"   => $request->ssn,
-            "trm"   => $request->trm,
-            "clsm"  => $request->clsm,
-            "role"  => $request->role,
-            "role2" => $request->role2,
-            "more"  => $request->more,
-        ]
-    );
+        // Update or create record based only on uid
+        $pld = old_staff::updateOrCreate(
+            ["uid" => $uid],
+            [
+                "sid" => $request->sid,
+                "schid" => $request->schid,
+                "fname" => $request->fname,
+                "mname" => $request->mname,
+                "lname" => $request->lname,
+                "suid" => $request->suid,
+                "ssn" => $request->ssn,
+                "trm" => $request->trm,
+                "clsm" => $request->clsm,
+                "role" => $request->role,
+                "role2" => $request->role2,
+                "more" => $request->more,
+            ]
+        );
 
-    return response()->json([
-        "status"  => true,
-        "message" => "Info Updated",
-        "pld"     => $pld
-    ]);
-}
+        return response()->json([
+            "status" => true,
+            "message" => "Info Updated",
+            "pld" => $pld
+        ]);
+    }
 
 
 
@@ -28790,9 +28931,9 @@ public function setRepostStaff(Request $request)
             ->get();
 
         return response()->json([
-            'status'  => true,
+            'status' => true,
             'message' => 'Class arms fetched successfully',
-            'pld'     => $arms,
+            'pld' => $arms,
         ]);
     }
 
@@ -28853,98 +28994,98 @@ public function setRepostStaff(Request $request)
      * )
      */
 
-public function rePromoteStudent(Request $request)
-{
-    $request->validate([
-        'sid'   => 'required',
-        'schid' => 'required',
-        'sesn'  => 'required',  // session
-        'trm'   => 'required',  // term
-        'clsm'  => 'required',  // new main class
-        'clsa'  => 'required',  // requested new class arm (sch_cls.id)
-        'suid'  => 'required',  // student unique id
-    ]);
-
-    $student = student::where('sid', $request->sid)->firstOrFail();
-
-    $validArm = DB::table('sch_cls')
-        ->where('id', $request->clsa)
-        ->where('cls_id', $request->clsm)
-        ->where('schid', $request->schid)
-        ->first();
-
-    if (!$validArm) {
-        return response()->json([
-            'status'  => false,
-            'message' => 'Invalid class arm for the selected class',
-        ], 422);
-    }
-
-    $hasScores = std_score::where('stid', $request->sid)
-        ->where('ssn', $request->sesn)
-        ->where('trm', $request->trm)
-        ->where('clsid', $request->clsm)
-        ->exists();
-
-    if ($hasScores) {
-        return response()->json([
-            'status'  => false,
-            'message' => 'Cannot re-promote student: scores/results already exist for this class, session, and term.',
-        ], 422);
-    }
-
-    // Deterministic UID (no random numbers)
-    $uid = $request->sesn . $request->trm . $request->sid;
-
-    old_student::where('sid', $request->sid)
-        ->where('ssn', $request->sesn)
-        ->where('trm', $request->trm)
-        ->where(function ($q) use ($request) {
-            $q->where('clsm', '!=', $request->clsm)
-              ->orWhere('clsa', '!=', $request->clsa);
-        })
-        ->delete();
-
-    $promotion = old_student::updateOrCreate(
-        [
-            'sid' => $request->sid,
-            'ssn' => $request->sesn,
-            'trm' => $request->trm,
-        ],
-        [
-            'uid'    => $uid,
-            'schid'  => $request->schid,
-            'fname'  => $student->fname,
-            'mname'  => $student->mname,
-            'lname'  => $student->lname,
-            'status' => 'active',
-            'suid'   => $request->suid,
-            'clsm'   => $request->clsm,
-            'clsa'   => $validArm->id,
-            'more'   => '',
-        ]
-    );
-
-    student_academic_data::where('user_id', $request->sid)
-        ->update([
-            'new_class_main' => $request->clsm,
-            'new_class'      => $validArm->id,
+    public function rePromoteStudent(Request $request)
+    {
+        $request->validate([
+            'sid' => 'required',
+            'schid' => 'required',
+            'sesn' => 'required',  // session
+            'trm' => 'required',  // term
+            'clsm' => 'required',  // new main class
+            'clsa' => 'required',  // requested new class arm (sch_cls.id)
+            'suid' => 'required',  // student unique id
         ]);
 
-    return response()->json([
-        'status'    => true,
-        'message'   => 'Student re-promoted successfully for this term',
-        'data'      => [
-            'sid'       => $promotion->sid,
-            'suid'      => $promotion->suid,
-            'ssn'       => $promotion->ssn,
-            'trm'       => $promotion->trm,
-            'clsm'      => $promotion->clsm,
-            'clsa'      => $promotion->clsa,
-            'clsa_name' => $validArm->name,
-        ],
-    ]);
-}
+        $student = student::where('sid', $request->sid)->firstOrFail();
+
+        $validArm = DB::table('sch_cls')
+            ->where('id', $request->clsa)
+            ->where('cls_id', $request->clsm)
+            ->where('schid', $request->schid)
+            ->first();
+
+        if (!$validArm) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Invalid class arm for the selected class',
+            ], 422);
+        }
+
+        $hasScores = std_score::where('stid', $request->sid)
+            ->where('ssn', $request->sesn)
+            ->where('trm', $request->trm)
+            ->where('clsid', $request->clsm)
+            ->exists();
+
+        if ($hasScores) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Cannot re-promote student: scores/results already exist for this class, session, and term.',
+            ], 422);
+        }
+
+        // Deterministic UID (no random numbers)
+        $uid = $request->sesn . $request->trm . $request->sid;
+
+        old_student::where('sid', $request->sid)
+            ->where('ssn', $request->sesn)
+            ->where('trm', $request->trm)
+            ->where(function ($q) use ($request) {
+                $q->where('clsm', '!=', $request->clsm)
+                    ->orWhere('clsa', '!=', $request->clsa);
+            })
+            ->delete();
+
+        $promotion = old_student::updateOrCreate(
+            [
+                'sid' => $request->sid,
+                'ssn' => $request->sesn,
+                'trm' => $request->trm,
+            ],
+            [
+                'uid' => $uid,
+                'schid' => $request->schid,
+                'fname' => $student->fname,
+                'mname' => $student->mname,
+                'lname' => $student->lname,
+                'status' => 'active',
+                'suid' => $request->suid,
+                'clsm' => $request->clsm,
+                'clsa' => $validArm->id,
+                'more' => '',
+            ]
+        );
+
+        student_academic_data::where('user_id', $request->sid)
+            ->update([
+                'new_class_main' => $request->clsm,
+                'new_class' => $validArm->id,
+            ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Student re-promoted successfully for this term',
+            'data' => [
+                'sid' => $promotion->sid,
+                'suid' => $promotion->suid,
+                'ssn' => $promotion->ssn,
+                'trm' => $promotion->trm,
+                'clsm' => $promotion->clsm,
+                'clsa' => $promotion->clsa,
+                'clsa_name' => $validArm->name,
+            ],
+        ]);
+    }
 
 
 
@@ -29009,7 +29150,7 @@ public function rePromoteStudent(Request $request)
     public function resetPass(Request $request)
     {
         $request->validate([
-            'user_id'      => 'required|exists:users,id',
+            'user_id' => 'required|exists:users,id',
             'new_password' => 'required|min:6|confirmed',
         ]);
 
@@ -29022,7 +29163,7 @@ public function rePromoteStudent(Request $request)
 
         if (!$targetUser) {
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'User not found.'
             ], 404);
         }
@@ -29030,7 +29171,7 @@ public function rePromoteStudent(Request $request)
         // Only Student or Staff passwords can be reset
         if (!in_array($targetUser->typ, ['z', 'w'])) {
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'Only Student or Staff accounts can be reset.',
             ], 400);
         }
@@ -29039,7 +29180,7 @@ public function rePromoteStudent(Request $request)
         $targetUser->save();
 
         return response()->json([
-            'status'  => true,
+            'status' => true,
             'message' => "Password reset successfully for",
         ]);
     }
@@ -29181,9 +29322,9 @@ public function rePromoteStudent(Request $request)
         return response()->json([
             'status' => true,
             'pld' => [
-                'total_schools'     => $totalSchools,
+                'total_schools' => $totalSchools,
                 'secondary_schools' => $secondarySchools,
-                'nursery_schools'   => $nurserySchools,
+                'nursery_schools' => $nurserySchools,
             ]
         ]);
     }
@@ -29252,8 +29393,8 @@ public function rePromoteStudent(Request $request)
             'status' => true,
             'pld' => [
                 'total_active' => (int) $query->total_active,
-                'male'         => (int) $query->male,
-                'female'       => (int) $query->female,
+                'male' => (int) $query->male,
+                'female' => (int) $query->female,
             ]
         ]);
     }
@@ -29298,8 +29439,8 @@ public function rePromoteStudent(Request $request)
             'status' => true,
             'pld' => [
                 'total_alumni' => (int) $query->total_alumni,
-                'male'         => (int) $query->male,
-                'female'       => (int) $query->female,
+                'male' => (int) $query->male,
+                'female' => (int) $query->female,
             ]
         ]);
     }
@@ -29365,8 +29506,8 @@ public function rePromoteStudent(Request $request)
             'status' => true,
             'pld' => [
                 'total_active_staff' => (int) $query->total_active_staff,
-                'male'               => (int) $query->male,
-                'female'             => (int) $query->female,
+                'male' => (int) $query->male,
+                'female' => (int) $query->female,
             ]
         ]);
     }
@@ -29480,7 +29621,7 @@ public function rePromoteStudent(Request $request)
         $start = $request->input('start', 0);
         $count = $request->input('count', 20);
         $state = $request->input('state');
-        $lga   = $request->input('lga');
+        $lga = $request->input('lga');
 
         // 🔹 Join with school_web_data to filter and count
         $query = DB::table('school as s')
@@ -29549,51 +29690,51 @@ public function rePromoteStudent(Request $request)
 
             $pld[] = [
                 's' => [
-                    'sid'             => $school->sid,
-                    'school_id'       => $schoolCode,
-                    'name'            => $school->name,
-                    'count'           => $school->count,
-                    's_web'           => $school->s_web,
-                    's_info'          => $school->s_info,
-                    'sbd'             => $school->sbd,
-                    'sch3'            => $school->sch3,
-                    'cssn'            => $school->cssn,
-                    'ctrm'            => $school->ctrm,
-                    'ctrmn'           => $school->ctrmn,
-                    'lattitude'       => $school->latt,
-                    'longitude'       => $school->longi,
-                    'country'         => $school->web_country ?? 'N/A',
-                    'state'           => $school->web_state ?? 'N/A',
-                    'lga'             => $school->web_lga ?? 'N/A',
-                    'created_at'      => $school->created_at,
-                    'updated_at'      => $school->updated_at,
+                    'sid' => $school->sid,
+                    'school_id' => $schoolCode,
+                    'name' => $school->name,
+                    'count' => $school->count,
+                    's_web' => $school->s_web,
+                    's_info' => $school->s_info,
+                    'sbd' => $school->sbd,
+                    'sch3' => $school->sch3,
+                    'cssn' => $school->cssn,
+                    'ctrm' => $school->ctrm,
+                    'ctrmn' => $school->ctrmn,
+                    'lattitude' => $school->latt,
+                    'longitude' => $school->longi,
+                    'country' => $school->web_country ?? 'N/A',
+                    'state' => $school->web_state ?? 'N/A',
+                    'lga' => $school->web_lga ?? 'N/A',
+                    'created_at' => $school->created_at,
+                    'updated_at' => $school->updated_at,
                     'active_learners' => $activeLearners,
-                    'alumni'          => $alumniCount,
-                    'active_staff'    => $activeStaff,
-                    'classes'         => $classArms,
-                    'total_classes'   => $totalClasses,
+                    'alumni' => $alumniCount,
+                    'active_staff' => $activeStaff,
+                    'classes' => $classArms,
+                    'total_classes' => $totalClasses,
                 ],
                 'w' => $webData ? [
-                    'user_id'    => $webData->user_id,
+                    'user_id' => $webData->user_id,
                     'school_name' => $webData->sname ?? 'N/A',
-                    'color'      => $webData->color ?? 'N/A',
-                    'address'    => $webData->addr ?? 'N/A',
-                    'country'    => $webData->country ?? 'N/A',
-                    'state'      => $webData->state ?? 'N/A',
-                    'lga'        => $webData->lga ?? 'N/A',
-                    'phone'      => $webData->phn ?? 'N/A',
-                    'email'      => $webData->eml ?? 'N/A',
-                    'vision'     => $webData->vision ?? 'N/A',
-                    'values'     => $webData->values ?? 'N/A',
-                    'year'       => $webData->year ?? 'N/A',
-                    'about'      => $webData->about ?? 'N/A',
-                    'motto'      => $webData->motto ?? 'N/A',
-                    'facebook'   => $webData->fb ?? 'N/A',
-                    'instagram'  => $webData->isg ?? 'N/A',
-                    'youtube'    => $webData->yt ?? 'N/A',
-                    'whatsapp'   => $webData->wh ?? 'N/A',
-                    'linkedin'   => $webData->lkd ?? 'N/A',
-                    'twitter'    => $webData->tw ?? 'N/A',
+                    'color' => $webData->color ?? 'N/A',
+                    'address' => $webData->addr ?? 'N/A',
+                    'country' => $webData->country ?? 'N/A',
+                    'state' => $webData->state ?? 'N/A',
+                    'lga' => $webData->lga ?? 'N/A',
+                    'phone' => $webData->phn ?? 'N/A',
+                    'email' => $webData->eml ?? 'N/A',
+                    'vision' => $webData->vision ?? 'N/A',
+                    'values' => $webData->values ?? 'N/A',
+                    'year' => $webData->year ?? 'N/A',
+                    'about' => $webData->about ?? 'N/A',
+                    'motto' => $webData->motto ?? 'N/A',
+                    'facebook' => $webData->fb ?? 'N/A',
+                    'instagram' => $webData->isg ?? 'N/A',
+                    'youtube' => $webData->yt ?? 'N/A',
+                    'whatsapp' => $webData->wh ?? 'N/A',
+                    'linkedin' => $webData->lkd ?? 'N/A',
+                    'twitter' => $webData->tw ?? 'N/A',
                     'created_at' => $webData->created_at,
                     'updated_at' => $webData->updated_at,
                 ] : null
@@ -29601,10 +29742,10 @@ public function rePromoteStudent(Request $request)
         }
 
         return response()->json([
-            "status"        => true,
-            "message"       => "Success",
+            "status" => true,
+            "message" => "Success",
             "total_records" => $totalRecords,
-            "pld"           => $pld,
+            "pld" => $pld,
         ]);
     }
 
@@ -29667,7 +29808,7 @@ public function rePromoteStudent(Request $request)
     public function updateLocation(Request $request, $schid)
     {
         $request->validate([
-            'latt'  => 'required|numeric|between:-90,900',
+            'latt' => 'required|numeric|between:-90,900',
             'longi' => 'required|numeric|between:-180,1800',
         ]);
 
@@ -29675,19 +29816,19 @@ public function rePromoteStudent(Request $request)
 
         if (!$school) {
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'School not found'
             ], 404);
         }
 
-        $school->latt  = $request->latt;
+        $school->latt = $request->latt;
         $school->longi = $request->longi;
         $school->save();
 
         return response()->json([
-            'status'  => true,
+            'status' => true,
             'message' => 'Location updated successfully',
-            'pld'    => $school
+            'pld' => $school
         ]);
     }
 
@@ -29810,19 +29951,19 @@ public function rePromoteStudent(Request $request)
 
             return [
                 // e.g. AMS/0001 instead of AMB0001
-                'school_id'        => $school->sch3 . '/' . str_pad($serial++, 4, '0', STR_PAD_LEFT),
-                'schid'            => $school->schid,
-                'school_name'      => $school->school_name,
-                'sch3'             => $school->sch3,
+                'school_id' => $school->sch3 . '/' . str_pad($serial++, 4, '0', STR_PAD_LEFT),
+                'schid' => $school->schid,
+                'school_name' => $school->school_name,
+                'sch3' => $school->sch3,
                 'total_expenditure' => $school->total_expenditure,
-                'expenditures'     => $schoolExpenditures,
+                'expenditures' => $schoolExpenditures,
             ];
         });
 
         return response()->json([
-            "status"  => true,
+            "status" => true,
             "message" => "Success",
-            "pld"     => $result,
+            "pld" => $result,
         ]);
     }
 
@@ -30002,19 +30143,19 @@ public function rePromoteStudent(Request $request)
 
             return [
                 // e.g. AMS/0001 instead of AMB0001
-                'school_id'        => $school->sch3 . '/' . str_pad($serial++, 4, '0', STR_PAD_LEFT),
-                'schid'            => $school->schid,
-                'school_name'      => $school->school_name,
-                'sch3'             => $school->sch3,
+                'school_id' => $school->sch3 . '/' . str_pad($serial++, 4, '0', STR_PAD_LEFT),
+                'schid' => $school->schid,
+                'school_name' => $school->school_name,
+                'sch3' => $school->sch3,
                 'total_expenditure' => $school->total_expenditure,
-                'expenditures'     => $schoolExpenditures,
+                'expenditures' => $schoolExpenditures,
             ];
         });
 
         return response()->json([
-            "status"  => true,
+            "status" => true,
             "message" => "Success",
-            "pld"     => $result,
+            "pld" => $result,
         ]);
     }
 
@@ -30827,27 +30968,27 @@ public function rePromoteStudent(Request $request)
             }
 
             return [
-                "sid"           => $student->sid,
-                "fname"         => $student->fname,
-                "lname"         => $student->lname,
-                "dob"           => $dob,
-                "status"        => $status,
-                "school_name"   => $student->school_name,
-                "subdomain"     => $student->subdomain,
-                "school_phone"  => $student->school_phone ?? 'N/A', // added to response
-                "student_id"    => $student->student_id,
-                "class_id"      => $student->class_id,
-                "class_name"    => $student->class_name,
-                "class_arm_id"  => $student->class_arm_id,
-                "class_arm"     => $student->class_arm,
+                "sid" => $student->sid,
+                "fname" => $student->fname,
+                "lname" => $student->lname,
+                "dob" => $dob,
+                "status" => $status,
+                "school_name" => $student->school_name,
+                "subdomain" => $student->subdomain,
+                "school_phone" => $student->school_phone ?? 'N/A', // added to response
+                "student_id" => $student->student_id,
+                "class_id" => $student->class_id,
+                "class_name" => $student->class_name,
+                "class_arm_id" => $student->class_arm_id,
+                "class_arm" => $student->class_arm,
                 "current_class" => $currentClass
             ];
         });
 
         return response()->json([
-            "status"  => true,
+            "status" => true,
             "message" => "Success",
-            "pld"     => $pld,
+            "pld" => $pld,
         ]);
     }
 
@@ -30927,9 +31068,9 @@ public function rePromoteStudent(Request $request)
 
         if (!$studentId) {
             return response()->json([
-                "status"  => false,
+                "status" => false,
                 "message" => "studentId is required",
-                "pld"     => []
+                "pld" => []
             ], 400);
         }
 
@@ -30962,9 +31103,9 @@ public function rePromoteStudent(Request $request)
         // 🔸 Student not found
         if (!$student) {
             return response()->json([
-                "status"  => false,
+                "status" => false,
                 "message" => "Student not found",
-                "pld"     => []
+                "pld" => []
             ], 404);
         }
 
@@ -30984,28 +31125,28 @@ public function rePromoteStudent(Request $request)
 
         // Build payload
         $pld = [
-            "sid"           => (string) $student->sid,
-            "fname"         => $student->fname,
-            "lname"         => $student->lname,
-            "status"        => $status,
-            "school_name"   => $student->school_name,
-            "subdomain"     => $student->subdomain,
-            "school_phone"  => $student->school_phone ?? 'N/A', // display phone number
-            "student_id"    => $student->student_id,
-            "class_id"      => $student->class_id,
-            "class_name"    => $student->class_name,
-            "class_arm_id"  => $student->class_arm_id,
-            "class_arm"     => $student->class_arm,
+            "sid" => (string) $student->sid,
+            "fname" => $student->fname,
+            "lname" => $student->lname,
+            "status" => $status,
+            "school_name" => $student->school_name,
+            "subdomain" => $student->subdomain,
+            "school_phone" => $student->school_phone ?? 'N/A', // display phone number
+            "student_id" => $student->student_id,
+            "class_id" => $student->class_id,
+            "class_name" => $student->class_name,
+            "class_arm_id" => $student->class_arm_id,
+            "class_arm" => $student->class_arm,
             "current_class" => $currentClass,
-            "dob"           => $dob ?: 'N/A',
-            "sex"           => $student->sex ?? 'N/A',
-            "address"       => $student->addr ?? 'N/A'
+            "dob" => $dob ?: 'N/A',
+            "sex" => $student->sex ?? 'N/A',
+            "address" => $student->addr ?? 'N/A'
         ];
 
         return response()->json([
-            "status"  => true,
+            "status" => true,
             "message" => "Student verified successfully",
-            "pld"     => [$pld],
+            "pld" => [$pld],
         ]);
     }
 
@@ -31175,28 +31316,28 @@ public function rePromoteStudent(Request $request)
             }
 
             return [
-                "sid"           => $stf->sid,
-                "full_name"     => trim("{$stf->fname} {$stf->mname} {$stf->lname}"),
-                "status"        => $status,
-                "role"          => $stf->role_name ?? 'N/A',
-                "role2"         => $stf->role2_name ?? 'N/A',
-                "school_code"   => $schoolCode,
-                "school_name"   => $stf->school_name,
-                "school_phone"  => $stf->school_phone ?? 'N/A',
-                "subdomain"    => $stf->subdomain ?? 'N/A', // include sbd in payload
-                "staff_id"      => $staffId,
-                "dob"           => $dob ?: 'N/A',
-                "sex"           => $stf->sex,
-                "phone"         => $stf->phn,
-                "address"       => $stf->addr,
-                "created_at"    => $stf->created_at,
+                "sid" => $stf->sid,
+                "full_name" => trim("{$stf->fname} {$stf->mname} {$stf->lname}"),
+                "status" => $status,
+                "role" => $stf->role_name ?? 'N/A',
+                "role2" => $stf->role2_name ?? 'N/A',
+                "school_code" => $schoolCode,
+                "school_name" => $stf->school_name,
+                "school_phone" => $stf->school_phone ?? 'N/A',
+                "subdomain" => $stf->subdomain ?? 'N/A', // include sbd in payload
+                "staff_id" => $staffId,
+                "dob" => $dob ?: 'N/A',
+                "sex" => $stf->sex,
+                "phone" => $stf->phn,
+                "address" => $stf->addr,
+                "created_at" => $stf->created_at,
             ];
         });
 
         return response()->json([
-            "status"  => true,
+            "status" => true,
             "message" => "Unique staff IDs generated successfully",
-            "pld"     => $pld
+            "pld" => $pld
         ]);
     }
 
@@ -31275,9 +31416,9 @@ public function rePromoteStudent(Request $request)
 
         if (!$staffId) {
             return response()->json([
-                "status"  => false,
+                "status" => false,
                 "message" => "staffId is required",
-                "pld"     => []
+                "pld" => []
             ], 400);
         }
 
@@ -31313,9 +31454,9 @@ public function rePromoteStudent(Request $request)
         // 🔸 Staff not found
         if (!$staff) {
             return response()->json([
-                "status"  => false,
+                "status" => false,
                 "message" => "Staff not found",
-                "pld"     => []
+                "pld" => []
             ], 404);
         }
 
@@ -31338,26 +31479,26 @@ public function rePromoteStudent(Request $request)
 
         // Build payload
         $pld = [
-            "sid"           => (string) $staff->sid,
-            "full_name"     => $fullName,
-            "status"        => $currentStatus,
-            "school_name"   => $staff->school_name,
-            "subdomain"   => $staff->subdomain, // Added school.sbd to pld
-            "school_phone"  => $staff->school_phone ?? 'N/A',
-            "staff_id"      => $staff->staff_id,
-            "role"          => $staff->role_name ?? 'N/A',
-            "role2"         => $staff->role2_name ?? 'N/A',
-            "dob"           => $dob ?: 'N/A',
-            "sex"           => $staff->sex,
-            "phone"         => $staff->staff_phone,
-            "address"       => $staff->addr,
-            "created_at"    => $staff->created_at,
+            "sid" => (string) $staff->sid,
+            "full_name" => $fullName,
+            "status" => $currentStatus,
+            "school_name" => $staff->school_name,
+            "subdomain" => $staff->subdomain, // Added school.sbd to pld
+            "school_phone" => $staff->school_phone ?? 'N/A',
+            "staff_id" => $staff->staff_id,
+            "role" => $staff->role_name ?? 'N/A',
+            "role2" => $staff->role2_name ?? 'N/A',
+            "dob" => $dob ?: 'N/A',
+            "sex" => $staff->sex,
+            "phone" => $staff->staff_phone,
+            "address" => $staff->addr,
+            "created_at" => $staff->created_at,
         ];
 
         return response()->json([
-            "status"  => true,
+            "status" => true,
             "message" => "Staff verified successfully",
-            "pld"     => [$pld],
+            "pld" => [$pld],
         ]);
     }
 
@@ -31537,26 +31678,26 @@ public function rePromoteStudent(Request $request)
 
             $pld[] = [
                 's' => [
-                    'sid'             => $school->sid,
-                    'school_id'       => $schoolCode,
-                    'name'            => $school->name,
-                    'count'           => $school->count,
-                    's_web'           => $school->s_web,
-                    's_info'          => $school->s_info,
-                    'sbd'             => $school->sbd,
-                    'sch3'            => $school->sch3,
-                    'cssn'            => $school->cssn,
-                    'ctrm'            => $school->ctrm,
-                    'ctrmn'           => $school->ctrmn,
-                    'lattitude'       => $school->latt,
-                    'longitude'       => $school->longi,
-                    'created_at'      => $school->created_at,
-                    'updated_at'      => $school->updated_at,
+                    'sid' => $school->sid,
+                    'school_id' => $schoolCode,
+                    'name' => $school->name,
+                    'count' => $school->count,
+                    's_web' => $school->s_web,
+                    's_info' => $school->s_info,
+                    'sbd' => $school->sbd,
+                    'sch3' => $school->sch3,
+                    'cssn' => $school->cssn,
+                    'ctrm' => $school->ctrm,
+                    'ctrmn' => $school->ctrmn,
+                    'lattitude' => $school->latt,
+                    'longitude' => $school->longi,
+                    'created_at' => $school->created_at,
+                    'updated_at' => $school->updated_at,
                     'active_learners' => $activeLearners,
-                    'alumni'          => $alumniCount,
-                    'active_staff'    => $activeStaff,
-                    'classes'         => $classArms,
-                    'total_classes'   => $totalClasses,
+                    'alumni' => $alumniCount,
+                    'active_staff' => $activeStaff,
+                    'classes' => $classArms,
+                    'total_classes' => $totalClasses,
                 ],
                 'w' => $webData ? $webData->toArray() : null,
             ];
@@ -31564,10 +31705,10 @@ public function rePromoteStudent(Request $request)
 
         // Final response
         return response()->json([
-            "status"  => true,
+            "status" => true,
             "message" => "Success",
             "total_records" => $totalRecords,
-            "pld"     => $pld,
+            "pld" => $pld,
         ]);
     }
 
@@ -31602,7 +31743,7 @@ public function rePromoteStudent(Request $request)
         $start = $request->input('start', 0);
         $count = $request->input('count', 20);
         $state = $request->input('state');
-        $lga   = $request->input('lga');
+        $lga = $request->input('lga');
 
         $query = school::join('school_web_data as swd', 'school.sid', '=', 'swd.user_id')
             ->orderBy('school.name', 'asc')
@@ -31634,10 +31775,10 @@ public function rePromoteStudent(Request $request)
         }
 
         return response()->json([
-            "status"           => true,
-            "message"          => "Success",
-            "total_records"    => $totalRecords,
-            "pld"              => $pld,
+            "status" => true,
+            "message" => "Success",
+            "total_records" => $totalRecords,
+            "pld" => $pld,
         ]);
     }
 
@@ -31755,7 +31896,7 @@ public function rePromoteStudent(Request $request)
         $start = $request->input('start', 0);
         $count = $request->input('count', 20);
         $state = $request->input('state');
-        $lga   = $request->input('lga');
+        $lga = $request->input('lga');
 
         // 🔹 Join with school_web_data to filter and count
         $query = DB::table('school as s')
@@ -31838,9 +31979,9 @@ public function rePromoteStudent(Request $request)
                 ->pluck('total', 'sex')
                 ->toArray();
 
-            $activeMale   = $activeGender['M'] ?? 0;
+            $activeMale = $activeGender['M'] ?? 0;
             $activeFemale = $activeGender['F'] ?? 0;
-            $totalActive  = $activeMale + $activeFemale;
+            $totalActive = $activeMale + $activeFemale;
 
             /**
              * GENDER SUMMARY FOR ALUMNI (INACTIVE)
@@ -31857,71 +31998,71 @@ public function rePromoteStudent(Request $request)
                 ->pluck('total', 'sex')
                 ->toArray();
 
-            $alumniMale   = $alumniGender['M'] ?? 0;
+            $alumniMale = $alumniGender['M'] ?? 0;
             $alumniFemale = $alumniGender['F'] ?? 0;
-            $totalAlumni  = $alumniMale + $alumniFemale;
+            $totalAlumni = $alumniMale + $alumniFemale;
 
             // Add to payload
             $pld[] = [
                 's' => [
-                    'sid'             => $school->sid,
-                    'school_id'       => $schoolCode,
-                    'name'            => $school->name,
-                    'count'           => $school->count,
-                    's_web'           => $school->s_web,
-                    's_info'          => $school->s_info,
-                    'sbd'             => $school->sbd,
-                    'sch3'            => $school->sch3,
-                    'cssn'            => $school->cssn,
-                    'ctrm'            => $school->ctrm,
-                    'ctrmn'           => $school->ctrmn,
-                    'lattitude'       => $school->latt,
-                    'longitude'       => $school->longi,
-                    'country'         => $school->web_country ?? 'N/A',
-                    'state'           => $school->web_state ?? 'N/A',
-                    'lga'             => $school->web_lga ?? 'N/A',
-                    'created_at'      => $school->created_at,
-                    'updated_at'      => $school->updated_at,
+                    'sid' => $school->sid,
+                    'school_id' => $schoolCode,
+                    'name' => $school->name,
+                    'count' => $school->count,
+                    's_web' => $school->s_web,
+                    's_info' => $school->s_info,
+                    'sbd' => $school->sbd,
+                    'sch3' => $school->sch3,
+                    'cssn' => $school->cssn,
+                    'ctrm' => $school->ctrm,
+                    'ctrmn' => $school->ctrmn,
+                    'lattitude' => $school->latt,
+                    'longitude' => $school->longi,
+                    'country' => $school->web_country ?? 'N/A',
+                    'state' => $school->web_state ?? 'N/A',
+                    'lga' => $school->web_lga ?? 'N/A',
+                    'created_at' => $school->created_at,
+                    'updated_at' => $school->updated_at,
                     'active_learners' => $activeLearners,
-                    'alumni'          => $alumniCount,
-                    'active_staff'    => $activeStaff,
-                    'classes'         => $classArms,
-                    'total_classes'   => $totalClasses,
+                    'alumni' => $alumniCount,
+                    'active_staff' => $activeStaff,
+                    'classes' => $classArms,
+                    'total_classes' => $totalClasses,
                     // 👇 Gender data added here
-                    'gender_summary'  => [
+                    'gender_summary' => [
                         'active_students' => [
-                            'male'   => $activeMale,
+                            'male' => $activeMale,
                             'female' => $activeFemale,
-                            'total'  => $totalActive,
+                            'total' => $totalActive,
                         ],
                         'alumni' => [
-                            'male'   => $alumniMale,
+                            'male' => $alumniMale,
                             'female' => $alumniFemale,
-                            'total'  => $totalAlumni,
+                            'total' => $totalAlumni,
                         ]
                     ],
                 ],
                 'w' => $webData ? [
-                    'user_id'    => $webData->user_id,
+                    'user_id' => $webData->user_id,
                     'school_name' => $webData->sname ?? 'N/A',
-                    'color'      => $webData->color ?? 'N/A',
-                    'address'    => $webData->addr ?? 'N/A',
-                    'country'    => $webData->country ?? 'N/A',
-                    'state'      => $webData->state ?? 'N/A',
-                    'lga'        => $webData->lga ?? 'N/A',
-                    'phone'      => $webData->phn ?? 'N/A',
-                    'email'      => $webData->eml ?? 'N/A',
-                    'vision'     => $webData->vision ?? 'N/A',
-                    'values'     => $webData->values ?? 'N/A',
-                    'year'       => $webData->year ?? 'N/A',
-                    'about'      => $webData->about ?? 'N/A',
-                    'motto'      => $webData->motto ?? 'N/A',
-                    'facebook'   => $webData->fb ?? 'N/A',
-                    'instagram'  => $webData->isg ?? 'N/A',
-                    'youtube'    => $webData->yt ?? 'N/A',
-                    'whatsapp'   => $webData->wh ?? 'N/A',
-                    'linkedin'   => $webData->lkd ?? 'N/A',
-                    'twitter'    => $webData->tw ?? 'N/A',
+                    'color' => $webData->color ?? 'N/A',
+                    'address' => $webData->addr ?? 'N/A',
+                    'country' => $webData->country ?? 'N/A',
+                    'state' => $webData->state ?? 'N/A',
+                    'lga' => $webData->lga ?? 'N/A',
+                    'phone' => $webData->phn ?? 'N/A',
+                    'email' => $webData->eml ?? 'N/A',
+                    'vision' => $webData->vision ?? 'N/A',
+                    'values' => $webData->values ?? 'N/A',
+                    'year' => $webData->year ?? 'N/A',
+                    'about' => $webData->about ?? 'N/A',
+                    'motto' => $webData->motto ?? 'N/A',
+                    'facebook' => $webData->fb ?? 'N/A',
+                    'instagram' => $webData->isg ?? 'N/A',
+                    'youtube' => $webData->yt ?? 'N/A',
+                    'whatsapp' => $webData->wh ?? 'N/A',
+                    'linkedin' => $webData->lkd ?? 'N/A',
+                    'twitter' => $webData->tw ?? 'N/A',
                     'created_at' => $webData->created_at,
                     'updated_at' => $webData->updated_at,
                 ] : null
@@ -31929,10 +32070,10 @@ public function rePromoteStudent(Request $request)
         }
 
         return response()->json([
-            "status"        => true,
-            "message"       => "Success",
+            "status" => true,
+            "message" => "Success",
             "total_records" => $totalRecords,
-            "pld"           => $pld,
+            "pld" => $pld,
         ]);
     }
 
@@ -31940,167 +32081,171 @@ public function rePromoteStudent(Request $request)
 
 
 
-/**
- * @OA\Get(
- *     path="/api/getLearnersEnrollmentInfoGender",
- *     summary="Get learners' enrollment information filtered by gender, location, and school",
- *     description="Fetch active learners filtered by gender, state, LGA, and optionally school ID, with pagination.",
- *     tags={"Admin"},
- *    security={{"bearerAuth":{}}},
- *     @OA\Parameter(
- *         name="start",
- *         in="query",
- *         required=false,
- *         description="Starting offset for pagination (default 0)",
- *         @OA\Schema(type="integer", example=0)
- *     ),
- *     @OA\Parameter(
- *         name="count",
- *         in="query",
- *         required=false,
- *         description="Number of records to fetch (default 20)",
- *         @OA\Schema(type="integer", example=20)
- *     ),
- *     @OA\Parameter(
- *         name="state",
- *         in="query",
- *         required=false,
- *         description="Filter by school state",
- *         @OA\Schema(type="string", example="Abia")
- *     ),
- *     @OA\Parameter(
- *         name="lga",
- *         in="query",
- *         required=false,
- *         description="Filter by school LGA",
- *         @OA\Schema(type="string", example="Umuahia")
- *     ),
- *     @OA\Parameter(
- *         name="gender",
- *         in="query",
- *         required=false,
- *         description="Filter by student gender ('M' or 'F')",
- *         @OA\Schema(type="string", example="M")
- *     ),
- *     @OA\Parameter(
- *         name="schid",
- *         in="query",
- *         required=false,
- *         description="Filter by specific school ID",
- *         @OA\Schema(type="integer", example=13)
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Successful response with learners' data",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Success"),
- *             @OA\Property(property="total_records", type="integer", example=117),
- *             @OA\Property(
- *                 property="pld",
- *                 type="array",
- *                 @OA\Items(
- *                     @OA\Property(property="student_id", type="string", example="HGC/2024/1/310"),
- *                     @OA\Property(property="fname", type="string", example="FAVOUR"),
- *                     @OA\Property(property="mname", type="string", example="UKAMAKA"),
- *                     @OA\Property(property="lname", type="string", example="AGBO"),
- *                     @OA\Property(property="dob", type="string", example="2008-06-19"),
- *                     @OA\Property(property="gender", type="string", example="M"),
- *                     @OA\Property(property="student_state", type="string", example="00"),
- *                     @OA\Property(property="student_lga", type="string", example="15"),
- *                     @OA\Property(property="school_country", type="string", example="NG"),
- *                     @OA\Property(property="school_state", type="string", example="Abia"),
- *                     @OA\Property(property="school_lga", type="string", example="Umuahia"),
- *                     @OA\Property(property="class_name", type="string", example="SSS 3"),
- *                     @OA\Property(property="class_arm_name", type="string", example="B"),
- *                     @OA\Property(property="school_name", type="string", example="HOLY GHOST COLLEGE")
- *                 )
- *             )
- *         )
- *     )
- * )
- */
-public function getLearnersEnrollmentInfoGender(Request $request)
-{
-    $start  = $request->input('start', 0);
-    $count  = $request->input('count', 20);
-    $state  = $request->input('state');
-    $lga    = $request->input('lga');
-    $gender = $request->input('gender');
-    $schid  = $request->input('schid');
+    /**
+     * @OA\Get(
+     *     path="/api/getLearnersEnrollmentInfoGender",
+     *     summary="Get learners' enrollment information filtered by gender, location, and school",
+     *     description="Fetch active learners filtered by gender, state, LGA, and optionally school ID, with pagination.",
+     *     tags={"Admin"},
+     *    security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         required=false,
+     *         description="Starting offset for pagination (default 0)",
+     *         @OA\Schema(type="integer", example=0)
+     *     ),
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         required=false,
+     *         description="Number of records to fetch (default 20)",
+     *         @OA\Schema(type="integer", example=20)
+     *     ),
+     *     @OA\Parameter(
+     *         name="state",
+     *         in="query",
+     *         required=false,
+     *         description="Filter by school state",
+     *         @OA\Schema(type="string", example="Abia")
+     *     ),
+     *     @OA\Parameter(
+     *         name="lga",
+     *         in="query",
+     *         required=false,
+     *         description="Filter by school LGA",
+     *         @OA\Schema(type="string", example="Umuahia")
+     *     ),
+     *     @OA\Parameter(
+     *         name="gender",
+     *         in="query",
+     *         required=false,
+     *         description="Filter by student gender ('M' or 'F')",
+     *         @OA\Schema(type="string", example="M")
+     *     ),
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="query",
+     *         required=false,
+     *         description="Filter by specific school ID",
+     *         @OA\Schema(type="integer", example=13)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful response with learners' data",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(property="total_records", type="integer", example=117),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="student_id", type="string", example="HGC/2024/1/310"),
+     *                     @OA\Property(property="fname", type="string", example="FAVOUR"),
+     *                     @OA\Property(property="mname", type="string", example="UKAMAKA"),
+     *                     @OA\Property(property="lname", type="string", example="AGBO"),
+     *                     @OA\Property(property="dob", type="string", example="2008-06-19"),
+     *                     @OA\Property(property="gender", type="string", example="M"),
+     *                     @OA\Property(property="student_state", type="string", example="00"),
+     *                     @OA\Property(property="student_lga", type="string", example="15"),
+     *                     @OA\Property(property="school_country", type="string", example="NG"),
+     *                     @OA\Property(property="school_state", type="string", example="Abia"),
+     *                     @OA\Property(property="school_lga", type="string", example="Umuahia"),
+     *                     @OA\Property(property="class_name", type="string", example="SSS 3"),
+     *                     @OA\Property(property="class_arm_name", type="string", example="B"),
+     *                     @OA\Property(property="school_name", type="string", example="HOLY GHOST COLLEGE")
+     *                 )
+     *             )
+     *         )
+     *     )
+     * )
+     */
+    public function getLearnersEnrollmentInfoGender(Request $request)
+    {
+        $start = $request->input('start', 0);
+        $count = $request->input('count', 20);
+        $state = $request->input('state');
+        $lga = $request->input('lga');
+        $gender = $request->input('gender');
+        $schid = $request->input('schid');
 
-    // Subquery: get latest unique record for each student by uid
-    $latestStudents = DB::table('old_student as os2')
-        ->select(DB::raw('MAX(os2.uid) as latest_uid'))
-        ->where('os2.status', 'active')
-        ->groupBy('os2.sid');
+        // Subquery: get latest unique record for each student by uid
+        $latestStudents = DB::table('old_student as os2')
+            ->select(DB::raw('MAX(os2.uid) as latest_uid'))
+            ->where('os2.status', 'active')
+            ->groupBy('os2.sid');
 
-    // Join with main table on latest uid (ensures one record per student)
-    $query = DB::table('old_student as os')
-        ->joinSub($latestStudents, 'latest', function ($join) {
-            $join->on('os.uid', '=', 'latest.latest_uid');
-        })
-        ->join('student_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
-        ->join('school as sc', 'os.schid', '=', 'sc.sid')
-        ->join('school_web_data as swd', 'sc.sid', '=', 'swd.user_id')
-        ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')
-        ->leftJoin('sch_cls as scl', 'os.clsa', '=', 'scl.id')
-        ->select(
-            'os.sid as student_id',
-            'os.fname',
-            'os.mname',
-            'os.lname',
-            'sbd.dob',
-            'sbd.sex as gender',
-            'sbd.state as student_state',
-            'sbd.lga as student_lga',
-            'swd.country as school_country',
-            'swd.state as school_state',
-            'swd.lga as school_lga',
-            'c.name as class_name',
-            'scl.name as class_arm_name',
-            'sc.name as school_name'
-        )
-        ->where('os.status', 'active');
+        // Join with main table on latest uid (ensures one record per student)
+        $query = DB::table('old_student as os')
+            ->joinSub($latestStudents, 'latest', function ($join) {
+                $join->on('os.uid', '=', 'latest.latest_uid');
+            })
+            ->join('student_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
+            ->join('school as sc', 'os.schid', '=', 'sc.sid')
+            ->join('school_web_data as swd', 'sc.sid', '=', 'swd.user_id')
+            ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')
+            ->leftJoin('sch_cls as scl', 'os.clsa', '=', 'scl.id')
+            ->select(
+                'os.sid as student_id',
+                'os.fname',
+                'os.mname',
+                'os.lname',
+                'sbd.dob',
+                'sbd.sex as gender',
+                'sbd.state as student_state',
+                'sbd.lga as student_lga',
+                'swd.country as school_country',
+                'swd.state as school_state',
+                'swd.lga as school_lga',
+                'c.name as class_name',
+                'scl.name as class_arm_name',
+                'sc.name as school_name'
+            )
+            ->where('os.status', 'active');
 
-    // Apply filters dynamically
-    if (!empty($state))  $query->where('swd.state', $state);
-    if (!empty($lga))    $query->where('swd.lga', $lga);
-    if (!empty($gender)) $query->where('sbd.sex', $gender);
-    if (!empty($schid))  $query->where('os.schid', $schid);
+        // Apply filters dynamically
+        if (!empty($state))
+            $query->where('swd.state', $state);
+        if (!empty($lga))
+            $query->where('swd.lga', $lga);
+        if (!empty($gender))
+            $query->where('sbd.sex', $gender);
+        if (!empty($schid))
+            $query->where('os.schid', $schid);
 
-    // Count unique students
-    $totalRecords = $query->count();
+        // Count unique students
+        $totalRecords = $query->count();
 
-    // Fetch paginated data
-    $students = $query
-        ->orderBy('os.lname', 'asc')
-        ->skip($start)
-        ->take($count)
-        ->get();
+        // Fetch paginated data
+        $students = $query
+            ->orderBy('os.lname', 'asc')
+            ->skip($start)
+            ->take($count)
+            ->get();
 
-    // Format date of birth properly
-    foreach ($students as $student) {
-        if (!empty($student->dob)) {
-            try {
-                $student->dob = is_numeric($student->dob)
-                    ? \Carbon\Carbon::createFromTimestamp($student->dob / 1000)->format('Y-m-d')
-                    : \Carbon\Carbon::parse($student->dob)->format('Y-m-d');
-            } catch (\Exception $e) {
+        // Format date of birth properly
+        foreach ($students as $student) {
+            if (!empty($student->dob)) {
+                try {
+                    $student->dob = is_numeric($student->dob)
+                        ? \Carbon\Carbon::createFromTimestamp($student->dob / 1000)->format('Y-m-d')
+                        : \Carbon\Carbon::parse($student->dob)->format('Y-m-d');
+                } catch (\Exception $e) {
+                    $student->dob = null;
+                }
+            } else {
                 $student->dob = null;
             }
-        } else {
-            $student->dob = null;
         }
-    }
 
-    return response()->json([
-        'status'        => true,
-        'message'       => 'Success',
-        'total_records' => $totalRecords,
-        'pld'           => $students,
-    ]);
-}
+        return response()->json([
+            'status' => true,
+            'message' => 'Success',
+            'total_records' => $totalRecords,
+            'pld' => $students,
+        ]);
+    }
 
 
 
@@ -32221,7 +32366,7 @@ public function getLearnersEnrollmentInfoGender(Request $request)
         $start = $request->input('start', 0);
         $count = $request->input('count', 20);
         $state = $request->input('state');
-        $lga   = $request->input('lga');
+        $lga = $request->input('lga');
 
         // 🔹 Join school with school_web_data for filtering
         $query = DB::table('school as s')
@@ -32308,7 +32453,7 @@ public function getLearnersEnrollmentInfoGender(Request $request)
             ];
 
             // Add totals for each status
-            $genderSummary['active']['total']   = $genderSummary['active']['male'] + $genderSummary['active']['female'];
+            $genderSummary['active']['total'] = $genderSummary['active']['male'] + $genderSummary['active']['female'];
             $genderSummary['inactive']['total'] = $genderSummary['inactive']['male'] + $genderSummary['inactive']['female'];
 
             /**
@@ -32330,263 +32475,263 @@ public function getLearnersEnrollmentInfoGender(Request $request)
             // Build Payload
             $pld[] = [
                 's' => [
-                    'sid'            => $school->sid,
-                    'school_id'      => $schoolCode,
-                    'name'           => $school->name,
-                    's_info'         => $school->s_info,
-                    'sch3'           => $school->sch3,
-                    'created_at'     => $school->created_at,
-                    'updated_at'     => $school->updated_at,
-                    'country'        => $school->web_country ?? 'N/A',
-                    'state'          => $school->web_state ?? 'N/A',
-                    'lga'            => $school->web_lga ?? 'N/A',
+                    'sid' => $school->sid,
+                    'school_id' => $schoolCode,
+                    'name' => $school->name,
+                    's_info' => $school->s_info,
+                    'sch3' => $school->sch3,
+                    'created_at' => $school->created_at,
+                    'updated_at' => $school->updated_at,
+                    'country' => $school->web_country ?? 'N/A',
+                    'state' => $school->web_state ?? 'N/A',
+                    'lga' => $school->web_lga ?? 'N/A',
 
                     // Staff data
-                    'total_staff'    => $totalStaff,
-                    'active_staff'   => $activeStaffCount,
+                    'total_staff' => $totalStaff,
+                    'active_staff' => $activeStaffCount,
                     'inactive_staff' => $inactiveStaffCount,
 
                     // Gender summary
                     'gender_summary' => $genderSummary,
 
                     // Job role summary
-                    'role_summary'   => $roleSummary,
+                    'role_summary' => $roleSummary,
                 ],
                 'w' => $webData ? [
-                    'user_id'     => $webData->user_id,
+                    'user_id' => $webData->user_id,
                     'school_name' => $webData->sname ?? 'N/A',
-                    'address'     => $webData->addr ?? 'N/A',
-                    'state'       => $webData->state ?? 'N/A',
-                    'lga'         => $webData->lga ?? 'N/A',
-                    'email'       => $webData->eml ?? 'N/A',
-                    'phone'       => $webData->phn ?? 'N/A',
-                    'website'     => $webData->website ?? 'N/A',
-                    'created_at'  => $webData->created_at,
-                    'updated_at'  => $webData->updated_at,
+                    'address' => $webData->addr ?? 'N/A',
+                    'state' => $webData->state ?? 'N/A',
+                    'lga' => $webData->lga ?? 'N/A',
+                    'email' => $webData->eml ?? 'N/A',
+                    'phone' => $webData->phn ?? 'N/A',
+                    'website' => $webData->website ?? 'N/A',
+                    'created_at' => $webData->created_at,
+                    'updated_at' => $webData->updated_at,
                 ] : null,
             ];
         }
 
         return response()->json([
-            "status"        => true,
-            "message"       => "Success",
+            "status" => true,
+            "message" => "Success",
             "total_records" => $totalRecords,
-            "pld"           => $pld,
+            "pld" => $pld,
         ]);
     }
 
 
 
-/**
- * @OA\Get(
- *     path="/api/getStaffsEnrollmentInfoGender",
- *     summary="Get staff enrollment information by gender, school, and location",
- *     description="Retrieve a paginated list of active staff filtered by gender, school, state, and LGA.",
- *     operationId="getStaffsEnrollmentInfoGender",
- *     tags={"Admin"},
- *    security={{"bearerAuth":{}}},
- *
- *     @OA\Parameter(
- *         name="start",
- *         in="query",
- *         required=false,
- *         description="Starting index for pagination (default is 0)",
- *         @OA\Schema(type="integer", example=0)
- *     ),
- *     @OA\Parameter(
- *         name="count",
- *         in="query",
- *         required=false,
- *         description="Number of records to fetch per page (default is 20)",
- *         @OA\Schema(type="integer", example=20)
- *     ),
- *     @OA\Parameter(
- *         name="state",
- *         in="query",
- *         required=false,
- *         description="State where the school is located",
- *         @OA\Schema(type="string", example="Abia")
- *     ),
- *     @OA\Parameter(
- *         name="lga",
- *         in="query",
- *         required=false,
- *         description="Local Government Area (LGA) where the school is located",
- *         @OA\Schema(type="string", example="Umuahia")
- *     ),
- *     @OA\Parameter(
- *         name="gender",
- *         in="query",
- *         required=false,
- *         description="Gender of the staff to filter by (M or F)",
- *         @OA\Schema(type="string", example="M")
- *     ),
- *     @OA\Parameter(
- *         name="schid",
- *         in="query",
- *         required=false,
- *         description="School ID to filter staff records by a specific school",
- *         @OA\Schema(type="integer", example=12)
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Successful staff list retrieval",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Success"),
- *             @OA\Property(property="total_records", type="integer", example=2),
- *             @OA\Property(
- *                 property="pld",
- *                 type="array",
- *                 @OA\Items(
- *                     @OA\Property(property="sid", type="string", example="2091"),
- *                     @OA\Property(property="staff_id", type="string", example="HGC/STAFF/18"),
- *                     @OA\Property(property="fname", type="string", example="Paschael"),
- *                     @OA\Property(property="mname", type="string", example="NIL"),
- *                     @OA\Property(property="lname", type="string", example="Ajuomiwe"),
- *                     @OA\Property(property="status", type="string", example="active"),
- *                     @OA\Property(property="role", type="string", example="*14"),
- *                     @OA\Property(property="role2", type="string", example="-1"),
- *                     @OA\Property(property="role1_clean", type="string", example="14"),
- *                     @OA\Property(property="role2_clean", type="string", example="-1"),
- *                     @OA\Property(property="role1_name", type="string", example="Subject Teacher"),
- *                     @OA\Property(property="role2_name", type="string", example=null),
- *                     @OA\Property(property="dob", type="string", example="1984-07-30"),
- *                     @OA\Property(property="gender", type="string", example="M"),
- *                     @OA\Property(property="staff_state", type="string", example="00"),
- *                     @OA\Property(property="staff_lga", type="string", example="15"),
- *                     @OA\Property(property="school_country", type="string", example="NG"),
- *                     @OA\Property(property="school_state", type="string", example="Abia"),
- *                     @OA\Property(property="school_lga", type="string", example="Umuahia"),
- *                     @OA\Property(property="school_name", type="string", example="HOLY GHOST COLLEGE")
- *                 )
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=400,
- *         description="Invalid parameters supplied"
- *     ),
- *     @OA\Response(
- *         response=500,
- *         description="Internal server error"
- *     )
- * )
- */
+    /**
+     * @OA\Get(
+     *     path="/api/getStaffsEnrollmentInfoGender",
+     *     summary="Get staff enrollment information by gender, school, and location",
+     *     description="Retrieve a paginated list of active staff filtered by gender, school, state, and LGA.",
+     *     operationId="getStaffsEnrollmentInfoGender",
+     *     tags={"Admin"},
+     *    security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         required=false,
+     *         description="Starting index for pagination (default is 0)",
+     *         @OA\Schema(type="integer", example=0)
+     *     ),
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         required=false,
+     *         description="Number of records to fetch per page (default is 20)",
+     *         @OA\Schema(type="integer", example=20)
+     *     ),
+     *     @OA\Parameter(
+     *         name="state",
+     *         in="query",
+     *         required=false,
+     *         description="State where the school is located",
+     *         @OA\Schema(type="string", example="Abia")
+     *     ),
+     *     @OA\Parameter(
+     *         name="lga",
+     *         in="query",
+     *         required=false,
+     *         description="Local Government Area (LGA) where the school is located",
+     *         @OA\Schema(type="string", example="Umuahia")
+     *     ),
+     *     @OA\Parameter(
+     *         name="gender",
+     *         in="query",
+     *         required=false,
+     *         description="Gender of the staff to filter by (M or F)",
+     *         @OA\Schema(type="string", example="M")
+     *     ),
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="query",
+     *         required=false,
+     *         description="School ID to filter staff records by a specific school",
+     *         @OA\Schema(type="integer", example=12)
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful staff list retrieval",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(property="total_records", type="integer", example=2),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="sid", type="string", example="2091"),
+     *                     @OA\Property(property="staff_id", type="string", example="HGC/STAFF/18"),
+     *                     @OA\Property(property="fname", type="string", example="Paschael"),
+     *                     @OA\Property(property="mname", type="string", example="NIL"),
+     *                     @OA\Property(property="lname", type="string", example="Ajuomiwe"),
+     *                     @OA\Property(property="status", type="string", example="active"),
+     *                     @OA\Property(property="role", type="string", example="*14"),
+     *                     @OA\Property(property="role2", type="string", example="-1"),
+     *                     @OA\Property(property="role1_clean", type="string", example="14"),
+     *                     @OA\Property(property="role2_clean", type="string", example="-1"),
+     *                     @OA\Property(property="role1_name", type="string", example="Subject Teacher"),
+     *                     @OA\Property(property="role2_name", type="string", example=null),
+     *                     @OA\Property(property="dob", type="string", example="1984-07-30"),
+     *                     @OA\Property(property="gender", type="string", example="M"),
+     *                     @OA\Property(property="staff_state", type="string", example="00"),
+     *                     @OA\Property(property="staff_lga", type="string", example="15"),
+     *                     @OA\Property(property="school_country", type="string", example="NG"),
+     *                     @OA\Property(property="school_state", type="string", example="Abia"),
+     *                     @OA\Property(property="school_lga", type="string", example="Umuahia"),
+     *                     @OA\Property(property="school_name", type="string", example="HOLY GHOST COLLEGE")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=400,
+     *         description="Invalid parameters supplied"
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Internal server error"
+     *     )
+     * )
+     */
 
-public function getStaffsEnrollmentInfoGender(Request $request)
-{
-    $start = $request->input('start', 0);
-    $count = $request->input('count', 20);
-    $state = $request->input('state');
-    $lga   = $request->input('lga');
-    $gender = $request->input('gender'); // 'M' or 'F'
-    $schid  = $request->input('schid');  // School ID filter
+    public function getStaffsEnrollmentInfoGender(Request $request)
+    {
+        $start = $request->input('start', 0);
+        $count = $request->input('count', 20);
+        $state = $request->input('state');
+        $lga = $request->input('lga');
+        $gender = $request->input('gender'); // 'M' or 'F'
+        $schid = $request->input('schid');  // School ID filter
 
-    // Build query
-    $query = DB::table('old_staff as os')
-        ->join('staff_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
-        ->join('school_web_data as swd', 'os.schid', '=', 'swd.user_id')
-        // Join for role1 and role2
-        ->leftJoin('staff_role as sr1', DB::raw('REPLACE(os.role, "*", "")'), '=', 'sr1.id')
-        ->leftJoin('staff_role as sr2', DB::raw('REPLACE(os.role2, "*", "")'), '=', 'sr2.id')
-        ->select(
+        // Build query
+        $query = DB::table('old_staff as os')
+            ->join('staff_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
+            ->join('school_web_data as swd', 'os.schid', '=', 'swd.user_id')
+            // Join for role1 and role2
+            ->leftJoin('staff_role as sr1', DB::raw('REPLACE(os.role, "*", "")'), '=', 'sr1.id')
+            ->leftJoin('staff_role as sr2', DB::raw('REPLACE(os.role2, "*", "")'), '=', 'sr2.id')
+            ->select(
+                'os.sid',
+                'os.suid as staff_id',
+                'os.fname',
+                'os.mname',
+                'os.lname',
+                'os.status',
+                'os.role',
+                'os.role2',
+                DB::raw('REPLACE(os.role, "*", "") as role1_clean'),
+                DB::raw('REPLACE(os.role2, "*", "") as role2_clean'),
+                'sr1.name as role1_name',
+                'sr2.name as role2_name',
+                'sbd.dob',
+                'sbd.sex as gender',
+                'sbd.state as staff_state',
+                'sbd.lga as staff_lga',
+                'swd.country as school_country',
+                'swd.state as school_state',
+                DB::raw('TRIM(swd.lga) as school_lga'),
+                'swd.sname as school_name'
+            )
+            ->where('os.status', 'active');
+
+        // Apply filters
+        if (!empty($schid)) {
+            $query->where('os.schid', $schid); // 🔹 Filter by specific school
+        }
+
+        if (!empty($state)) {
+            $query->where('swd.state', $state);
+        }
+
+        if (!empty($lga)) {
+            $query->whereRaw('TRIM(swd.lga) = ?', [$lga]);
+        }
+
+        if (!empty($gender)) {
+            $query->where('sbd.sex', $gender);
+        }
+
+        // Avoid duplicates
+        $query->groupBy(
             'os.sid',
-            'os.suid as staff_id',
+            'os.suid',
             'os.fname',
             'os.mname',
             'os.lname',
-            'os.status',
             'os.role',
             'os.role2',
-            DB::raw('REPLACE(os.role, "*", "") as role1_clean'),
-            DB::raw('REPLACE(os.role2, "*", "") as role2_clean'),
-            'sr1.name as role1_name',
-            'sr2.name as role2_name',
+            'os.status',
             'sbd.dob',
-            'sbd.sex as gender',
-            'sbd.state as staff_state',
-            'sbd.lga as staff_lga',
-            'swd.country as school_country',
-            'swd.state as school_state',
-            DB::raw('TRIM(swd.lga) as school_lga'),
-            'swd.sname as school_name'
-        )
-        ->where('os.status', 'active');
+            'sbd.sex',
+            'sbd.state',
+            'sbd.lga',
+            'swd.country',
+            'swd.state',
+            'swd.lga',
+            'swd.sname',
+            'sr1.name',
+            'sr2.name'
+        );
 
-    // Apply filters
-    if (!empty($schid)) {
-        $query->where('os.schid', $schid); // 🔹 Filter by specific school
-    }
+        // Count total records
+        $totalRecords = $query->count(DB::raw('distinct os.sid'));
 
-    if (!empty($state)) {
-        $query->where('swd.state', $state);
-    }
+        // Fetch paginated results
+        $staff = $query->orderBy('os.lname', 'asc')
+            ->skip($start)
+            ->take($count)
+            ->get();
 
-    if (!empty($lga)) {
-        $query->whereRaw('TRIM(swd.lga) = ?', [$lga]);
-    }
-
-    if (!empty($gender)) {
-        $query->where('sbd.sex', $gender);
-    }
-
-    // Avoid duplicates
-    $query->groupBy(
-        'os.sid',
-        'os.suid',
-        'os.fname',
-        'os.mname',
-        'os.lname',
-        'os.role',
-        'os.role2',
-        'os.status',
-        'sbd.dob',
-        'sbd.sex',
-        'sbd.state',
-        'sbd.lga',
-        'swd.country',
-        'swd.state',
-        'swd.lga',
-        'swd.sname',
-        'sr1.name',
-        'sr2.name'
-    );
-
-    // Count total records
-    $totalRecords = $query->count(DB::raw('distinct os.sid'));
-
-    // Fetch paginated results
-    $staff = $query->orderBy('os.lname', 'asc')
-        ->skip($start)
-        ->take($count)
-        ->get();
-
-    // Format DOBs
-    foreach ($staff as $member) {
-        $dob = null;
-        if (!empty($member->dob)) {
-            try {
-                $dob = is_numeric($member->dob)
-                    ? \Carbon\Carbon::createFromTimestamp($member->dob / 1000)->format('Y-m-d')
-                    : \Carbon\Carbon::parse($member->dob)->format('Y-m-d');
-            } catch (\Exception $e) {
-                $dob = null;
+        // Format DOBs
+        foreach ($staff as $member) {
+            $dob = null;
+            if (!empty($member->dob)) {
+                try {
+                    $dob = is_numeric($member->dob)
+                        ? \Carbon\Carbon::createFromTimestamp($member->dob / 1000)->format('Y-m-d')
+                        : \Carbon\Carbon::parse($member->dob)->format('Y-m-d');
+                } catch (\Exception $e) {
+                    $dob = null;
+                }
             }
+            $member->dob = $dob;
         }
-        $member->dob = $dob;
-    }
 
-    // Return response
-    return response()->json([
-        'status' => true,
-        'message' => 'Success',
-        'total_records' => $totalRecords,
-        'pld' => $staff->unique('sid')->values()
-    ]);
-}
+        // Return response
+        return response()->json([
+            'status' => true,
+            'message' => 'Success',
+            'total_records' => $totalRecords,
+            'pld' => $staff->unique('sid')->values()
+        ]);
+    }
 
 
 
@@ -32781,15 +32926,17 @@ public function getStaffsEnrollmentInfoGender(Request $request)
         $start = $request->input('start', 0);
         $count = $request->input('count', 20);
         $state = $request->input('state');
-        $lga   = $request->input('lga');
-        $ssn   = $request->input('ssn'); // academic session (required)
+        $lga = $request->input('lga');
+        $ssn = $request->input('ssn'); // academic session (required)
 
         $query = DB::table('school as s')
             ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id')
             ->select('s.*', 'sw.state as web_state', 'sw.lga as web_lga', 'sw.country as web_country');
 
-        if (!empty($state)) $query->where('sw.state', $state);
-        if (!empty($lga)) $query->where('sw.lga', $lga);
+        if (!empty($state))
+            $query->where('sw.state', $state);
+        if (!empty($lga))
+            $query->where('sw.lga', $lga);
 
         $totalRecords = $query->count();
 
@@ -32831,7 +32978,7 @@ public function getStaffsEnrollmentInfoGender(Request $request)
                 ->pluck('total', 'sex')
                 ->toArray();
 
-            $activeMale   = $activeGender['M'] ?? 0;
+            $activeMale = $activeGender['M'] ?? 0;
             $activeFemale = $activeGender['F'] ?? 0;
 
             $alumniStudentIds = DB::table('alumnis')
@@ -32846,7 +32993,7 @@ public function getStaffsEnrollmentInfoGender(Request $request)
                 ->pluck('total', 'sex')
                 ->toArray();
 
-            $alumniMale   = $alumniGender['M'] ?? 0;
+            $alumniMale = $alumniGender['M'] ?? 0;
             $alumniFemale = $alumniGender['F'] ?? 0;
 
             /** ============================
@@ -32871,7 +33018,7 @@ public function getStaffsEnrollmentInfoGender(Request $request)
                 ->pluck('total', 'sex')
                 ->toArray();
 
-            $activeStaffMale   = $activeStaffGender['M'] ?? 0;
+            $activeStaffMale = $activeStaffGender['M'] ?? 0;
             $activeStaffFemale = $activeStaffGender['F'] ?? 0;
 
 
@@ -32901,7 +33048,7 @@ public function getStaffsEnrollmentInfoGender(Request $request)
              * ============================ */
             $pld[] = [
                 "s" => [
-                    "sid" => (string)$school->sid,
+                    "sid" => (string) $school->sid,
                     "school_id" => $schoolCode,
                     "name" => $school->name,
                     "count" => $school->count,
@@ -32944,7 +33091,7 @@ public function getStaffsEnrollmentInfoGender(Request $request)
 
                 ],
                 "w" => $webData ? [
-                    "user_id" => (string)$webData->user_id,
+                    "user_id" => (string) $webData->user_id,
                     "school_name" => $webData->sname,
                     "color" => $webData->color,
                     "address" => $webData->addr,
@@ -32981,232 +33128,232 @@ public function getStaffsEnrollmentInfoGender(Request $request)
 
 
 
-/**
- * @OA\Post(
- *     path="/api/getLearnersStaffDetails",
- *     summary="Fetch learner and staff ratio for each class in a school",
- *     description="Returns detailed learner and staff statistics (male/female/total) per class and an overall summary for a given school and session.",
- *     operationId="getLearnersStaffDetails",
- *     tags={"Admin"},
- *   security={{"bearerAuth":{}}},
- *
- *     @OA\RequestBody(
- *         required=true,
- *         description="School and session details",
- *         @OA\JsonContent(
- *             required={"schid", "ssn"},
- *             @OA\Property(property="schid", type="integer", example=12, description="School ID"),
- *             @OA\Property(property="ssn", type="string", example="2024", description="Academic session")
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Learner/Staff Ratio fetched successfully",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Learner/Staff Ratio fetched successfully"),
- *             @OA\Property(
- *                 property="pld",
- *                 type="object",
- *                 @OA\Property(
- *                     property="details",
- *                     type="array",
- *                     @OA\Items(
- *                         @OA\Property(property="clsid", type="integer", example=11),
- *                         @OA\Property(property="school_id", type="integer", example=12),
- *                         @OA\Property(property="session", type="string", example="2024"),
- *                         @OA\Property(property="class", type="string", example="JSS 1"),
- *                         @OA\Property(
- *                             property="learners",
- *                             type="object",
- *                             @OA\Property(property="male", type="integer", example=15),
- *                             @OA\Property(property="female", type="integer", example=9),
- *                             @OA\Property(property="total", type="integer", example=24)
- *                         ),
- *                         @OA\Property(
- *                             property="staff",
- *                             type="object",
- *                             @OA\Property(property="male", type="integer", example=5),
- *                             @OA\Property(property="female", type="integer", example=6),
- *                             @OA\Property(property="total", type="integer", example=11)
- *                         )
- *                     )
- *                 ),
- *                 @OA\Property(
- *                     property="summary",
- *                     type="object",
- *                     @OA\Property(property="total_male_students", type="integer", example=55),
- *                     @OA\Property(property="total_female_students", type="integer", example=29),
- *                     @OA\Property(property="total_students", type="integer", example=84),
- *                     @OA\Property(property="total_male_staff", type="integer", example=18),
- *                     @OA\Property(property="total_female_staff", type="integer", example=17),
- *                     @OA\Property(property="total_staff", type="integer", example=35),
- *                     @OA\Property(property="overall_male", type="integer", example=73),
- *                     @OA\Property(property="overall_female", type="integer", example=46),
- *                     @OA\Property(property="overall_total", type="integer", example=119)
- *                 )
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=400,
- *         description="Missing required parameters",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="School ID and session are required.")
- *         )
- *     )
- * )
- */
-
-public function getLearnersStaffDetails(Request $request)
-{
-    $schid = $request->input('schid');
-    $ssn   = $request->input('ssn'); // academic session (required)
-
-    // Validate required parameters
-    if (empty($schid) || empty($ssn)) {
-        return response()->json([
-            'status' => false,
-            'message' => 'School ID and session are required.'
-        ], 400);
-    }
-
-    // Fetch all unique classes for the given school only
-    $classes = DB::table('sch_cls')
-        ->join('cls', 'cls.id', '=', 'sch_cls.cls_id')
-        ->where('sch_cls.schid', $schid)
-        ->select(
-            'cls.id as clsid',
-            'cls.name as class_name'
-        )
-        ->distinct()
-        ->orderBy('cls.id', 'asc')
-        ->get();
-
-    $data = [];
-
-    // Initialize totals
-    $totalMaleStudents = 0;
-    $totalFemaleStudents = 0;
-    $totalMaleStaff = 0;
-    $totalFemaleStaff = 0;
-
-    foreach ($classes as $class) {
-        $clsid = $class->clsid;
-        $className = $class->class_name;
-
-        /**
-         * ===========================
-         * STUDENT SECTION (By School)
-         * ===========================
-         */
-        $studentIds = DB::table('old_student')
-            ->where('schid', $schid)
-            ->where('status', 'active')
-            ->where('ssn', $ssn)
-            ->where('clsm', $clsid)
-            ->distinct()
-            ->pluck('sid')
-            ->toArray();
-
-        $studentGender = DB::table('student_basic_data')
-            ->whereIn('user_id', $studentIds)
-            ->whereNotNull('sex')
-            ->select('sex', DB::raw('COUNT(*) as total'))
-            ->groupBy('sex')
-            ->pluck('total', 'sex')
-            ->toArray();
-
-        $maleStudents   = $studentGender['M'] ?? 0;
-        $femaleStudents = $studentGender['F'] ?? 0;
-        $totalStudents  = $maleStudents + $femaleStudents;
-
-        $totalMaleStudents += $maleStudents;
-        $totalFemaleStudents += $femaleStudents;
-
-        /**
-         * ===========================
-         * STAFF SECTION (By School)
-         * ===========================
-         */
-        $staffIds = DB::table('old_staff')
-            ->where('schid', $schid)
-            ->where('status', 'active')
-            ->where('ssn', $ssn)
-            ->where('clsm', $clsid)
-            ->distinct()
-            ->pluck('sid')
-            ->toArray();
-
-        $staffGender = DB::table('staff_basic_data')
-            ->whereIn('user_id', $staffIds)
-            ->whereNotNull('sex')
-            ->select('sex', DB::raw('COUNT(*) as total'))
-            ->groupBy('sex')
-            ->pluck('total', 'sex')
-            ->toArray();
-
-        $maleStaff   = $staffGender['M'] ?? 0;
-        $femaleStaff = $staffGender['F'] ?? 0;
-        $totalStaff  = $maleStaff + $femaleStaff;
-
-        $totalMaleStaff += $maleStaff;
-        $totalFemaleStaff += $femaleStaff;
-
-        /**
-         * ===========================
-         * CLASS-LEVEL RATIO
-         * ===========================
-         */
-        $data[] = [
-            'clsid' => $clsid,
-            'school_id' => $schid,
-            'session' => $ssn,
-            'class' => $className,
-            'learners' => [
-                'male' => $maleStudents,
-                'female' => $femaleStudents,
-                'total' => $totalStudents,
-            ],
-            'staff' => [
-                'male' => $maleStaff,
-                'female' => $femaleStaff,
-                'total' => $totalStaff,
-            ],
-        ];
-    }
-
     /**
-     * ===========================
-     * OVERALL SUMMARY
-     * ===========================
+     * @OA\Post(
+     *     path="/api/getLearnersStaffDetails",
+     *     summary="Fetch learner and staff ratio for each class in a school",
+     *     description="Returns detailed learner and staff statistics (male/female/total) per class and an overall summary for a given school and session.",
+     *     operationId="getLearnersStaffDetails",
+     *     tags={"Admin"},
+     *   security={{"bearerAuth":{}}},
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         description="School and session details",
+     *         @OA\JsonContent(
+     *             required={"schid", "ssn"},
+     *             @OA\Property(property="schid", type="integer", example=12, description="School ID"),
+     *             @OA\Property(property="ssn", type="string", example="2024", description="Academic session")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Learner/Staff Ratio fetched successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Learner/Staff Ratio fetched successfully"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 @OA\Property(
+     *                     property="details",
+     *                     type="array",
+     *                     @OA\Items(
+     *                         @OA\Property(property="clsid", type="integer", example=11),
+     *                         @OA\Property(property="school_id", type="integer", example=12),
+     *                         @OA\Property(property="session", type="string", example="2024"),
+     *                         @OA\Property(property="class", type="string", example="JSS 1"),
+     *                         @OA\Property(
+     *                             property="learners",
+     *                             type="object",
+     *                             @OA\Property(property="male", type="integer", example=15),
+     *                             @OA\Property(property="female", type="integer", example=9),
+     *                             @OA\Property(property="total", type="integer", example=24)
+     *                         ),
+     *                         @OA\Property(
+     *                             property="staff",
+     *                             type="object",
+     *                             @OA\Property(property="male", type="integer", example=5),
+     *                             @OA\Property(property="female", type="integer", example=6),
+     *                             @OA\Property(property="total", type="integer", example=11)
+     *                         )
+     *                     )
+     *                 ),
+     *                 @OA\Property(
+     *                     property="summary",
+     *                     type="object",
+     *                     @OA\Property(property="total_male_students", type="integer", example=55),
+     *                     @OA\Property(property="total_female_students", type="integer", example=29),
+     *                     @OA\Property(property="total_students", type="integer", example=84),
+     *                     @OA\Property(property="total_male_staff", type="integer", example=18),
+     *                     @OA\Property(property="total_female_staff", type="integer", example=17),
+     *                     @OA\Property(property="total_staff", type="integer", example=35),
+     *                     @OA\Property(property="overall_male", type="integer", example=73),
+     *                     @OA\Property(property="overall_female", type="integer", example=46),
+     *                     @OA\Property(property="overall_total", type="integer", example=119)
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=400,
+     *         description="Missing required parameters",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="School ID and session are required.")
+     *         )
+     *     )
+     * )
      */
-    $overallSummary = [
-        'total_male_students' => $totalMaleStudents,
-        'total_female_students' => $totalFemaleStudents,
-        'total_students' => $totalMaleStudents + $totalFemaleStudents,
 
-        'total_male_staff' => $totalMaleStaff,
-        'total_female_staff' => $totalFemaleStaff,
-        'total_staff' => $totalMaleStaff + $totalFemaleStaff,
+    public function getLearnersStaffDetails(Request $request)
+    {
+        $schid = $request->input('schid');
+        $ssn = $request->input('ssn'); // academic session (required)
 
-        'overall_male' => $totalMaleStudents + $totalMaleStaff,
-        'overall_female' => $totalFemaleStudents + $totalFemaleStaff,
-        'overall_total' => $totalMaleStudents + $totalFemaleStudents + $totalMaleStaff + $totalFemaleStaff,
-    ];
+        // Validate required parameters
+        if (empty($schid) || empty($ssn)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'School ID and session are required.'
+            ], 400);
+        }
 
-    return response()->json([
-        'status' => true,
-        'message' => 'Learner/Staff Ratio fetched successfully',
-        'pld' => [
-            'details' => $data,
-            'summary' => $overallSummary
-        ]
-    ], 200, [], JSON_PRETTY_PRINT);
-}
+        // Fetch all unique classes for the given school only
+        $classes = DB::table('sch_cls')
+            ->join('cls', 'cls.id', '=', 'sch_cls.cls_id')
+            ->where('sch_cls.schid', $schid)
+            ->select(
+                'cls.id as clsid',
+                'cls.name as class_name'
+            )
+            ->distinct()
+            ->orderBy('cls.id', 'asc')
+            ->get();
+
+        $data = [];
+
+        // Initialize totals
+        $totalMaleStudents = 0;
+        $totalFemaleStudents = 0;
+        $totalMaleStaff = 0;
+        $totalFemaleStaff = 0;
+
+        foreach ($classes as $class) {
+            $clsid = $class->clsid;
+            $className = $class->class_name;
+
+            /**
+             * ===========================
+             * STUDENT SECTION (By School)
+             * ===========================
+             */
+            $studentIds = DB::table('old_student')
+                ->where('schid', $schid)
+                ->where('status', 'active')
+                ->where('ssn', $ssn)
+                ->where('clsm', $clsid)
+                ->distinct()
+                ->pluck('sid')
+                ->toArray();
+
+            $studentGender = DB::table('student_basic_data')
+                ->whereIn('user_id', $studentIds)
+                ->whereNotNull('sex')
+                ->select('sex', DB::raw('COUNT(*) as total'))
+                ->groupBy('sex')
+                ->pluck('total', 'sex')
+                ->toArray();
+
+            $maleStudents = $studentGender['M'] ?? 0;
+            $femaleStudents = $studentGender['F'] ?? 0;
+            $totalStudents = $maleStudents + $femaleStudents;
+
+            $totalMaleStudents += $maleStudents;
+            $totalFemaleStudents += $femaleStudents;
+
+            /**
+             * ===========================
+             * STAFF SECTION (By School)
+             * ===========================
+             */
+            $staffIds = DB::table('old_staff')
+                ->where('schid', $schid)
+                ->where('status', 'active')
+                ->where('ssn', $ssn)
+                ->where('clsm', $clsid)
+                ->distinct()
+                ->pluck('sid')
+                ->toArray();
+
+            $staffGender = DB::table('staff_basic_data')
+                ->whereIn('user_id', $staffIds)
+                ->whereNotNull('sex')
+                ->select('sex', DB::raw('COUNT(*) as total'))
+                ->groupBy('sex')
+                ->pluck('total', 'sex')
+                ->toArray();
+
+            $maleStaff = $staffGender['M'] ?? 0;
+            $femaleStaff = $staffGender['F'] ?? 0;
+            $totalStaff = $maleStaff + $femaleStaff;
+
+            $totalMaleStaff += $maleStaff;
+            $totalFemaleStaff += $femaleStaff;
+
+            /**
+             * ===========================
+             * CLASS-LEVEL RATIO
+             * ===========================
+             */
+            $data[] = [
+                'clsid' => $clsid,
+                'school_id' => $schid,
+                'session' => $ssn,
+                'class' => $className,
+                'learners' => [
+                    'male' => $maleStudents,
+                    'female' => $femaleStudents,
+                    'total' => $totalStudents,
+                ],
+                'staff' => [
+                    'male' => $maleStaff,
+                    'female' => $femaleStaff,
+                    'total' => $totalStaff,
+                ],
+            ];
+        }
+
+        /**
+         * ===========================
+         * OVERALL SUMMARY
+         * ===========================
+         */
+        $overallSummary = [
+            'total_male_students' => $totalMaleStudents,
+            'total_female_students' => $totalFemaleStudents,
+            'total_students' => $totalMaleStudents + $totalFemaleStudents,
+
+            'total_male_staff' => $totalMaleStaff,
+            'total_female_staff' => $totalFemaleStaff,
+            'total_staff' => $totalMaleStaff + $totalFemaleStaff,
+
+            'overall_male' => $totalMaleStudents + $totalMaleStaff,
+            'overall_female' => $totalFemaleStudents + $totalFemaleStaff,
+            'overall_total' => $totalMaleStudents + $totalFemaleStudents + $totalMaleStaff + $totalFemaleStaff,
+        ];
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Learner/Staff Ratio fetched successfully',
+            'pld' => [
+                'details' => $data,
+                'summary' => $overallSummary
+            ]
+        ], 200, [], JSON_PRETTY_PRINT);
+    }
 
 
     /**
@@ -33272,9 +33419,9 @@ public function getLearnersStaffDetails(Request $request)
      */
     public function getStudentGenderDetails(Request $request)
     {
-        $schid  = $request->input('schid');   // school_id
-        $ssn    = $request->input('ssn');     // session
-        $class  = $request->input('class');   // cls_id
+        $schid = $request->input('schid');   // school_id
+        $ssn = $request->input('ssn');     // session
+        $class = $request->input('class');   // cls_id
         $gender = $request->input('gender');  // 'M' or 'F'
 
         if (!$schid || !$ssn || !$class || !$gender) {
@@ -33396,9 +33543,9 @@ public function getLearnersStaffDetails(Request $request)
     public function getStaffGenderDetails(Request $request)
     {
         $schoolId = $request->input('school_id');
-        $session  = $request->input('ssn'); // academic session
-        $class    = $request->input('clsm'); // class ID
-        $gender   = $request->input('gender'); // 'M' or 'F'
+        $session = $request->input('ssn'); // academic session
+        $class = $request->input('clsm'); // class ID
+        $gender = $request->input('gender'); // 'M' or 'F'
 
         if (!$schoolId || !$session || !$class || !$gender) {
             return response()->json([
@@ -33439,721 +33586,727 @@ public function getLearnersStaffDetails(Request $request)
 
 
 
-/**
- * @OA\Post(
- *     path="/api/rePostStaff",
- *     summary="Repost a staff for a specific session and term",
- *     description="This endpoint re-posts a staff member into the `old_staff` table for the specified session, term, and class. It does not modify any other tables. Optional roles can be updated if provided.",
- *     tags={"Api"},
- *     security={{"bearerAuth":{}}},
- *     operationId="rePostStaff",
- *
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"stid", "schid", "sesn", "trm", "clsm", "suid"},
- *             @OA\Property(property="stid", type="integer", example=2073, description="Staff ID"),
- *             @OA\Property(property="schid", type="integer", example=12, description="School ID"),
- *             @OA\Property(property="sesn", type="integer", example=2025, description="Academic session (e.g., 2025)"),
- *             @OA\Property(property="trm", type="integer", example=1, description="Term number (1, 2, or 3)"),
- *             @OA\Property(property="clsm", type="integer", example=16, description="New main class ID"),
- *             @OA\Property(property="suid", type="string", example="HGC/STAFF/4", description="Unique staff code or identifier"),
- *             @OA\Property(property="role", type="string", nullable=true, example="Form Teacher", description="(Optional) Primary role for the reposted staff"),
- *             @OA\Property(property="role2", type="string", nullable=true, example="Subject Coordinator", description="(Optional) Secondary role for the reposted staff")
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Staff successfully re-posted",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Staff re-posted successfully"),
- *             @OA\Property(
- *                 property="pld",
- *                 type="object",
- *                 @OA\Property(property="stid", type="integer", example=2073),
- *                 @OA\Property(property="suid", type="string", example="HGC/STAFF/4"),
- *                 @OA\Property(property="ssn", type="integer", example=2025),
- *                 @OA\Property(property="trm", type="integer", example=1),
- *                 @OA\Property(property="clsm", type="integer", example=16),
- *                 @OA\Property(property="role", type="string", example="Form Teacher"),
- *                 @OA\Property(property="role2", type="string", example="Subject Coordinator")
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=404,
- *         description="Staff not found",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="Staff not found")
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=422,
- *         description="Validation error or invalid data",
- *         @OA\JsonContent(
- *             @OA\Property(property="message", type="string", example="The given data was invalid."),
- *             @OA\Property(property="errors", type="object")
- *         )
- *     )
- * )
- */
+    /**
+     * @OA\Post(
+     *     path="/api/rePostStaff",
+     *     summary="Repost a staff for a specific session and term",
+     *     description="This endpoint re-posts a staff member into the `old_staff` table for the specified session, term, and class. It does not modify any other tables. Optional roles can be updated if provided.",
+     *     tags={"Api"},
+     *     security={{"bearerAuth":{}}},
+     *     operationId="rePostStaff",
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"stid", "schid", "sesn", "trm", "clsm", "suid"},
+     *             @OA\Property(property="stid", type="integer", example=2073, description="Staff ID"),
+     *             @OA\Property(property="schid", type="integer", example=12, description="School ID"),
+     *             @OA\Property(property="sesn", type="integer", example=2025, description="Academic session (e.g., 2025)"),
+     *             @OA\Property(property="trm", type="integer", example=1, description="Term number (1, 2, or 3)"),
+     *             @OA\Property(property="clsm", type="integer", example=16, description="New main class ID"),
+     *             @OA\Property(property="suid", type="string", example="HGC/STAFF/4", description="Unique staff code or identifier"),
+     *             @OA\Property(property="role", type="string", nullable=true, example="Form Teacher", description="(Optional) Primary role for the reposted staff"),
+     *             @OA\Property(property="role2", type="string", nullable=true, example="Subject Coordinator", description="(Optional) Secondary role for the reposted staff")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Staff successfully re-posted",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Staff re-posted successfully"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 @OA\Property(property="stid", type="integer", example=2073),
+     *                 @OA\Property(property="suid", type="string", example="HGC/STAFF/4"),
+     *                 @OA\Property(property="ssn", type="integer", example=2025),
+     *                 @OA\Property(property="trm", type="integer", example=1),
+     *                 @OA\Property(property="clsm", type="integer", example=16),
+     *                 @OA\Property(property="role", type="string", example="Form Teacher"),
+     *                 @OA\Property(property="role2", type="string", example="Subject Coordinator")
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="Staff not found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Staff not found")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error or invalid data",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     )
+     * )
+     */
 
 
-public function rePostStaff(Request $request)
-{
-    $request->validate([
-        'stid'  => 'required', // staff id
-        'schid' => 'required', // school id
-        'sesn'  => 'required', // session
-        'trm'   => 'required', // term
-        'clsm'  => 'required', // new main class
-        'suid'  => 'required', // staff unique id
-        'role'  => 'nullable',
-        'role2' => 'nullable',
-    ]);
+    public function rePostStaff(Request $request)
+    {
+        $request->validate([
+            'stid' => 'required', // staff id
+            'schid' => 'required', // school id
+            'sesn' => 'required', // session
+            'trm' => 'required', // term
+            'clsm' => 'required', // new main class
+            'suid' => 'required', // staff unique id
+            'role' => 'nullable',
+            'role2' => 'nullable',
+        ]);
 
-    // 1️⃣ Find the staff record
-    $staff = DB::table('staff')->where('sid', $request->stid)->first();
-    if (!$staff) {
+        // 1️⃣ Find the staff record
+        $staff = DB::table('staff')->where('sid', $request->stid)->first();
+        if (!$staff) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Staff not found',
+            ], 404);
+        }
+
+        // 2️⃣ Check if already assigned
+        $exists = DB::table('staff_class')->where([
+            'stid' => $request->stid,
+            'cls' => $request->clsm,
+            'ssn' => $request->sesn,
+            'trm' => $request->trm,
+        ])->exists();
+
+        if ($exists) {
+            return response()->json([
+                'status' => false,
+                'message' => 'This staff has already been assigned to this class for the selected session and term.',
+            ]);
+        }
+
+        //  Generate deterministic UID (no random numbers)
+        $uid = $request->sesn . $request->trm . $request->stid . $request->clsm;
+        $uid2 = $request->sesn . $request->trm . $request->stid;
+
+        //  Insert a new record in old_staff (no update)
+        DB::table('old_staff')->insert([
+            'uid' => $uid2,
+            'sid' => $request->stid,
+            'schid' => $request->schid,
+            'fname' => $staff->fname,
+            'mname' => $staff->mname,
+            'lname' => $staff->lname,
+            'status' => 'active',
+            'suid' => $request->suid,
+            'ssn' => $request->sesn,
+            'trm' => $request->trm,
+            'clsm' => $request->clsm,
+            'role' => $request->role ?? $staff->role,
+            'role2' => $request->role2 ?? $staff->role2,
+            'more' => '',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // 5️⃣ Insert a new record in staff_class (no update)
+        DB::table('staff_class')->insert([
+            'uid' => $uid,
+            'stid' => $request->stid,
+            'cls' => $request->clsm,
+            'schid' => $request->schid,
+            'ssn' => $request->sesn,
+            'trm' => $request->trm,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         return response()->json([
-            'status' => false,
-            'message' => 'Staff not found',
-        ], 404);
-    }
-
-    // 2️⃣ Check if already assigned
-    $exists = DB::table('staff_class')->where([
-        'stid' => $request->stid,
-        'cls'  => $request->clsm,
-        'ssn'  => $request->sesn,
-        'trm'  => $request->trm,
-    ])->exists();
-
-    if ($exists) {
-        return response()->json([
-            'status' => false,
-            'message' => 'This staff has already been assigned to this class for the selected session and term.',
+            'status' => true,
+            'message' => 'Staff re-posted successfully and class assigned.',
+            'pld' => [
+                'stid' => $request->stid,
+                'suid' => $request->suid,
+                'ssn' => $request->sesn,
+                'trm' => $request->trm,
+                'clsm' => $request->clsm,
+                'role' => $request->role,
+                'role2' => $request->role2,
+            ],
         ]);
     }
 
-    //  Generate deterministic UID (no random numbers)
-    $uid = $request->sesn . $request->trm . $request->stid . $request->clsm;
-     $uid2 = $request->sesn . $request->trm . $request->stid;
-
-    //  Insert a new record in old_staff (no update)
-    DB::table('old_staff')->insert([
-        'uid'        => $uid2,
-        'sid'        => $request->stid,
-        'schid'      => $request->schid,
-        'fname'      => $staff->fname,
-        'mname'      => $staff->mname,
-        'lname'      => $staff->lname,
-        'status'     => 'active',
-        'suid'       => $request->suid,
-        'ssn'        => $request->sesn,
-        'trm'        => $request->trm,
-        'clsm'       => $request->clsm,
-        'role'       => $request->role ?? $staff->role,
-        'role2'      => $request->role2 ?? $staff->role2,
-        'more'       => '',
-        'created_at' => now(),
-        'updated_at' => now(),
-    ]);
-
-    // 5️⃣ Insert a new record in staff_class (no update)
-    DB::table('staff_class')->insert([
-        'uid'        => $uid,
-        'stid'       => $request->stid,
-        'cls'        => $request->clsm,
-        'schid'      => $request->schid,
-        'ssn'        => $request->sesn,
-        'trm'        => $request->trm,
-        'created_at' => now(),
-        'updated_at' => now(),
-    ]);
-
-    return response()->json([
-        'status'  => true,
-        'message' => 'Staff re-posted successfully and class assigned.',
-        'pld' => [
-            'stid' => $request->stid,
-            'suid' => $request->suid,
-            'ssn'  => $request->sesn,
-            'trm'  => $request->trm,
-            'clsm' => $request->clsm,
-            'role' => $request->role,
-            'role2'=> $request->role2,
-        ],
-    ]);
-}
 
 
 
+    /**
+     * @OA\Get(
+     *     path="/api/getAllSchoolsInfoRecord",
+     *     summary="Retrieve all school information records with optional filters",
+     *     description="Returns a paginated list of schools with statistics such as active learners, alumni, staff, and web data information.",
+     *     tags={"Admin"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         description="The offset (starting point) for pagination. Default is 0.",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=0)
+     *     ),
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         description="Number of records to return. Default is 20.",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=20)
+     *     ),
+     *     @OA\Parameter(
+     *         name="state",
+     *         in="query",
+     *         description="Filter schools by state.",
+     *         required=false,
+     *         @OA\Schema(type="string", example="Lagos")
+     *     ),
+     *     @OA\Parameter(
+     *         name="lga",
+     *         in="query",
+     *         description="Filter schools by LGA (Local Government Area).",
+     *         required=false,
+     *         @OA\Schema(type="string", example="Ikeja")
+     *     ),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="query",
+     *         description="Filter results by academic session.",
+     *         required=false,
+     *         @OA\Schema(type="string", example="2024/2025")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="query",
+     *         description="Filter results by academic term.",
+     *         required=false,
+     *         @OA\Schema(type="string", example="First Term")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful response with school records",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(property="total_records", type="integer", example=56),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(
+     *                         property="s",
+     *                         type="object",
+     *                         @OA\Property(property="sid", type="string", example="2439"),
+     *                         @OA\Property(property="school_id", type="string", example="AHS/2439"),
+     *                         @OA\Property(property="name", type="string", example="ABC High School"),
+     *                         @OA\Property(property="count", type="string", example="48"),
+     *                         @OA\Property(property="s_web", type="string", example="0"),
+     *                         @OA\Property(property="s_info", type="string", example="0"),
+     *                         @OA\Property(property="sbd", type="string", example="abchs"),
+     *                         @OA\Property(property="sch3", type="string", example="AHS"),
+     *                         @OA\Property(property="cssn", type="string", example="0"),
+     *                         @OA\Property(property="ctrm", type="string", example="0"),
+     *                         @OA\Property(property="ctrmn", type="string", example="0"),
+     *                         @OA\Property(property="lattitude", type="string", nullable=true, example=null),
+     *                         @OA\Property(property="longitude", type="string", nullable=true, example=null),
+     *                         @OA\Property(property="country", type="string", example="N/A"),
+     *                         @OA\Property(property="state", type="string", example="N/A"),
+     *                         @OA\Property(property="lga", type="string", example="N/A"),
+     *                         @OA\Property(property="created_at", type="string", example="2025-09-23 05:00:21"),
+     *                         @OA\Property(property="updated_at", type="string", example="2025-09-23 05:00:21"),
+     *                         @OA\Property(property="active_learners", type="integer", example=0),
+     *                         @OA\Property(property="alumni", type="integer", example=0),
+     *                         @OA\Property(property="active_staff", type="integer", example=0),
+     *                         @OA\Property(
+     *                             property="classes",
+     *                             type="array",
+     *                             @OA\Items(type="string", example="JSS1A")
+     *                         ),
+     *                         @OA\Property(property="total_classes", type="integer", example=4)
+     *                     ),
+     *                     @OA\Property(
+     *                         property="w",
+     *                         type="object",
+     *                         nullable=true,
+     *                         @OA\Property(property="user_id", type="string", example="2439"),
+     *                         @OA\Property(property="school_name", type="string", example="ABC High School"),
+     *                         @OA\Property(property="color", type="string", example="#123456"),
+     *                         @OA\Property(property="address", type="string", example="12 Palm Street, Ikeja"),
+     *                         @OA\Property(property="country", type="string", example="Nigeria"),
+     *                         @OA\Property(property="state", type="string", example="Lagos"),
+     *                         @OA\Property(property="lga", type="string", example="Ikeja"),
+     *                         @OA\Property(property="phone", type="string", example="+2348012345678"),
+     *                         @OA\Property(property="email", type="string", example="info@abchs.edu.ng"),
+     *                         @OA\Property(property="vision", type="string", example="To be the best learning institution."),
+     *                         @OA\Property(property="values", type="string", example="Discipline, Excellence, Innovation"),
+     *                         @OA\Property(property="year", type="string", example="2005"),
+     *                         @OA\Property(property="about", type="string", example="ABC High School is committed to academic excellence."),
+     *                         @OA\Property(property="motto", type="string", example="Knowledge is Power"),
+     *                         @OA\Property(property="facebook", type="string", example="facebook.com/abchs"),
+     *                         @OA\Property(property="instagram", type="string", example="instagram.com/abchs"),
+     *                         @OA\Property(property="youtube", type="string", example="youtube.com/abchs"),
+     *                         @OA\Property(property="whatsapp", type="string", example="+2348012345678"),
+     *                         @OA\Property(property="linkedin", type="string", example="linkedin.com/company/abchs"),
+     *                         @OA\Property(property="twitter", type="string", example="@abchs"),
+     *                         @OA\Property(property="created_at", type="string", example="2025-09-23 05:00:21"),
+     *                         @OA\Property(property="updated_at", type="string", example="2025-09-23 05:00:21")
+     *                     )
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=500,
+     *         description="Server error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Error: Database connection failed")
+     *         )
+     *     )
+     * )
+     */
 
-/**
- * @OA\Get(
- *     path="/api/getAllSchoolsInfoRecord",
- *     summary="Retrieve all school information records with optional filters",
- *     description="Returns a paginated list of schools with statistics such as active learners, alumni, staff, and web data information.",
- *     tags={"Admin"},
- *     security={{"bearerAuth":{}}},
- *
- *     @OA\Parameter(
- *         name="start",
- *         in="query",
- *         description="The offset (starting point) for pagination. Default is 0.",
- *         required=false,
- *         @OA\Schema(type="integer", example=0)
- *     ),
- *     @OA\Parameter(
- *         name="count",
- *         in="query",
- *         description="Number of records to return. Default is 20.",
- *         required=false,
- *         @OA\Schema(type="integer", example=20)
- *     ),
- *     @OA\Parameter(
- *         name="state",
- *         in="query",
- *         description="Filter schools by state.",
- *         required=false,
- *         @OA\Schema(type="string", example="Lagos")
- *     ),
- *     @OA\Parameter(
- *         name="lga",
- *         in="query",
- *         description="Filter schools by LGA (Local Government Area).",
- *         required=false,
- *         @OA\Schema(type="string", example="Ikeja")
- *     ),
- *     @OA\Parameter(
- *         name="ssn",
- *         in="query",
- *         description="Filter results by academic session.",
- *         required=false,
- *         @OA\Schema(type="string", example="2024/2025")
- *     ),
- *     @OA\Parameter(
- *         name="trm",
- *         in="query",
- *         description="Filter results by academic term.",
- *         required=false,
- *         @OA\Schema(type="string", example="First Term")
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Successful response with school records",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Success"),
- *             @OA\Property(property="total_records", type="integer", example=56),
- *             @OA\Property(
- *                 property="pld",
- *                 type="array",
- *                 @OA\Items(
- *                     type="object",
- *                     @OA\Property(
- *                         property="s",
- *                         type="object",
- *                         @OA\Property(property="sid", type="string", example="2439"),
- *                         @OA\Property(property="school_id", type="string", example="AHS/2439"),
- *                         @OA\Property(property="name", type="string", example="ABC High School"),
- *                         @OA\Property(property="count", type="string", example="48"),
- *                         @OA\Property(property="s_web", type="string", example="0"),
- *                         @OA\Property(property="s_info", type="string", example="0"),
- *                         @OA\Property(property="sbd", type="string", example="abchs"),
- *                         @OA\Property(property="sch3", type="string", example="AHS"),
- *                         @OA\Property(property="cssn", type="string", example="0"),
- *                         @OA\Property(property="ctrm", type="string", example="0"),
- *                         @OA\Property(property="ctrmn", type="string", example="0"),
- *                         @OA\Property(property="lattitude", type="string", nullable=true, example=null),
- *                         @OA\Property(property="longitude", type="string", nullable=true, example=null),
- *                         @OA\Property(property="country", type="string", example="N/A"),
- *                         @OA\Property(property="state", type="string", example="N/A"),
- *                         @OA\Property(property="lga", type="string", example="N/A"),
- *                         @OA\Property(property="created_at", type="string", example="2025-09-23 05:00:21"),
- *                         @OA\Property(property="updated_at", type="string", example="2025-09-23 05:00:21"),
- *                         @OA\Property(property="active_learners", type="integer", example=0),
- *                         @OA\Property(property="alumni", type="integer", example=0),
- *                         @OA\Property(property="active_staff", type="integer", example=0),
- *                         @OA\Property(
- *                             property="classes",
- *                             type="array",
- *                             @OA\Items(type="string", example="JSS1A")
- *                         ),
- *                         @OA\Property(property="total_classes", type="integer", example=4)
- *                     ),
- *                     @OA\Property(
- *                         property="w",
- *                         type="object",
- *                         nullable=true,
- *                         @OA\Property(property="user_id", type="string", example="2439"),
- *                         @OA\Property(property="school_name", type="string", example="ABC High School"),
- *                         @OA\Property(property="color", type="string", example="#123456"),
- *                         @OA\Property(property="address", type="string", example="12 Palm Street, Ikeja"),
- *                         @OA\Property(property="country", type="string", example="Nigeria"),
- *                         @OA\Property(property="state", type="string", example="Lagos"),
- *                         @OA\Property(property="lga", type="string", example="Ikeja"),
- *                         @OA\Property(property="phone", type="string", example="+2348012345678"),
- *                         @OA\Property(property="email", type="string", example="info@abchs.edu.ng"),
- *                         @OA\Property(property="vision", type="string", example="To be the best learning institution."),
- *                         @OA\Property(property="values", type="string", example="Discipline, Excellence, Innovation"),
- *                         @OA\Property(property="year", type="string", example="2005"),
- *                         @OA\Property(property="about", type="string", example="ABC High School is committed to academic excellence."),
- *                         @OA\Property(property="motto", type="string", example="Knowledge is Power"),
- *                         @OA\Property(property="facebook", type="string", example="facebook.com/abchs"),
- *                         @OA\Property(property="instagram", type="string", example="instagram.com/abchs"),
- *                         @OA\Property(property="youtube", type="string", example="youtube.com/abchs"),
- *                         @OA\Property(property="whatsapp", type="string", example="+2348012345678"),
- *                         @OA\Property(property="linkedin", type="string", example="linkedin.com/company/abchs"),
- *                         @OA\Property(property="twitter", type="string", example="@abchs"),
- *                         @OA\Property(property="created_at", type="string", example="2025-09-23 05:00:21"),
- *                         @OA\Property(property="updated_at", type="string", example="2025-09-23 05:00:21")
- *                     )
- *                 )
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=500,
- *         description="Server error",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="Error: Database connection failed")
- *         )
- *     )
- * )
- */
 
+    public function getAllSchoolsInfoRecord(Request $request)
+    {
+        try {
+            // 🔹 Filters
+            $start = $request->input('start', 0);
+            $count = $request->input('count', 20);
+            $state = $request->input('state');
+            $lga = $request->input('lga');
+            $ssnYear = $request->input('ssn'); // academic year
+            $trmNo = $request->input('trm'); // term number
 
-public function getAllSchoolsInfoRecord(Request $request)
-{
-    try {
-        // 🔹 Filters
-        $start = $request->input('start', 0);
-        $count = $request->input('count', 20);
-        $state = $request->input('state');
-        $lga   = $request->input('lga');
-        $ssnYear = $request->input('ssn'); // academic year
-        $trmNo   = $request->input('trm'); // term number
+            // 🔹 Resolve session name (e.g., "2024" → "2024/2025")
+            $sessionName = null;
+            if (!empty($ssnYear)) {
+                $sessionRecord = DB::table('sesn')->where('year', $ssnYear)->first();
+                $sessionName = $sessionRecord ? $sessionRecord->name : null;
+            }
 
-        // 🔹 Resolve session name (e.g., "2024" → "2024/2025")
-        $sessionName = null;
-        if (!empty($ssnYear)) {
-            $sessionRecord = DB::table('sesn')->where('year', $ssnYear)->first();
-            $sessionName = $sessionRecord ? $sessionRecord->name : null;
+            // 🔹 Resolve term name (e.g., "1" → "First Term")
+            $termName = null;
+            if (!empty($trmNo)) {
+                $termRecord = DB::table('trm')->where('no', $trmNo)->first();
+                $termName = $termRecord ? $termRecord->name : null;
+            }
+
+            // 🔹 Base query with join
+            $query = DB::table('school as s')
+                ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id')
+                ->select('s.*', 'sw.state as web_state', 'sw.lga as web_lga', 'sw.country as web_country');
+
+            // Optional filters
+            if (!empty($state))
+                $query->where('sw.state', $state);
+            if (!empty($lga))
+                $query->where('sw.lga', $lga);
+
+            // 🔹 Get total before pagination
+            $totalRecords = $query->count();
+
+            // 🔹 Apply pagination
+            $schools = $query->orderBy('s.name', 'asc')
+                ->skip($start)
+                ->take($count)
+                ->get();
+
+            $pld = [];
+
+            foreach ($schools as $school) {
+                $user_id = $school->sid;
+
+                // Count active learners
+                $learnersQuery = DB::table('old_student')
+                    ->where('schid', $user_id)
+                    ->where('status', 'active');
+
+                if (!empty($sessionName))
+                    $learnersQuery->where('ssn', $sessionName);
+                if (!empty($termName))
+                    $learnersQuery->where('trm', $termName);
+
+                $activeLearners = $learnersQuery->distinct('sid')->count('sid');
+
+                // Count alumni
+                $alumniCount = DB::table('alumnis')
+                    ->where('schid', $user_id)
+                    ->count();
+
+                // Count active staff
+                $staffQuery = DB::table('old_staff')
+                    ->where('schid', $user_id)
+                    ->where('status', 'active');
+
+                if (!empty($sessionName))
+                    $staffQuery->where('ssn', $sessionName);
+                if (!empty($termName))
+                    $staffQuery->where('trm', $termName);
+
+                $activeStaff = $staffQuery->distinct('sid')->count('sid');
+
+                // Class arms and total
+                $classArms = DB::table('sch_cls')
+                    ->where('schid', $user_id)
+                    ->get(['cls_id', 'name'])
+                    ->groupBy('cls_id')
+                    ->map(fn($items) => $items->pluck('name')->toArray())
+                    ->toArray();
+
+                $totalClasses = DB::table('sch_cls')
+                    ->where('schid', $user_id)
+                    ->count();
+
+                // Generate school code
+                $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
+
+                // Web data
+                $webData = DB::table('school_web_data')->where('user_id', $user_id)->first();
+
+                // Structured format
+                $pld[] = [
+                    's' => [
+                        'sid' => (string) $school->sid,
+                        'school_id' => $schoolCode,
+                        'name' => $school->name,
+                        'count' => (string) $school->count,
+                        's_web' => $school->s_web,
+                        's_info' => $school->s_info,
+                        'sbd' => $school->sbd,
+                        'sch3' => $school->sch3,
+                        'cssn' => $school->cssn,
+                        'ctrm' => $school->ctrm,
+                        'ctrmn' => $school->ctrmn,
+                        'lattitude' => $school->latt,
+                        'longitude' => $school->longi,
+                        'country' => $school->web_country ?? 'N/A',
+                        'state' => $school->web_state ?? 'N/A',
+                        'lga' => $school->web_lga ?? 'N/A',
+                        'created_at' => $school->created_at,
+                        'updated_at' => $school->updated_at,
+                        'active_learners' => $activeLearners,
+                        'alumni' => $alumniCount,
+                        'active_staff' => $activeStaff,
+                        'classes' => $classArms,
+                        'total_classes' => $totalClasses,
+                    ],
+                    'w' => $webData ? [
+                        'user_id' => $webData->user_id,
+                        'school_name' => $webData->sname ?? 'N/A',
+                        'color' => $webData->color ?? 'N/A',
+                        'address' => $webData->addr ?? 'N/A',
+                        'country' => $webData->country ?? 'N/A',
+                        'state' => $webData->state ?? 'N/A',
+                        'lga' => $webData->lga ?? 'N/A',
+                        'phone' => $webData->phn ?? 'N/A',
+                        'email' => $webData->eml ?? 'N/A',
+                        'vision' => $webData->vision ?? 'N/A',
+                        'values' => $webData->values ?? 'N/A',
+                        'year' => $webData->year ?? 'N/A',
+                        'about' => $webData->about ?? 'N/A',
+                        'motto' => $webData->motto ?? 'N/A',
+                        'facebook' => $webData->fb ?? 'N/A',
+                        'instagram' => $webData->isg ?? 'N/A',
+                        'youtube' => $webData->yt ?? 'N/A',
+                        'whatsapp' => $webData->wh ?? 'N/A',
+                        'linkedin' => $webData->lkd ?? 'N/A',
+                        'twitter' => $webData->tw ?? 'N/A',
+                        'created_at' => $webData->created_at,
+                        'updated_at' => $webData->updated_at,
+                    ] : null,
+                ];
+            }
+
+            // Response
+            return response()->json([
+                "status" => true,
+                "message" => "Success",
+                "total_records" => $totalRecords,
+                "session_used" => $sessionName ?? 'All Sessions',
+                "term_used" => $termName ?? 'All Terms',
+                "pld" => $pld,
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                "status" => false,
+                "message" => "Error: " . $e->getMessage(),
+            ], 500);
         }
+    }
 
-        // 🔹 Resolve term name (e.g., "1" → "First Term")
-        $termName = null;
-        if (!empty($trmNo)) {
-            $termRecord = DB::table('trm')->where('no', $trmNo)->first();
-            $termName = $termRecord ? $termRecord->name : null;
-        }
 
-        // 🔹 Base query with join
-        $query = DB::table('school as s')
-            ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id')
-            ->select('s.*', 'sw.state as web_state', 'sw.lga as web_lga', 'sw.country as web_country');
 
-        // Optional filters
-        if (!empty($state)) $query->where('sw.state', $state);
-        if (!empty($lga)) $query->where('sw.lga', $lga);
+    /**
+     * @OA\Post(
+     *     path="/api/updateAccountsBySchoolAndClass",
+     *     summary="Update accounts and subaccounts for a school and class",
+     *     tags={"Accounts"},
+     *    security={{"bearerAuth":{}}},
+     *     description="Updates clsid and optionally pay_head_id for all accounts and subaccounts for a given school and current class",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"schid","clsid","new_clsid"},
+     *             @OA\Property(property="schid", type="integer", example=74, description="School ID"),
+     *             @OA\Property(property="clsid", type="integer", example=2, description="Current Class ID to match"),
+     *             @OA\Property(property="new_clsid", type="integer", example=5, description="New Class ID to update to"),
+     *             @OA\Property(property="pay_head_id", type="integer", example=214, description="Optional pay head ID")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Accounts and subaccounts updated successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Accounts and subaccounts updated successfully."),
+     *             @OA\Property(property="updated_count", type="integer", example=3)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="No accounts found for this school and class",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="No accounts found for this school and class.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The schid field is required."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     )
+     * )
+     */
 
-        // 🔹 Get total before pagination
-        $totalRecords = $query->count();
+    public function updateAccountsBySchoolAndClass(Request $request)
+    {
+        // Validate request
+        $request->validate([
+            'schid' => 'required|integer',          // school id
+            'clsid' => 'required|integer',          // current class id to match
+            'new_clsid' => 'required|integer',      // new class id to update to
+            'pay_head_id' => 'nullable|integer',    // new pay_head_id (optional)
+        ]);
 
-        // 🔹 Apply pagination
-        $schools = $query->orderBy('s.name', 'asc')
-            ->skip($start)
-            ->take($count)
+        $schid = $request->schid;
+        $clsid = $request->clsid;
+        $newClsid = $request->new_clsid;
+        $newPayHeadId = $request->pay_head_id;
+
+        // Fetch all accounts for the school with the selected class.
+        $accounts = accts::where('schid', $schid)
+            ->where('clsid', $clsid)
             ->get();
 
-        $pld = [];
-
-        foreach ($schools as $school) {
-            $user_id = $school->sid;
-
-            // Count active learners
-            $learnersQuery = DB::table('old_student')
-                ->where('schid', $user_id)
-                ->where('status', 'active');
-
-            if (!empty($sessionName)) $learnersQuery->where('ssn', $sessionName);
-            if (!empty($termName)) $learnersQuery->where('trm', $termName);
-
-            $activeLearners = $learnersQuery->distinct('sid')->count('sid');
-
-            // Count alumni
-            $alumniCount = DB::table('alumnis')
-                ->where('schid', $user_id)
-                ->count();
-
-            // Count active staff
-            $staffQuery = DB::table('old_staff')
-                ->where('schid', $user_id)
-                ->where('status', 'active');
-
-            if (!empty($sessionName)) $staffQuery->where('ssn', $sessionName);
-            if (!empty($termName)) $staffQuery->where('trm', $termName);
-
-            $activeStaff = $staffQuery->distinct('sid')->count('sid');
-
-            // Class arms and total
-            $classArms = DB::table('sch_cls')
-                ->where('schid', $user_id)
-                ->get(['cls_id', 'name'])
-                ->groupBy('cls_id')
-                ->map(fn($items) => $items->pluck('name')->toArray())
-                ->toArray();
-
-            $totalClasses = DB::table('sch_cls')
-                ->where('schid', $user_id)
-                ->count();
-
-            // Generate school code
-            $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
-
-            // Web data
-            $webData = DB::table('school_web_data')->where('user_id', $user_id)->first();
-
-            // Structured format
-            $pld[] = [
-                's' => [
-                    'sid'             => (string) $school->sid,
-                    'school_id'       => $schoolCode,
-                    'name'            => $school->name,
-                    'count'           => (string) $school->count,
-                    's_web'           => $school->s_web,
-                    's_info'          => $school->s_info,
-                    'sbd'             => $school->sbd,
-                    'sch3'            => $school->sch3,
-                    'cssn'            => $school->cssn,
-                    'ctrm'            => $school->ctrm,
-                    'ctrmn'           => $school->ctrmn,
-                    'lattitude'       => $school->latt,
-                    'longitude'       => $school->longi,
-                    'country'         => $school->web_country ?? 'N/A',
-                    'state'           => $school->web_state ?? 'N/A',
-                    'lga'             => $school->web_lga ?? 'N/A',
-                    'created_at'      => $school->created_at,
-                    'updated_at'      => $school->updated_at,
-                    'active_learners' => $activeLearners,
-                    'alumni'          => $alumniCount,
-                    'active_staff'    => $activeStaff,
-                    'classes'         => $classArms,
-                    'total_classes'   => $totalClasses,
-                ],
-                'w' => $webData ? [
-                    'user_id'    => $webData->user_id,
-                    'school_name' => $webData->sname ?? 'N/A',
-                    'color'      => $webData->color ?? 'N/A',
-                    'address'    => $webData->addr ?? 'N/A',
-                    'country'    => $webData->country ?? 'N/A',
-                    'state'      => $webData->state ?? 'N/A',
-                    'lga'        => $webData->lga ?? 'N/A',
-                    'phone'      => $webData->phn ?? 'N/A',
-                    'email'      => $webData->eml ?? 'N/A',
-                    'vision'     => $webData->vision ?? 'N/A',
-                    'values'     => $webData->values ?? 'N/A',
-                    'year'       => $webData->year ?? 'N/A',
-                    'about'      => $webData->about ?? 'N/A',
-                    'motto'      => $webData->motto ?? 'N/A',
-                    'facebook'   => $webData->fb ?? 'N/A',
-                    'instagram'  => $webData->isg ?? 'N/A',
-                    'youtube'    => $webData->yt ?? 'N/A',
-                    'whatsapp'   => $webData->wh ?? 'N/A',
-                    'linkedin'   => $webData->lkd ?? 'N/A',
-                    'twitter'    => $webData->tw ?? 'N/A',
-                    'created_at' => $webData->created_at,
-                    'updated_at' => $webData->updated_at,
-                ] : null,
-            ];
+        if ($accounts->isEmpty()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'No accounts found for this school and class.'
+            ], 404);
         }
 
-        // Response
+        foreach ($accounts as $acct) {
+            // Update the accts table
+            $acct->update([
+                'clsid' => $newClsid,
+                'pay_head_id' => $newPayHeadId ?? $acct->pay_head_id,
+            ]);
+
+            // Update all related sub_accounts
+            $acct->subAccounts()->update([
+                'clsid' => $newClsid,
+                'pay_head_id' => $newPayHeadId ?? $acct->pay_head_id,
+            ]);
+        }
+
         return response()->json([
-            "status"        => true,
-            "message"       => "Success",
-            "total_records" => $totalRecords,
-            "session_used"  => $sessionName ?? 'All Sessions',
-            "term_used"     => $termName ?? 'All Terms',
-            "pld"           => $pld,
-        ]);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            "status"  => false,
-            "message" => "Error: " . $e->getMessage(),
-        ], 500);
-    }
-}
-
-
-
-/**
- * @OA\Post(
- *     path="/api/updateAccountsBySchoolAndClass",
- *     summary="Update accounts and subaccounts for a school and class",
- *     tags={"Accounts"},
- *    security={{"bearerAuth":{}}},
- *     description="Updates clsid and optionally pay_head_id for all accounts and subaccounts for a given school and current class",
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"schid","clsid","new_clsid"},
- *             @OA\Property(property="schid", type="integer", example=74, description="School ID"),
- *             @OA\Property(property="clsid", type="integer", example=2, description="Current Class ID to match"),
- *             @OA\Property(property="new_clsid", type="integer", example=5, description="New Class ID to update to"),
- *             @OA\Property(property="pay_head_id", type="integer", example=214, description="Optional pay head ID")
- *         )
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Accounts and subaccounts updated successfully",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Accounts and subaccounts updated successfully."),
- *             @OA\Property(property="updated_count", type="integer", example=3)
- *         )
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="No accounts found for this school and class",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="No accounts found for this school and class.")
- *         )
- *     ),
- *     @OA\Response(
- *         response=422,
- *         description="Validation error",
- *         @OA\JsonContent(
- *             @OA\Property(property="message", type="string", example="The schid field is required."),
- *             @OA\Property(property="errors", type="object")
- *         )
- *     )
- * )
- */
-
-public function updateAccountsBySchoolAndClass(Request $request)
-{
-    // Validate request
-    $request->validate([
-        'schid' => 'required|integer',          // school id
-        'clsid' => 'required|integer',          // current class id to match
-        'new_clsid' => 'required|integer',      // new class id to update to
-        'pay_head_id' => 'nullable|integer',    // new pay_head_id (optional)
-    ]);
-
-    $schid = $request->schid;
-    $clsid = $request->clsid;
-    $newClsid = $request->new_clsid;
-    $newPayHeadId = $request->pay_head_id;
-
-    // Fetch all accounts for the school with the selected class.
-    $accounts = accts::where('schid', $schid)
-                     ->where('clsid', $clsid)
-                     ->get();
-
-    if ($accounts->isEmpty()) {
-        return response()->json([
-            'status' => false,
-            'message' => 'No accounts found for this school and class.'
-        ], 404);
-    }
-
-    foreach ($accounts as $acct) {
-        // Update the accts table
-        $acct->update([
-            'clsid' => $newClsid,
-            'pay_head_id' => $newPayHeadId ?? $acct->pay_head_id,
-        ]);
-
-        // Update all related sub_accounts
-        $acct->subAccounts()->update([
-            'clsid' => $newClsid,
-            'pay_head_id' => $newPayHeadId ?? $acct->pay_head_id,
+            'status' => true,
+            'message' => 'Accounts and subaccounts updated successfully.',
+            'updated_count' => $accounts->count()
         ]);
     }
 
-    return response()->json([
-        'status' => true,
-        'message' => 'Accounts and subaccounts updated successfully.',
-        'updated_count' => $accounts->count()
-    ]);
-}
 
 
 
+    /**
+     * @OA\Post(
+     *     path="/api/addAdmissionInfo",
+     *     summary="Add or update admission information for an existing student",
+     *     description="Updates the admission details (session, term, class, and date) for a specific student based on `sid` and `schid`.",
+     *     tags={"Api"},
+     *     security={{"bearerAuth":{}}},
+     *     operationId="addAdmissionInfo",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"sid","schid","adm_ssn","adm_trm","cls_of_adm","date_of_adm"},
+     *             @OA\Property(property="sid", type="string", example="1000", description="Unique student ID"),
+     *             @OA\Property(property="schid", type="string", example="13", description="School ID"),
+     *             @OA\Property(property="adm_ssn", type="string", example="2024/2025", description="Admission Session"),
+     *             @OA\Property(property="adm_trm", type="string", example="2nd Term", description="Admission Term"),
+     *             @OA\Property(property="cls_of_adm", type="string", example="JSS1", description="Class of Admission"),
+     *             @OA\Property(property="date_of_adm", type="string", format="date", example="2025-11-13", description="Date of Admission")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Admission information added successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Admission information added successfully.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="No record found or update failed",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="No record found for this student and school or update failed.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The adm_ssn field is required.")
+     *         )
+     *     )
+     * )
+     */
 
-/**
- * @OA\Post(
- *     path="/api/addAdmissionInfo",
- *     summary="Add or update admission information for an existing student",
- *     description="Updates the admission details (session, term, class, and date) for a specific student based on `sid` and `schid`.",
- *     tags={"Api"},
- *     security={{"bearerAuth":{}}},
- *     operationId="addAdmissionInfo",
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"sid","schid","adm_ssn","adm_trm","cls_of_adm","date_of_adm"},
- *             @OA\Property(property="sid", type="string", example="1000", description="Unique student ID"),
- *             @OA\Property(property="schid", type="string", example="13", description="School ID"),
- *             @OA\Property(property="adm_ssn", type="string", example="2024/2025", description="Admission Session"),
- *             @OA\Property(property="adm_trm", type="string", example="2nd Term", description="Admission Term"),
- *             @OA\Property(property="cls_of_adm", type="string", example="JSS1", description="Class of Admission"),
- *             @OA\Property(property="date_of_adm", type="string", format="date", example="2025-11-13", description="Date of Admission")
- *         )
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Admission information added successfully",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Admission information added successfully.")
- *         )
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="No record found or update failed",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="No record found for this student and school or update failed.")
- *         )
- *     ),
- *     @OA\Response(
- *         response=422,
- *         description="Validation error",
- *         @OA\JsonContent(
- *             @OA\Property(property="message", type="string", example="The adm_ssn field is required.")
- *         )
- *     )
- * )
- */
 
+    public function addAdmissionInfo(Request $request)
+    {
+        // ✅ Validate input
+        $request->validate([
+            "sid" => "required|integer",
+            "schid" => "required|integer",
+            "adm_ssn" => "required|string",       // Admission Session
+            "adm_trm" => "required|string",       // Admission Term
+            "cls_of_adm" => "required|string",    // Class of Admission
+            "date_of_adm" => "required|date"      // Date of Admission
+        ]);
 
-public function addAdmissionInfo(Request $request)
-{
-    // ✅ Validate input
-    $request->validate([
-        "sid" => "required|integer",
-        "schid" => "required|integer",
-        "adm_ssn" => "required|string",       // Admission Session
-        "adm_trm" => "required|string",       // Admission Term
-        "cls_of_adm" => "required|string",    // Class of Admission
-        "date_of_adm" => "required|date"      // Date of Admission
-    ]);
+        // Data to update in both tables
+        $updateData = [
+            'adm_ssn' => $request->adm_ssn,
+            'adm_trm' => $request->adm_trm,
+            'cls_of_adm' => $request->cls_of_adm,
+            'date_of_adm' => $request->date_of_adm,
+        ];
 
-    // Data to update in both tables
-    $updateData = [
-        'adm_ssn' => $request->adm_ssn,
-        'adm_trm' => $request->adm_trm,
-        'cls_of_adm' => $request->cls_of_adm,
-        'date_of_adm' => $request->date_of_adm,
-    ];
+        // Update old_student table
+        $oldStudentUpdated = old_student::where('sid', $request->sid)
+            ->where('schid', $request->schid)
+            ->update($updateData);
 
-    // Update old_student table
-    $oldStudentUpdated = old_student::where('sid', $request->sid)
-        ->where('schid', $request->schid)
-        ->update($updateData);
+        // Update student table
+        $studentUpdated = student::where('sid', $request->sid)
+            ->where('schid', $request->schid)
+            ->update($updateData);
 
-    // Update student table
-    $studentUpdated = student::where('sid', $request->sid)
-        ->where('schid', $request->schid)
-        ->update($updateData);
+        // Handle no record updated
+        if (!$oldStudentUpdated && !$studentUpdated) {
+            return response()->json([
+                "status" => false,
+                "message" => "No matching record found in either table or update failed."
+            ], 404);
+        }
 
-    // Handle no record updated
-    if (!$oldStudentUpdated && !$studentUpdated) {
         return response()->json([
-            "status" => false,
-            "message" => "No matching record found in either table or update failed."
-        ], 404);
+            "status" => true,
+            "message" => "Admission information updated successfully in both tables."
+        ]);
     }
 
-    return response()->json([
-        "status" => true,
-        "message" => "Admission information updated successfully in both tables."
-    ]);
-}
 
 
 
 
-
-/**
- * @OA\Put(
- *     path="/api/approveAdmission",
- *     summary="Approve a student's admission",
- *     description="Updates the adm_status to true when the user clicks the approve button.",
- *     operationId="approveAdmission",
- *     tags={"Api"},
- *    security={{"bearerAuth":{}}},
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"sid", "schid"},
- *             @OA\Property(property="sid", type="integer", example=1000),
- *             @OA\Property(property="schid", type="integer", example=13)
- *         )
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Admission approved successfully",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Admission approved successfully.")
- *         )
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="Student record not found or update failed"
- *     ),
- *     @OA\Response(
- *         response=500,
- *         description="Internal server error"
- *     )
- * )
- */
-public function approveAdmission(Request $request)
-{
-    // Validate input
-    $request->validate([
-        "sid"   => "required|integer",
-        "schid" => "required|integer"
-    ]);
+    /**
+     * @OA\Put(
+     *     path="/api/approveAdmission",
+     *     summary="Approve a student's admission",
+     *     description="Updates the adm_status to true when the user clicks the approve button.",
+     *     operationId="approveAdmission",
+     *     tags={"Api"},
+     *    security={{"bearerAuth":{}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"sid", "schid"},
+     *             @OA\Property(property="sid", type="integer", example=1000),
+     *             @OA\Property(property="schid", type="integer", example=13)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Admission approved successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Admission approved successfully.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Student record not found or update failed"
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Internal server error"
+     *     )
+     * )
+     */
+    public function approveAdmission(Request $request)
+    {
+        // Validate input
+        $request->validate([
+            "sid" => "required|integer",
+            "schid" => "required|integer"
+        ]);
 
         $updated = student::where('sid', $request->sid)
-        ->where('schid', $request->schid)
-        ->update(['adm_status' => 1]);
+            ->where('schid', $request->schid)
+            ->update(['adm_status' => 1]);
 
-    // Update adm_status to 1 (approved)
-    $updatedOld = old_student::where('sid', $request->sid)
-        ->where('schid', $request->schid)
-        ->update(['adm_status' => 1]);
+        // Update adm_status to 1 (approved)
+        $updatedOld = old_student::where('sid', $request->sid)
+            ->where('schid', $request->schid)
+            ->update(['adm_status' => 1]);
 
-    //  Handle case where no record was updated
-    if (!$updated && !$updatedOld) {
+        //  Handle case where no record was updated
+        if (!$updated && !$updatedOld) {
+            return response()->json([
+                "status" => false,
+                "message" => "No record found for this student or update failed."
+            ], 404);
+        }
+
         return response()->json([
-            "status"  => false,
-            "message" => "No record found for this student or update failed."
-        ], 404);
+            "status" => true,
+            "message" => "Admission approved successfully."
+        ]);
     }
-
-    return response()->json([
-        "status"  => true,
-        "message" => "Admission approved successfully."
-    ]);
-}
 
 
 }
