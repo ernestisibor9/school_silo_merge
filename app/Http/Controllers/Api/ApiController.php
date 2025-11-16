@@ -10859,7 +10859,7 @@ class ApiController extends Controller
         ]);
 
         // Generate deterministic UID (no random numbers)
-        $uid = $request->ssn . $request->trm . $request->sid;
+        $uid = $request->ssn . $request->trm . $request->sid . $request->clsm;
 
         // Update or create record based only on uid
         $pld = old_staff::updateOrCreate(
@@ -28172,7 +28172,7 @@ class ApiController extends Controller
         }
 
         // 4. Generate deterministic UID (no random numbers)
-        $uid = $request->sesn . $request->trm . $request->sid;
+        $uid = $request->sesn . $request->trm . $request->sid . $request->clsm;
 
         // 5. Create promotion record
         $promotion = old_student::create([
@@ -28480,7 +28480,7 @@ class ApiController extends Controller
         $student = student::where('sid', $request->sid)->firstOrFail();
 
         // Generate deterministic UID (no random numbers)
-        $uid = $request->sesn . $request->trm . $request->sid;
+        $uid = $request->sesn . $request->trm . $request->sid . $request->clsm;
 
         // Create a new old_student record for repeating
         old_student::create([
@@ -28843,7 +28843,7 @@ class ApiController extends Controller
         ]);
 
         // Generate deterministic UID (no random numbers)
-        $uid = $request->ssn . $request->trm . $request->sid;
+        $uid = $request->ssn . $request->trm . $request->sid . $request->clsm;
 
         // Update or create record based only on uid
         $pld = old_staff::updateOrCreate(
@@ -29035,7 +29035,7 @@ class ApiController extends Controller
         }
 
         // Deterministic UID (no random numbers)
-        $uid = $request->sesn . $request->trm . $request->sid;
+        $uid = $request->sesn . $request->trm . $request->sid . $request->clsm;
 
         old_student::where('sid', $request->sid)
             ->where('ssn', $request->sesn)
@@ -33690,7 +33690,7 @@ class ApiController extends Controller
 
         //  Generate deterministic UID (no random numbers)
         $uid = $request->sesn . $request->trm . $request->stid . $request->clsm;
-        $uid2 = $request->sesn . $request->trm . $request->stid;
+        $uid2 = $request->sesn . $request->trm . $request->stid . $request->clsm;
 
         //  Insert a new record in old_staff (no update)
         DB::table('old_staff')->insert([
