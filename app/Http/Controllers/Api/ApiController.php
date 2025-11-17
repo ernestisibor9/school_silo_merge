@@ -7439,38 +7439,47 @@ class ApiController extends Controller
     // }
 
 
-    public function setStaffSubject(Request $request)
-    {
-        $request->validate([
-            "stid" => "required",
-            "sbj" => "required",
-            "schid" => "required",
-            "sesn" => "required",
-            "trm" => "required",
-        ]);
+public function setStaffSubject(Request $request)
+{
+    $request->validate([
+        "stid" => "required",
+        "sbj" => "required",
+        "schid" => "required",
+        "sesn" => "required|integer",
+        "trm" => "required|integer",
+    ]);
 
-        // Look for existing record by business keys
-        $pld = staff_subj::firstOrNew([
-            "stid" => $request->stid,
-            "sbj" => $request->sbj,
-            "schid" => $request->schid,
-            "trm" => $request->trm,
-        ]);
+    // Check if the subject is already assigned
+    $exists = staff_subj::where([
+        "stid" => $request->stid,
+        "sbj" => $request->sbj,
+        "schid" => $request->schid,
+        "trm" => $request->trm,
+    ])->exists();
 
-        // Assign sesn and uid
-        $pld->sesn = $request->sesn;
-        if (!$pld->exists) {
-            $pld->uid = $request->sesn . $request->trm . $request->stid;
-        }
-
-        $pld->save();
-
+    if ($exists) {
         return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $pld
-        ]);
+            "status" => false,
+            "message" => "This subject has already been added for this staff.",
+        ], 409);
     }
+
+    // Create new row
+    $pld = staff_subj::create([
+        "stid" => $request->stid,
+        "sbj" => $request->sbj,
+        "schid" => $request->schid,
+        "trm" => $request->trm,
+        "sesn" => $request->sesn,
+        "uid" => $request->sesn . $request->trm . $request->stid,
+    ]);
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => $pld
+    ]);
+}
 
 
 
