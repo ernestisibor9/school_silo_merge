@@ -7100,7 +7100,6 @@ class ApiController extends Controller
         ], 400);
     }
 
-
     /**
      * @OA\Post(
      *     path="/api/admitStaff",
