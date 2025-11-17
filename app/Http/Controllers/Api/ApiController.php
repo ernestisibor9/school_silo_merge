@@ -26551,74 +26551,207 @@ class ApiController extends Controller
     // }
 
 
+    // public function getLoggedInUserDetails(Request $request)
+    // {
+    //     try {
+    //         $user = JWTAuth::parseToken()->authenticate();
+
+    //         if (!$user) {
+    //             return response()->json(['message' => 'User not found'], 404);
+    //         }
+
+    //         // Get ssn & trm from query
+    //         $ssn = $request->input('ssn');
+    //         $trm = $request->input('trm');
+
+    //         // Fetch staff record for this user, respecting ssn/trm if provided
+    //         $staffQuery = $user->oldStaff();
+
+    //         if (!empty($ssn)) {
+    //             $staffQuery->where('ssn', $ssn);
+    //         }
+
+    //         if (!empty($trm)) {
+    //             $staffQuery->where('trm', $trm);
+    //         }
+
+    //         $staff = $staffQuery->first();
+
+    //         // If no match for ssn/trm, fallback to latest session
+    //         if (!$staff) {
+    //             $staff = $user->oldStaff()->latest('ssn')->latest('trm')->first();
+    //         }
+
+    //         if ($staff) {
+    //             $role = ltrim($staff->role, '*-');
+    //             $role2 = ltrim($staff->role2, '*-');
+
+    //             $roleName = \App\Models\sch_staff_role::where('role', $role)
+    //                 ->where('schid', $staff->schid)
+    //                 ->value('name');
+
+    //             $role2Name = \App\Models\sch_staff_role::where('role', $role2)
+    //                 ->where('schid', $staff->schid)
+    //                 ->value('name');
+
+    //             $profile = [
+    //                 ...$staff->toArray(),
+    //                 'role_name' => $roleName,
+    //                 'role2_name' => $role2Name,
+    //             ];
+    //         } else {
+    //             $profile = null;
+    //         }
+
+    //         return response()->json([
+    //             'user' => $user,
+    //             'profile' => $profile,
+    //             'ssn' => $ssn,
+    //             'trm' => $trm,
+    //         ]);
+
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'message' => 'Server Error',
+    //             'error' => $e->getMessage(),
+    //             'line' => $e->getLine(),
+    //             'file' => $e->getFile(),
+    //         ], 500);
+    //     }
+    // }
+
+
     public function getLoggedInUserDetails(Request $request)
-    {
-        try {
-            $user = JWTAuth::parseToken()->authenticate();
+{
+    try {
+        $user = JWTAuth::parseToken()->authenticate();
 
-            if (!$user) {
-                return response()->json(['message' => 'User not found'], 404);
-            }
+        if (!$user) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
 
-            // Get ssn & trm from query
-            $ssn = $request->input('ssn');
-            $trm = $request->input('trm');
+        // Get ssn & trm from query
+        $ssn = $request->input('ssn');
+        $trm = $request->input('trm');
 
-            // Fetch staff record for this user, respecting ssn/trm if provided
-            $staffQuery = $user->oldStaff();
+        // ---------------------------------------
+        // 1. Try OLD STAFF (existing staff)
+        // ---------------------------------------
+        $oldStaffQuery = $user->oldStaff();
 
-            if (!empty($ssn)) {
-                $staffQuery->where('ssn', $ssn);
-            }
+        if (!empty($ssn)) {
+            $oldStaffQuery->where('ssn', $ssn);
+        }
 
-            if (!empty($trm)) {
-                $staffQuery->where('trm', $trm);
-            }
+        if (!empty($trm)) {
+            $oldStaffQuery->where('trm', $trm);
+        }
 
-            $staff = $staffQuery->first();
+        $staff = $oldStaffQuery->first();
 
-            // If no match for ssn/trm, fallback to latest session
-            if (!$staff) {
-                $staff = $user->oldStaff()->latest('ssn')->latest('trm')->first();
-            }
+        // If still nothing, load latest ssn/trm
+        if (!$staff) {
+            $staff = $user->oldStaff()
+                ->orderByDesc('ssn')
+                ->orderByDesc('trm')
+                ->first();
+        }
+
+        // ---------------------------------------
+        // 2. If NOT FOUND in old_staff → use NEW staff table
+        // ---------------------------------------
+        if (!$staff) {
+            $staff = $user->staff()->first();
 
             if ($staff) {
-                $role = ltrim($staff->role, '*-');
-                $role2 = ltrim($staff->role2, '*-');
-
-                $roleName = \App\Models\sch_staff_role::where('role', $role)
-                    ->where('schid', $staff->schid)
-                    ->value('name');
-
-                $role2Name = \App\Models\sch_staff_role::where('role', $role2)
-                    ->where('schid', $staff->schid)
-                    ->value('name');
-
-                $profile = [
-                    ...$staff->toArray(),
-                    'role_name' => $roleName,
-                    'role2_name' => $role2Name,
+                // Convert NEW STAFF fields to old_staff format
+                $staff = (object) [
+                    'uid'         => $staff->uid ?? null,
+                    'sid'         => $staff->sid,          // same as user_id
+                    'schid'       => $staff->schid,
+                    'fname'       => $staff->fname,
+                    'mname'       => $staff->mname,
+                    'lname'       => $staff->lname,
+                    'status'      => $staff->status ?? 'active',
+                    'suid'        => $staff->suid ?? "",
+                    'ssn'         => $staff->ssn ?? "",
+                    'trm'         => $staff->trm ?? "",
+                    'clsm'        => $staff->clsm ?? "",
+                    'role'        => $staff->role ?? "",
+                    'role2'       => $staff->role2 ?? "",
+                    'more'        => $staff->more ?? "",
+                    'created_at'  => $staff->created_at,
+                    'updated_at'  => $staff->updated_at
                 ];
-            } else {
-                $profile = null;
             }
+        }
 
+        // ---------------------------------------
+        // 3. If still no profile, return empty profile
+        // ---------------------------------------
+        if (!$staff) {
             return response()->json([
                 'user' => $user,
-                'profile' => $profile,
+                'profile' => null,
                 'ssn' => $ssn,
                 'trm' => $trm,
             ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Server Error',
-                'error' => $e->getMessage(),
-                'line' => $e->getLine(),
-                'file' => $e->getFile(),
-            ], 500);
         }
+
+        // ---------------------------------------
+        // 4. Load Role Names
+        // ---------------------------------------
+        $role = ltrim($staff->role, '*-');
+        $role2 = ltrim($staff->role2, '*-');
+
+        $roleName = \App\Models\sch_staff_role::where('role', $role)
+            ->where('schid', $staff->schid)
+            ->value('name');
+
+        $role2Name = \App\Models\sch_staff_role::where('role', $role2)
+            ->where('schid', $staff->schid)
+            ->value('name');
+
+        // ---------------------------------------
+        // 5. Build profile in EXACT format you want
+        // ---------------------------------------
+        $profile = [
+            'uid'         => $staff->uid,
+            'sid'         => $staff->sid,
+            'schid'       => $staff->schid,
+            'fname'       => $staff->fname,
+            'mname'       => $staff->mname,
+            'lname'       => $staff->lname,
+            'status'      => $staff->status,
+            'suid'        => $staff->suid,
+            'ssn'         => $staff->ssn,
+            'trm'         => $staff->trm,
+            'clsm'        => $staff->clsm,
+            'role'        => $staff->role,
+            'role2'       => $staff->role2,
+            'more'        => $staff->more,
+            'created_at'  => $staff->created_at,
+            'updated_at'  => $staff->updated_at,
+            'role_name'   => $roleName,
+            'role2_name'  => $role2Name,
+        ];
+
+        return response()->json([
+            'user' => $user,
+            'profile' => $profile,
+            'ssn' => $ssn,
+            'trm' => $trm,
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Server Error',
+            'error' => $e->getMessage(),
+            'line' => $e->getLine(),
+            'file' => $e->getFile(),
+        ], 500);
     }
+}
 
 
 
