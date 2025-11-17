@@ -7113,16 +7113,16 @@ class ApiController extends Controller
         if ($stf) {
 
             //  CHECK STATUS IN old_staff TABLE
-            $oldStatus = old_staff::where('sid', $stf->sid)
-                ->where('schid', $request->schid)
-                ->value('status');
+            // $oldStatus = old_staff::where('sid', $stf->sid)
+            //     ->where('schid', $request->schid)
+            //     ->value('status');
 
-            if ($oldStatus !== 'active') {
-                return response()->json([
-                    "status" => false,
-                    "message" => "Your account is inactive. Contact the school admin."
-                ], 403);
-            }
+            // if ($oldStatus !== 'active') {
+            //     return response()->json([
+            //         "status" => false,
+            //         "message" => "Your account is inactive. Contact the school admin."
+            //     ], 403);
+            // }
 
             // GET USER
             $usr = User::where("typ", $typ)->where("id", $stf->sid)->first();
