@@ -7439,36 +7439,70 @@ class ApiController extends Controller
     // }
 
 
-    public function setStaffSubject(Request $request)
+    // public function setStaffSubject(Request $request)
+    // {
+    //     $request->validate([
+    //         "stid" => "required",
+    //         "sbj" => "required",
+    //         "schid" => "required",
+    //         "sesn" => "required",
+    //         "trm" => "required",
+    //     ]);
+
+    //     // Look for existing record by business keys
+    //     $pld = staff_subj::firstOrNew([
+    //         "stid" => $request->stid,
+    //         "sbj" => $request->sbj,
+    //         "schid" => $request->schid,
+    //         "trm" => $request->trm,
+    //     ]);
+
+    //     // Assign sesn and uid
+    //     $pld->sesn = $request->sesn;
+    //     if (!$pld->exists) {
+    //         $pld->uid = $request->sesn . $request->trm . $request->stid;
+    //     }
+
+    //     $pld->save();
+
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => $pld
+    //     ]);
+    // }
+
+
+        public function setStaffSubject(Request $request)
     {
+        // Data validation
         $request->validate([
-            "stid" => "required",
-            "sbj" => "required",
+            "stid"  => "required",
+            "sbj"   => "required",
             "schid" => "required",
-            "sesn" => "required",
-            "trm" => "required",
+            "sesn"  => "required",
+            "trm"   => "required",
         ]);
 
-        // Look for existing record by business keys
-        $pld = staff_subj::firstOrNew([
-            "stid" => $request->stid,
-            "sbj" => $request->sbj,
-            "schid" => $request->schid,
-            "trm" => $request->trm,
-        ]);
+        // Generate unique UID
+        $uid = $request->sesn . $request->trm . $request->stid . $request->sbj;
 
-        // Assign sesn and uid
-        $pld->sesn = $request->sesn;
-        if (!$pld->exists) {
-            $pld->uid = $request->sesn . $request->trm . $request->stid;
-        }
-
-        $pld->save();
+        // Update or create based on UID only
+        $pld = staff_subj::updateOrCreate(
+            ["uid" => $uid],
+            [
+                "stid"  => $request->stid,
+                "sbj"   => $request->sbj,
+                "schid" => $request->schid,
+                "sesn"  => $request->sesn,
+                "trm"   => $request->trm,
+            ]
+        );
 
         return response()->json([
-            "status" => true,
+            "status"  => true,
             "message" => "Success",
-            "pld" => $pld
+            "pld"     => $pld
         ]);
     }
 
