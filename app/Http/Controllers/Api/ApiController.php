@@ -8053,18 +8053,47 @@ class ApiController extends Controller
                 $mySbjs[] = $sbid;
 
                 // 4. Fetch scores (filtered by session, term, class)
-                $subjectScores = std_score::where('stid', $user_id)
-                    ->where('sbj', $sbid)
-                    ->where("schid", $schid)
-                    ->where("ssn", $ssn)
-                    ->where("trm", $trm)
-                    ->where("clsid", $clsm)
-                    ->get();
+                // $subjectScores = std_score::where('stid', $user_id)
+                //     ->where('sbj', $sbid)
+                //     ->where("schid", $schid)
+                //     ->where("ssn", $ssn)
+                //     ->where("trm", $trm)
+                //     ->where("clsid", $clsm)
+                //     ->get();
 
-                $scores[] = [
-                    'sbid' => $sbid,
-                    'scores' => $subjectScores
-                ];
+                // $scores[] = [
+                //     'sbid' => $sbid,
+                //     'scores' => $subjectScores
+                // ];
+
+                $subjectScores = std_score::where('stid', $user_id)
+                ->where('sbj', $sbid)
+                ->where("schid", $schid)
+                ->where("ssn", $ssn)
+                ->where("trm", $trm)
+                ->where("clsid", $clsm)
+                ->get();
+
+            // If no score record exists, assign scr = 0
+            if ($subjectScores->isEmpty()) {
+                $subjectScores = collect([
+                    [
+                        "stid" => $user_id,
+                        "sbj" => $sbid,
+                        "scr" => 0,
+                        "schid" => $schid,
+                        "clsid" => $clsm,
+                        "ssn" => $ssn,
+                        "trm" => $trm,
+                    ]
+                ]);
+            }
+
+            $scores[] = [
+                'sbid' => $sbid,
+                'scores' => $subjectScores
+            ];
+
             }
 
             // 5. Extra info for staff = -2
