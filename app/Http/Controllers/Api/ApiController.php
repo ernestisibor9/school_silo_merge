@@ -6966,46 +6966,20 @@ class ApiController extends Controller
 
     public function staffLoginByEmail(Request $request)
     {
-        // Data validation
+        //Data validation
         $request->validate([
             "email" => "required|email",
             "password" => "required",
         ]);
-
         $typ = 'w';
-
-        // GET USER
-        $usr = User::where("typ", $typ)
-            ->where("email", $request->email)
-            ->first();
-
+        $usr = User::where("typ", $typ)->where("email", $request->email)->first();
         if ($usr) {
-
-            // FIND STAFF RECORD
-            $stf = staff::where('sid', strval($usr->id))->first();
-
-            // If staff record found, check old_staff status
-            if ($stf) {
-                $oldStatus = old_staff::where('sid', $stf->sid)
-                    ->where('schid', $stf->schid)
-                    ->value('status');
-
-                // Block inactive staff
-                if ($oldStatus !== 'active') {
-                    return response()->json([
-                        "status" => false,
-                        "message" => "Your account is inactive. Contact the school admin."
-                    ], 403);
-                }
-            }
-
-            // ATTEMPT LOGIN
             $token = JWTAuth::attempt([
                 "email" => $request->email,
                 "password" => $request->password,
             ]);
-
             if (!empty($token)) {
+                $stf = staff::where('sid', strval($usr->id))->first();
                 return response()->json([
                     "status" => true,
                     "message" => "Login successful",
@@ -7015,14 +6989,12 @@ class ApiController extends Controller
                 ]);
             }
         }
-
-        // INVALID LOGIN
+        // Respond
         return response()->json([
             "status" => false,
             "message" => "Invalid login details",
         ], 400);
     }
-
 
     /**
      * @OA\Post(
@@ -7090,56 +7062,28 @@ class ApiController extends Controller
 
     public function staffLoginByID(Request $request)
     {
-        // Data validation
+        //Data validation
         $request->validate([
             "stid" => "required",
             "schid" => "required",
             "password" => "required",
         ]);
-
         $typ = 'w';
         $stf = [];
         $compo = explode("/", $request->stid);
-
-        // FIND STAFF RECORD
         if (count($compo) == 3) {
             $sch3 = $compo[0];
             $count = $compo[2];
-            $stf = staff::where("schid", $request->schid)->where("count", $count)->first();
+            $stf = staff::where("schid", $request->schid)->where("count", $count)->where("status", "active")->first();
         } else {
-            $stf = staff::where("cuid", $request->stid)->first();
+            $stf = staff::where("cuid", $request->stid)->where("status", "active")->first();
         }
-
         if ($stf) {
-
-            //  CHECK STATUS IN old_staff TABLE
-            // $oldStatus = old_staff::where('sid', $stf->sid)
-            //     ->where('schid', $request->schid)
-            //     ->value('status');
-
-            // if ($oldStatus !== 'active') {
-            //     return response()->json([
-            //         "status" => false,
-            //         "message" => "Your account is inactive. Contact the school admin."
-            //     ], 403);
-            // }
-
-            // GET USER
             $usr = User::where("typ", $typ)->where("id", $stf->sid)->first();
-
-            if (!$usr) {
-                return response()->json([
-                    "status" => false,
-                    "message" => "User not found",
-                ], 400);
-            }
-
-            // ATTEMPT LOGIN
             $token = JWTAuth::attempt([
                 "email" => $usr->email,
                 "password" => $request->password,
             ]);
-
             if (!empty($token)) {
                 return response()->json([
                     "status" => true,
@@ -7149,15 +7093,12 @@ class ApiController extends Controller
                 ]);
             }
         }
-
-        // INVALID LOGIN
+        // Respond
         return response()->json([
             "status" => false,
             "message" => "Invalid login details",
         ], 400);
     }
-
-
 
 
     /**
