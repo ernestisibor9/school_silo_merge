@@ -33827,12 +33827,25 @@ class ApiController extends Controller
         }
 
         // 2️⃣ Check if already assigned
-        $exists = DB::table('staff_class')->where([
-            'stid' => $request->stid,
-            'cls' => $request->clsm,
-            'ssn' => $request->sesn,
-            'trm' => $request->trm,
-        ])->exists();
+        // $exists = DB::table('staff_class')->where([
+        //     'stid' => $request->stid,
+        //     'cls' => $request->clsm,
+        //     'ssn' => $request->sesn,
+        //     'trm' => $request->trm,
+        // ])->exists();
+
+        $exists = DB::table('staff_class')
+    ->join('old_staff', 'old_staff.sid', '=', 'staff_class.stid')
+    ->where('staff_class.stid', $request->stid)
+    ->where('staff_class.cls', $request->clsm)
+    ->where('staff_class.ssn', $request->sesn)
+    ->where('staff_class.trm', $request->trm)
+    ->where(function ($q) use ($request) {
+        $q->where('old_staff.role', $request->role)
+          ->orWhere('old_staff.role2', $request->role2);
+    })
+    ->exists();
+
 
         if ($exists) {
             return response()->json([
