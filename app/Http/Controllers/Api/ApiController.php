@@ -6027,14 +6027,96 @@ class ApiController extends Controller
     // }
 
 
+// public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
+// {
+//     // Base query
+//     $query = old_student::with(['academicData'])
+//         ->where("schid", $schid)
+//         ->where("ssn", $ssn)
+//         ->where("trm", $trm)
+//         ->where("status", "active");
+
+//     // Filter by main class if not "ALL"
+//     if ($clsm !== 'zzz') {
+//         $query->where("clsm", $clsm);
+//     }
+
+//     // Filter by arm if not "ALL"
+//     if ($clsa !== 'zzz') {
+//         $query->where("clsa", $clsa);
+//     }
+
+//     // Get total count of unique students
+//     $total = $query->distinct('sid')->count('sid');
+
+//     // Fetch students with selected columns
+//     $students = $query->select(
+//             'sid',
+//             'suid',
+//             'fname',
+//             'mname',
+//             'lname',
+//             'ssn',
+//             'trm',
+//             'clsm',
+//             'clsa',
+//             'adm_ssn',
+//             'adm_trm',
+//             'cls_of_adm',
+//             'date_of_adm',
+//             'adm_status'
+//         )
+//         ->orderBy('lname', 'asc')
+//         ->get();
+
+//     // Remove duplicates by 'sid' after fetching
+//     $uniqueStudents = $students->unique('sid')->values();
+
+//     // Map for response payload
+//     $pld = $uniqueStudents->map(function ($student) {
+//         return [
+//             "sid" => $student->sid,
+//             "suid" => $student->suid,
+//             "fname" => $student->fname,
+//             "mname" => $student->mname,
+//             "lname" => $student->lname,
+//             "ssn" => $student->ssn,
+//             "trm" => $student->trm,
+//             "clsm" => $student->clsm,
+//             "clsa" => $student->clsa,
+//             "last_school" => $student->academicData?->last_school,
+//             "last_class" => $student->academicData?->last_class,
+//             "new_class" => $student->academicData?->new_class,
+//             "new_class_main" => $student->academicData?->new_class_main,
+//             "adm_ssn" => $student->adm_ssn,
+//             "adm_trm" => $student->adm_trm,
+//             "cls_of_adm" => $student->cls_of_adm,
+//             "date_of_adm" => $student->date_of_adm,
+//             "adm_status" => $student->adm_status,
+//         ];
+//     });
+
+//     return response()->json([
+//         "status" => true,
+//         "message" => "Success",
+//         "total" => $total, // total number of unique records
+//         "pld" => $pld,
+//     ]);
+// }
+
+
 public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
 {
     // Base query
     $query = old_student::with(['academicData'])
         ->where("schid", $schid)
         ->where("ssn", $ssn)
-        ->where("trm", $trm)
         ->where("status", "active");
+
+    // Filter by term if not "ALL"
+    if ($trm !== 'zzz') {
+        $query->where("trm", $trm);
+    }
 
     // Filter by main class if not "ALL"
     if ($clsm !== 'zzz') {
@@ -6103,6 +6185,7 @@ public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
         "pld" => $pld,
     ]);
 }
+
 
 
 
