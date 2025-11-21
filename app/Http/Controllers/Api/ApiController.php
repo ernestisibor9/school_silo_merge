@@ -18228,7 +18228,6 @@ class ApiController extends Controller
     //         "pld" => $pld,
     //     ]);
     // }
-
 public function getStudentsBySchool(Request $request, $schid, $stat)
 {
     $start = $request->input('start', 0);
@@ -18237,26 +18236,25 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
     $cls   = $request->input('cls', 'zzz'); // "zzz" = ALL classes
     $term  = $request->input('term');   // optional
 
-    // Base query
-    $query = student::where('student.schid', $schid)
-                    ->where('student.stat', $stat);
-
-    // Only join academic table if a specific class is selected
-    if ($cls !== 'zzz') {
-        $query->join('student_academic_data as sad', function ($join) {
+    // Base query: join latest student_academic_data
+    $query = student::query()
+        ->leftJoin('student_academic_data as sad', function ($join) {
             $join->on('student.sid', '=', 'sad.user_id')
                  ->whereRaw('sad.created_at = (
                      SELECT MAX(created_at)
                      FROM student_academic_data
                      WHERE user_id = student.sid
                  )');
-        })->where('sad.new_class_main', $cls)
-          ->select('student.*', 'sad.new_class_main');
-    } else {
-        $query->select('student.*'); // only student table
+        })
+        ->where('student.schid', $schid)
+        ->where('student.stat', $stat);
+
+    // Filter by class if not "ALL"
+    if ($cls !== 'zzz') {
+        $query->where('sad.new_class_main', $cls);
     }
 
-    // Apply year and term filters
+    // Optional filters
     if ($year) {
         $query->where('student.year', $year);
     }
@@ -18267,8 +18265,9 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
     // Clone query for total count
     $total = (clone $query)->distinct('student.sid')->count('student.sid');
 
-    // Apply pagination
-    $students = $query->distinct('student.sid')
+    // Fetch paginated results
+    $students = $query->select('student.*', 'sad.new_class_main')
+                      ->distinct('student.sid')
                       ->orderBy('student.lname', 'asc')
                       ->skip($start)
                       ->take($count)
