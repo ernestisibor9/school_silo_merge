@@ -18720,18 +18720,18 @@ public function getStudentsStatBySchool(Request $request)
 {
     // Required
     $schid = $request->query('schid');
-    $stat = $request->query('stat');
+    $stat  = $request->query('stat');
 
-    if (!$schid) {
+    if (!$schid || !$stat) {
         return response()->json([
-            'status' => false,
+            'status'  => false,
             'message' => 'schid and stat are required',
-            'pld' => []
+            'pld'     => []
         ], 400);
     }
 
     // Optional filters
-    $cls = $request->query('cls', 'zzz');
+    $cls  = $request->query('cls', 'zzz');
     $term = $request->query('term', null);
     $year = $request->query('year', null);
 
@@ -18740,10 +18740,16 @@ public function getStudentsStatBySchool(Request $request)
         ->where('status', 'active')
         ->where('stat', $stat);
 
-    // Join with academic data if class filter is specified
+    // Join with latest academic data only if class filter is specified
     if ($cls !== 'zzz') {
-        $query->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
-              ->where('student_academic_data.new_class_main', $cls);
+        $query->join('student_academic_data as sad', function ($join) {
+            $join->on('student.sid', '=', 'sad.user_id')
+                 ->whereIn('sad.id', function ($subquery) {
+                     $subquery->selectRaw('MAX(id)')
+                              ->from('student_academic_data')
+                              ->groupBy('user_id');
+                 });
+        })->where('sad.new_class_main', $cls);
     }
 
     // Apply optional term filter
@@ -18760,12 +18766,11 @@ public function getStudentsStatBySchool(Request $request)
     $total = $query->distinct('student.sid')->count('student.sid');
 
     return response()->json([
-        'status' => true,
+        'status'  => true,
         'message' => 'Success',
-        'pld' => ['total' => $total],
+        'pld'     => ['total' => $total],
     ]);
 }
-
 
 
 
