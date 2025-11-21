@@ -18716,51 +18716,55 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
      */
 
 
-    public function getStudentsStatBySchool(Request $request)
-    {
-        // Required
-        $schid = $request->query('schid');
-        $stat = $request->query('stat');
+public function getStudentsStatBySchool(Request $request)
+{
+    // Required
+    $schid = $request->query('schid');
+    $stat = $request->query('stat');
 
-        if (!$schid) {
-            return response()->json([
-                'status' => false,
-                'message' => 'schid and stat are required',
-                'pld' => []
-            ], 400);
-        }
-
-        // Optional filters
-        $cls = $request->query('cls', 'zzz');
-        $term = $request->query('term', null);
-        $year = $request->query('year', null);
-
-        $query = student::where('schid', $schid)
-            ->where('status', 'active')
-            ->where('stat', $stat);
-
-        if ($cls !== 'zzz') {
-            $query->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
-                ->where('student_academic_data.new_class_main', $cls);
-        }
-
-        if (!is_null($term)) {
-            $query->where('term', $term);
-        }
-
-        if (!is_null($year)) {
-            $query->where('year', $year);
-        }
-
-        $total = $query->count();
-
+    if (!$schid) {
         return response()->json([
-            'status' => true,
-            'message' => 'Success',
-            'pld' => ['total' => $total],
-        ]);
+            'status' => false,
+            'message' => 'schid and stat are required',
+            'pld' => []
+        ], 400);
     }
 
+    // Optional filters
+    $cls = $request->query('cls', 'zzz');
+    $term = $request->query('term', null);
+    $year = $request->query('year', null);
+
+    // Base query
+    $query = student::where('schid', $schid)
+        ->where('status', 'active')
+        ->where('stat', $stat);
+
+    // Join with academic data if class filter is specified
+    if ($cls !== 'zzz') {
+        $query->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
+              ->where('student_academic_data.new_class_main', $cls);
+    }
+
+    // Apply optional term filter
+    if (!is_null($term)) {
+        $query->where('term', $term);
+    }
+
+    // Apply optional year filter
+    if (!is_null($year)) {
+        $query->where('year', $year);
+    }
+
+    // Count distinct students to avoid duplicates caused by join
+    $total = $query->distinct('student.sid')->count('student.sid');
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Success',
+        'pld' => ['total' => $total],
+    ]);
+}
 
 
 
