@@ -5812,14 +5812,12 @@ class ApiController extends Controller
 
 
 
-
 /**
  * @OA\Get(
  *     path="/api/getOldStudents/{schid}/{ssn}/{trm}/{clsm}/{clsa}",
  *     summary="Get old students history",
  *     description="Fetch old students by school, session, term, main class, and class arm.
- *                  Use 'zzz' for clsm or clsa to fetch all classes or all arms.
- *                  Use trm = -1 to fetch all terms for the session.",
+ *                  Use 'zzz' for trm, clsm, or clsa to fetch all terms, all classes, or all arms.",
  *     operationId="getOldStudents",
  *     tags={"Api"},
  *     security={{"bearerAuth": {}}},
@@ -5842,21 +5840,21 @@ class ApiController extends Controller
  *         name="trm",
  *         in="path",
  *         required=true,
- *         description="Term ID (-1 to fetch all terms for the session)",
- *         @OA\Schema(type="integer", example=1)
+ *         description="Term ID ('zzz' to fetch all terms for the session)",
+ *         @OA\Schema(type="string", example="1")
  *     ),
  *     @OA\Parameter(
  *         name="clsm",
  *         in="path",
  *         required=true,
- *         description="Main class (e.g., JSS1, SS2; use 'zzz' to fetch all)",
+ *         description="Main class (e.g., JSS1, SS2; 'zzz' to fetch all)",
  *         @OA\Schema(type="string", example="JSS1")
  *     ),
  *     @OA\Parameter(
  *         name="clsa",
  *         in="path",
  *         required=true,
- *         description="Class arm (use 'zzz' to fetch all arms)",
+ *         description="Class arm ('zzz' to fetch all arms)",
  *         @OA\Schema(type="string", example="A")
  *     ),
  *
@@ -5879,7 +5877,7 @@ class ApiController extends Controller
  *                     @OA\Property(property="mname", type="string", example="Doe"),
  *                     @OA\Property(property="lname", type="string", example="Smith"),
  *                     @OA\Property(property="ssn", type="string", example="2024"),
- *                     @OA\Property(property="trm", type="integer", example=1),
+ *                     @OA\Property(property="trm", type="string", example="1"),
  *                     @OA\Property(property="clsm", type="string", example="JSS1"),
  *                     @OA\Property(property="clsa", type="string", example="A"),
  *                     @OA\Property(property="last_school", type="string", example="St. Mary's Primary School"),
@@ -5906,6 +5904,7 @@ class ApiController extends Controller
  *     )
  * )
  */
+
 
 
     // public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
