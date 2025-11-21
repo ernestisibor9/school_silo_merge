@@ -18250,31 +18250,29 @@ public function getStudentsBySchool($schid, $stat)
         ->where('student.schid', $schid)
         ->where('student.stat', $stat);
 
-    // Filter by class only if provided and ALL is NOT clicked
-    if (!$all && $cls !== 'zzz') {
+    // Apply class filter always
+    if ($cls !== 'zzz') {
         $query->where('sad.new_class_main', $cls);
     }
 
-    // Always filter by the session/year
+    // Always filter by session/year
     if ($year) {
         $query->where('student.year', $year);
     }
 
-    // Get total count of all matching records
+    // Get total count of all filtered records (before pagination)
     $totalCount = (clone $query)->distinct()->count('student.sid');
 
-    // Retrieve either all or paginated records
-    $members = $all
-        ? $query->select('student.*', 'sad.new_class_main')
-                ->distinct()
-                ->orderBy('student.lname', 'asc')
-                ->get()
-        : $query->select('student.*', 'sad.new_class_main')
-                ->distinct()
-                ->orderBy('student.lname', 'asc')
-                ->skip($start)
-                ->take($count)
-                ->get();
+    // Retrieve records: either paginated or all
+    $members = $query->select('student.*', 'sad.new_class_main')
+        ->distinct()
+        ->orderBy('student.lname', 'asc');
+
+    if (!$all) {
+        $members = $members->skip($start)->take($count);
+    }
+
+    $members = $members->get();
 
     $pld = [];
     foreach ($members as $member) {
@@ -18289,16 +18287,16 @@ public function getStudentsBySchool($schid, $stat)
         $basicData = student_basic_data::where('user_id', $user_id)->first();
 
         $pld[] = [
-            's' => $member,          // student record
-            'b' => $basicData ?: [], // basic data or empty array
-            'a' => $academicData ?: [] // academic data or empty array
+            's' => $member,
+            'b' => $basicData ?: [],
+            'a' => $academicData ?: []
         ];
     }
 
     return response()->json([
         "status" => true,
         "message" => "Success",
-        "total" => $totalCount,   // total matching records
+        "total" => $totalCount,   // total always same
         "pld" => $pld,
     ]);
 }
