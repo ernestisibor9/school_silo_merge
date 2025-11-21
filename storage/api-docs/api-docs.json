@@ -4208,7 +4208,7 @@
                     "Api"
                 ],
                 "summary": "Get old students history",
-                "description": "Fetch old students by school, session, term, main class, and class arm.\n *                  Use 'zzz' for clsm or clsa to fetch all classes or all arms.\n *                  Use trm = -1 to fetch all terms for the session.",
+                "description": "Fetch old students by school, session, term, main class, and class arm.\n *                  Use 'zzz' for trm, clsm, or clsa to fetch all terms, all classes, or all arms.",
                 "operationId": "getOldStudents",
                 "parameters": [
                     {
@@ -4234,17 +4234,17 @@
                     {
                         "name": "trm",
                         "in": "path",
-                        "description": "Term ID (-1 to fetch all terms for the session)",
+                        "description": "Term ID ('zzz' to fetch all terms for the session)",
                         "required": true,
                         "schema": {
-                            "type": "integer",
-                            "example": 1
+                            "type": "string",
+                            "example": "1"
                         }
                     },
                     {
                         "name": "clsm",
                         "in": "path",
-                        "description": "Main class (e.g., JSS1, SS2; use 'zzz' to fetch all)",
+                        "description": "Main class (e.g., JSS1, SS2; 'zzz' to fetch all)",
                         "required": true,
                         "schema": {
                             "type": "string",
@@ -4254,7 +4254,7 @@
                     {
                         "name": "clsa",
                         "in": "path",
-                        "description": "Class arm (use 'zzz' to fetch all arms)",
+                        "description": "Class arm ('zzz' to fetch all arms)",
                         "required": true,
                         "schema": {
                             "type": "string",
@@ -4310,8 +4310,8 @@
                                                         "example": "2024"
                                                     },
                                                     "trm": {
-                                                        "type": "integer",
-                                                        "example": 1
+                                                        "type": "string",
+                                                        "example": "1"
                                                     },
                                                     "clsm": {
                                                         "type": "string",
