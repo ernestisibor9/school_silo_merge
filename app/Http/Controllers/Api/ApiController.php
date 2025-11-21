@@ -6232,105 +6232,166 @@ public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
         ]);
     }
 
-    /**
-     * @OA\Get(
-     *     path="/api/getOldStudentsStat/{schid}/{ssn}/{trm}/{clsm}/{clsa}",
-     *     tags={"Api"},
-     *     security={{"bearerAuth": {}}},
-     *     summary="Get an old student's stats",
-     *     description="Use this endpoint to get stats information about an old student.",
-     *     @OA\Parameter(
-     *         name="schid",
-     *         in="path",
-     *         required=true,
-     *         description="Id of the school",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="ssn",
-     *         in="path",
-     *         required=true,
-     *         description="Id of the session",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="trm",
-     *         in="path",
-     *         required=true,
-     *         description="Id of the trm",
-     *         @OA\Schema(type="string")
-     *     ),
-     *
-     *     @OA\Parameter(
-     *         name="clsm",
-     *         in="path",
-     *         required=true,
-     *         description="Id of the main class",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="clsa",
-     *         in="path",
-     *         required=true,
-     *         description="Id of the class arm",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
-     * )
-     */
+/**
+ * @OA\Get(
+ *     path="/api/getOldStudentsStat/{schid}/{ssn}",
+ *     tags={"Api"},
+ *     security={{"bearerAuth": {}}},
+ *     summary="Get old students statistics",
+ *     description="Fetch male and female counts of old students based on optional filters for term, main class, and class arm.",
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="path",
+ *         required=true,
+ *         description="ID of the school",
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Parameter(
+ *         name="ssn",
+ *         in="path",
+ *         required=true,
+ *         description="ID of the session",
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Parameter(
+ *         name="trm",
+ *         in="query",
+ *         required=false,
+ *         description="Term ID (optional). Default is 'zzz' for all terms.",
+ *         @OA\Schema(type="string", default="zzz", nullable=true)
+ *     ),
+ *     @OA\Parameter(
+ *         name="clsm",
+ *         in="query",
+ *         required=false,
+ *         description="Main class ID (optional). Default is 'zzz' for all classes.",
+ *         @OA\Schema(type="string", default="zzz", nullable=true)
+ *     ),
+ *     @OA\Parameter(
+ *         name="clsa",
+ *         in="query",
+ *         required=false,
+ *         description="Class arm ID (optional). Default is 'zzz' for all arms.",
+ *         @OA\Schema(type="string", default="zzz", nullable=true)
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Success",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="object",
+ *                 @OA\Property(property="male", type="integer", example=10),
+ *                 @OA\Property(property="female", type="integer", example=8)
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(response=401, description="Unauthorized")
+ * )
+ */
 
-    public function getOldStudentsStat($schid, $ssn, $trm, $clsm, $clsa)
-    {
-        $male = 0;
-        $female = 0;
-        if ($clsa == '-1') {
-            $male = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-                ->where('old_student.schid', $schid)
-                ->where('old_student.ssn', $ssn)
-                ->where('old_student.trm', $trm)
-                ->where('status', 'active')
-                ->where('old_student.clsm', $clsm)
-                ->where('student_basic_data.sex', 'M')
-                ->count();
-            $female = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-                ->where('old_student.schid', $schid)
-                ->where('old_student.ssn', $ssn)
-                ->where('old_student.trm', $trm)
-                ->where('status', 'active')
-                ->where('old_student.clsm', $clsm)
-                ->where('student_basic_data.sex', 'F')
-                ->count();
-        } else {
-            $male = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-                ->where('old_student.schid', $schid)
-                ->where('old_student.ssn', $ssn)
-                ->where('old_student.trm', $trm)
-                ->where('old_student.clsm', $clsm)
-                ->where('status', 'active')
-                ->where('old_student.clsa', $clsa)
-                ->where('student_basic_data.sex', 'M')
-                ->count();
-            $female = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-                ->where('old_student.schid', $schid)
-                ->where('old_student.ssn', $ssn)
-                ->where('old_student.trm', $trm)
-                ->where('old_student.clsm', $clsm)
-                ->where('status', 'active')
-                ->where('old_student.clsa', $clsa)
-                ->where('student_basic_data.sex', 'F')
-                ->count();
-        }
+    // public function getOldStudentsStat($schid, $ssn, $trm, $clsm, $clsa)
+    // {
+    //     $male = 0;
+    //     $female = 0;
+    //     if ($clsa == '-1') {
+    //         $male = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
+    //             ->where('old_student.schid', $schid)
+    //             ->where('old_student.ssn', $ssn)
+    //             ->where('old_student.trm', $trm)
+    //             ->where('status', 'active')
+    //             ->where('old_student.clsm', $clsm)
+    //             ->where('student_basic_data.sex', 'M')
+    //             ->count();
+    //         $female = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
+    //             ->where('old_student.schid', $schid)
+    //             ->where('old_student.ssn', $ssn)
+    //             ->where('old_student.trm', $trm)
+    //             ->where('status', 'active')
+    //             ->where('old_student.clsm', $clsm)
+    //             ->where('student_basic_data.sex', 'F')
+    //             ->count();
+    //     } else {
+    //         $male = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
+    //             ->where('old_student.schid', $schid)
+    //             ->where('old_student.ssn', $ssn)
+    //             ->where('old_student.trm', $trm)
+    //             ->where('old_student.clsm', $clsm)
+    //             ->where('status', 'active')
+    //             ->where('old_student.clsa', $clsa)
+    //             ->where('student_basic_data.sex', 'M')
+    //             ->count();
+    //         $female = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
+    //             ->where('old_student.schid', $schid)
+    //             ->where('old_student.ssn', $ssn)
+    //             ->where('old_student.trm', $trm)
+    //             ->where('old_student.clsm', $clsm)
+    //             ->where('status', 'active')
+    //             ->where('old_student.clsa', $clsa)
+    //             ->where('student_basic_data.sex', 'F')
+    //             ->count();
+    //     }
 
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => [
-                "male" => $male,
-                "female" => $female,
-            ]
-        ]);
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => [
+    //             "male" => $male,
+    //             "female" => $female,
+    //         ]
+    //     ]);
+    // }
+
+
+    public function getOldStudentsStat($schid, $ssn, $trm = null, $clsm = null, $clsa = null)
+{
+    // Base query for male students
+    $maleQuery = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
+        ->where('old_student.schid', $schid)
+        ->where('old_student.ssn', $ssn)
+        ->where('old_student.status', 'active')
+        ->where('student_basic_data.sex', 'M');
+
+    // Base query for female students
+    $femaleQuery = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
+        ->where('old_student.schid', $schid)
+        ->where('old_student.ssn', $ssn)
+        ->where('old_student.status', 'active')
+        ->where('student_basic_data.sex', 'F');
+
+    // Optional filters
+    if (!is_null($trm) && $trm !== 'zzz') {
+        $maleQuery->where('old_student.trm', $trm);
+        $femaleQuery->where('old_student.trm', $trm);
     }
+
+    if (!is_null($clsm) && $clsm !== 'zzz') {
+        $maleQuery->where('old_student.clsm', $clsm);
+        $femaleQuery->where('old_student.clsm', $clsm);
+    }
+
+    if (!is_null($clsa) && $clsa !== 'zzz') {
+        $maleQuery->where('old_student.clsa', $clsa);
+        $femaleQuery->where('old_student.clsa', $clsa);
+    }
+
+    // Get counts of distinct students
+    $maleCount = $maleQuery->distinct('old_student.sid')->count('old_student.sid');
+    $femaleCount = $femaleQuery->distinct('old_student.sid')->count('old_student.sid');
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => [
+            "male" => $maleCount,
+            "female" => $femaleCount,
+        ]
+    ]);
+}
+
 
 
 
