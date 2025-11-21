@@ -18395,124 +18395,67 @@ public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
     //         "pld" => $pld,
     //     ]);
     // }
-// public function getStudentsBySchool(Request $request, $schid, $stat)
-// {
-//     $start = $request->input('start', 0);
-//     $count = $request->input('count', 20);
-//     $year  = $request->input('year');   // optional
-//     $cls   = $request->input('cls', 'zzz'); // "zzz" = ALL classes
-//     $term  = $request->input('term');   // optional
-
-//     // Base query: join latest student_academic_data
-//     $query = student::query()
-//         ->leftJoin('student_academic_data as sad', function ($join) {
-//             $join->on('student.sid', '=', 'sad.user_id')
-//                  ->whereRaw('sad.created_at = (
-//                      SELECT MAX(created_at)
-//                      FROM student_academic_data
-//                      WHERE user_id = student.sid
-//                  )');
-//         })
-//         ->where('student.schid', $schid)
-//         ->where('student.stat', $stat);
-
-//     // Filter by class if not "ALL"
-//     if ($cls !== 'zzz') {
-//         $query->where('sad.new_class_main', $cls);
-//     }
-
-//     // Optional filters
-//     if ($year) {
-//         $query->where('student.year', $year);
-//     }
-//     if ($term) {
-//         $query->where('student.term', $term);
-//     }
-
-//     // Clone query for total count
-//     $total = (clone $query)->distinct('student.sid')->count('student.sid');
-
-//     // Fetch paginated results
-//     $students = $query->select('student.*', 'sad.new_class_main')
-//                       ->distinct('student.sid')
-//                       ->orderBy('student.lname', 'asc')
-//                       ->skip($start)
-//                       ->take($count)
-//                       ->get();
-
-//     // Format payload
-//     $pld = $students->map(function($student) {
-//         return [
-//             's' => $student,
-//             'b' => student_basic_data::where('user_id', $student->sid)->first(),
-//             'a' => student_academic_data::where('user_id', $student->sid)
-//                                          ->orderBy('created_at', 'desc')
-//                                          ->first(),
-//         ];
-//     });
-
-//     return response()->json([
-//         "status" => true,
-//         "message" => "Success",
-//         "total"  => $total,
-//         "pld"    => $pld,
-//     ]);
-// }
-
 public function getStudentsBySchool(Request $request, $schid, $stat)
 {
     $start = $request->input('start', 0);
     $count = $request->input('count', 20);
-    $year  = $request->input('year');
-    $cls   = $request->input('cls', 'zzz');
-    $term  = $request->input('term');
+    $year  = $request->input('year');   // optional
+    $cls   = $request->input('cls', 'zzz'); // "zzz" = ALL classes
+    $term  = $request->input('term');   // optional
 
-    // Base query
-    $query = student::query()->where('schid', $schid)->where('stat', $stat)->where('status', 'active');
-
-    // Join latest academic record only if cls filter is not "zzz"
-    if ($cls !== 'zzz') {
-        $query->leftJoin('student_academic_data as sad', function ($join) {
+    // Base query: join latest student_academic_data
+    $query = student::query()
+        ->leftJoin('student_academic_data as sad', function ($join) {
             $join->on('student.sid', '=', 'sad.user_id')
-                 ->whereIn('sad.id', function($sub) {
-                     $sub->selectRaw('MAX(id)')
-                         ->from('student_academic_data')
-                         ->groupBy('user_id');
-                 });
+                 ->whereRaw('sad.created_at = (
+                     SELECT MAX(created_at)
+                     FROM student_academic_data
+                     WHERE user_id = student.sid
+                 )');
         })
-        ->where('sad.new_class_main', $cls);
+        ->where('student.schid', $schid)
+        ->where('student.stat', $stat);
+
+    // Filter by class if not "ALL"
+    if ($cls !== 'zzz') {
+        $query->where('sad.new_class_main', $cls);
     }
 
-    if ($term)  $query->where('student.term', $term);
-    if ($year)  $query->where('student.year', $year);
+    // Optional filters
+    if ($year) {
+        $query->where('student.year', $year);
+    }
+    if ($term) {
+        $query->where('student.term', $term);
+    }
 
-    // Count distinct students
+    // Clone query for total count
     $total = (clone $query)->distinct('student.sid')->count('student.sid');
 
     // Fetch paginated results
-    $students = $query->select('student.*')
+    $students = $query->select('student.*', 'sad.new_class_main')
                       ->distinct('student.sid')
                       ->orderBy('student.lname', 'asc')
                       ->skip($start)
                       ->take($count)
                       ->get();
 
-    // Map payload
+    // Format payload
     $pld = $students->map(function($student) {
         return [
             's' => $student,
             'b' => student_basic_data::where('user_id', $student->sid)->first(),
             'a' => student_academic_data::where('user_id', $student->sid)
-                                        ->orderBy('created_at', 'desc')
-                                        ->first(),
+                                         ->orderBy('created_at', 'desc')
+                                         ->first(),
         ];
     });
 
     return response()->json([
-        'status'  => true,
-        'message' => 'Success',
-        'total'   => $total,
-        'pld'     => $pld,
+        "status" => true,
+        "message" => "Success",
+        "total"  => $total,
+        "pld"    => $pld,
     ]);
 }
 
@@ -18772,103 +18715,53 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
      */
 
 
-// public function getStudentsStatBySchool(Request $request)
-// {
-//     // Required
-//     $schid = $request->query('schid');
-//     $stat = $request->query('stat');
-
-//     if (!$schid) {
-//         return response()->json([
-//             'status' => false,
-//             'message' => 'schid and stat are required',
-//             'pld' => []
-//         ], 400);
-//     }
-
-//     // Optional filters
-//     $cls = $request->query('cls', 'zzz');
-//     $term = $request->query('term', null);
-//     $year = $request->query('year', null);
-
-//     // Base query
-//     $query = student::where('schid', $schid)
-//         ->where('status', 'active')
-//         ->where('stat', $stat);
-
-//     // Join with academic data if class filter is specified
-//     if ($cls !== 'zzz') {
-//         $query->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
-//               ->where('student_academic_data.new_class_main', $cls);
-//     }
-
-//     // Apply optional term filter
-//     if (!is_null($term)) {
-//         $query->where('term', $term);
-//     }
-
-//     // Apply optional year filter
-//     if (!is_null($year)) {
-//         $query->where('year', $year);
-//     }
-
-//     // Count distinct students to avoid duplicates caused by join
-//     $total = $query->distinct('student.sid')->count('student.sid');
-
-//     return response()->json([
-//         'status' => true,
-//         'message' => 'Success',
-//         'pld' => ['total' => $total],
-//     ]);
-// }
-
 public function getStudentsStatBySchool(Request $request)
 {
     // Required
     $schid = $request->query('schid');
-    $stat  = $request->query('stat');
+    $stat = $request->query('stat');
 
-    if (!$schid || !$stat) {
+    if (!$schid) {
         return response()->json([
-            'status'  => false,
+            'status' => false,
             'message' => 'schid and stat are required',
-            'pld'     => []
+            'pld' => []
         ], 400);
     }
 
     // Optional filters
-    $cls  = $request->query('cls', 'zzz');
+    $cls = $request->query('cls', 'zzz');
     $term = $request->query('term', null);
     $year = $request->query('year', null);
 
     // Base query
-    $query = student::query()->where('schid', $schid)
-                             ->where('status', 'active')
-                             ->where('stat', $stat);
+    $query = student::where('schid', $schid)
+        ->where('status', 'active')
+        ->where('stat', $stat);
 
-    // Join latest academic record only if class filter is specified
+    // Join with academic data if class filter is specified
     if ($cls !== 'zzz') {
-        $query->leftJoin('student_academic_data as sad', function ($join) {
-            $join->on('student.sid', '=', 'sad.user_id')
-                 ->whereIn('sad.id', function($sub) {
-                     $sub->selectRaw('MAX(id)')
-                         ->from('student_academic_data')
-                         ->groupBy('user_id');
-                 });
-        })->where('sad.new_class_main', $cls);
+        $query->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
+              ->where('student_academic_data.new_class_main', $cls);
     }
 
-    // Optional filters
-    if ($term) $query->where('term', $term);
-    if ($year) $query->where('year', $year);
+    // Apply optional term filter
+    if (!is_null($term)) {
+        $query->where('term', $term);
+    }
 
-    // Count distinct students
-    $total = (clone $query)->distinct('student.sid')->count('student.sid');
+    // Apply optional year filter
+    if (!is_null($year)) {
+        $query->where('year', $year);
+    }
+
+    // Count distinct students to avoid duplicates caused by join
+    $total = $query->distinct('student.sid')->count('student.sid');
 
     return response()->json([
-        'status'  => true,
+        'status' => true,
         'message' => 'Success',
-        'pld'     => ['total' => $total],
+        'pld' => ['total' => $total],
     ]);
 }
 
