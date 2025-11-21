@@ -18260,6 +18260,9 @@ public function getStudentsBySchool($schid, $stat)
         $query->where('student.year', $year);
     }
 
+    // Get total count of all matching records
+    $totalCount = (clone $query)->distinct()->count('student.sid');
+
     // Retrieve either all or paginated records
     $members = $all
         ? $query->select('student.*', 'sad.new_class_main')
@@ -18295,6 +18298,7 @@ public function getStudentsBySchool($schid, $stat)
     return response()->json([
         "status" => true,
         "message" => "Success",
+        "total" => $totalCount,   // total matching records
         "pld" => $pld,
     ]);
 }
