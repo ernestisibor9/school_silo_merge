@@ -4453,58 +4453,64 @@
                 ]
             }
         },
-        "/api/getOldStudentsStat/{schid}/{ssn}/{trm}/{clsm}/{clsa}": {
+        "/api/getOldStudentsStat/{schid}/{ssn}": {
             "get": {
                 "tags": [
                     "Api"
                 ],
-                "summary": "Get an old student's stats",
-                "description": "Use this endpoint to get stats information about an old student.",
-                "operationId": "91b5a664cb457c9c01d105199e1556cb",
+                "summary": "Get old students statistics",
+                "description": "Fetch male and female counts of old students based on optional filters for term, main class, and class arm.",
+                "operationId": "5c3e4704c3d893e30c54696005949463",
                 "parameters": [
                     {
                         "name": "schid",
                         "in": "path",
-                        "description": "Id of the school",
+                        "description": "ID of the school",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "integer"
                         }
                     },
                     {
                         "name": "ssn",
                         "in": "path",
-                        "description": "Id of the session",
+                        "description": "ID of the session",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "integer"
                         }
                     },
                     {
                         "name": "trm",
-                        "in": "path",
-                        "description": "Id of the trm",
-                        "required": true,
+                        "in": "query",
+                        "description": "Term ID (optional). Default is 'zzz' for all terms.",
+                        "required": false,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "default": "zzz",
+                            "nullable": true
                         }
                     },
                     {
                         "name": "clsm",
-                        "in": "path",
-                        "description": "Id of the main class",
-                        "required": true,
+                        "in": "query",
+                        "description": "Main class ID (optional). Default is 'zzz' for all classes.",
+                        "required": false,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "default": "zzz",
+                            "nullable": true
                         }
                     },
                     {
                         "name": "clsa",
-                        "in": "path",
-                        "description": "Id of the class arm",
-                        "required": true,
+                        "in": "query",
+                        "description": "Class arm ID (optional). Default is 'zzz' for all arms.",
+                        "required": false,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "default": "zzz",
+                            "nullable": true
                         }
                     }
                 ],
@@ -4513,7 +4519,32 @@
                         "description": "Success",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "male": {
+                                                    "type": "integer",
+                                                    "example": 10
+                                                },
+                                                "female": {
+                                                    "type": "integer",
+                                                    "example": 8
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },

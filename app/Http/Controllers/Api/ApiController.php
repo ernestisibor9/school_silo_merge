@@ -6346,7 +6346,7 @@ public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
     // }
 
 
-    public function getOldStudentsStat($schid, $ssn, $trm = null, $clsm = null, $clsa = null)
+public function getOldStudentsStat($schid, $ssn, $trm = 'zzz', $clsm = 'zzz', $clsa = 'zzz')
 {
     // Base query for male students
     $maleQuery = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
@@ -6362,18 +6362,18 @@ public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
         ->where('old_student.status', 'active')
         ->where('student_basic_data.sex', 'F');
 
-    // Optional filters
-    if (!is_null($trm) && $trm !== 'zzz') {
+    // Apply optional filters only if they are not "zzz"
+    if ($trm !== 'zzz') {
         $maleQuery->where('old_student.trm', $trm);
         $femaleQuery->where('old_student.trm', $trm);
     }
 
-    if (!is_null($clsm) && $clsm !== 'zzz') {
+    if ($clsm !== 'zzz') {
         $maleQuery->where('old_student.clsm', $clsm);
         $femaleQuery->where('old_student.clsm', $clsm);
     }
 
-    if (!is_null($clsa) && $clsa !== 'zzz') {
+    if ($clsa !== 'zzz') {
         $maleQuery->where('old_student.clsa', $clsa);
         $femaleQuery->where('old_student.clsa', $clsa);
     }
@@ -6391,7 +6391,6 @@ public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
         ]
     ]);
 }
-
 
 
 
