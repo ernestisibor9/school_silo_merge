@@ -4244,7 +4244,7 @@
                     {
                         "name": "clsm",
                         "in": "path",
-                        "description": "Main class (e.g., JSS1, SS2; 'zzz' to fetch all)",
+                        "description": "Main class (e.g., JSS1, SS2; '-1' to fetch all)",
                         "required": true,
                         "schema": {
                             "type": "string",
@@ -4487,7 +4487,7 @@
                         "required": false,
                         "schema": {
                             "type": "string",
-                            "default": "zzz",
+                            "default": "-1",
                             "nullable": true
                         }
                     },
@@ -4498,7 +4498,7 @@
                         "required": false,
                         "schema": {
                             "type": "string",
-                            "default": "zzz",
+                            "default": "-1",
                             "nullable": true
                         }
                     },
@@ -4509,7 +4509,7 @@
                         "required": false,
                         "schema": {
                             "type": "string",
-                            "default": "zzz",
+                            "default": "-1",
                             "nullable": true
                         }
                     }

@@ -13308,6 +13308,8 @@ public function getOldStudentsStat($schid, $ssn, $trm = '-1', $clsm = '-1', $cls
             'anum' => 'required',
             'bnk' => 'required',
             'aname' => 'required',
+            'ssn' => 'required',
+            'trm' => 'required',
             'pay_head_id' => 'nullable',
         ]);
 
@@ -13317,6 +13319,8 @@ public function getOldStudentsStat($schid, $ssn, $trm = '-1', $clsm = '-1', $cls
             'anum' => $request->anum,
             'bnk' => $request->bnk,
             'aname' => $request->aname,
+            'ssn' => $request->ssn,
+            'trm' => $request->trm,
             'pay_head_id' => $request->pay_head_id ?? null,
         ];
 
@@ -13377,6 +13381,8 @@ public function getOldStudentsStat($schid, $ssn, $trm = '-1', $clsm = '-1', $cls
                 'acct_id' => $acct->id,
                 'schid' => $request->schid,
                 'clsid' => $request->clsid,
+                'ssn' => $request->ssn,
+                'trm' => $request->trm,
                 'pay_head_id' => $request->pay_head_id ?? null,
                 'subaccount_code' => $data['data']['subaccount_code'],
                 'percentage_charge' => $percentage_charge,
@@ -13562,6 +13568,8 @@ public function getOldStudentsStat($schid, $ssn, $trm = '-1', $clsm = '-1', $cls
                     'acct_id' => $account->id,
                     'schid' => $account->schid,
                     'clsid' => $account->clsid,
+                    'ssn' => $account->ssn,
+                    'trm' => $account->trm,
                     'subaccount_code' => $data['data']['subaccount_code'],
                     'percentage_charge' => $percentage_charge,
                 ]);
