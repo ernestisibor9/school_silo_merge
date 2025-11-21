@@ -7473,15 +7473,15 @@ class ApiController extends Controller
     // }
 
 
-        public function setStaffSubject(Request $request)
+    public function setStaffSubject(Request $request)
     {
         // Data validation
         $request->validate([
-            "stid"  => "required",
-            "sbj"   => "required",
+            "stid" => "required",
+            "sbj" => "required",
             "schid" => "required",
-            "sesn"  => "required",
-            "trm"   => "required",
+            "sesn" => "required",
+            "trm" => "required",
         ]);
 
         // Generate unique UID
@@ -7491,18 +7491,18 @@ class ApiController extends Controller
         $pld = staff_subj::updateOrCreate(
             ["uid" => $uid],
             [
-                "stid"  => $request->stid,
-                "sbj"   => $request->sbj,
+                "stid" => $request->stid,
+                "sbj" => $request->sbj,
                 "schid" => $request->schid,
-                "sesn"  => $request->sesn,
-                "trm"   => $request->trm,
+                "sesn" => $request->sesn,
+                "trm" => $request->trm,
             ]
         );
 
         return response()->json([
-            "status"  => true,
+            "status" => true,
             "message" => "Success",
-            "pld"     => $pld
+            "pld" => $pld
         ]);
     }
 
@@ -8041,32 +8041,32 @@ class ApiController extends Controller
                 // ];
 
                 $subjectScores = std_score::where('stid', $user_id)
-                ->where('sbj', $sbid)
-                ->where("schid", $schid)
-                ->where("ssn", $ssn)
-                ->where("trm", $trm)
-                ->where("clsid", $clsm)
-                ->get();
+                    ->where('sbj', $sbid)
+                    ->where("schid", $schid)
+                    ->where("ssn", $ssn)
+                    ->where("trm", $trm)
+                    ->where("clsid", $clsm)
+                    ->get();
 
-            // If no score record exists, assign scr = 0
-            if ($subjectScores->isEmpty()) {
-                $subjectScores = collect([
-                    [
-                        "stid" => $user_id,
-                        "sbj" => $sbid,
-                        "scr" => 0,
-                        "schid" => $schid,
-                        "clsid" => $clsm,
-                        "ssn" => $ssn,
-                        "trm" => $trm,
-                    ]
-                ]);
-            }
+                // If no score record exists, assign scr = 0
+                if ($subjectScores->isEmpty()) {
+                    $subjectScores = collect([
+                        [
+                            "stid" => $user_id,
+                            "sbj" => $sbid,
+                            "scr" => 0,
+                            "schid" => $schid,
+                            "clsid" => $clsm,
+                            "ssn" => $ssn,
+                            "trm" => $trm,
+                        ]
+                    ]);
+                }
 
-            $scores[] = [
-                'sbid' => $sbid,
-                'scores' => $subjectScores
-            ];
+                $scores[] = [
+                    'sbid' => $sbid,
+                    'scores' => $subjectScores
+                ];
 
             }
 
@@ -16299,6 +16299,7 @@ class ApiController extends Controller
         $activeStudentsMale = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
             ->where('old_student.schid', $schid)
             ->where('old_student.status', 'active')
+            ->where('old_student.ssn', $ssnid)
             ->where('student_basic_data.sex', 'M')
             ->distinct('old_student.sid')
             ->count();
@@ -16306,6 +16307,7 @@ class ApiController extends Controller
         $activeStudentsFemale = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
             ->where('old_student.schid', $schid)
             ->where('old_student.status', 'active')
+            ->where('old_student.ssn', $ssnid)
             ->where('student_basic_data.sex', 'F')
             ->distinct('old_student.sid')
             ->count();
@@ -16313,22 +16315,31 @@ class ApiController extends Controller
 
 
         // Alumni
-        $alumniStudentsMale = alumni::join('student_basic_data', 'alumnis.stid', '=', 'student_basic_data.user_id')
+        $alumniStudentsMale = alumni::join('old_student', 'alumnis.stid', '=', 'old_student.sid')
+            ->join('student_basic_data', 'alumnis.stid', '=', 'student_basic_data.user_id')
             ->where('alumnis.schid', $schid)
+            ->where('old_student.status', 'inactive')
+            ->where('old_student.ssn', $ssnid)     // filter by SSN
             ->where('student_basic_data.sex', 'M')
             ->distinct('alumnis.stid')
             ->count();
 
-        $alumniStudentsFemale = alumni::join('student_basic_data', 'alumnis.stid', '=', 'student_basic_data.user_id')
+
+        $alumniStudentsFemale = alumni::join('old_student', 'alumnis.stid', '=', 'old_student.sid')
+            ->join('student_basic_data', 'alumnis.stid', '=', 'student_basic_data.user_id')
             ->where('alumnis.schid', $schid)
+            ->where('old_student.status', 'inactive')
+            ->where('old_student.ssn', $ssnid)     // filter by SSN
             ->where('student_basic_data.sex', 'F')
             ->distinct('alumnis.stid')
             ->count();
 
 
+
         $activeLearners = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
             ->where('old_student.schid', $schid)
             ->where('old_student.status', 'active')
+            ->where('old_student.status', $ssnid)
             ->distinct('old_student.sid')
             ->count();
 
@@ -16354,11 +16365,13 @@ class ApiController extends Controller
             ->where('old_staff.schid', $schid)
             ->where('old_staff.status', 'active')
             ->where('staff_basic_data.sex', 'M')
+            ->where('old_staff.ssn', $ssnid)
             ->distinct('old_staff.sid')
             ->count();
         $activeStaffFemale = old_staff::join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
             ->where('old_staff.schid', $schid)
             ->where('old_staff.status', 'active')
+            ->where('old_staff.ssn', $ssnid)
             ->where('staff_basic_data.sex', 'F')
             ->distinct('old_staff.sid')
             ->count();
@@ -16366,6 +16379,7 @@ class ApiController extends Controller
         $activeStaff = old_staff::join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
             ->where('old_staff.schid', $schid)
             ->where('old_staff.status', 'active')
+            ->where('old_staff.ssn', $ssnid)
             ->distinct('old_staff.sid')
             ->count();
 
@@ -26656,136 +26670,136 @@ class ApiController extends Controller
 
 
     public function getLoggedInUserDetails(Request $request)
-{
-    try {
-        $user = JWTAuth::parseToken()->authenticate();
+    {
+        try {
+            $user = JWTAuth::parseToken()->authenticate();
 
-        if (!$user) {
-            return response()->json(['message' => 'User not found'], 404);
-        }
-
-        // Get ssn & trm from query
-        $ssn = $request->input('ssn');
-        $trm = $request->input('trm');
-
-        // ---------------------------------------
-        // 1. Try OLD STAFF (existing staff)
-        // ---------------------------------------
-        $oldStaffQuery = $user->oldStaff();
-
-        if (!empty($ssn)) {
-            $oldStaffQuery->where('ssn', $ssn);
-        }
-
-        if (!empty($trm)) {
-            $oldStaffQuery->where('trm', $trm);
-        }
-
-        $staff = $oldStaffQuery->first();
-
-        // If still nothing, load latest ssn/trm
-        if (!$staff) {
-            $staff = $user->oldStaff()
-                ->orderByDesc('ssn')
-                ->orderByDesc('trm')
-                ->first();
-        }
-
-        // ---------------------------------------
-        // 2. If NOT FOUND in old_staff → use NEW staff table
-        // ---------------------------------------
-        if (!$staff) {
-            $staff = $user->staff()->first();
-
-            if ($staff) {
-                // Convert NEW STAFF fields to old_staff format
-                $staff = (object) [
-                    'uid'         => $staff->uid ?? null,
-                    'sid'         => $staff->sid,          // same as user_id
-                    'schid'       => $staff->schid,
-                    'fname'       => $staff->fname,
-                    'mname'       => $staff->mname,
-                    'lname'       => $staff->lname,
-                    'status'      => $staff->status ?? 'active',
-                    'suid'        => $staff->suid ?? "",
-                    'ssn'         => $staff->ssn ?? "",
-                    'trm'         => $staff->trm ?? "",
-                    'clsm'        => $staff->clsm ?? "",
-                    'role'        => $staff->role ?? "",
-                    'role2'       => $staff->role2 ?? "",
-                    'more'        => $staff->more ?? "",
-                    'created_at'  => $staff->created_at,
-                    'updated_at'  => $staff->updated_at
-                ];
+            if (!$user) {
+                return response()->json(['message' => 'User not found'], 404);
             }
-        }
 
-        // ---------------------------------------
-        // 3. If still no profile, return empty profile
-        // ---------------------------------------
-        if (!$staff) {
+            // Get ssn & trm from query
+            $ssn = $request->input('ssn');
+            $trm = $request->input('trm');
+
+            // ---------------------------------------
+            // 1. Try OLD STAFF (existing staff)
+            // ---------------------------------------
+            $oldStaffQuery = $user->oldStaff();
+
+            if (!empty($ssn)) {
+                $oldStaffQuery->where('ssn', $ssn);
+            }
+
+            if (!empty($trm)) {
+                $oldStaffQuery->where('trm', $trm);
+            }
+
+            $staff = $oldStaffQuery->first();
+
+            // If still nothing, load latest ssn/trm
+            if (!$staff) {
+                $staff = $user->oldStaff()
+                    ->orderByDesc('ssn')
+                    ->orderByDesc('trm')
+                    ->first();
+            }
+
+            // ---------------------------------------
+            // 2. If NOT FOUND in old_staff → use NEW staff table
+            // ---------------------------------------
+            if (!$staff) {
+                $staff = $user->staff()->first();
+
+                if ($staff) {
+                    // Convert NEW STAFF fields to old_staff format
+                    $staff = (object) [
+                        'uid' => $staff->uid ?? null,
+                        'sid' => $staff->sid,          // same as user_id
+                        'schid' => $staff->schid,
+                        'fname' => $staff->fname,
+                        'mname' => $staff->mname,
+                        'lname' => $staff->lname,
+                        'status' => $staff->status ?? 'active',
+                        'suid' => $staff->suid ?? "",
+                        'ssn' => $staff->ssn ?? "",
+                        'trm' => $staff->trm ?? "",
+                        'clsm' => $staff->clsm ?? "",
+                        'role' => $staff->role ?? "",
+                        'role2' => $staff->role2 ?? "",
+                        'more' => $staff->more ?? "",
+                        'created_at' => $staff->created_at,
+                        'updated_at' => $staff->updated_at
+                    ];
+                }
+            }
+
+            // ---------------------------------------
+            // 3. If still no profile, return empty profile
+            // ---------------------------------------
+            if (!$staff) {
+                return response()->json([
+                    'user' => $user,
+                    'profile' => null,
+                    'ssn' => $ssn,
+                    'trm' => $trm,
+                ]);
+            }
+
+            // ---------------------------------------
+            // 4. Load Role Names
+            // ---------------------------------------
+            $role = ltrim($staff->role, '*-');
+            $role2 = ltrim($staff->role2, '*-');
+
+            $roleName = \App\Models\sch_staff_role::where('role', $role)
+                ->where('schid', $staff->schid)
+                ->value('name');
+
+            $role2Name = \App\Models\sch_staff_role::where('role', $role2)
+                ->where('schid', $staff->schid)
+                ->value('name');
+
+            // ---------------------------------------
+            // 5. Build profile in EXACT format you want
+            // ---------------------------------------
+            $profile = [
+                'uid' => $staff->uid,
+                'sid' => $staff->sid,
+                'schid' => $staff->schid,
+                'fname' => $staff->fname,
+                'mname' => $staff->mname,
+                'lname' => $staff->lname,
+                'status' => $staff->status,
+                'suid' => $staff->suid,
+                'ssn' => $staff->ssn,
+                'trm' => $staff->trm,
+                'clsm' => $staff->clsm,
+                'role' => $staff->role,
+                'role2' => $staff->role2,
+                'more' => $staff->more,
+                'created_at' => $staff->created_at,
+                'updated_at' => $staff->updated_at,
+                'role_name' => $roleName,
+                'role2_name' => $role2Name,
+            ];
+
             return response()->json([
                 'user' => $user,
-                'profile' => null,
+                'profile' => $profile,
                 'ssn' => $ssn,
                 'trm' => $trm,
             ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Server Error',
+                'error' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
+            ], 500);
         }
-
-        // ---------------------------------------
-        // 4. Load Role Names
-        // ---------------------------------------
-        $role = ltrim($staff->role, '*-');
-        $role2 = ltrim($staff->role2, '*-');
-
-        $roleName = \App\Models\sch_staff_role::where('role', $role)
-            ->where('schid', $staff->schid)
-            ->value('name');
-
-        $role2Name = \App\Models\sch_staff_role::where('role', $role2)
-            ->where('schid', $staff->schid)
-            ->value('name');
-
-        // ---------------------------------------
-        // 5. Build profile in EXACT format you want
-        // ---------------------------------------
-        $profile = [
-            'uid'         => $staff->uid,
-            'sid'         => $staff->sid,
-            'schid'       => $staff->schid,
-            'fname'       => $staff->fname,
-            'mname'       => $staff->mname,
-            'lname'       => $staff->lname,
-            'status'      => $staff->status,
-            'suid'        => $staff->suid,
-            'ssn'         => $staff->ssn,
-            'trm'         => $staff->trm,
-            'clsm'        => $staff->clsm,
-            'role'        => $staff->role,
-            'role2'       => $staff->role2,
-            'more'        => $staff->more,
-            'created_at'  => $staff->created_at,
-            'updated_at'  => $staff->updated_at,
-            'role_name'   => $roleName,
-            'role2_name'  => $role2Name,
-        ];
-
-        return response()->json([
-            'user' => $user,
-            'profile' => $profile,
-            'ssn' => $ssn,
-            'trm' => $trm,
-        ]);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'message' => 'Server Error',
-            'error' => $e->getMessage(),
-            'line' => $e->getLine(),
-            'file' => $e->getFile(),
-        ], 500);
     }
-}
 
 
 
@@ -33804,15 +33818,118 @@ class ApiController extends Controller
      */
 
 
+    // public function rePostStaff(Request $request)
+    // {
+    //     $request->validate([
+    //         'stid' => 'required', // staff id
+    //         'schid' => 'required', // school id
+    //         'sesn' => 'required', // session
+    //         'trm' => 'required', // term
+    //         'clsm' => 'required', // new main class
+    //         'suid' => 'required', // staff unique id
+    //         'role' => 'nullable',
+    //         'role2' => 'nullable',
+    //     ]);
+
+    //     // 1️⃣ Find the staff record
+    //     $staff = DB::table('staff')->where('sid', $request->stid)->first();
+    //     if (!$staff) {
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'Staff not found',
+    //         ], 404);
+    //     }
+
+    //     // Check if already assigned
+    //     $exists = DB::table('staff_class')->where([
+    //         'stid' => $request->stid,
+    //         'cls' => $request->clsm,
+    //         'ssn' => $request->sesn,
+    //         'trm' => $request->trm,
+    //     ])->exists();
+
+    // //     $exists = DB::table('staff_class')
+    // // ->join('old_staff', 'old_staff.sid', '=', 'staff_class.stid')
+    // // ->where('staff_class.stid', $request->stid)
+    // // ->where('staff_class.cls', $request->clsm)
+    // // ->where('staff_class.ssn', $request->sesn)
+    // // ->where('staff_class.trm', $request->trm)
+    // // ->where(function ($q) use ($request) {
+    // //     $q->where('old_staff.role', $request->role)
+    // //       ->orWhere('old_staff.role2', $request->role2);
+    // // })
+    // // ->exists();
+
+
+    //     if ($exists) {
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'This staff has already been assigned to this class for the selected session and term.',
+    //         ]);
+    //     }
+
+    //     //  Generate deterministic UID (no random numbers)
+    //     $uid = $request->sesn . $request->trm . $request->stid . $request->clsm;
+    //     $uid2 = $request->sesn . $request->trm . $request->stid . $request->clsm;
+
+    //     //  Insert a new record in old_staff (no update)
+    //     DB::table('old_staff')->insert([
+    //         'uid' => $uid2,
+    //         'sid' => $request->stid,
+    //         'schid' => $request->schid,
+    //         'fname' => $staff->fname,
+    //         'mname' => $staff->mname,
+    //         'lname' => $staff->lname,
+    //         'status' => 'active',
+    //         'suid' => $request->suid,
+    //         'ssn' => $request->sesn,
+    //         'trm' => $request->trm,
+    //         'clsm' => $request->clsm,
+    //         'role' => $request->role ?? $staff->role,
+    //         'role2' => $request->role2 ?? $staff->role2,
+    //         'more' => '',
+    //         'created_at' => now(),
+    //         'updated_at' => now(),
+    //     ]);
+
+    //     // 5️⃣ Insert a new record in staff_class (no update)
+    //     DB::table('staff_class')->insert([
+    //         'uid' => $uid,
+    //         'stid' => $request->stid,
+    //         'cls' => $request->clsm,
+    //         'schid' => $request->schid,
+    //         'ssn' => $request->sesn,
+    //         'trm' => $request->trm,
+    //         'created_at' => now(),
+    //         'updated_at' => now(),
+    //     ]);
+
+    //     return response()->json([
+    //         'status' => true,
+    //         'message' => 'Staff re-posted successfully and class assigned.',
+    //         'pld' => [
+    //             'stid' => $request->stid,
+    //             'suid' => $request->suid,
+    //             'ssn' => $request->sesn,
+    //             'trm' => $request->trm,
+    //             'clsm' => $request->clsm,
+    //             'role' => $request->role,
+    //             'role2' => $request->role2,
+    //         ],
+    //     ]);
+    // }
+
+
+
     public function rePostStaff(Request $request)
     {
         $request->validate([
-            'stid' => 'required', // staff id
-            'schid' => 'required', // school id
-            'sesn' => 'required', // session
-            'trm' => 'required', // term
-            'clsm' => 'required', // new main class
-            'suid' => 'required', // staff unique id
+            'stid' => 'required',   // staff id
+            'schid' => 'required',  // school id
+            'sesn' => 'required',   // session
+            'trm' => 'required',    // term
+            'clsm' => 'required',   // main class
+            'suid' => 'required',   // staff unique id
             'role' => 'nullable',
             'role2' => 'nullable',
         ]);
@@ -33826,81 +33943,92 @@ class ApiController extends Controller
             ], 404);
         }
 
-        // 2️⃣ Check if already assigned
-        // $exists = DB::table('staff_class')->where([
-        //     'stid' => $request->stid,
-        //     'cls' => $request->clsm,
-        //     'ssn' => $request->sesn,
-        //     'trm' => $request->trm,
-        // ])->exists();
+        // 2️⃣ Generate deterministic UID for staff_class & old_staff
+        $uid = $request->sesn . $request->trm . $request->stid . $request->clsm;
 
-        $exists = DB::table('staff_class')
-    ->join('old_staff', 'old_staff.sid', '=', 'staff_class.stid')
-    ->where('staff_class.stid', $request->stid)
-    ->where('staff_class.cls', $request->clsm)
-    ->where('staff_class.ssn', $request->sesn)
-    ->where('staff_class.trm', $request->trm)
-    ->where(function ($q) use ($request) {
-        $q->where('old_staff.role', $request->role)
-          ->orWhere('old_staff.role2', $request->role2);
-    })
-    ->exists();
+        // 3️⃣ Check if staff_class already has this combination
+        $existingClass = DB::table('staff_class')->where([
+            'stid' => $request->stid,
+            'cls' => $request->clsm,
+            'ssn' => $request->sesn,
+            'trm' => $request->trm,
+        ])->first();
 
-
-        if ($exists) {
-            return response()->json([
-                'status' => false,
-                'message' => 'This staff has already been assigned to this class for the selected session and term.',
+        // 4️⃣ UPDATE OR CREATE staff_class
+        if ($existingClass) {
+            DB::table('staff_class')->where('uid', $existingClass->uid)->update([
+                'uid' => $uid,
+                'updated_at' => now(),
+            ]);
+        } else {
+            DB::table('staff_class')->insert([
+                'uid' => $uid,
+                'stid' => $request->stid,
+                'cls' => $request->clsm,
+                'schid' => $request->schid,
+                'ssn' => $request->sesn,
+                'trm' => $request->trm,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
         }
 
-        //  Generate deterministic UID (no random numbers)
-        $uid = $request->sesn . $request->trm . $request->stid . $request->clsm;
-        $uid2 = $request->sesn . $request->trm . $request->stid . $request->clsm;
+        // 5️⃣ Prepare role values
+        $roleValue = $request->role ?? $staff->role;
+        $role2Value = $request->role2 ?? $staff->role2;
 
-        //  Insert a new record in old_staff (no update)
-        DB::table('old_staff')->insert([
-            'uid' => $uid2,
+        // 6️⃣ Check if old_staff already has a record for this staff, session, and term
+        $existingOld = DB::table('old_staff')->where([
             'sid' => $request->stid,
-            'schid' => $request->schid,
-            'fname' => $staff->fname,
-            'mname' => $staff->mname,
-            'lname' => $staff->lname,
-            'status' => 'active',
-            'suid' => $request->suid,
             'ssn' => $request->sesn,
             'trm' => $request->trm,
-            'clsm' => $request->clsm,
-            'role' => $request->role ?? $staff->role,
-            'role2' => $request->role2 ?? $staff->role2,
-            'more' => '',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        ])->first();
 
-        // 5️⃣ Insert a new record in staff_class (no update)
-        DB::table('staff_class')->insert([
-            'uid' => $uid,
-            'stid' => $request->stid,
-            'cls' => $request->clsm,
-            'schid' => $request->schid,
-            'ssn' => $request->sesn,
-            'trm' => $request->trm,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        // 7️⃣ UPDATE OR CREATE old_staff
+        if ($existingOld) {
+            DB::table('old_staff')->where('uid', $existingOld->uid)->update([
+                'uid' => $uid,
+                'suid' => $request->suid,
+                'clsm' => $request->clsm,
+                'role' => $roleValue,
+                'role2' => $role2Value,
+                'updated_at' => now(),
+            ]);
+        } else {
+            DB::table('old_staff')->insert([
+                'uid' => $uid,
+                'sid' => $request->stid,
+                'schid' => $request->schid,
+                'fname' => $staff->fname,
+                'mname' => $staff->mname,
+                'lname' => $staff->lname,
+                'status' => 'active',
+                'suid' => $request->suid,
+                'ssn' => $request->sesn,
+                'trm' => $request->trm,
+                'clsm' => $request->clsm,
+                'role' => $roleValue,
+                'role2' => $role2Value,
+                'more' => '',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
+        // 8️⃣ Return JSON response in your requested format
         return response()->json([
             'status' => true,
-            'message' => 'Staff re-posted successfully and class assigned.',
+            'message' => $existingClass
+                ? 'Staff record updated successfully.'
+                : 'Staff posted successfully.',
             'pld' => [
                 'stid' => $request->stid,
                 'suid' => $request->suid,
                 'ssn' => $request->sesn,
                 'trm' => $request->trm,
                 'clsm' => $request->clsm,
-                'role' => $request->role,
-                'role2' => $request->role2,
+                'role' => $roleValue,
+                'role2' => $role2Value,
             ],
         ]);
     }
