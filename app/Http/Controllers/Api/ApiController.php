@@ -18467,55 +18467,52 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
     $cls   = $request->input('cls', 'zzz');
     $term  = $request->input('term');
 
-    // Base query: left join only latest academic record per student
-    $query = student::query()
-        ->leftJoin('student_academic_data as sad', function ($join) {
+    // Base query
+    $query = student::query()->where('schid', $schid)->where('stat', $stat)->where('status', 'active');
+
+    // Join latest academic record only if cls filter is not "zzz"
+    if ($cls !== 'zzz') {
+        $query->leftJoin('student_academic_data as sad', function ($join) {
             $join->on('student.sid', '=', 'sad.user_id')
-                 ->whereIn('sad.id', function ($sub) {
+                 ->whereIn('sad.id', function($sub) {
                      $sub->selectRaw('MAX(id)')
                          ->from('student_academic_data')
                          ->groupBy('user_id');
                  });
         })
-        ->where('student.schid', $schid)
-        ->where('student.stat', $stat);
-
-    // Filter by class if not "ALL"
-    if ($cls !== 'zzz') {
-        $query->where('sad.new_class_main', $cls);
+        ->where('sad.new_class_main', $cls);
     }
 
-    // Optional filters
-    if ($year) $query->where('student.year', $year);
-    if ($term) $query->where('student.term', $term);
+    if ($term)  $query->where('student.term', $term);
+    if ($year)  $query->where('student.year', $year);
 
-    // Count distinct students to avoid duplicates
+    // Count distinct students
     $total = (clone $query)->distinct('student.sid')->count('student.sid');
 
     // Fetch paginated results
-    $students = $query->select('student.*', 'sad.new_class_main')
+    $students = $query->select('student.*')
                       ->distinct('student.sid')
                       ->orderBy('student.lname', 'asc')
                       ->skip($start)
                       ->take($count)
                       ->get();
 
-    // Format payload
+    // Map payload
     $pld = $students->map(function($student) {
         return [
             's' => $student,
             'b' => student_basic_data::where('user_id', $student->sid)->first(),
             'a' => student_academic_data::where('user_id', $student->sid)
-                                         ->orderBy('created_at', 'desc')
-                                         ->first(),
+                                        ->orderBy('created_at', 'desc')
+                                        ->first(),
         ];
     });
 
     return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "total"  => $total,
-        "pld"    => $pld,
+        'status'  => true,
+        'message' => 'Success',
+        'total'   => $total,
+        'pld'     => $pld,
     ]);
 }
 
@@ -18845,13 +18842,13 @@ public function getStudentsStatBySchool(Request $request)
     $year = $request->query('year', null);
 
     // Base query
-    $query = student::where('schid', $schid)
-        ->where('status', 'active')
-        ->where('stat', $stat);
+    $query = student::query()->where('schid', $schid)
+                             ->where('status', 'active')
+                             ->where('stat', $stat);
 
     // Join latest academic record only if class filter is specified
     if ($cls !== 'zzz') {
-        $query->join('student_academic_data as sad', function ($join) {
+        $query->leftJoin('student_academic_data as sad', function ($join) {
             $join->on('student.sid', '=', 'sad.user_id')
                  ->whereIn('sad.id', function($sub) {
                      $sub->selectRaw('MAX(id)')
@@ -18862,11 +18859,11 @@ public function getStudentsStatBySchool(Request $request)
     }
 
     // Optional filters
-    if ($term)  $query->where('term', $term);
-    if ($year)  $query->where('year', $year);
+    if ($term) $query->where('term', $term);
+    if ($year) $query->where('year', $year);
 
     // Count distinct students
-    $total = $query->distinct('student.sid')->count('student.sid');
+    $total = (clone $query)->distinct('student.sid')->count('student.sid');
 
     return response()->json([
         'status'  => true,
@@ -18874,7 +18871,6 @@ public function getStudentsStatBySchool(Request $request)
         'pld'     => ['total' => $total],
     ]);
 }
-
 
 
 
