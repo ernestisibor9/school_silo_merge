@@ -5847,7 +5847,7 @@ class ApiController extends Controller
  *         name="clsm",
  *         in="path",
  *         required=true,
- *         description="Main class (e.g., JSS1, SS2; 'zzz' to fetch all)",
+ *         description="Main class (e.g., JSS1, SS2; '-1' to fetch all)",
  *         @OA\Schema(type="string", example="JSS1")
  *     ),
  *     @OA\Parameter(
@@ -6257,21 +6257,21 @@ public function getOldStudents($schid, $ssn, $trm = '-1', $clsm = '-1', $clsa = 
  *         in="query",
  *         required=false,
  *         description="Term ID (optional). Default is '-1' for all terms.",
- *         @OA\Schema(type="string", default="zzz", nullable=true)
+ *         @OA\Schema(type="string", default="-1", nullable=true)
  *     ),
  *     @OA\Parameter(
  *         name="clsm",
  *         in="query",
  *         required=false,
  *         description="Main class ID (optional). Default is '-1' for all classes.",
- *         @OA\Schema(type="string", default="zzz", nullable=true)
+ *         @OA\Schema(type="string", default="-1", nullable=true)
  *     ),
  *     @OA\Parameter(
  *         name="clsa",
  *         in="query",
  *         required=false,
  *         description="Class arm ID (optional). Default is '-1' for all arms.",
- *         @OA\Schema(type="string", default="zzz", nullable=true)
+ *         @OA\Schema(type="string", default="-1", nullable=true)
  *     ),
  *     @OA\Response(
  *         response=200,

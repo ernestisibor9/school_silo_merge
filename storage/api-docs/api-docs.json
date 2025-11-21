@@ -4234,7 +4234,7 @@
                     {
                         "name": "trm",
                         "in": "path",
-                        "description": "Term ID ('zzz' to fetch all terms for the session)",
+                        "description": "Term ID ('-1' to fetch all terms for the session)",
                         "required": true,
                         "schema": {
                             "type": "string",
@@ -4254,7 +4254,7 @@
                     {
                         "name": "clsa",
                         "in": "path",
-                        "description": "Class arm ('zzz' to fetch all arms)",
+                        "description": "Class arm ('-1' to fetch all arms)",
                         "required": true,
                         "schema": {
                             "type": "string",
@@ -4483,7 +4483,7 @@
                     {
                         "name": "trm",
                         "in": "query",
-                        "description": "Term ID (optional). Default is 'zzz' for all terms.",
+                        "description": "Term ID (optional). Default is '-1' for all terms.",
                         "required": false,
                         "schema": {
                             "type": "string",
@@ -4494,7 +4494,7 @@
                     {
                         "name": "clsm",
                         "in": "query",
-                        "description": "Main class ID (optional). Default is 'zzz' for all classes.",
+                        "description": "Main class ID (optional). Default is '-1' for all classes.",
                         "required": false,
                         "schema": {
                             "type": "string",
@@ -4505,7 +4505,7 @@
                     {
                         "name": "clsa",
                         "in": "query",
-                        "description": "Class arm ID (optional). Default is 'zzz' for all arms.",
+                        "description": "Class arm ID (optional). Default is '-1' for all arms.",
                         "required": false,
                         "schema": {
                             "type": "string",
