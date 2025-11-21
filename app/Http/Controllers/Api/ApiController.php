@@ -5840,7 +5840,7 @@ class ApiController extends Controller
  *         name="trm",
  *         in="path",
  *         required=true,
- *         description="Term ID ('zzz' to fetch all terms for the session)",
+ *         description="Term ID ('-1' to fetch all terms for the session)",
  *         @OA\Schema(type="string", example="1")
  *     ),
  *     @OA\Parameter(
@@ -5854,7 +5854,7 @@ class ApiController extends Controller
  *         name="clsa",
  *         in="path",
  *         required=true,
- *         description="Class arm ('zzz' to fetch all arms)",
+ *         description="Class arm ('-1' to fetch all arms)",
  *         @OA\Schema(type="string", example="A")
  *     ),
  *
@@ -6104,7 +6104,7 @@ class ApiController extends Controller
 // }
 
 
-public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
+public function getOldStudents($schid, $ssn, $trm = '-1', $clsm = '-1', $clsa = '-1')
 {
     // Base query
     $query = old_student::with(['academicData'])
@@ -6112,18 +6112,18 @@ public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
         ->where("ssn", $ssn)
         ->where("status", "active");
 
-    // Filter by term if not "ALL"
-    if ($trm !== 'zzz') {
+    // Filter by term if not "-1"
+    if ($trm !== '-1') {
         $query->where("trm", $trm);
     }
 
-    // Filter by main class if not "ALL"
-    if ($clsm !== 'zzz') {
+    // Filter by main class if not "-1"
+    if ($clsm !== '-1') {
         $query->where("clsm", $clsm);
     }
 
-    // Filter by arm if not "ALL"
-    if ($clsa !== 'zzz') {
+    // Filter by arm if not "-1"
+    if ($clsa !== '-1') {
         $query->where("clsa", $clsa);
     }
 
@@ -6184,7 +6184,6 @@ public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
         "pld" => $pld,
     ]);
 }
-
 
 
 
@@ -6257,21 +6256,21 @@ public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
  *         name="trm",
  *         in="query",
  *         required=false,
- *         description="Term ID (optional). Default is 'zzz' for all terms.",
+ *         description="Term ID (optional). Default is '-1' for all terms.",
  *         @OA\Schema(type="string", default="zzz", nullable=true)
  *     ),
  *     @OA\Parameter(
  *         name="clsm",
  *         in="query",
  *         required=false,
- *         description="Main class ID (optional). Default is 'zzz' for all classes.",
+ *         description="Main class ID (optional). Default is '-1' for all classes.",
  *         @OA\Schema(type="string", default="zzz", nullable=true)
  *     ),
  *     @OA\Parameter(
  *         name="clsa",
  *         in="query",
  *         required=false,
- *         description="Class arm ID (optional). Default is 'zzz' for all arms.",
+ *         description="Class arm ID (optional). Default is '-1' for all arms.",
  *         @OA\Schema(type="string", default="zzz", nullable=true)
  *     ),
  *     @OA\Response(
@@ -6346,7 +6345,7 @@ public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
     // }
 
 
-public function getOldStudentsStat($schid, $ssn, $trm = 'zzz', $clsm = 'zzz', $clsa = 'zzz')
+public function getOldStudentsStat($schid, $ssn, $trm = '-1', $clsm = '-1', $clsa = '-1')
 {
     // Base query for male students
     $maleQuery = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
@@ -6362,18 +6361,18 @@ public function getOldStudentsStat($schid, $ssn, $trm = 'zzz', $clsm = 'zzz', $c
         ->where('old_student.status', 'active')
         ->where('student_basic_data.sex', 'F');
 
-    // Apply optional filters only if they are not "zzz"
-    if ($trm !== 'zzz') {
+    // Apply optional filters only if they are not "-1"
+    if ($trm !== '-1') {
         $maleQuery->where('old_student.trm', $trm);
         $femaleQuery->where('old_student.trm', $trm);
     }
 
-    if ($clsm !== 'zzz') {
+    if ($clsm !== '-1') {
         $maleQuery->where('old_student.clsm', $clsm);
         $femaleQuery->where('old_student.clsm', $clsm);
     }
 
-    if ($clsa !== 'zzz') {
+    if ($clsa !== '-1') {
         $maleQuery->where('old_student.clsa', $clsa);
         $femaleQuery->where('old_student.clsa', $clsa);
     }
