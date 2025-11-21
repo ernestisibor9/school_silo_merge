@@ -16335,11 +16335,19 @@ class ApiController extends Controller
             ->count();
 
 
+        $alumniStudents = alumni::join('old_student', 'alumnis.stid', '=', 'old_student.sid')
+            ->where('alumnis.schid', $schid)
+            ->where('old_student.status', 'inactive')
+            ->where('old_student.ssn', $ssnid)     // filter by SSN
+            ->distinct('alumnis.stid')
+            ->count();
+
+
 
         $activeLearners = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
             ->where('old_student.schid', $schid)
             ->where('old_student.status', 'active')
-            ->where('old_student.status', $ssnid)
+            ->where('old_student.ssn', $ssnid)
             ->distinct('old_student.sid')
             ->count();
 
@@ -16465,6 +16473,7 @@ class ApiController extends Controller
                 "totalActiveLearners" => $activeLearners,
                 "alumniStudentsMale" => $alumniStudentsMale,
                 "alumniStudentsFemale" => $alumniStudentsFemale,
+                "totalAlumniStudents" => $alumniStudents,
 
                 "pendingStaff" => $pendingStaff,
                 "approvedStaffMale" => $approvedStaffMale,
