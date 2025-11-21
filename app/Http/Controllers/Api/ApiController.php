@@ -5813,90 +5813,100 @@ class ApiController extends Controller
 
 
 
+/**
+ * @OA\Get(
+ *     path="/api/getOldStudents/{schid}/{ssn}/{trm}/{clsm}/{clsa}",
+ *     summary="Get old students history",
+ *     description="Fetch old students by school, session, term, main class, and class arm.
+ *                  Use 'zzz' for clsm or clsa to fetch all classes or all arms.
+ *                  Use trm = -1 to fetch all terms for the session.",
+ *     operationId="getOldStudents",
+ *     tags={"Api"},
+ *     security={{"bearerAuth": {}}},
+ *
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="path",
+ *         required=true,
+ *         description="School ID",
+ *         @OA\Schema(type="integer", example=12)
+ *     ),
+ *     @OA\Parameter(
+ *         name="ssn",
+ *         in="path",
+ *         required=true,
+ *         description="Session (academic year)",
+ *         @OA\Schema(type="string", example="2024")
+ *     ),
+ *     @OA\Parameter(
+ *         name="trm",
+ *         in="path",
+ *         required=true,
+ *         description="Term ID (-1 to fetch all terms for the session)",
+ *         @OA\Schema(type="integer", example=1)
+ *     ),
+ *     @OA\Parameter(
+ *         name="clsm",
+ *         in="path",
+ *         required=true,
+ *         description="Main class (e.g., JSS1, SS2; use 'zzz' to fetch all)",
+ *         @OA\Schema(type="string", example="JSS1")
+ *     ),
+ *     @OA\Parameter(
+ *         name="clsa",
+ *         in="path",
+ *         required=true,
+ *         description="Class arm (use 'zzz' to fetch all arms)",
+ *         @OA\Schema(type="string", example="A")
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful Response",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(property="total", type="integer", example=28),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(property="sid", type="integer", example=101),
+ *                     @OA\Property(property="suid", type="integer", example=5001),
+ *                     @OA\Property(property="fname", type="string", example="John"),
+ *                     @OA\Property(property="mname", type="string", example="Doe"),
+ *                     @OA\Property(property="lname", type="string", example="Smith"),
+ *                     @OA\Property(property="ssn", type="string", example="2024"),
+ *                     @OA\Property(property="trm", type="integer", example=1),
+ *                     @OA\Property(property="clsm", type="string", example="JSS1"),
+ *                     @OA\Property(property="clsa", type="string", example="A"),
+ *                     @OA\Property(property="last_school", type="string", example="St. Mary's Primary School"),
+ *                     @OA\Property(property="last_class", type="string", example="Primary 6"),
+ *                     @OA\Property(property="new_class", type="string", example="JSS1"),
+ *                     @OA\Property(property="new_class_main", type="string", example="Junior Secondary"),
+ *                     @OA\Property(property="adm_ssn", type="string", example="U123/2023/001"),
+ *                     @OA\Property(property="adm_trm", type="integer", example=1),
+ *                     @OA\Property(property="cls_of_adm", type="string", example="JSS1"),
+ *                     @OA\Property(property="date_of_adm", type="string", format="date", example="2023-09-01"),
+ *                     @OA\Property(property="adm_status", type="string", example="active")
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="No records found",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="No records found")
+ *         )
+ *     )
+ * )
+ */
 
-    /**
-     * @OA\Get(
-     *     path="/api/getOldStudents/{schid}/{ssn}/{trm}/{clsm}/{clsa}",
-     *     summary="Get old students history",
-     *     description="Fetch old students by school, session, term, and class. If trm = -1, all terms for the session are returned. If clsa = -1, all arms are returned.",
-     *     operationId="getOldStudents",
-     *     tags={"Api"},
-     *     security={{"bearerAuth": {}}},
-     *
-     *     @OA\Parameter(
-     *         name="schid",
-     *         in="path",
-     *         required=true,
-     *         description="School ID",
-     *         @OA\Schema(type="integer", example=12)
-     *     ),
-     *     @OA\Parameter(
-     *         name="ssn",
-     *         in="path",
-     *         required=true,
-     *         description="Session (academic year)",
-     *         @OA\Schema(type="string", example="2024")
-     *     ),
-     *     @OA\Parameter(
-     *         name="trm",
-     *         in="path",
-     *         required=true,
-     *         description="Term ID (use -1 to fetch all terms for the session)",
-     *         @OA\Schema(type="integer", example=1)
-     *     ),
-     *     @OA\Parameter(
-     *         name="clsm",
-     *         in="path",
-     *         required=true,
-     *         description="Class main ID (e.g., JSS1, SS2)",
-     *         @OA\Schema(type="string", example="JSS1")
-     *     ),
-     *     @OA\Parameter(
-     *         name="clsa",
-     *         in="path",
-     *         required=true,
-     *         description="Class arm (use -1 to fetch all arms)",
-     *         @OA\Schema(type="string", example="A")
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="Successful Response",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Success"),
-     *             @OA\Property(
-     *                 property="pld",
-     *                 type="array",
-     *                 @OA\Items(
-     *                     type="object",
-     *                     @OA\Property(property="sid", type="integer", example=101),
-     *                     @OA\Property(property="schid", type="integer", example=12),
-     *                     @OA\Property(property="ssn", type="string", example="2024/2025"),
-     *                     @OA\Property(property="trm", type="integer", example=1),
-     *                     @OA\Property(property="clsm", type="string", example="JSS1"),
-     *                     @OA\Property(property="clsa", type="string", example="A"),
-     *                     @OA\Property(property="status", type="string", example="active"),
-     *                     @OA\Property(property="last_school", type="string", example="St. Mary's Primary School"),
-     *                     @OA\Property(property="last_class", type="string", example="Primary 6"),
-     *                     @OA\Property(property="new_class", type="string", example="JSS1"),
-     *                     @OA\Property(property="new_class_main", type="string", example="Junior Secondary")
-     *                 )
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="No records found",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="No records found")
-     *         )
-     *     )
-     * )
-     */
 
     // public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
     // {
@@ -5953,21 +5963,94 @@ class ApiController extends Controller
     // }
 
 
-    public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
-    {
-        $query = old_student::with(['academicData'])
-            ->where("schid", $schid)
-            ->where("ssn", $ssn)
-            ->where("trm", $trm)
-            ->where("clsm", $clsm)
-            ->where("status", "active");
+    // public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
+    // {
+    //     $query = old_student::with(['academicData'])
+    //         ->where("schid", $schid)
+    //         ->where("ssn", $ssn)
+    //         ->where("trm", $trm)
+    //         ->where("clsm", $clsm)
+    //         ->where("status", "active");
 
-        if ($clsa != '-1') {
-            $query->where("clsa", $clsa);
-        }
+    //     if ($clsa != '-1') {
+    //         $query->where("clsa", $clsa);
+    //     }
 
-        // Select only needed columns and make students unique by sid
-        $pld = $query->select(
+    //     // Select only needed columns and make students unique by sid
+    //     $pld = $query->select(
+    //         'sid',
+    //         'suid',
+    //         'fname',
+    //         'mname',
+    //         'lname',
+    //         'ssn',
+    //         'trm',
+    //         'clsm',
+    //         'clsa',
+    //         'adm_ssn',
+    //         'adm_trm',
+    //         'cls_of_adm',
+    //         'date_of_adm',
+    //         'adm_status'
+    //     )
+    //         ->distinct('sid') // ensures unique student records
+    //         ->orderBy('lname', 'asc') // sort alphabetically by first name
+    //         ->get()
+    //         ->map(function ($student) {
+    //             return [
+    //                 "sid" => $student->sid,
+    //                 "suid" => $student->suid,
+    //                 "fname" => $student->fname,
+    //                 "mname" => $student->mname,
+    //                 "lname" => $student->lname,
+    //                 "ssn" => $student->ssn,
+    //                 "trm" => $student->trm,
+    //                 "clsm" => $student->clsm,
+    //                 "clsa" => $student->clsa,
+    //                 "last_school" => $student->academicData?->last_school,
+    //                 "last_class" => $student->academicData?->last_class,
+    //                 "new_class" => $student->academicData?->new_class,
+    //                 "new_class_main" => $student->academicData?->new_class_main,
+    //                 "adm_ssn" => $student->adm_ssn,
+    //                 "adm_trm" => $student->adm_trm,
+    //                 "cls_of_adm" => $student->cls_of_adm,
+    //                 "date_of_adm" => $student->date_of_adm,
+    //                 "adm_status" => $student->adm_status,
+    //             ];
+    //         });
+
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => $pld,
+    //     ]);
+    // }
+
+
+public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
+{
+    // Base query
+    $query = old_student::with(['academicData'])
+        ->where("schid", $schid)
+        ->where("ssn", $ssn)
+        ->where("trm", $trm)
+        ->where("status", "active");
+
+    // Filter by main class if not "ALL"
+    if ($clsm !== 'zzz') {
+        $query->where("clsm", $clsm);
+    }
+
+    // Filter by arm if not "ALL"
+    if ($clsa !== 'zzz') {
+        $query->where("clsa", $clsa);
+    }
+
+    // Get total count of unique students
+    $total = $query->distinct('sid')->count('sid');
+
+    // Fetch students with selected columns
+    $students = $query->select(
             'sid',
             'suid',
             'fname',
@@ -5983,41 +6066,43 @@ class ApiController extends Controller
             'date_of_adm',
             'adm_status'
         )
-            ->distinct('sid') // ensures unique student records
-            ->orderBy('lname', 'asc') // sort alphabetically by first name
-            ->get()
-            ->map(function ($student) {
-                return [
-                    "sid" => $student->sid,
-                    "suid" => $student->suid,
-                    "fname" => $student->fname,
-                    "mname" => $student->mname,
-                    "lname" => $student->lname,
-                    "ssn" => $student->ssn,
-                    "trm" => $student->trm,
-                    "clsm" => $student->clsm,
-                    "clsa" => $student->clsa,
-                    "last_school" => $student->academicData?->last_school,
-                    "last_class" => $student->academicData?->last_class,
-                    "new_class" => $student->academicData?->new_class,
-                    "new_class_main" => $student->academicData?->new_class_main,
-                    "adm_ssn" => $student->adm_ssn,
-                    "adm_trm" => $student->adm_trm,
-                    "cls_of_adm" => $student->cls_of_adm,
-                    "date_of_adm" => $student->date_of_adm,
-                    "adm_status" => $student->adm_status,
-                ];
-            });
+        ->orderBy('lname', 'asc')
+        ->get();
 
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $pld,
-        ]);
-    }
+    // Remove duplicates by 'sid' after fetching
+    $uniqueStudents = $students->unique('sid')->values();
 
+    // Map for response payload
+    $pld = $uniqueStudents->map(function ($student) {
+        return [
+            "sid" => $student->sid,
+            "suid" => $student->suid,
+            "fname" => $student->fname,
+            "mname" => $student->mname,
+            "lname" => $student->lname,
+            "ssn" => $student->ssn,
+            "trm" => $student->trm,
+            "clsm" => $student->clsm,
+            "clsa" => $student->clsa,
+            "last_school" => $student->academicData?->last_school,
+            "last_class" => $student->academicData?->last_class,
+            "new_class" => $student->academicData?->new_class,
+            "new_class_main" => $student->academicData?->new_class_main,
+            "adm_ssn" => $student->adm_ssn,
+            "adm_trm" => $student->adm_trm,
+            "cls_of_adm" => $student->cls_of_adm,
+            "date_of_adm" => $student->date_of_adm,
+            "adm_status" => $student->adm_status,
+        ];
+    });
 
-
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "total" => $total, // total number of unique records
+        "pld" => $pld,
+    ]);
+}
 
 
 

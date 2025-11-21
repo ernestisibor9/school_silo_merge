@@ -4208,7 +4208,7 @@
                     "Api"
                 ],
                 "summary": "Get old students history",
-                "description": "Fetch old students by school, session, term, and class. If trm = -1, all terms for the session are returned. If clsa = -1, all arms are returned.",
+                "description": "Fetch old students by school, session, term, main class, and class arm.\n *                  Use 'zzz' for clsm or clsa to fetch all classes or all arms.\n *                  Use trm = -1 to fetch all terms for the session.",
                 "operationId": "getOldStudents",
                 "parameters": [
                     {
@@ -4234,7 +4234,7 @@
                     {
                         "name": "trm",
                         "in": "path",
-                        "description": "Term ID (use -1 to fetch all terms for the session)",
+                        "description": "Term ID (-1 to fetch all terms for the session)",
                         "required": true,
                         "schema": {
                             "type": "integer",
@@ -4244,7 +4244,7 @@
                     {
                         "name": "clsm",
                         "in": "path",
-                        "description": "Class main ID (e.g., JSS1, SS2)",
+                        "description": "Main class (e.g., JSS1, SS2; use 'zzz' to fetch all)",
                         "required": true,
                         "schema": {
                             "type": "string",
@@ -4254,7 +4254,7 @@
                     {
                         "name": "clsa",
                         "in": "path",
-                        "description": "Class arm (use -1 to fetch all arms)",
+                        "description": "Class arm (use 'zzz' to fetch all arms)",
                         "required": true,
                         "schema": {
                             "type": "string",
@@ -4277,6 +4277,10 @@
                                             "type": "string",
                                             "example": "Success"
                                         },
+                                        "total": {
+                                            "type": "integer",
+                                            "example": 28
+                                        },
                                         "pld": {
                                             "type": "array",
                                             "items": {
@@ -4285,13 +4289,25 @@
                                                         "type": "integer",
                                                         "example": 101
                                                     },
-                                                    "schid": {
+                                                    "suid": {
                                                         "type": "integer",
-                                                        "example": 12
+                                                        "example": 5001
+                                                    },
+                                                    "fname": {
+                                                        "type": "string",
+                                                        "example": "John"
+                                                    },
+                                                    "mname": {
+                                                        "type": "string",
+                                                        "example": "Doe"
+                                                    },
+                                                    "lname": {
+                                                        "type": "string",
+                                                        "example": "Smith"
                                                     },
                                                     "ssn": {
                                                         "type": "string",
-                                                        "example": "2024/2025"
+                                                        "example": "2024"
                                                     },
                                                     "trm": {
                                                         "type": "integer",
@@ -4304,10 +4320,6 @@
                                                     "clsa": {
                                                         "type": "string",
                                                         "example": "A"
-                                                    },
-                                                    "status": {
-                                                        "type": "string",
-                                                        "example": "active"
                                                     },
                                                     "last_school": {
                                                         "type": "string",
@@ -4324,6 +4336,27 @@
                                                     "new_class_main": {
                                                         "type": "string",
                                                         "example": "Junior Secondary"
+                                                    },
+                                                    "adm_ssn": {
+                                                        "type": "string",
+                                                        "example": "U123/2023/001"
+                                                    },
+                                                    "adm_trm": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "cls_of_adm": {
+                                                        "type": "string",
+                                                        "example": "JSS1"
+                                                    },
+                                                    "date_of_adm": {
+                                                        "type": "string",
+                                                        "format": "date",
+                                                        "example": "2023-09-01"
+                                                    },
+                                                    "adm_status": {
+                                                        "type": "string",
+                                                        "example": "active"
                                                     }
                                                 },
                                                 "type": "object"
@@ -20288,7 +20321,7 @@
                     "Authentication"
                 ],
                 "summary": "Get logged-in user details (with optional session & term filters)",
-                "description": "This endpoint retrieves the authenticated user's details along with staff information.\n *     You can optionally pass 'ssn' (session) and 'trm' (term) as query parameters to filter the staff record.\n *     If no matching record is found, the system will return the latest available session/term record.",
+                "description": "This endpoint retrieves the authenticated user's details along with staff information.\n     *     You can optionally pass 'ssn' (session) and 'trm' (term) as query parameters to filter the staff record.\n     *     If no matching record is found, the system will return the latest available session/term record.",
                 "operationId": "getLoggedInUserDetails",
                 "parameters": [
                     {
