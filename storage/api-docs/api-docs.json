@@ -27581,6 +27581,216 @@
                     }
                 ]
             }
+        },
+        "/api/getOldStudentsAndSubjects": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get old students and their subjects",
+                "description": "Returns all students in a class with subjects assigned to the student and the class",
+                "operationId": "bcdc5a13da2aa2f34a424253e42a4825",
+                "parameters": [
+                    {
+                        "name": "schid",
+                        "in": "query",
+                        "description": "School ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "query",
+                        "description": "Session/Academic Year",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "query",
+                        "description": "Term number",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "clsm",
+                        "in": "query",
+                        "description": "Class (e.g., 11)",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "clsa",
+                        "in": "query",
+                        "description": "Class section; -1 to include all sections",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "stf",
+                        "in": "query",
+                        "description": "Optional staff ID",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success - Returns students and subjects",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "std-pld": {
+                                                    "description": "List of students with subjects",
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "std": {
+                                                                "description": "Student details",
+                                                                "properties": {
+                                                                    "uid": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "sid": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "schid": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "fname": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "mname": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "lname": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "status": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "suid": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "ssn": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "trm": {
+                                                                        "type": "integer"
+                                                                    },
+                                                                    "clsm": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "clsa": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "adm_ssn": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "adm_trm": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "cls_of_adm": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "date_of_adm": {
+                                                                        "type": "string",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "adm_status": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "more": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "created_at": {
+                                                                        "type": "string",
+                                                                        "format": "date-time"
+                                                                    },
+                                                                    "updated_at": {
+                                                                        "type": "string",
+                                                                        "format": "date-time"
+                                                                    }
+                                                                },
+                                                                "type": "object"
+                                                            },
+                                                            "sbj": {
+                                                                "description": "List of subject IDs assigned to student + class",
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "string"
+                                                                }
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "cls-sbj": {
+                                                    "description": "List of all subjects for the class",
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "string"
+                                                            },
+                                                            "name": {
+                                                                "type": "string"
+                                                            },
+                                                            "comp": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {

@@ -34909,4 +34909,193 @@ public function getStudentsStatBySchool(Request $request)
     }
 
 
+
+
+    /**
+ * @OA\Get(
+ *     path="/api/getOldStudentsAndSubjects",
+ *     summary="Get old students and their subjects",
+ *     description="Returns all students in a class with subjects assigned to the student and the class",
+ *     tags={"Api"},
+ *   security={{"bearerAuth":{}}},
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="query",
+ *         description="School ID",
+ *         required=true,
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Parameter(
+ *         name="ssn",
+ *         in="query",
+ *         description="Session/Academic Year",
+ *         required=true,
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Parameter(
+ *         name="trm",
+ *         in="query",
+ *         description="Term number",
+ *         required=true,
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Parameter(
+ *         name="clsm",
+ *         in="query",
+ *         description="Class (e.g., 11)",
+ *         required=true,
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Parameter(
+ *         name="clsa",
+ *         in="query",
+ *         description="Class section; -1 to include all sections",
+ *         required=true,
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Parameter(
+ *         name="stf",
+ *         in="query",
+ *         description="Optional staff ID",
+ *         required=false,
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Success - Returns students and subjects",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="object",
+ *                 @OA\Property(
+ *                     property="std-pld",
+ *                     type="array",
+ *                     description="List of students with subjects",
+ *                     @OA\Items(
+ *                         type="object",
+ *                         @OA\Property(
+ *                             property="std",
+ *                             type="object",
+ *                             description="Student details",
+ *                             @OA\Property(property="uid", type="string"),
+ *                             @OA\Property(property="sid", type="string"),
+ *                             @OA\Property(property="schid", type="string"),
+ *                             @OA\Property(property="fname", type="string"),
+ *                             @OA\Property(property="mname", type="string"),
+ *                             @OA\Property(property="lname", type="string"),
+ *                             @OA\Property(property="status", type="string"),
+ *                             @OA\Property(property="suid", type="string"),
+ *                             @OA\Property(property="ssn", type="string"),
+ *                             @OA\Property(property="trm", type="integer"),
+ *                             @OA\Property(property="clsm", type="string"),
+ *                             @OA\Property(property="clsa", type="string"),
+ *                             @OA\Property(property="adm_ssn", type="string", nullable=true),
+ *                             @OA\Property(property="adm_trm", type="string", nullable=true),
+ *                             @OA\Property(property="cls_of_adm", type="string", nullable=true),
+ *                             @OA\Property(property="date_of_adm", type="string", nullable=true),
+ *                             @OA\Property(property="adm_status", type="string"),
+ *                             @OA\Property(property="more", type="string"),
+ *                             @OA\Property(property="created_at", type="string", format="date-time"),
+ *                             @OA\Property(property="updated_at", type="string", format="date-time")
+ *                         ),
+ *                         @OA\Property(
+ *                             property="sbj",
+ *                             type="array",
+ *                             description="List of subject IDs assigned to student + class",
+ *                             @OA\Items(type="string")
+ *                         )
+ *                     )
+ *                 ),
+ *                 @OA\Property(
+ *                     property="cls-sbj",
+ *                     type="array",
+ *                     description="List of all subjects for the class",
+ *                     @OA\Items(
+ *                         type="object",
+ *                         @OA\Property(property="id", type="string"),
+ *                         @OA\Property(property="name", type="string"),
+ *                         @OA\Property(property="comp", type="string")
+ *                     )
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(response=400, description="Bad Request"),
+ *     @OA\Response(response=500, description="Internal Server Error")
+ * )
+ */
+
+    public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf)
+{
+    // Get students
+    $ostd = old_student::where("schid", $schid)
+        ->where("ssn", $ssn)
+        ->where("trm", $trm)
+        ->where("clsm", $clsm)
+        ->when($clsa != '-1', function ($q) use ($clsa) {
+            $q->where("clsa", $clsa);
+        })
+        ->where("status", "active")
+        ->orderBy('lname', 'asc')
+        ->get();
+
+    // Get class subjects
+    $clsSbj = class_subj::where("schid", $schid)
+        ->where("clsid", $clsm)
+        ->where("sesn", $ssn)
+        ->where("trm", $trm)
+        ->get()
+        ->map(function ($item) {
+            return [
+                'id'   => $item->subj_id,
+                'name' => $item->name,
+                'comp' => $item->comp
+            ];
+        });
+
+    // Extract only the subject ids of class subjects
+    $classSubjectIds = $clsSbj->pluck('id')->toArray();
+
+    $stdPld = [];
+
+    foreach ($ostd as $std) {
+        $user_id = $std->sid;
+
+        // Get subjects assigned to the student
+        $studentSubjects = student_subj::where('stid', $user_id)
+            ->where("schid", $schid)
+            ->where("ssn", $ssn)
+            ->where("trm", $trm)
+            ->where("clsid", $clsm)
+            ->pluck('sbj')
+            ->toArray();
+
+        // Combine: class subjects + student subjects
+        $combinedSubjects = collect($classSubjectIds)
+            ->merge($studentSubjects)
+            ->unique()
+            ->values()
+            ->toArray();
+
+        // Add to final payload
+        $stdPld[] = [
+            'std' => $std,
+            'sbj' => $combinedSubjects, // ALL student + class subjects
+        ];
+    }
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => [
+            'std-pld' => $stdPld,
+            'cls-sbj' => $clsSbj,
+        ],
+    ]);
+}
+
+
 }

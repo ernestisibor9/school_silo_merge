@@ -356,6 +356,8 @@ Route::group([
     Route::get('getPaymentInstruction/{schid}/{clsid}/{sesid}/{trmid}', [ApiController::class, 'getPaymentInstruction']);
     Route::delete('deletePaymentInstruction/{schid}/{clsid}/{sesid}/{trmid}', [ApiController::class, 'deletePaymentInstruction']);
 
+    Route::get('getOldStudentsAndSubjects/{schid}/{ssn}/{trm}/{clsm}/{clsa}/{stf}', [ApiController::class, 'getOldStudentsAndSubjects']);
+
     Route::get('getAttendance/{week}/{schid}/{trm}/{ssn}/{clsm}/{clsa}', [ApiController::class, 'getAttendance']);
     Route::get('getAttendanceByWeek/{week}/{schid}', [ApiController::class, 'getAttendanceByWeek']);
 
