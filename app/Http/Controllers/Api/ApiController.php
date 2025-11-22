@@ -33685,210 +33685,354 @@ public function getStaffsEnrollmentInfo(Request $request)
      * )
      */
 
-    public function getLearnersStaffRatioInfo(Request $request)
-    {
-        $start = $request->input('start', 0);
-        $count = $request->input('count', 20);
-        $state = $request->input('state');
-        $lga = $request->input('lga');
-        $ssn = $request->input('ssn'); // academic session (required)
+    // public function getLearnersStaffRatioInfo(Request $request)
+    // {
+    //     $start = $request->input('start', 0);
+    //     $count = $request->input('count', 20);
+    //     $state = $request->input('state');
+    //     $lga = $request->input('lga');
+    //     $ssn = $request->input('ssn'); // academic session (required)
 
-        $query = DB::table('school as s')
-            ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id')
-            ->select('s.*', 'sw.state as web_state', 'sw.lga as web_lga', 'sw.country as web_country');
+    //     $query = DB::table('school as s')
+    //         ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id')
+    //         ->select('s.*', 'sw.state as web_state', 'sw.lga as web_lga', 'sw.country as web_country');
 
-        if (!empty($state))
-            $query->where('sw.state', $state);
-        if (!empty($lga))
-            $query->where('sw.lga', $lga);
+    //     if (!empty($state))
+    //         $query->where('sw.state', $state);
+    //     if (!empty($lga))
+    //         $query->where('sw.lga', $lga);
 
-        $totalRecords = $query->count();
+    //     $totalRecords = $query->count();
 
-        $schools = $query->orderBy('s.name', 'asc')
-            ->skip($start)
-            ->take($count)
-            ->get();
+    //     $schools = $query->orderBy('s.name', 'asc')
+    //         ->skip($start)
+    //         ->take($count)
+    //         ->get();
 
-        $pld = [];
+    //     $pld = [];
 
-        foreach ($schools as $school) {
-            $schoolId = $school->sid;
+    //     foreach ($schools as $school) {
+    //         $schoolId = $school->sid;
 
-            /** ============================
-             *  STUDENT SECTION
-             * ============================ */
-            $activeLearners = DB::table('old_student')
-                ->where('schid', $schoolId)
-                ->where('status', 'active')
-                ->where('ssn', $ssn)
-                ->distinct('sid')
-                ->count('sid');
+    //         /** ============================
+    //          *  STUDENT SECTION
+    //          * ============================ */
+    //         $activeLearners = DB::table('old_student')
+    //             ->where('schid', $schoolId)
+    //             ->where('status', 'active')
+    //             ->where('ssn', $ssn)
+    //             ->distinct('sid')
+    //             ->count('sid');
 
-            $alumniCount = DB::table('alumnis')
-                ->where('schid', $schoolId)
-                ->count();
+    //         $alumniCount = DB::table('alumnis')
+    //             ->where('schid', $schoolId)
+    //             ->count();
 
-            $activeStudentIds = DB::table('old_student')
-                ->where('schid', $schoolId)
-                ->where('status', 'active')
-                ->where('ssn', $ssn)
-                ->pluck('sid')
-                ->toArray();
+    //         $activeStudentIds = DB::table('old_student')
+    //             ->where('schid', $schoolId)
+    //             ->where('status', 'active')
+    //             ->where('ssn', $ssn)
+    //             ->pluck('sid')
+    //             ->toArray();
 
-            $activeGender = DB::table('student_basic_data')
-                ->whereIn('user_id', $activeStudentIds)
-                ->select('sex', DB::raw('count(*) as total'))
-                ->groupBy('sex')
-                ->pluck('total', 'sex')
-                ->toArray();
+    //         $activeGender = DB::table('student_basic_data')
+    //             ->whereIn('user_id', $activeStudentIds)
+    //             ->select('sex', DB::raw('count(*) as total'))
+    //             ->groupBy('sex')
+    //             ->pluck('total', 'sex')
+    //             ->toArray();
 
-            $activeMale = $activeGender['M'] ?? 0;
-            $activeFemale = $activeGender['F'] ?? 0;
+    //         $activeMale = $activeGender['M'] ?? 0;
+    //         $activeFemale = $activeGender['F'] ?? 0;
 
-            $alumniStudentIds = DB::table('alumnis')
-                ->where('schid', $schoolId)
-                ->pluck('stid')
-                ->toArray();
+    //         $alumniStudentIds = DB::table('alumnis')
+    //             ->where('schid', $schoolId)
+    //             ->pluck('stid')
+    //             ->toArray();
 
-            $alumniGender = DB::table('student_basic_data')
-                ->whereIn('user_id', $alumniStudentIds)
-                ->select('sex', DB::raw('count(*) as total'))
-                ->groupBy('sex')
-                ->pluck('total', 'sex')
-                ->toArray();
+    //         $alumniGender = DB::table('student_basic_data')
+    //             ->whereIn('user_id', $alumniStudentIds)
+    //             ->select('sex', DB::raw('count(*) as total'))
+    //             ->groupBy('sex')
+    //             ->pluck('total', 'sex')
+    //             ->toArray();
 
-            $alumniMale = $alumniGender['M'] ?? 0;
-            $alumniFemale = $alumniGender['F'] ?? 0;
+    //         $alumniMale = $alumniGender['M'] ?? 0;
+    //         $alumniFemale = $alumniGender['F'] ?? 0;
 
-            /** ============================
-             *  STAFF SECTION
-             * ============================ */
-            $activeStaffIds = DB::table('old_staff')
-                ->where('schid', $schoolId)
-                ->where('status', 'active')
-                ->where('ssn', $ssn)
-                ->distinct()
-                ->pluck('sid')
-                ->toArray();
+    //         /** ============================
+    //          *  STAFF SECTION
+    //          * ============================ */
+    //         $activeStaffIds = DB::table('old_staff')
+    //             ->where('schid', $schoolId)
+    //             ->where('status', 'active')
+    //             ->where('ssn', $ssn)
+    //             ->distinct()
+    //             ->pluck('sid')
+    //             ->toArray();
 
-            $activeStaffCount = count($activeStaffIds);
+    //         $activeStaffCount = count($activeStaffIds);
 
-            // Gender summary for active staff
-            $activeStaffGender = DB::table('staff_basic_data')
-                ->whereIn('user_id', $activeStaffIds)
-                ->whereNotNull('sex')
-                ->select('sex', DB::raw('count(*) as total'))
-                ->groupBy('sex')
-                ->pluck('total', 'sex')
-                ->toArray();
+    //         // Gender summary for active staff
+    //         $activeStaffGender = DB::table('staff_basic_data')
+    //             ->whereIn('user_id', $activeStaffIds)
+    //             ->whereNotNull('sex')
+    //             ->select('sex', DB::raw('count(*) as total'))
+    //             ->groupBy('sex')
+    //             ->pluck('total', 'sex')
+    //             ->toArray();
 
-            $activeStaffMale = $activeStaffGender['M'] ?? 0;
-            $activeStaffFemale = $activeStaffGender['F'] ?? 0;
+    //         $activeStaffMale = $activeStaffGender['M'] ?? 0;
+    //         $activeStaffFemale = $activeStaffGender['F'] ?? 0;
 
 
-            /** ============================
-             *  CLASS SECTION
-             * ============================ */
-            $classArms = DB::table('sch_cls')
-                ->where('schid', $schoolId)
-                ->get(['cls_id', 'name'])
-                ->groupBy('cls_id')
-                ->map(fn($items) => $items->pluck('name')->toArray())
-                ->toArray();
+    //         /** ============================
+    //          *  CLASS SECTION
+    //          * ============================ */
+    //         $classArms = DB::table('sch_cls')
+    //             ->where('schid', $schoolId)
+    //             ->get(['cls_id', 'name'])
+    //             ->groupBy('cls_id')
+    //             ->map(fn($items) => $items->pluck('name')->toArray())
+    //             ->toArray();
 
-            $totalClasses = DB::table('sch_cls')
-                ->where('schid', $schoolId)
-                ->count();
+    //         $totalClasses = DB::table('sch_cls')
+    //             ->where('schid', $schoolId)
+    //             ->count();
 
-            $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
+    //         $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
 
-            /** ============================
-             *  WEB DATA SECTION
-             * ============================ */
-            $webData = DB::table('school_web_data')->where('user_id', $schoolId)->first();
+    //         /** ============================
+    //          *  WEB DATA SECTION
+    //          * ============================ */
+    //         $webData = DB::table('school_web_data')->where('user_id', $schoolId)->first();
 
-            /** ============================
-             *  BUILD RESPONSE
-             * ============================ */
-            $pld[] = [
-                "s" => [
-                    "sid" => (string) $school->sid,
-                    "school_id" => $schoolCode,
-                    "name" => $school->name,
-                    "count" => $school->count,
-                    "s_web" => $school->s_web,
-                    "s_info" => $school->s_info,
-                    "sbd" => $school->sbd,
-                    "sch3" => $school->sch3,
-                    "cssn" => $school->cssn,
-                    "ctrm" => $school->ctrm,
-                    "ctrmn" => $school->ctrmn,
-                    "lattitude" => $school->latt,
-                    "longitude" => $school->longi,
-                    "country" => $school->web_country ?? "NG",
-                    "state" => $school->web_state ?? "N/A",
-                    "lga" => $school->web_lga ?? "N/A",
-                    "created_at" => $school->created_at,
-                    "updated_at" => $school->updated_at,
-                    "active_learners" => $activeLearners,
-                    "alumni" => $alumniCount,
-                    "active_staff" => $activeStaffCount,
-                    "classes" => $classArms,
-                    "total_classes" => $totalClasses,
-                    "gender_summary" => [
-                        "active_students" => [
-                            "male" => $activeMale,
-                            "female" => $activeFemale,
-                            "total" => $activeMale + $activeFemale,
-                        ],
-                        "alumni" => [
-                            "male" => $alumniMale,
-                            "female" => $alumniFemale,
-                            "total" => $alumniMale + $alumniFemale,
-                        ],
-                        "active_staff" => [
-                            "male" => $activeStaffMale,
-                            "female" => $activeStaffFemale,
-                            "total" => $activeStaffMale + $activeStaffFemale,
-                        ],
+    //         /** ============================
+    //          *  BUILD RESPONSE
+    //          * ============================ */
+    //         $pld[] = [
+    //             "s" => [
+    //                 "sid" => (string) $school->sid,
+    //                 "school_id" => $schoolCode,
+    //                 "name" => $school->name,
+    //                 "count" => $school->count,
+    //                 "s_web" => $school->s_web,
+    //                 "s_info" => $school->s_info,
+    //                 "sbd" => $school->sbd,
+    //                 "sch3" => $school->sch3,
+    //                 "cssn" => $school->cssn,
+    //                 "ctrm" => $school->ctrm,
+    //                 "ctrmn" => $school->ctrmn,
+    //                 "lattitude" => $school->latt,
+    //                 "longitude" => $school->longi,
+    //                 "country" => $school->web_country ?? "NG",
+    //                 "state" => $school->web_state ?? "N/A",
+    //                 "lga" => $school->web_lga ?? "N/A",
+    //                 "created_at" => $school->created_at,
+    //                 "updated_at" => $school->updated_at,
+    //                 "active_learners" => $activeLearners,
+    //                 "alumni" => $alumniCount,
+    //                 "active_staff" => $activeStaffCount,
+    //                 "classes" => $classArms,
+    //                 "total_classes" => $totalClasses,
+    //                 "gender_summary" => [
+    //                     "active_students" => [
+    //                         "male" => $activeMale,
+    //                         "female" => $activeFemale,
+    //                         "total" => $activeMale + $activeFemale,
+    //                     ],
+    //                     "alumni" => [
+    //                         "male" => $alumniMale,
+    //                         "female" => $alumniFemale,
+    //                         "total" => $alumniMale + $alumniFemale,
+    //                     ],
+    //                     "active_staff" => [
+    //                         "male" => $activeStaffMale,
+    //                         "female" => $activeStaffFemale,
+    //                         "total" => $activeStaffMale + $activeStaffFemale,
+    //                     ],
+    //                 ],
+
+    //             ],
+    //             "w" => $webData ? [
+    //                 "user_id" => (string) $webData->user_id,
+    //                 "school_name" => $webData->sname,
+    //                 "color" => $webData->color,
+    //                 "address" => $webData->addr,
+    //                 "country" => $webData->country,
+    //                 "state" => $webData->state,
+    //                 "lga" => $webData->lga,
+    //                 "phone" => $webData->phn,
+    //                 "email" => $webData->eml,
+    //                 "vision" => $webData->vision,
+    //                 "values" => $webData->values,
+    //                 "year" => $webData->year,
+    //                 "about" => $webData->about,
+    //                 "motto" => $webData->motto,
+    //                 "facebook" => $webData->fb,
+    //                 "instagram" => $webData->isg,
+    //                 "youtube" => $webData->yt,
+    //                 "whatsapp" => $webData->wh,
+    //                 "linkedin" => $webData->lkd,
+    //                 "twitter" => $webData->tw,
+    //                 "created_at" => $webData->created_at,
+    //                 "updated_at" => $webData->updated_at,
+    //             ] : null
+    //         ];
+    //     }
+
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "total_records" => $totalRecords,
+    //         "pld" => $pld,
+    //     ], 200, [], JSON_PRETTY_PRINT);
+    // }
+
+public function getLearnersStaffRatioInfo(Request $request)
+{
+    $start = $request->input('start', 0);
+    $count = $request->input('count', 20);
+    $state = $request->input('state');
+    $lga = $request->input('lga');
+    $ssn = $request->input('ssn'); // academic session
+
+    // Base school query with optional filters
+    $query = DB::table('school as s')
+        ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id')
+        ->select('s.*', 'sw.state as web_state', 'sw.lga as web_lga', 'sw.country as web_country');
+
+    if (!empty($state)) $query->where('sw.state', $state);
+    if (!empty($lga)) $query->where('sw.lga', $lga);
+
+    $totalRecords = $query->count();
+
+    $schools = $query->orderBy('s.name', 'asc')
+        ->skip($start)
+        ->take($count)
+        ->get();
+
+    $schoolIds = $schools->pluck('sid')->toArray();
+
+    // 🔹 Bulk fetch active students
+    $activeStudents = DB::table('old_student as os')
+        ->join('student_basic_data as sb', 'os.sid', '=', 'sb.user_id')
+        ->select('os.schid', 'sb.sex', DB::raw('COUNT(*) as total'))
+        ->whereIn('os.schid', $schoolIds)
+        ->where('os.status', 'active')
+        ->where('os.ssn', $ssn)
+        ->groupBy('os.schid', 'sb.sex')
+        ->get()
+        ->groupBy('schid');
+
+    // 🔹 Bulk fetch alumni
+    $alumni = DB::table('alumnis as a')
+        ->join('student_basic_data as sb', 'a.stid', '=', 'sb.user_id')
+        ->select('a.schid', 'sb.sex', DB::raw('COUNT(*) as total'))
+        ->whereIn('a.schid', $schoolIds)
+        ->groupBy('a.schid', 'sb.sex')
+        ->get()
+        ->groupBy('schid');
+
+    // 🔹 Bulk fetch active staff
+    $activeStaff = DB::table('old_staff as os')
+        ->join('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
+        ->select('os.schid', 'sb.sex', DB::raw('COUNT(*) as total'))
+        ->whereIn('os.schid', $schoolIds)
+        ->where('os.status', 'active')
+        ->where('os.ssn', $ssn)
+        ->groupBy('os.schid', 'sb.sex')
+        ->get()
+        ->groupBy('schid');
+
+    // 🔹 Bulk fetch classes
+    $classes = DB::table('sch_cls')
+        ->whereIn('schid', $schoolIds)
+        ->get()
+        ->groupBy('schid')
+        ->map(fn($items) => $items->groupBy('cls_id')->map(fn($cls) => $cls->pluck('name')->toArray())->toArray());
+
+    // 🔹 Bulk fetch web data
+    $webData = DB::table('school_web_data')
+        ->whereIn('user_id', $schoolIds)
+        ->get()
+        ->keyBy('user_id');
+
+    $pld = [];
+
+    foreach ($schools as $school) {
+        $sid = $school->sid;
+        $schoolCode = strtoupper($school->sch3) . '/' . str_pad($sid, 4, '0', STR_PAD_LEFT);
+
+        // Active students gender summary
+        $as = $activeStudents[$sid] ?? [];
+        $activeMale = $as->firstWhere('sex', 'M')->total ?? 0;
+        $activeFemale = $as->firstWhere('sex', 'F')->total ?? 0;
+
+        // Alumni gender summary
+        $al = $alumni[$sid] ?? [];
+        $alumniMale = $al->firstWhere('sex', 'M')->total ?? 0;
+        $alumniFemale = $al->firstWhere('sex', 'F')->total ?? 0;
+
+        // Active staff gender summary
+        $st = $activeStaff[$sid] ?? [];
+        $activeStaffMale = $st->firstWhere('sex', 'M')->total ?? 0;
+        $activeStaffFemale = $st->firstWhere('sex', 'F')->total ?? 0;
+
+        $pld[] = [
+            "s" => [
+                "sid" => (string) $sid,
+                "school_id" => $schoolCode,
+                "name" => $school->name,
+                "count" => $school->count,
+                "s_web" => $school->s_web,
+                "s_info" => $school->s_info,
+                "sbd" => $school->sbd,
+                "sch3" => $school->sch3,
+                "cssn" => $school->cssn,
+                "ctrm" => $school->ctrm,
+                "ctrmn" => $school->ctrmn,
+                "lattitude" => $school->latt,
+                "longitude" => $school->longi,
+                "country" => $school->web_country ?? "NG",
+                "state" => $school->web_state ?? "N/A",
+                "lga" => $school->web_lga ?? "N/A",
+                "created_at" => $school->created_at,
+                "updated_at" => $school->updated_at,
+                "active_learners" => $activeMale + $activeFemale,
+                "alumni" => $alumniMale + $alumniFemale,
+                "active_staff" => $activeStaffMale + $activeStaffFemale,
+                "classes" => $classes[$sid] ?? [],
+                "total_classes" => count($classes[$sid] ?? []),
+                "gender_summary" => [
+                    "active_students" => [
+                        "male" => $activeMale,
+                        "female" => $activeFemale,
+                        "total" => $activeMale + $activeFemale,
                     ],
-
+                    "alumni" => [
+                        "male" => $alumniMale,
+                        "female" => $alumniFemale,
+                        "total" => $alumniMale + $alumniFemale,
+                    ],
+                    "active_staff" => [
+                        "male" => $activeStaffMale,
+                        "female" => $activeStaffFemale,
+                        "total" => $activeStaffMale + $activeStaffFemale,
+                    ],
                 ],
-                "w" => $webData ? [
-                    "user_id" => (string) $webData->user_id,
-                    "school_name" => $webData->sname,
-                    "color" => $webData->color,
-                    "address" => $webData->addr,
-                    "country" => $webData->country,
-                    "state" => $webData->state,
-                    "lga" => $webData->lga,
-                    "phone" => $webData->phn,
-                    "email" => $webData->eml,
-                    "vision" => $webData->vision,
-                    "values" => $webData->values,
-                    "year" => $webData->year,
-                    "about" => $webData->about,
-                    "motto" => $webData->motto,
-                    "facebook" => $webData->fb,
-                    "instagram" => $webData->isg,
-                    "youtube" => $webData->yt,
-                    "whatsapp" => $webData->wh,
-                    "linkedin" => $webData->lkd,
-                    "twitter" => $webData->tw,
-                    "created_at" => $webData->created_at,
-                    "updated_at" => $webData->updated_at,
-                ] : null
-            ];
-        }
-
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "total_records" => $totalRecords,
-            "pld" => $pld,
-        ], 200, [], JSON_PRETTY_PRINT);
+            ],
+            "w" => $webData[$sid] ?? null
+        ];
     }
 
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "total_records" => $totalRecords,
+        "pld" => $pld,
+    ], 200, [], JSON_PRETTY_PRINT);
+}
 
 
 
