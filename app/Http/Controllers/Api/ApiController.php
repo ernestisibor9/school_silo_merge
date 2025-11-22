@@ -33888,7 +33888,6 @@ public function getStaffsEnrollmentInfo(Request $request)
     //         "pld" => $pld,
     //     ], 200, [], JSON_PRETTY_PRINT);
     // }
-
 public function getLearnersStaffRatioInfo(Request $request)
 {
     $start = $request->input('start', 0);
@@ -33913,6 +33912,15 @@ public function getLearnersStaffRatioInfo(Request $request)
         ->get();
 
     $schoolIds = $schools->pluck('sid')->toArray();
+
+    if (empty($schoolIds)) {
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "total_records" => 0,
+            "pld" => [],
+        ], 200, [], JSON_PRETTY_PRINT);
+    }
 
     // 🔹 Bulk fetch active students
     $activeStudents = DB::table('old_student as os')
@@ -33965,17 +33973,17 @@ public function getLearnersStaffRatioInfo(Request $request)
         $schoolCode = strtoupper($school->sch3) . '/' . str_pad($sid, 4, '0', STR_PAD_LEFT);
 
         // Active students gender summary
-        $as = $activeStudents[$sid] ?? [];
+        $as = collect($activeStudents[$sid] ?? []);
         $activeMale = $as->firstWhere('sex', 'M')->total ?? 0;
         $activeFemale = $as->firstWhere('sex', 'F')->total ?? 0;
 
         // Alumni gender summary
-        $al = $alumni[$sid] ?? [];
+        $al = collect($alumni[$sid] ?? []);
         $alumniMale = $al->firstWhere('sex', 'M')->total ?? 0;
         $alumniFemale = $al->firstWhere('sex', 'F')->total ?? 0;
 
         // Active staff gender summary
-        $st = $activeStaff[$sid] ?? [];
+        $st = collect($activeStaff[$sid] ?? []);
         $activeStaffMale = $st->firstWhere('sex', 'M')->total ?? 0;
         $activeStaffFemale = $st->firstWhere('sex', 'F')->total ?? 0;
 
@@ -34033,7 +34041,6 @@ public function getLearnersStaffRatioInfo(Request $request)
         "pld" => $pld,
     ], 200, [], JSON_PRETTY_PRINT);
 }
-
 
 
     /**
