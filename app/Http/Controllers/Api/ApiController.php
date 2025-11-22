@@ -33143,7 +33143,7 @@ public function getAllSchoolsInfo(Request $request)
     // }
 
 
-    public function getStaffsEnrollmentInfo(Request $request)
+public function getStaffsEnrollmentInfo(Request $request)
 {
     $start = $request->input('start', 0);
     $count = $request->input('count', 20);
@@ -33182,16 +33182,44 @@ public function getAllSchoolsInfo(Request $request)
         )
         ->whereIn('os.schid', $schoolIds)
         ->groupBy('os.schid', 'os.status', 'sb.sex')
-        ->get()
-        ->groupBy('schid');
+        ->get();
+
+    // Map staff data properly
+    $staffDataProcessed = [];
+    foreach ($staffData as $item) {
+        $sid = $item->schid;
+        $status = strtolower($item->status); // 'active' or 'inactive'
+        $gender = $item->sex === 'M' ? 'male' : 'female';
+
+        if (!isset($staffDataProcessed[$sid])) {
+            $staffDataProcessed[$sid] = [
+                'active' => ['male' => 0, 'female' => 0, 'total' => 0],
+                'inactive' => ['male' => 0, 'female' => 0, 'total' => 0],
+            ];
+        }
+
+        $staffDataProcessed[$sid][$status][$gender] = $item->total;
+        $staffDataProcessed[$sid][$status]['total'] =
+            $staffDataProcessed[$sid][$status]['male'] +
+            $staffDataProcessed[$sid][$status]['female'];
+    }
 
     // 🔹 Preload role summaries in one query
     $roleData = DB::table('old_staff')
         ->select('schid', 'role', DB::raw('COUNT(DISTINCT sid) as total'))
         ->whereIn('schid', $schoolIds)
         ->groupBy('schid', 'role')
-        ->get()
-        ->groupBy('schid');
+        ->get();
+
+    // Map role data properly
+    $roleDataProcessed = [];
+    foreach ($roleData as $item) {
+        $sid = $item->schid;
+        if (!isset($roleDataProcessed[$sid])) {
+            $roleDataProcessed[$sid] = [];
+        }
+        $roleDataProcessed[$sid][$item->role] = $item->total;
+    }
 
     // 🔹 Preload web data for all schools
     $webData = DB::table('school_web_data')
@@ -33204,35 +33232,15 @@ public function getAllSchoolsInfo(Request $request)
     foreach ($schools as $school) {
         $sid = $school->sid;
 
-        // Staff counts
-        $genderSummary = [
+        $genderSummary = $staffDataProcessed[$sid] ?? [
             'active' => ['male' => 0, 'female' => 0, 'total' => 0],
             'inactive' => ['male' => 0, 'female' => 0, 'total' => 0],
         ];
 
-        if (isset($staffData[$sid])) {
-            foreach ($staffData[$sid] as $status => $items) {
-                foreach ($items as $item) {
-                    $genderSummary[$status][$item->sex == 'M' ? 'male' : 'female'] = $item->total;
-                }
-                $genderSummary[$status]['total'] = $genderSummary[$status]['male'] + $genderSummary[$status]['female'];
-            }
-        }
-
         $totalStaff = $genderSummary['active']['total'] + $genderSummary['inactive']['total'];
+        $roles = $roleDataProcessed[$sid] ?? [];
 
-        // Role summary
-        $roles = [];
-        if (isset($roleData[$sid])) {
-            foreach ($roleData[$sid] as $r) {
-                $roles[$r->role] = $r->total;
-            }
-        }
-
-        // School code
         $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
-
-        // Web data
         $w = $webData[$sid] ?? null;
 
         $pld[] = [
