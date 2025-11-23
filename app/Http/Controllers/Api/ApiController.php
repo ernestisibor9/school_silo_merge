@@ -35733,10 +35733,12 @@ public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf
 
     $classSubjectIds = $classSubjects->pluck('subj_id')->map(fn($id) => (string)$id)->toArray();
 
-    // 3️⃣ Get all student subjects at once (ignore term/session mismatch)
+    // 3️⃣ Get all student subjects at once (include term/session)
     $studentSubjectsMap = student_subj::whereIn('stid', $ostd->pluck('sid'))
         ->where("schid", $schid)
         ->where("clsid", $clsm)
+        ->where("ssn", $ssn)
+        ->where("trm", $trm)
         ->get()
         ->groupBy('stid')
         ->map(function ($items) {
@@ -35748,10 +35750,10 @@ public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf
     foreach ($ostd as $std) {
         $user_id = $std->sid;
 
-        // Get student subjects from map
+        // Get subjects actually assigned to this student
         $studentSubjects = $studentSubjectsMap[$user_id] ?? [];
 
-        // Filter subjects to only include class subjects, preserve class order
+        // Only include subjects that are both in classSubjects and actually assigned
         $filteredSubjects = array_values(array_filter($classSubjectIds, fn($id) => in_array($id, $studentSubjects)));
 
         $stdPld[] = [
