@@ -35705,8 +35705,12 @@ public function getLearnersStaffRatioInfo(Request $request)
 
 public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf)
 {
-    // 1️⃣ Get students
-    $ostd = old_student::where("schid", $schid)
+    // 🔹 Pagination
+    $start = request()->input('start', 0);   // default 0
+    $count = request()->input('count', 20);  // default 20
+
+    // 1️⃣ Get students with filters
+    $ostdQuery = old_student::where("schid", $schid)
         ->where("ssn", $ssn)
         ->where("trm", $trm)
         ->where("clsm", $clsm)
@@ -35714,19 +35718,23 @@ public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf
             $q->where("clsa", $clsa);
         })
         ->where("status", "active")
-        ->orderBy('lname', 'asc')
-        ->get();
+        ->orderBy('lname', 'asc');
 
-    // 2️⃣ Get class subjects (only IDs, cast to int)
-    $classSubjectIds = class_subj::where("schid", $schid)
+    $totalStudents = $ostdQuery->count();
+
+    // Apply pagination
+    $ostd = $ostdQuery->skip($start)->take($count)->get();
+
+    // 2️⃣ Get class subjects (IDs + details)
+    $classSubjects = class_subj::where("schid", $schid)
         ->where("clsid", $clsm)
         ->where("sesn", $ssn)
         ->where("trm", $trm)
-        ->pluck("subj_id")
-        ->map(fn($id) => (int)$id)
-        ->toArray();
+        ->get();
 
-    // 3️⃣ Get all student subjects at once to avoid N+1 queries
+    $classSubjectIds = $classSubjects->pluck('subj_id')->map(fn($id) => (string)$id)->toArray();
+
+    // 3️⃣ Get all student subjects at once
     $studentSubjectsMap = student_subj::whereIn('stid', $ostd->pluck('sid'))
         ->where("schid", $schid)
         ->where("clsid", $clsm)
@@ -35735,16 +35743,15 @@ public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf
         ->get()
         ->groupBy('stid')
         ->map(function ($items) {
-            return $items->pluck('sbj')->map(fn($id) => (int)$id)->toArray();
+            return $items->pluck('sbj')->map(fn($id) => (string)$id)->toArray();
         });
 
+    // 4️⃣ Prepare student payload
     $stdPld = [];
-
-    // 4️⃣ Prepare payload
     foreach ($ostd as $std) {
         $user_id = $std->sid;
 
-        // Get student subjects from map, default empty array
+        // Get student subjects from map
         $studentSubjects = $studentSubjectsMap[$user_id] ?? [];
 
         // Filter subjects to only include class subjects
@@ -35756,11 +35763,29 @@ public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf
         ];
     }
 
-    // 5️⃣ Return JSON response
+    // 5️⃣ Prepare class subject payload
+    $clsSbj = $classSubjects->map(function ($subj) {
+        return [
+            'id' => (string)$subj->subj_id,
+            'name' => $subj->name,
+            'comp' => (string)$subj->comp,
+        ];
+    });
+
+    // 6️⃣ Return structured JSON
     return response()->json([
         "status" => true,
         "message" => "Success",
-        "pld" => $stdPld,
+        "pld" => [
+            "std-pld" => $stdPld,
+            "cls-sbj" => $clsSbj,
+        ],
+        "pagination" => [
+            "start" => $start,
+            "count" => $count,
+            "total" => $totalStudents,
+            "returned" => count($stdPld),
+        ],
     ]);
 }
 
