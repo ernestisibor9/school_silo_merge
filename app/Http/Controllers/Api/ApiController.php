@@ -35532,7 +35532,7 @@ public function getLearnersStaffRatioInfo(Request $request)
 
     public function addAdmissionInfo(Request $request)
     {
-        // ✅ Validate input
+        //  Validate input
         $request->validate([
             "sid" => "required|integer",
             "schid" => "required|integer",
@@ -35887,13 +35887,13 @@ public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf
  *     )
  * )
  */
+
 public function setStudentSubjectBulk(Request $request)
 {
     // Validate request
     $request->validate([
-        "uid" => "required",
         "stid" => "required", // single or array of student IDs
-        "sbj" => "required", // single or array of subject IDs
+        "sbj" => "required",  // single or array of subject IDs
         "comp" => "required",
         "schid" => "required",
         "clsid" => "nullable",
@@ -35909,11 +35909,18 @@ public function setStudentSubjectBulk(Request $request)
 
     $bulkInsert = [];
 
-    // 1️⃣ Prepare all student-subject records
+    // 1️⃣ Prepare all student-subject records with generated UID
     foreach ($students as $stid) {
         foreach ($subjects as $sbj) {
+            $uid = $request->schid
+                 . ($request->clsid ?? '00')
+                 . ($request->ssn ?? '0000')
+                 . ($request->trm ?? '0')
+                 . $sbj
+                 . $stid; // optional: include student ID to make UID unique per student
+
             $bulkInsert[] = [
-                "uid" => $request->uid,
+                "uid" => $uid, // ✅ generated UID
                 "stid" => $stid,
                 "sbj" => $sbj,
                 "comp" => $request->comp,
@@ -35927,7 +35934,7 @@ public function setStudentSubjectBulk(Request $request)
         }
     }
 
-    // 2️⃣ Fetch existing records to avoid duplicates
+    // 2️⃣ Fetch existing student-subject records to avoid duplicates
     $existing = student_subj::whereIn('stid', $students)
         ->whereIn('sbj', $subjects)
         ->where('schid', $request->schid)
@@ -35950,13 +35957,19 @@ public function setStudentSubjectBulk(Request $request)
         }
     });
 
-    // 4️⃣ Bulk insert new records
+    // 4️⃣ Bulk insert new student-subject records
     if (!empty($toInsert)) {
         student_subj::insert($toInsert);
     }
 
-    // 5️⃣ Handle class subjects (updateOrCreate in bulk)
+    // 5️⃣ Handle class subjects (updateOrCreate) with UID based on schema
     foreach ($subjects as $sbj) {
+        $uid = $request->schid
+             . ($request->clsid ?? '00')
+             . ($request->ssn ?? '0000')
+             . ($request->trm ?? '0')
+             . $sbj;
+
         class_subj::updateOrCreate(
             [
                 "subj_id" => $sbj,
@@ -35966,7 +35979,7 @@ public function setStudentSubjectBulk(Request $request)
                 "trm" => $request->trm,
             ],
             [
-                "uid" => $request->uid,
+                "uid" => $uid, // ✅ UID now in desired format
                 "comp" => $request->comp,
                 "name" => subj::find($sbj)?->name, // optional
             ]

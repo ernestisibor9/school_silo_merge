@@ -27687,6 +27687,153 @@
                     }
                 ]
             }
+        },
+        "/api/setStudentSubjectBulk": {
+            "post": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Assign multiple subjects to multiple students",
+                "description": "Bulk assign subjects to students. It checks for existing assignments and only inserts new ones. Also updates class subjects if needed.",
+                "operationId": "setStudentSubjectBulk",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "uid",
+                                    "stid",
+                                    "sbj",
+                                    "comp",
+                                    "schid"
+                                ],
+                                "properties": {
+                                    "uid": {
+                                        "description": "UID of the user performing the action",
+                                        "type": "string"
+                                    },
+                                    "stid": {
+                                        "description": "Array of student IDs to assign subjects",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "sbj": {
+                                        "description": "Array of subject IDs to assign",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "comp": {
+                                        "description": "Subject component",
+                                        "type": "integer"
+                                    },
+                                    "schid": {
+                                        "description": "School ID",
+                                        "type": "integer"
+                                    },
+                                    "clsid": {
+                                        "description": "Class ID (optional)",
+                                        "type": "integer"
+                                    },
+                                    "trm": {
+                                        "description": "Term (optional)",
+                                        "type": "integer"
+                                    },
+                                    "ssn": {
+                                        "description": "Session (optional)",
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Subjects assignment completed successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Subjects assignment completed."
+                                        },
+                                        "assigned": {
+                                            "description": "List of newly assigned student-subject pairs",
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "stid": {
+                                                        "type": "integer",
+                                                        "example": 564
+                                                    },
+                                                    "sbj": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "skipped": {
+                                            "description": "List of skipped student-subject pairs that already existed",
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "stid": {
+                                                        "type": "integer",
+                                                        "example": 564
+                                                    },
+                                                    "sbj": {
+                                                        "type": "integer",
+                                                        "example": 126
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The stid field is required."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
