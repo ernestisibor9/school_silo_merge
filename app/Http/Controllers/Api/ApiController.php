@@ -5815,11 +5815,12 @@ class ApiController extends Controller
 /**
  * @OA\Get(
  *     path="/api/getOldStudents/{schid}/{ssn}/{trm}/{clsm}/{clsa}",
- *     summary="Get old students history",
+ *     summary="Get old students history (with pagination)",
  *     description="Fetch old students by school, session, term, main class, and class arm.
- *                  Use 'zzz' for trm, clsm, or clsa to fetch all terms, all classes, or all arms.",
+ *                  Use '-1' for trm, clsm, or clsa to fetch all.
+ *                  Supports pagination using 'start' and 'count'.",
  *     operationId="getOldStudents",
- *     tags={"Api"},
+ *     tags={"Old Students"},
  *     security={{"bearerAuth": {}}},
  *
  *     @OA\Parameter(
@@ -5833,14 +5834,14 @@ class ApiController extends Controller
  *         name="ssn",
  *         in="path",
  *         required=true,
- *         description="Session (academic year)",
+ *         description="Academic Session",
  *         @OA\Schema(type="string", example="2024")
  *     ),
  *     @OA\Parameter(
  *         name="trm",
  *         in="path",
  *         required=true,
- *         description="Term ID ('-1' to fetch all terms for the session)",
+ *         description="Term ID ('-1' to fetch all terms)",
  *         @OA\Schema(type="string", example="1")
  *     ),
  *     @OA\Parameter(
@@ -5854,8 +5855,23 @@ class ApiController extends Controller
  *         name="clsa",
  *         in="path",
  *         required=true,
- *         description="Class arm ('-1' to fetch all arms)",
+ *         description="Class arm ('-1' to fetch all)",
  *         @OA\Schema(type="string", example="A")
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="start",
+ *         in="query",
+ *         required=false,
+ *         description="Offset for pagination (default: 0)",
+ *         @OA\Schema(type="integer", example=0)
+ *     ),
+ *     @OA\Parameter(
+ *         name="count",
+ *         in="query",
+ *         required=false,
+ *         description="Number of records to return (default: 20)",
+ *         @OA\Schema(type="integer", example=20)
  *     ),
  *
  *     @OA\Response(
@@ -5865,7 +5881,11 @@ class ApiController extends Controller
  *             type="object",
  *             @OA\Property(property="status", type="boolean", example=true),
  *             @OA\Property(property="message", type="string", example="Success"),
- *             @OA\Property(property="total", type="integer", example=28),
+ *             @OA\Property(property="total", type="integer", example=150),
+ *             @OA\Property(property="start", type="integer", example=0),
+ *             @OA\Property(property="count", type="integer", example=20),
+ *             @OA\Property(property="returned", type="integer", example=20),
+ *
  *             @OA\Property(
  *                 property="pld",
  *                 type="array",
@@ -5874,25 +5894,26 @@ class ApiController extends Controller
  *                     @OA\Property(property="sid", type="integer", example=101),
  *                     @OA\Property(property="suid", type="integer", example=5001),
  *                     @OA\Property(property="fname", type="string", example="John"),
- *                     @OA\Property(property="mname", type="string", example="Doe"),
+ *                     @OA\Property(property="mname", type="string", example="Michael"),
  *                     @OA\Property(property="lname", type="string", example="Smith"),
  *                     @OA\Property(property="ssn", type="string", example="2024"),
  *                     @OA\Property(property="trm", type="string", example="1"),
  *                     @OA\Property(property="clsm", type="string", example="JSS1"),
  *                     @OA\Property(property="clsa", type="string", example="A"),
- *                     @OA\Property(property="last_school", type="string", example="St. Mary's Primary School"),
+ *                     @OA\Property(property="last_school", type="string", example="St. Mary's School"),
  *                     @OA\Property(property="last_class", type="string", example="Primary 6"),
  *                     @OA\Property(property="new_class", type="string", example="JSS1"),
  *                     @OA\Property(property="new_class_main", type="string", example="Junior Secondary"),
  *                     @OA\Property(property="adm_ssn", type="string", example="U123/2023/001"),
  *                     @OA\Property(property="adm_trm", type="integer", example=1),
  *                     @OA\Property(property="cls_of_adm", type="string", example="JSS1"),
- *                     @OA\Property(property="date_of_adm", type="string", format="date", example="2023-09-01"),
+ *                     @OA\Property(property="date_of_adm", type="string", example="2023-09-01"),
  *                     @OA\Property(property="adm_status", type="string", example="active")
  *                 )
  *             )
  *         )
  *     ),
+ *
  *     @OA\Response(
  *         response=404,
  *         description="No records found",
@@ -5904,7 +5925,6 @@ class ApiController extends Controller
  *     )
  * )
  */
-
 
 
     // public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
@@ -6104,33 +6124,119 @@ class ApiController extends Controller
 // }
 
 
+// public function getOldStudents($schid, $ssn, $trm = '-1', $clsm = '-1', $clsa = '-1')
+// {
+//     // Base query
+//     $query = old_student::with(['academicData'])
+//         ->where("schid", $schid)
+//         ->where("ssn", $ssn)
+//         ->where("status", "active");
+
+//     // Filter by term if not "-1"
+//     if ($trm !== '-1') {
+//         $query->where("trm", $trm);
+//     }
+
+//     // Filter by main class if not "-1"
+//     if ($clsm !== '-1') {
+//         $query->where("clsm", $clsm);
+//     }
+
+//     // Filter by arm if not "-1"
+//     if ($clsa !== '-1') {
+//         $query->where("clsa", $clsa);
+//     }
+
+//     // Get total count of unique students
+//     $total = $query->distinct('sid')->count('sid');
+
+//     // Fetch students with selected columns
+//     $students = $query->select(
+//             'sid',
+//             'suid',
+//             'fname',
+//             'mname',
+//             'lname',
+//             'ssn',
+//             'trm',
+//             'clsm',
+//             'clsa',
+//             'adm_ssn',
+//             'adm_trm',
+//             'cls_of_adm',
+//             'date_of_adm',
+//             'adm_status'
+//         )
+//         ->orderBy('lname', 'asc')
+//         ->get();
+
+//     // Remove duplicates by 'sid' after fetching
+//     $uniqueStudents = $students->unique('sid')->values();
+
+//     // Map for response payload
+//     $pld = $uniqueStudents->map(function ($student) {
+//         return [
+//             "sid" => $student->sid,
+//             "suid" => $student->suid,
+//             "fname" => $student->fname,
+//             "mname" => $student->mname,
+//             "lname" => $student->lname,
+//             "ssn" => $student->ssn,
+//             "trm" => $student->trm,
+//             "clsm" => $student->clsm,
+//             "clsa" => $student->clsa,
+//             "last_school" => $student->academicData?->last_school,
+//             "last_class" => $student->academicData?->last_class,
+//             "new_class" => $student->academicData?->new_class,
+//             "new_class_main" => $student->academicData?->new_class_main,
+//             "adm_ssn" => $student->adm_ssn,
+//             "adm_trm" => $student->adm_trm,
+//             "cls_of_adm" => $student->cls_of_adm,
+//             "date_of_adm" => $student->date_of_adm,
+//             "adm_status" => $student->adm_status,
+//         ];
+//     });
+
+//     return response()->json([
+//         "status" => true,
+//         "message" => "Success",
+//         "total" => $total, // total number of unique records
+//         "pld" => $pld,
+//     ]);
+// }
+
+
 public function getOldStudents($schid, $ssn, $trm = '-1', $clsm = '-1', $clsa = '-1')
 {
-    // Base query
+    // 🔹 Pagination
+    $start = request()->input('start', 0);   // default 0
+    $count = request()->input('count', 20);  // default 20
+
+    // 🔹 Base query
     $query = old_student::with(['academicData'])
         ->where("schid", $schid)
         ->where("ssn", $ssn)
         ->where("status", "active");
 
-    // Filter by term if not "-1"
+    // 🔹 Filter by term if not "-1"
     if ($trm !== '-1') {
         $query->where("trm", $trm);
     }
 
-    // Filter by main class if not "-1"
+    // 🔹 Filter by main class if not "-1"
     if ($clsm !== '-1') {
         $query->where("clsm", $clsm);
     }
 
-    // Filter by arm if not "-1"
+    // 🔹 Filter by arm if not "-1"
     if ($clsa !== '-1') {
         $query->where("clsa", $clsa);
     }
 
-    // Get total count of unique students
+    // 🔹 Total count of unique students BEFORE pagination
     $total = $query->distinct('sid')->count('sid');
 
-    // Fetch students with selected columns
+    // 🔹 Fetch paginated students
     $students = $query->select(
             'sid',
             'suid',
@@ -6148,12 +6254,14 @@ public function getOldStudents($schid, $ssn, $trm = '-1', $clsm = '-1', $clsa = 
             'adm_status'
         )
         ->orderBy('lname', 'asc')
+        ->skip($start)
+        ->take($count)
         ->get();
 
-    // Remove duplicates by 'sid' after fetching
+    // 🔹 Remove duplicates by 'sid'
     $uniqueStudents = $students->unique('sid')->values();
 
-    // Map for response payload
+    // 🔹 Map payload
     $pld = $uniqueStudents->map(function ($student) {
         return [
             "sid" => $student->sid,
@@ -6180,10 +6288,14 @@ public function getOldStudents($schid, $ssn, $trm = '-1', $clsm = '-1', $clsa = 
     return response()->json([
         "status" => true,
         "message" => "Success",
-        "total" => $total, // total number of unique records
+        "total" => $total,      // total unique students
+        "start" => $start,      // current start
+        "count" => $count,      // number of records returned
+        "returned" => $pld->count(), // for frontend UI
         "pld" => $pld,
     ]);
 }
+
 
 
 
