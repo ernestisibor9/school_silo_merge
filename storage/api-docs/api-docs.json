@@ -4207,8 +4207,8 @@
                 "tags": [
                     "Api"
                 ],
-                "summary": "Get old students history",
-                "description": "Fetch old students by school, session, term, main class, and class arm.\n *                  Use 'zzz' for trm, clsm, or clsa to fetch all terms, all classes, or all arms.",
+                "summary": "Get old students history (with pagination)",
+                "description": "Fetch old students by school, session, term, main class, and class arm.\n *                  Use '-1' for trm, clsm, or clsa to fetch all.\n *                  Supports pagination using 'start' and 'count'.",
                 "operationId": "getOldStudents",
                 "parameters": [
                     {
@@ -4224,7 +4224,7 @@
                     {
                         "name": "ssn",
                         "in": "path",
-                        "description": "Session (academic year)",
+                        "description": "Academic Session",
                         "required": true,
                         "schema": {
                             "type": "string",
@@ -4234,7 +4234,7 @@
                     {
                         "name": "trm",
                         "in": "path",
-                        "description": "Term ID ('-1' to fetch all terms for the session)",
+                        "description": "Term ID ('-1' to fetch all terms)",
                         "required": true,
                         "schema": {
                             "type": "string",
@@ -4254,11 +4254,31 @@
                     {
                         "name": "clsa",
                         "in": "path",
-                        "description": "Class arm ('-1' to fetch all arms)",
+                        "description": "Class arm ('-1' to fetch all)",
                         "required": true,
                         "schema": {
                             "type": "string",
                             "example": "A"
+                        }
+                    },
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Offset for pagination (default: 0)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 0
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "Number of records to return (default: 20)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 20
                         }
                     }
                 ],
@@ -4279,7 +4299,19 @@
                                         },
                                         "total": {
                                             "type": "integer",
-                                            "example": 28
+                                            "example": 150
+                                        },
+                                        "start": {
+                                            "type": "integer",
+                                            "example": 0
+                                        },
+                                        "count": {
+                                            "type": "integer",
+                                            "example": 20
+                                        },
+                                        "returned": {
+                                            "type": "integer",
+                                            "example": 20
                                         },
                                         "pld": {
                                             "type": "array",
@@ -4299,7 +4331,7 @@
                                                     },
                                                     "mname": {
                                                         "type": "string",
-                                                        "example": "Doe"
+                                                        "example": "Michael"
                                                     },
                                                     "lname": {
                                                         "type": "string",
@@ -4323,7 +4355,7 @@
                                                     },
                                                     "last_school": {
                                                         "type": "string",
-                                                        "example": "St. Mary's Primary School"
+                                                        "example": "St. Mary's School"
                                                     },
                                                     "last_class": {
                                                         "type": "string",
@@ -4351,7 +4383,6 @@
                                                     },
                                                     "date_of_adm": {
                                                         "type": "string",
-                                                        "format": "date",
                                                         "example": "2023-09-01"
                                                     },
                                                     "adm_status": {

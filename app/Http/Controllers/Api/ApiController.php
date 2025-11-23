@@ -5820,7 +5820,7 @@ class ApiController extends Controller
  *                  Use '-1' for trm, clsm, or clsa to fetch all.
  *                  Supports pagination using 'start' and 'count'.",
  *     operationId="getOldStudents",
- *     tags={"Old Students"},
+ *     tags={"Api"},
  *     security={{"bearerAuth": {}}},
  *
  *     @OA\Parameter(
