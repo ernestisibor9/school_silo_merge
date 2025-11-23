@@ -35789,4 +35789,197 @@ public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf
 }
 
 
+
+/**
+ * @OA\Post(
+ *     path="/api/setStudentSubjectBulk",
+ *     summary="Assign multiple subjects to multiple students",
+ *     description="Bulk assign subjects to students. It checks for existing assignments and only inserts new ones. Also updates class subjects if needed.",
+ *     operationId="setStudentSubjectBulk",
+ *     tags={"Api"},
+ *   security={{"bearerAuth":{}}},
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             type="object",
+ *             required={"uid","stid","sbj","comp","schid"},
+ *             @OA\Property(
+ *                 property="uid",
+ *                 type="string",
+ *                 description="UID of the user performing the action"
+ *             ),
+ *             @OA\Property(
+ *                 property="stid",
+ *                 type="array",
+ *                 description="Array of student IDs to assign subjects",
+ *                 @OA\Items(type="integer")
+ *             ),
+ *             @OA\Property(
+ *                 property="sbj",
+ *                 type="array",
+ *                 description="Array of subject IDs to assign",
+ *                 @OA\Items(type="integer")
+ *             ),
+ *             @OA\Property(
+ *                 property="comp",
+ *                 type="integer",
+ *                 description="Subject component"
+ *             ),
+ *             @OA\Property(
+ *                 property="schid",
+ *                 type="integer",
+ *                 description="School ID"
+ *             ),
+ *             @OA\Property(
+ *                 property="clsid",
+ *                 type="integer",
+ *                 description="Class ID (optional)"
+ *             ),
+ *             @OA\Property(
+ *                 property="trm",
+ *                 type="integer",
+ *                 description="Term (optional)"
+ *             ),
+ *             @OA\Property(
+ *                 property="ssn",
+ *                 type="integer",
+ *                 description="Session (optional)"
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Subjects assignment completed successfully",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Subjects assignment completed."),
+ *             @OA\Property(
+ *                 property="assigned",
+ *                 type="array",
+ *                 description="List of newly assigned student-subject pairs",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(property="stid", type="integer", example=564),
+ *                     @OA\Property(property="sbj", type="integer", example=1)
+ *                 )
+ *             ),
+ *             @OA\Property(
+ *                 property="skipped",
+ *                 type="array",
+ *                 description="List of skipped student-subject pairs that already existed",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(property="stid", type="integer", example=564),
+ *                     @OA\Property(property="sbj", type="integer", example=126)
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation error",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="message", type="string", example="The stid field is required."),
+ *             @OA\Property(property="errors", type="object")
+ *         )
+ *     )
+ * )
+ */
+public function setStudentSubjectBulk(Request $request)
+{
+    // Validate request
+    $request->validate([
+        "uid" => "required",
+        "stid" => "required", // single or array of student IDs
+        "sbj" => "required", // single or array of subject IDs
+        "comp" => "required",
+        "schid" => "required",
+        "clsid" => "nullable",
+        "trm" => "nullable",
+        "ssn" => "nullable"
+    ]);
+
+    $students = is_array($request->stid) ? $request->stid : [$request->stid];
+    $subjects = is_array($request->sbj) ? $request->sbj : [$request->sbj];
+
+    $assigned = [];
+    $skipped = [];
+
+    $bulkInsert = [];
+
+    // 1️⃣ Prepare all student-subject records
+    foreach ($students as $stid) {
+        foreach ($subjects as $sbj) {
+            $bulkInsert[] = [
+                "uid" => $request->uid,
+                "stid" => $stid,
+                "sbj" => $sbj,
+                "comp" => $request->comp,
+                "schid" => $request->schid,
+                "clsid" => $request->clsid,
+                "trm" => $request->trm,
+                "ssn" => $request->ssn,
+                "created_at" => now(),
+                "updated_at" => now(),
+            ];
+        }
+    }
+
+    // 2️⃣ Fetch existing records to avoid duplicates
+    $existing = student_subj::whereIn('stid', $students)
+        ->whereIn('sbj', $subjects)
+        ->where('schid', $request->schid)
+        ->when($request->clsid, fn($q) => $q->where('clsid', $request->clsid))
+        ->when($request->trm, fn($q) => $q->where('trm', $request->trm))
+        ->when($request->ssn, fn($q) => $q->where('ssn', $request->ssn))
+        ->get(['stid', 'sbj'])
+        ->map(fn($row) => $row->stid . '-' . $row->sbj)
+        ->toArray();
+
+    // 3️⃣ Filter out existing records
+    $toInsert = array_filter($bulkInsert, function($item) use ($existing, &$assigned, &$skipped) {
+        $key = $item['stid'] . '-' . $item['sbj'];
+        if (in_array($key, $existing)) {
+            $skipped[] = ["stid" => $item['stid'], "sbj" => $item['sbj']];
+            return false;
+        } else {
+            $assigned[] = ["stid" => $item['stid'], "sbj" => $item['sbj']];
+            return true;
+        }
+    });
+
+    // 4️⃣ Bulk insert new records
+    if (!empty($toInsert)) {
+        student_subj::insert($toInsert);
+    }
+
+    // 5️⃣ Handle class subjects (updateOrCreate in bulk)
+    foreach ($subjects as $sbj) {
+        class_subj::updateOrCreate(
+            [
+                "subj_id" => $sbj,
+                "schid" => $request->schid,
+                "clsid" => $request->clsid,
+                "sesn" => $request->ssn,
+                "trm" => $request->trm,
+            ],
+            [
+                "uid" => $request->uid,
+                "comp" => $request->comp,
+                "name" => subj::find($sbj)?->name, // optional
+            ]
+        );
+    }
+
+    return response()->json([
+        "status" => true,
+        "message" => "Subjects assignment completed.",
+        "assigned" => $assigned,
+        "skipped" => $skipped,
+    ]);
+}
+
+
 }

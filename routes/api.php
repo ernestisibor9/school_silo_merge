@@ -105,6 +105,7 @@ Route::get('mgetStudentInSchoolAndClass/{schid}/{cls}', [ApiController::class, '
 
 // - PROTECTED ENDPOINTS
 Route::post('setStudentSubject', [ApiController::class, 'setStudentSubject']);
+Route::post('setStudentSubjectBulk', [ApiController::class, 'setStudentSubjectBulk']);
 Route::post('setClassSubject', [ApiController::class, 'setClassSubject']);
 Route::get('getSubjects', [ApiController::class, 'getSubjs']);
 
