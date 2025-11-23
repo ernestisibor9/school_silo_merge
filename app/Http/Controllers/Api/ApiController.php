@@ -35702,7 +35702,6 @@ public function getLearnersStaffRatioInfo(Request $request)
  *     )
  * )
  */
-
 public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf)
 {
     // 🔹 Pagination
@@ -35734,12 +35733,10 @@ public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf
 
     $classSubjectIds = $classSubjects->pluck('subj_id')->map(fn($id) => (string)$id)->toArray();
 
-    // 3️⃣ Get all student subjects at once
+    // 3️⃣ Get all student subjects at once (ignore term/session mismatch)
     $studentSubjectsMap = student_subj::whereIn('stid', $ostd->pluck('sid'))
         ->where("schid", $schid)
         ->where("clsid", $clsm)
-        ->where("ssn", $ssn)
-        ->where("trm", $trm)
         ->get()
         ->groupBy('stid')
         ->map(function ($items) {
@@ -35754,8 +35751,8 @@ public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf
         // Get student subjects from map
         $studentSubjects = $studentSubjectsMap[$user_id] ?? [];
 
-        // Filter subjects to only include class subjects
-        $filteredSubjects = array_values(array_intersect($studentSubjects, $classSubjectIds));
+        // Filter subjects to only include class subjects, preserve class order
+        $filteredSubjects = array_values(array_filter($classSubjectIds, fn($id) => in_array($id, $studentSubjects)));
 
         $stdPld[] = [
             'std' => $std,
