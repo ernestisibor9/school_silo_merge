@@ -8980,8 +8980,8 @@
                 "tags": [
                     "Api"
                 ],
-                "summary": "Get preference for acct number",
-                "description": "Use this endpoint to get pref",
+                "summary": "Get preference for account number",
+                "description": "Use this endpoint to get preference settings for account numbers.",
                 "operationId": "284dfa0bdf02ae229d571a9ec56542a7",
                 "parameters": [
                     {
@@ -8990,7 +8990,8 @@
                         "description": "School ID",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "example": "12"
                         }
                     },
                     {
@@ -8999,7 +9000,8 @@
                         "description": "Session ID",
                         "required": true,
                         "schema": {
-                            "type": "2025"
+                            "type": "string",
+                            "example": "2025"
                         }
                     },
                     {
@@ -9008,7 +9010,8 @@
                         "description": "Term ID",
                         "required": true,
                         "schema": {
-                            "type": "1"
+                            "type": "string",
+                            "example": "1"
                         }
                     }
                 ],
@@ -9024,7 +9027,12 @@
                     "401": {
                         "description": "Unauthorized"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/setAccount": {
@@ -9363,7 +9371,7 @@
                     "Api"
                 ],
                 "summary": "Get how many accounts are available",
-                "description": "Use this endpoint to get how many accounts are available",
+                "description": "Use this endpoint to get the total number of available accounts for a school, session, and term.",
                 "operationId": "46bcac5a48d0220ab11a0c2701fac7af",
                 "parameters": [
                     {
@@ -9372,7 +9380,8 @@
                         "description": "School ID",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "example": "12"
                         }
                     },
                     {
@@ -9381,7 +9390,8 @@
                         "description": "Session ID",
                         "required": true,
                         "schema": {
-                            "type": "2025"
+                            "type": "string",
+                            "example": "2025"
                         }
                     },
                     {
@@ -9390,7 +9400,8 @@
                         "description": "Term ID",
                         "required": true,
                         "schema": {
-                            "type": "1"
+                            "type": "string",
+                            "example": "1"
                         }
                     }
                 ],
@@ -9399,14 +9410,40 @@
                         "description": "Success",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "total": {
+                                                    "type": "integer",
+                                                    "example": 128
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
                     "401": {
                         "description": "Unauthorized"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/getAccountsBySchool/{schid}/{ssn}/{trm}": {
@@ -9415,7 +9452,7 @@
                     "Payments"
                 ],
                 "summary": "Get all Accounts by School",
-                "description": "Use this endpoint to get all Accounts by School",
+                "description": "Retrieve all accounts for a school, session, and term, including sub-account details.",
                 "operationId": "cf67021d453c51c9eee5a4dcb36791d0",
                 "parameters": [
                     {
@@ -9424,7 +9461,8 @@
                         "description": "School ID",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "example": "12"
                         }
                     },
                     {
@@ -9433,7 +9471,8 @@
                         "description": "Session ID",
                         "required": true,
                         "schema": {
-                            "type": "2025"
+                            "type": "string",
+                            "example": "2025"
                         }
                     },
                     {
@@ -9442,7 +9481,8 @@
                         "description": "Term ID",
                         "required": true,
                         "schema": {
-                            "type": "1"
+                            "type": "string",
+                            "example": "1"
                         }
                     },
                     {
@@ -9451,16 +9491,18 @@
                         "description": "Index to start at",
                         "required": false,
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "example": 0
                         }
                     },
                     {
                         "name": "count",
                         "in": "query",
-                        "description": "No of records to retrieve",
+                        "description": "Number of records to retrieve",
                         "required": false,
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "example": 20
                         }
                     }
                 ],
@@ -9469,7 +9511,77 @@
                         "description": "Success",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 10
+                                                    },
+                                                    "name": {
+                                                        "type": "string",
+                                                        "example": "School Fees"
+                                                    },
+                                                    "amount": {
+                                                        "type": "number",
+                                                        "format": "float",
+                                                        "example": 15000
+                                                    },
+                                                    "schid": {
+                                                        "type": "integer",
+                                                        "example": 12
+                                                    },
+                                                    "ssn": {
+                                                        "type": "string",
+                                                        "example": "2025"
+                                                    },
+                                                    "trm": {
+                                                        "type": "string",
+                                                        "example": "1"
+                                                    },
+                                                    "subAccounts": {
+                                                        "description": "Related sub-account breakdown",
+                                                        "type": "array",
+                                                        "items": {
+                                                            "properties": {
+                                                                "id": {
+                                                                    "type": "integer",
+                                                                    "example": 1
+                                                                },
+                                                                "accts_id": {
+                                                                    "type": "integer",
+                                                                    "example": 10
+                                                                },
+                                                                "name": {
+                                                                    "type": "string",
+                                                                    "example": "Development Levy"
+                                                                },
+                                                                "amount": {
+                                                                    "type": "number",
+                                                                    "example": 2000
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        }
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
