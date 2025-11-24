@@ -4730,7 +4730,7 @@ class ApiController extends Controller
         $pld = [
             'std-pld' => $cstds,
             'cls-sbj' => array_values($clsSbj), // return unique subjects only
-            'num_of_days' => $nof == 0 ? '' : $nof, // if 0, return empty
+            'num_of_days' => $nof,
         ];
 
         return response()->json([
