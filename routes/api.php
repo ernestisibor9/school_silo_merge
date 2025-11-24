@@ -109,6 +109,8 @@ Route::post('setStudentSubjectBulk', [ApiController::class, 'setStudentSubjectBu
 Route::post('setClassSubject', [ApiController::class, 'setClassSubject']);
 Route::get('getSubjects', [ApiController::class, 'getSubjs']);
 
+Route::get('getStudentSubjectBulk', [ApiController::class, 'getStudentSubjectBulk']);
+
 Route::post('initializePayment', [ApiController::class, 'initializePayment']);
 
 Route::get('/payment/callback', [ApiController::class, 'handleCallback']);

@@ -36001,4 +36001,172 @@ public function setStudentSubjectBulk(Request $request)
 }
 
 
+
+
+/**
+ * @OA\Get(
+ *     path="/api/getStudentSubjectBulk",
+ *     summary="Retrieve bulk student subject records",
+ *     description="Retrieve student subjects with optional filters: school, class, class arm, session, term, and pagination.",
+ *     tags={"Api"},
+ *      security={{"bearerAuth":{}}},
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="query",
+ *         description="School ID",
+ *         required=false,
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Parameter(
+ *         name="clsid",
+ *         in="query",
+ *         description="Class ID",
+ *         required=false,
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Parameter(
+ *         name="clsa",
+ *         in="query",
+ *         description="Class arm ID",
+ *         required=false,
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Parameter(
+ *         name="ssn",
+ *         in="query",
+ *         description="Session (e.g., 2025)",
+ *         required=false,
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Parameter(
+ *         name="trm",
+ *         in="query",
+ *         description="Term (e.g., 1)",
+ *         required=false,
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Parameter(
+ *         name="start",
+ *         in="query",
+ *         description="Pagination start index",
+ *         required=false,
+ *         @OA\Schema(type="integer", default=0)
+ *     ),
+ *     @OA\Parameter(
+ *         name="count",
+ *         in="query",
+ *         description="Number of records to return",
+ *         required=false,
+ *         @OA\Schema(type="integer", default=200)
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful response",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(property="id", type="integer", example=1),
+ *                     @OA\Property(property="stid", type="integer", example=207),
+ *                     @OA\Property(property="sbj", type="string", example="Mathematics"),
+ *                     @OA\Property(property="comp", type="integer", example=1),
+ *                     @OA\Property(property="trm", type="integer", example=1),
+ *                     @OA\Property(property="ssn", type="string", example="2025"),
+ *                     @OA\Property(property="schid", type="integer", example=13),
+ *                     @OA\Property(property="clsid", type="integer", example=10),
+ *                     @OA\Property(property="clsa", type="integer", example=1),
+ *                     @OA\Property(property="created_at", type="string", format="date-time", example="2025-03-04T14:04:57"),
+ *                     @OA\Property(property="updated_at", type="string", format="date-time", example="2025-03-04T14:04:57")
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=400,
+ *         description="Bad request"
+ *     )
+ * )
+ */
+
+
+public function getStudentSubjectBulk(Request $request)
+{
+    // Optional input parameters
+    $schid = $request->input('schid');
+    $clsid = $request->input('clsid');
+    $clsa  = $request->input('clsa'); // class arm (old_student.clsa)
+    $ssn   = $request->input('ssn');
+    $trm   = $request->input('trm');
+
+    // Pagination optional
+    $start = $request->input('start', 0);
+    $count = $request->input('count', 200);
+
+    // Base query
+    $query = student_subj::query()
+        ->join("subj", "subj.id", "=", "student_subj.sbj")
+        ->join("old_student", function ($join) {
+            $join->on("old_student.sid", "=", "student_subj.stid");
+        });
+
+    // Apply filters only when provided
+    if (!empty($schid)) {
+        $query->where("student_subj.schid", $schid);
+    }
+
+    if (!empty($clsid)) {
+        $query->where("student_subj.clsid", $clsid);
+        $query->where("old_student.clsm", $clsid);
+    }
+
+    if (!empty($clsa)) {
+        $query->where("old_student.clsa", $clsa); // only old_student.clsa
+    }
+
+    if (!empty($ssn)) {
+        $query->where("student_subj.ssn", $ssn);
+        $query->where("old_student.ssn", $ssn);
+    }
+
+    if (!empty($trm)) {
+        $query->where("student_subj.trm", $trm);
+        $query->where("old_student.trm", $trm);
+    }
+
+    // Select columns (removed student_subj.clsa)
+    $query->select(
+        "student_subj.id",
+        "student_subj.stid",
+        "subj.name as sbj",
+        "student_subj.comp",
+        "student_subj.trm",
+        "student_subj.ssn",
+        "student_subj.schid",
+        "student_subj.clsid",
+        "old_student.clsa", // include clsa from old_student
+        "student_subj.created_at",
+        "student_subj.updated_at"
+    );
+
+    // Execute query with pagination
+    $pld = $query
+        ->orderBy("student_subj.stid")
+        ->skip($start)
+        ->take($count)
+        ->get();
+
+    return response()->json([
+        "status"  => true,
+        "message" => "Success",
+        "pld"     => $pld
+    ]);
+}
+
+
+
 }

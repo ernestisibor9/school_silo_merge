@@ -27842,6 +27842,167 @@
                     }
                 ]
             }
+        },
+        "/api/getStudentSubjectBulk": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Retrieve bulk student subject records",
+                "description": "Retrieve student subjects with optional filters: school, class, class arm, session, term, and pagination.",
+                "operationId": "f6eb366db3868d101892805776cba8f1",
+                "parameters": [
+                    {
+                        "name": "schid",
+                        "in": "query",
+                        "description": "School ID",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "clsid",
+                        "in": "query",
+                        "description": "Class ID",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "clsa",
+                        "in": "query",
+                        "description": "Class arm ID",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "query",
+                        "description": "Session (e.g., 2025)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "query",
+                        "description": "Term (e.g., 1)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Pagination start index",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 0
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "Number of records to return",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 200
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "stid": {
+                                                        "type": "integer",
+                                                        "example": 207
+                                                    },
+                                                    "sbj": {
+                                                        "type": "string",
+                                                        "example": "Mathematics"
+                                                    },
+                                                    "comp": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "trm": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "ssn": {
+                                                        "type": "string",
+                                                        "example": "2025"
+                                                    },
+                                                    "schid": {
+                                                        "type": "integer",
+                                                        "example": 13
+                                                    },
+                                                    "clsid": {
+                                                        "type": "integer",
+                                                        "example": 10
+                                                    },
+                                                    "clsa": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2025-03-04T14:04:57"
+                                                    },
+                                                    "updated_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2025-03-04T14:04:57"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
