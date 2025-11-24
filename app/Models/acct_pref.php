@@ -10,7 +10,7 @@ class acct_pref extends Model
     protected $primaryKey = 'sid';
     public $incrementing = false;
     protected $fillable = [
-        'sid','pref'
+        'sid','pref','ssn', 'trm'
     ];
     /*protected $hidden = [
         'password',

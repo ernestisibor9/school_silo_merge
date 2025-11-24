@@ -13173,6 +13173,8 @@ public function getOldStudentsStat($schid, $ssn, $trm = '-1', $clsm = '-1', $cls
      *             type="object",
      *             @OA\Property(property="sid", type="string", example="123"),
      *             @OA\Property(property="pref", type="string", example="456"),
+     *             @OA\Property(property="ssn", type="string", example="2025"),
+     *             @OA\Property(property="trm", type="integer", example="1"),
      *         )
      *     ),
      *     @OA\Response(
@@ -13200,11 +13202,15 @@ public function getOldStudentsStat($schid, $ssn, $trm = '-1', $clsm = '-1', $cls
         $request->validate([
             'sid' => 'required',
             'pref' => 'required',
+            'ssn' => 'required',
+            'trm' => 'required',
         ]);
         acct_pref::updateOrCreate(
             ["sid" => $request->sid,],
             [
                 "pref" => $request->pref,
+                "ssn" => $request->ssn,
+                "trm" => $request->trm,
             ]
         );
         return response()->json([

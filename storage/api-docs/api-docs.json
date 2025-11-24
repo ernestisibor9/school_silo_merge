@@ -8911,6 +8911,14 @@
                                     "pref": {
                                         "type": "string",
                                         "example": "456"
+                                    },
+                                    "ssn": {
+                                        "type": "string",
+                                        "example": "2025"
+                                    },
+                                    "trm": {
+                                        "type": "integer",
+                                        "example": "1"
                                     }
                                 },
                                 "type": "object"
