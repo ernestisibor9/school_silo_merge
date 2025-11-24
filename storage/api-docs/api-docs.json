@@ -8975,14 +8975,14 @@
                 ]
             }
         },
-        "/api/getAcctPref/{schid}": {
+        "/api/getAcctPref/{schid}/{ssn}/{trm}": {
             "get": {
                 "tags": [
                     "Api"
                 ],
                 "summary": "Get preference for acct number",
                 "description": "Use this endpoint to get pref",
-                "operationId": "189f2762aca90892816ce5160cb83440",
+                "operationId": "284dfa0bdf02ae229d571a9ec56542a7",
                 "parameters": [
                     {
                         "name": "schid",
@@ -8991,6 +8991,24 @@
                         "required": true,
                         "schema": {
                             "type": "string"
+                        }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "path",
+                        "description": "Session ID",
+                        "required": true,
+                        "schema": {
+                            "type": "2025"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "path",
+                        "description": "Term ID",
+                        "required": true,
+                        "schema": {
+                            "type": "1"
                         }
                     }
                 ],
@@ -9339,14 +9357,14 @@
                 ]
             }
         },
-        "/api/getAccountStat/{schid}": {
+        "/api/getAccountStat/{schid}/{ssn}/{trm}": {
             "get": {
                 "tags": [
                     "Api"
                 ],
                 "summary": "Get how many accounts are available",
                 "description": "Use this endpoint to get how many accounts are available",
-                "operationId": "9584364bfae0301e6d107317e869e9cb",
+                "operationId": "46bcac5a48d0220ab11a0c2701fac7af",
                 "parameters": [
                     {
                         "name": "schid",
@@ -9355,6 +9373,24 @@
                         "required": true,
                         "schema": {
                             "type": "string"
+                        }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "path",
+                        "description": "Session ID",
+                        "required": true,
+                        "schema": {
+                            "type": "2025"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "path",
+                        "description": "Term ID",
+                        "required": true,
+                        "schema": {
+                            "type": "1"
                         }
                     }
                 ],
@@ -9373,14 +9409,14 @@
                 }
             }
         },
-        "/api/getAccountsBySchool/{schid}": {
+        "/api/getAccountsBySchool/{schid}/{ssn}/{trm}": {
             "get": {
                 "tags": [
                     "Payments"
                 ],
                 "summary": "Get all Accounts by School",
                 "description": "Use this endpoint to get all Accounts by School",
-                "operationId": "e7bdf3af71d884c848e6df2923dc8794",
+                "operationId": "cf67021d453c51c9eee5a4dcb36791d0",
                 "parameters": [
                     {
                         "name": "schid",
@@ -9389,6 +9425,24 @@
                         "required": true,
                         "schema": {
                             "type": "string"
+                        }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "path",
+                        "description": "Session ID",
+                        "required": true,
+                        "schema": {
+                            "type": "2025"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "path",
+                        "description": "Term ID",
+                        "required": true,
+                        "schema": {
+                            "type": "1"
                         }
                     },
                     {
