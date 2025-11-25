@@ -8,7 +8,7 @@ class afee extends Model
 {
     protected $table = 'afee';
     protected $fillable = [
-        'schid','clsid','amt'
+        'schid','clsid','amt', 'ssn', 'trm'
     ];
     /*protected $hidden = [
         'password',

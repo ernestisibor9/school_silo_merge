@@ -1002,14 +1002,17 @@ class ApiController extends Controller
         $request->validate([
             "sid" => "required",
             "fee" => "required",
+            "clsid" => "required",
             "ssn" => "required",
             "trm" => "required",
         ]);
         school_app_fee::updateOrCreate(
             [
                 "sid" => $request->sid,
+                "clsid" => $request->clsid,
                 "ssn" => $request->ssn,
                 "trm" => $request->trm,
+
             ],
             [
                 "fee" => $request->fee,
@@ -14492,11 +14495,15 @@ class ApiController extends Controller
             'schid' => 'required',
             'clsid' => 'required',
             'amt' => 'required',
+            'ssn' => 'required',
+            'trm' => 'required',
         ]);
         $data = [
             'schid' => $request->schid,
             'clsid' => $request->clsid,
             'amt' => $request->amt,
+            'ssn' => $request->ssn,
+            'trm' => $request->trm,
         ];
         $afee = [];
         if ($request->has('id')) {

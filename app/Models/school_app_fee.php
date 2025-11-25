@@ -8,7 +8,7 @@ class school_app_fee extends Model
 {
     protected $table = 'school_app_fee';
     protected $fillable = [
-        'sid', 'fee', 'ssn', 'trm'
+        'sid', 'fee', 'clsid', 'ssn', 'trm'
     ];
     /*protected $hidden = [
         'password',
