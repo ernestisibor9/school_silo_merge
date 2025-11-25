@@ -957,45 +957,45 @@ class ApiController extends Controller
         ]);
     }
 
-/**
- * @OA\Post(
- *     path="/api/setSchoolAppFee",
- *     tags={"Api"},
- *     security={{"bearerAuth": {}}},
- *     summary="Set or update school application fee for a student (per session & term)",
- *
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             type="object",
- *             required={"sid", "fee", "ssn", "trm"},
- *             @OA\Property(property="sid", type="string", example="22", description="Student ID"),
- *             @OA\Property(property="fee", type="string", example="5000", description="Application fee amount"),
- *             @OA\Property(property="clsid", type="string", example="11", description="Class ID"),
- *             @OA\Property(property="ssn", type="string", example="2025", description="Session ID"),
- *             @OA\Property(property="trm", type="string", example="1", description="Term ID")
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Application fee saved successfully",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Success")
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=400,
- *         description="Validation error",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="Validation failed")
- *         )
- *     )
- * )
- */
+    /**
+     * @OA\Post(
+     *     path="/api/setSchoolAppFee",
+     *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
+     *     summary="Set or update school application fee for a student (per session & term)",
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             required={"sid", "fee", "ssn", "trm"},
+     *             @OA\Property(property="sid", type="string", example="22", description="Student ID"),
+     *             @OA\Property(property="fee", type="string", example="5000", description="Application fee amount"),
+     *             @OA\Property(property="clsid", type="string", example="11", description="Class ID"),
+     *             @OA\Property(property="ssn", type="string", example="2025", description="Session ID"),
+     *             @OA\Property(property="trm", type="string", example="1", description="Term ID")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Application fee saved successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=400,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Validation failed")
+     *         )
+     *     )
+     * )
+     */
 
     public function setSchoolAppFee(Request $request)
     {
@@ -12986,8 +12986,8 @@ class ApiController extends Controller
             'schid' => 'required',
             'clsid' => 'required',
             'amt' => 'required',
-            'ssn'  => 'required',
-            'trm'  => 'required',
+            'ssn' => 'required',
+            'trm' => 'required',
         ]);
         $stid = $request->stid;
         $schid = $request->schid;
@@ -14501,6 +14501,43 @@ class ApiController extends Controller
      *     )
      * )
      */
+    // public function setAFee(Request $request)
+    // {
+    //     $request->validate([
+    //         'schid' => 'required',
+    //         'clsid' => 'required',
+    //         'amt' => 'required',
+    //         'ssn' => 'required',
+    //         'trm' => 'required',
+    //     ]);
+    //     $data = [
+    //         'schid' => $request->schid,
+    //         'clsid' => $request->clsid,
+    //         'amt' => $request->amt,
+    //         'ssn' => $request->ssn,
+    //         'trm' => $request->trm,
+    //     ];
+    //     $afee = [];
+    //     if ($request->has('id')) {
+    //         $afee = afee::where('id', $request->id)->first();
+    //         if ($afee) {
+    //             $afee->update($data);
+    //         } else {
+    //             return response()->json([
+    //                 "status" => false,
+    //                 "message" => "Fee Not Found",
+    //             ]);
+    //         }
+    //     } else {
+    //         $afee = afee::create($data);
+    //     }
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Account Updated"
+    //     ]);
+    // }
+
+
     public function setAFee(Request $request)
     {
         $request->validate([
@@ -14510,32 +14547,26 @@ class ApiController extends Controller
             'ssn' => 'required',
             'trm' => 'required',
         ]);
-        $data = [
-            'schid' => $request->schid,
-            'clsid' => $request->clsid,
-            'amt' => $request->amt,
-            'ssn' => $request->ssn,
-            'trm' => $request->trm,
-        ];
-        $afee = [];
-        if ($request->has('id')) {
-            $afee = afee::where('id', $request->id)->first();
-            if ($afee) {
-                $afee->update($data);
-            } else {
-                return response()->json([
-                    "status" => false,
-                    "message" => "Fee Not Found",
-                ]);
-            }
-        } else {
-            $afee = afee::create($data);
-        }
+
+        afee::updateOrCreate(
+            [
+                'schid' => $request->schid,
+                'clsid' => $request->clsid,
+                'ssn' => $request->ssn,
+                'trm' => $request->trm,
+            ],
+            [
+                'amt' => $request->amt
+            ]
+        );
+
         return response()->json([
             "status" => true,
             "message" => "Account Updated"
         ]);
     }
+
+
 
     /**
      * @OA\Get(
