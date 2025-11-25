@@ -12954,6 +12954,8 @@ class ApiController extends Controller
      *             @OA\Property(property="stid", type="string", example="123"),
      *             @OA\Property(property="schid", type="string", example="456"),
      *             @OA\Property(property="clsid", type="string", example="John Doe"),
+     *             @OA\Property(property="ssn", type="string", example="2025"),
+     *             @OA\Property(property="trm", type="string", example="1"),
      *             @OA\Property(property="amt", type="integer", example="1500"),
      *         )
      *     ),
@@ -12984,11 +12986,15 @@ class ApiController extends Controller
             'schid' => 'required',
             'clsid' => 'required',
             'amt' => 'required',
+            'ssn'  => 'required',
+            'trm'  => 'required',
         ]);
         $stid = $request->stid;
         $schid = $request->schid;
         $clsid = $request->clsid;
         $amt = $request->amt;
+        $ssn = $request->ssn;
+        $trm = $request->trm;
         $uid = $stid . $schid . $clsid;
         afeerec::updateOrCreate(
             ["uid" => $uid,],
@@ -12996,6 +13002,8 @@ class ApiController extends Controller
                 "stid" => $stid,
                 "schid" => $schid,
                 "clsid" => $clsid,
+                "ssn" => $ssn,
+                "trm" => $trm,
                 "amt" => $amt,
             ]
         );

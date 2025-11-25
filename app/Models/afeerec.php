@@ -10,7 +10,7 @@ class afeerec extends Model
     protected $primaryKey = 'uid';
     public $incrementing = false;
     protected $fillable = [
-        'uid','stid','schid','clsid','amt'
+        'uid','stid','schid','clsid','amt','ssn', 'trm'
     ];
     /*protected $hidden = [
         'password',
