@@ -12953,7 +12953,7 @@ class ApiController extends Controller
      *             type="object",
      *             @OA\Property(property="stid", type="string", example="123"),
      *             @OA\Property(property="schid", type="string", example="456"),
-     *             @OA\Property(property="clsid", type="string", example="John Doe"),
+     *             @OA\Property(property="clsid", type="string", example="11"),
      *             @OA\Property(property="ssn", type="string", example="2025"),
      *             @OA\Property(property="trm", type="string", example="1"),
      *             @OA\Property(property="amt", type="integer", example="1500"),
@@ -13533,6 +13533,8 @@ class ApiController extends Controller
         // Check if this schid & clsid already has a subaccount
         $existingSubAcct = sub_account::where('schid', $request->schid)
             ->where('clsid', $request->clsid)
+            ->where('ssn', $request->ssn)
+            ->where('trm', $request->trm)
             ->first();
 
         if ($existingSubAcct) {
