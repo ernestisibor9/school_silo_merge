@@ -14467,6 +14467,7 @@ class ApiController extends Controller
      * @OA\Post(
      *     path="/api/setAFee",
      *     tags={"Payments"},
+     *       security={{"bearerAuth": {}}},
      *     summary="Create/Update acceptance Fee",
      *
      *     @OA\RequestBody(
