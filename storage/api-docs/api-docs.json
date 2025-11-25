@@ -782,6 +782,11 @@
                                         "type": "string",
                                         "example": "5000"
                                     },
+                                    "clsid": {
+                                        "description": "Class ID",
+                                        "type": "string",
+                                        "example": "11"
+                                    },
                                     "ssn": {
                                         "description": "Session ID",
                                         "type": "string",

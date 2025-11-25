@@ -971,6 +971,7 @@ class ApiController extends Controller
  *             required={"sid", "fee", "ssn", "trm"},
  *             @OA\Property(property="sid", type="string", example="22", description="Student ID"),
  *             @OA\Property(property="fee", type="string", example="5000", description="Application fee amount"),
+ *             @OA\Property(property="clsid", type="string", example="11", description="Class ID"),
  *             @OA\Property(property="ssn", type="string", example="2025", description="Session ID"),
  *             @OA\Property(property="trm", type="string", example="1", description="Term ID")
  *         )
