@@ -9786,6 +9786,12 @@
                                     "clsid": {
                                         "type": "string"
                                     },
+                                    "ssn": {
+                                        "type": "string"
+                                    },
+                                    "trm": {
+                                        "type": "string"
+                                    },
                                     "amt": {
                                         "type": "string"
                                     }
