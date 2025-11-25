@@ -6457,83 +6457,48 @@ public function getOldStudents($schid, $ssn, $trm = '-1', $clsm = '-1', $clsa = 
     // }
 
 
-// public function getOldStudentsStat($schid, $ssn, $trm = '-1', $clsm = '-1', $clsa = '-1')
-// {
-//     // Base query for male students
-//     $maleQuery = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-//         ->where('old_student.schid', $schid)
-//         ->where('old_student.ssn', $ssn)
-//         ->where('old_student.status', 'active')
-//         ->where('student_basic_data.sex', 'M');
-
-//     // Base query for female students
-//     $femaleQuery = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-//         ->where('old_student.schid', $schid)
-//         ->where('old_student.ssn', $ssn)
-//         ->where('old_student.status', 'active')
-//         ->where('student_basic_data.sex', 'F');
-
-//     // Apply optional filters only if they are not "-1"
-//     if ($trm !== '-1') {
-//         $maleQuery->where('old_student.trm', $trm);
-//         $femaleQuery->where('old_student.trm', $trm);
-//     }
-
-//     if ($clsm !== '-1') {
-//         $maleQuery->where('old_student.clsm', $clsm);
-//         $femaleQuery->where('old_student.clsm', $clsm);
-//     }
-
-//     if ($clsa !== '-1') {
-//         $maleQuery->where('old_student.clsa', $clsa);
-//         $femaleQuery->where('old_student.clsa', $clsa);
-//     }
-
-//     // Get counts of distinct students
-//     $maleCount = $maleQuery->distinct('old_student.sid')->count('old_student.sid');
-//     $femaleCount = $femaleQuery->distinct('old_student.sid')->count('old_student.sid');
-
-//     return response()->json([
-//         "status" => true,
-//         "message" => "Success",
-//         "pld" => [
-//             "male" => $maleCount,
-//             "female" => $femaleCount,
-//         ]
-//     ]);
-// }
-
 public function getOldStudentsStat($schid, $ssn, $trm = '-1', $clsm = '-1', $clsa = '-1')
 {
-    // Base query
-    $query = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
+    // Base query for male students
+    $maleQuery = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
         ->where('old_student.schid', $schid)
         ->where('old_student.ssn', $ssn)
-        ->where('old_student.status', 'active');
+        ->where('old_student.status', 'active')
+        ->where('student_basic_data.sex', 'M');
 
-    // Apply optional filters
+    // Base query for female students
+    $femaleQuery = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
+        ->where('old_student.schid', $schid)
+        ->where('old_student.ssn', $ssn)
+        ->where('old_student.status', 'active')
+        ->where('student_basic_data.sex', 'F');
+
+    // Apply optional filters only if they are not "-1"
     if ($trm !== '-1') {
-        $query->where('old_student.trm', $trm);
-    }
-    if ($clsm !== '-1') {
-        $query->where('old_student.clsm', $clsm);
-    }
-    if ($clsa !== '-1') {
-        $query->where('old_student.clsa', $clsa);
+        $maleQuery->where('old_student.trm', $trm);
+        $femaleQuery->where('old_student.trm', $trm);
     }
 
-    // Count male and female distinct students
-    $counts = $query->selectRaw("
-        COUNT(DISTINCT CASE WHEN student_basic_data.sex = 'M' THEN old_student.sid END) AS male,
-        COUNT(DISTINCT CASE WHEN student_basic_data.sex = 'F' THEN old_student.sid END) AS female
-    ")->first();
+    if ($clsm !== '-1') {
+        $maleQuery->where('old_student.clsm', $clsm);
+        $femaleQuery->where('old_student.clsm', $clsm);
+    }
+
+    if ($clsa !== '-1') {
+        $maleQuery->where('old_student.clsa', $clsa);
+        $femaleQuery->where('old_student.clsa', $clsa);
+    }
+
+    // Get counts of distinct students
+    $maleCount = $maleQuery->distinct('old_student.sid')->count('old_student.sid');
+    $femaleCount = $femaleQuery->distinct('old_student.sid')->count('old_student.sid');
 
     return response()->json([
         "status" => true,
         "message" => "Success",
         "pld" => [
-            "male" => $counts->male ?? 0,
-            "female" => $counts->female ?? 0,
+            "male" => $maleCount,
+            "female" => $femaleCount,
         ]
     ]);
 }
@@ -16653,328 +16618,219 @@ public function getOldStudentsStat($schid, $ssn, $trm = '-1', $clsm = '-1', $cls
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    // public function getSchoolHighlights($schid, $ssnid, $trmid)
-    // {
-    //     $pendingStudents = student::where('schid', $schid)->where('stat', '0')->count();
+    public function getSchoolHighlights($schid, $ssnid, $trmid)
+    {
+        $pendingStudents = student::where('schid', $schid)->where('stat', '0')->count();
 
-    //     $approvedStudentsMale = student::join('student_basic_data', 'student.sid', '=', 'student_basic_data.user_id')
-    //         ->where('student.schid', $schid)
-    //         ->where('student.stat', '1')
-    //         ->where('student_basic_data.sex', 'M')
-    //         ->count();
-    //     $approvedStudentsFemale = student::join('student_basic_data', 'student.sid', '=', 'student_basic_data.user_id')
-    //         ->where('student.schid', $schid)
-    //         ->where('student.stat', '1')
-    //         ->where('student_basic_data.sex', 'F')
-    //         ->count();
-
-
-    //     $activeStudentsMale = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-    //         ->where('old_student.schid', $schid)
-    //         ->where('old_student.status', 'active')
-    //         ->where('old_student.ssn', $ssnid)
-    //         ->where('student_basic_data.sex', 'M')
-    //         ->distinct('old_student.sid')
-    //         ->count();
-
-    //     $activeStudentsFemale = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-    //         ->where('old_student.schid', $schid)
-    //         ->where('old_student.status', 'active')
-    //         ->where('old_student.ssn', $ssnid)
-    //         ->where('student_basic_data.sex', 'F')
-    //         ->distinct('old_student.sid')
-    //         ->count();
+        $approvedStudentsMale = student::join('student_basic_data', 'student.sid', '=', 'student_basic_data.user_id')
+            ->where('student.schid', $schid)
+            ->where('student.stat', '1')
+            ->where('student_basic_data.sex', 'M')
+            ->count();
+        $approvedStudentsFemale = student::join('student_basic_data', 'student.sid', '=', 'student_basic_data.user_id')
+            ->where('student.schid', $schid)
+            ->where('student.stat', '1')
+            ->where('student_basic_data.sex', 'F')
+            ->count();
 
 
+        $activeStudentsMale = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
+            ->where('old_student.schid', $schid)
+            ->where('old_student.status', 'active')
+            ->where('old_student.ssn', $ssnid)
+            ->where('student_basic_data.sex', 'M')
+            ->distinct('old_student.sid')
+            ->count();
 
-    //     // Alumni
-    //     $alumniStudentsMale = alumni::join('old_student', 'alumnis.stid', '=', 'old_student.sid')
-    //         ->join('student_basic_data', 'alumnis.stid', '=', 'student_basic_data.user_id')
-    //         ->where('alumnis.schid', $schid)
-    //         ->where('old_student.status', 'inactive')
-    //         ->where('old_student.ssn', $ssnid)     // filter by SSN
-    //         ->where('student_basic_data.sex', 'M')
-    //         ->distinct('alumnis.stid')
-    //         ->count();
-
-
-    //     $alumniStudentsFemale = alumni::join('old_student', 'alumnis.stid', '=', 'old_student.sid')
-    //         ->join('student_basic_data', 'alumnis.stid', '=', 'student_basic_data.user_id')
-    //         ->where('alumnis.schid', $schid)
-    //         ->where('old_student.status', 'inactive')
-    //         ->where('old_student.ssn', $ssnid)     // filter by SSN
-    //         ->where('student_basic_data.sex', 'F')
-    //         ->distinct('alumnis.stid')
-    //         ->count();
-
-
-    //     $alumniStudents = alumni::join('old_student', 'alumnis.stid', '=', 'old_student.sid')
-    //         ->where('alumnis.schid', $schid)
-    //         ->where('old_student.status', 'inactive')
-    //         ->where('old_student.ssn', $ssnid)     // filter by SSN
-    //         ->distinct('alumnis.stid')
-    //         ->count();
+        $activeStudentsFemale = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
+            ->where('old_student.schid', $schid)
+            ->where('old_student.status', 'active')
+            ->where('old_student.ssn', $ssnid)
+            ->where('student_basic_data.sex', 'F')
+            ->distinct('old_student.sid')
+            ->count();
 
 
 
-    //     $activeLearners = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-    //         ->where('old_student.schid', $schid)
-    //         ->where('old_student.status', 'active')
-    //         ->where('old_student.ssn', $ssnid)
-    //         ->distinct('old_student.sid')
-    //         ->count();
-
-    //     $declinedStudents = student::where('schid', $schid)->where('stat', '2')->count();
-    //     $deletedStudents = student::where('schid', $schid)->where('stat', '3')->count();
-
-    //     $pendingStaff = staff::where('schid', $schid)->where('stat', '0')->count();
-
-    //     $approvedStaffMale = staff::join('staff_basic_data', 'staff.sid', '=', 'staff_basic_data.user_id')
-    //         ->where('staff.schid', $schid)
-    //         ->where('staff.stat', '1')
-    //         ->where('staff_basic_data.sex', 'M')
-    //         ->count();
-    //     $approvedStaffFemale = staff::join('staff_basic_data', 'staff.sid', '=', 'staff_basic_data.user_id')
-    //         ->where('staff.schid', $schid)
-    //         ->where('staff.stat', '1')
-    //         ->where('staff_basic_data.sex', 'F')
-    //         ->count();
+        // Alumni
+        $alumniStudentsMale = alumni::join('old_student', 'alumnis.stid', '=', 'old_student.sid')
+            ->join('student_basic_data', 'alumnis.stid', '=', 'student_basic_data.user_id')
+            ->where('alumnis.schid', $schid)
+            ->where('old_student.status', 'inactive')
+            ->where('old_student.ssn', $ssnid)     // filter by SSN
+            ->where('student_basic_data.sex', 'M')
+            ->distinct('alumnis.stid')
+            ->count();
 
 
-
-    //     $activeStaffMale = old_staff::join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
-    //         ->where('old_staff.schid', $schid)
-    //         ->where('old_staff.status', 'active')
-    //         ->where('staff_basic_data.sex', 'M')
-    //         ->where('old_staff.ssn', $ssnid)
-    //         ->distinct('old_staff.sid')
-    //         ->count();
-    //     $activeStaffFemale = old_staff::join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
-    //         ->where('old_staff.schid', $schid)
-    //         ->where('old_staff.status', 'active')
-    //         ->where('old_staff.ssn', $ssnid)
-    //         ->where('staff_basic_data.sex', 'F')
-    //         ->distinct('old_staff.sid')
-    //         ->count();
-
-    //     $activeStaff = old_staff::join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
-    //         ->where('old_staff.schid', $schid)
-    //         ->where('old_staff.status', 'active')
-    //         ->where('old_staff.ssn', $ssnid)
-    //         ->distinct('old_staff.sid')
-    //         ->count();
-
-    //     $declinedStaff = staff::where('schid', $schid)->where('stat', '2')->count();
-    //     $deletedStaff = staff::where('schid', $schid)->where('stat', '3')->count();
-
-    //     $totalStudentPaidRegFee = student::where('schid', $schid)->where('rfee', "1")->count();
-    //     $totalStudentNotPaidRegFee = student::where('schid', $schid)->where('rfee', '!=', "1")->count();
-
-    //     $totalRevenueOthers = payments::where('schid', $schid)
-    //         ->select(DB::raw("COALESCE(SUM(CAST(amt AS DECIMAL(15,2))), 0) as total"))
-    //         ->value('total');
-
-    //     $paidStudentsCount = student::where('schid', $schid)
-    //         ->whereExists(function ($query) use ($schid, $ssnid, $trmid) {
-    //             $query->select(DB::raw(1))
-    //                 ->from('payments')
-    //                 ->whereColumn('payments.stid', 'student.sid')
-    //                 ->where('payments.schid', $schid)
-    //                 ->where('payments.ssnid', $ssnid)
-    //                 ->where('payments.trmid', $trmid);
-    //         })
-    //         ->count();
-
-    //     $notPaidStudentsCount = student::where('schid', $schid)
-    //         ->whereNotExists(function ($query) use ($schid, $ssnid, $trmid) {
-    //             $query->select(DB::raw(1))
-    //                 ->from('payments')
-    //                 ->whereColumn('payments.stid', 'student.sid')
-    //                 ->where('payments.schid', $schid)
-    //                 ->where('payments.ssnid', $ssnid)
-    //                 ->where('payments.trmid', $trmid);
-    //         })
-    //         ->count();
+        $alumniStudentsFemale = alumni::join('old_student', 'alumnis.stid', '=', 'old_student.sid')
+            ->join('student_basic_data', 'alumnis.stid', '=', 'student_basic_data.user_id')
+            ->where('alumnis.schid', $schid)
+            ->where('old_student.status', 'inactive')
+            ->where('old_student.ssn', $ssnid)     // filter by SSN
+            ->where('student_basic_data.sex', 'F')
+            ->distinct('alumnis.stid')
+            ->count();
 
 
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => [
-    //             "pendingStudents" => $pendingStudents,
-    //             "approvedStudentsMale" => $approvedStudentsMale,
-    //             "approvedStudentsFemale" => $approvedStudentsFemale,
-    //             "activeStudentsMale" => $activeStudentsMale,
-    //             "activeStudentsFemale" => $activeStudentsFemale,
-    //             "declinedStudents" => $declinedStudents,
-    //             "deletedStudents" => $deletedStudents,
-    //             "totalActiveLearners" => $activeLearners,
-    //             "alumniStudentsMale" => $alumniStudentsMale,
-    //             "alumniStudentsFemale" => $alumniStudentsFemale,
-    //             "totalAlumniStudents" => $alumniStudents,
-
-    //             "pendingStaff" => $pendingStaff,
-    //             "approvedStaffMale" => $approvedStaffMale,
-    //             "approvedStaffFemale" => $approvedStaffFemale,
-    //             "activeStaffMale" => $activeStaffMale,
-    //             "activeStaffFemale" => $activeStaffFemale,
-    //             "declinedStaff" => $declinedStaff,
-    //             "deletedStaff" => $deletedStaff,
-    //             "totalActiveStaff" => $activeStaff,
-
-    //             "totalStudentPaidRegFee" => $totalStudentPaidRegFee,
-    //             "totalStudentNotPaidRegFee" => $totalStudentNotPaidRegFee,
-    //             "totalRevenueOthers" => $totalRevenueOthers,
-    //             "paidStudentsCount" => $paidStudentsCount,
-    //             "notPaidStudentsCount" => $notPaidStudentsCount,
-
-    //         ],
-    //     ]);
-    // }
+        $alumniStudents = alumni::join('old_student', 'alumnis.stid', '=', 'old_student.sid')
+            ->where('alumnis.schid', $schid)
+            ->where('old_student.status', 'inactive')
+            ->where('old_student.ssn', $ssnid)     // filter by SSN
+            ->distinct('alumnis.stid')
+            ->count();
 
 
-public function getSchoolHighlights($schid, $ssnid, $trmid)
-{
-    // Pending students
-    $pendingStudents = student::where('schid', $schid)->where('stat', '0')->count();
 
-    // Approved students by sex
-    $approvedStudents = student::join('student_basic_data', 'student.sid', '=', 'student_basic_data.user_id')
-        ->where('student.schid', $schid)
-        ->where('student.stat', '1')
-        ->selectRaw("
-            COUNT(CASE WHEN student_basic_data.sex = 'M' THEN 1 END) AS male,
-            COUNT(CASE WHEN student_basic_data.sex = 'F' THEN 1 END) AS female
-        ")->first();
+        $activeLearners = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
+            ->where('old_student.schid', $schid)
+            ->where('old_student.status', 'active')
+            ->where('old_student.ssn', $ssnid)
+            ->distinct('old_student.sid')
+            ->count();
 
-    // Active students by sex
-    $activeStudents = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-        ->where('old_student.schid', $schid)
-        ->where('old_student.status', 'active')
-        ->where('old_student.ssn', $ssnid)
-        ->selectRaw("
-            COUNT(DISTINCT CASE WHEN student_basic_data.sex = 'M' THEN old_student.sid END) AS male,
-            COUNT(DISTINCT CASE WHEN student_basic_data.sex = 'F' THEN old_student.sid END) AS female
-        ")->first();
+        $declinedStudents = student::where('schid', $schid)->where('stat', '2')->count();
+        $deletedStudents = student::where('schid', $schid)->where('stat', '3')->count();
 
-    // Alumni by sex
-    $alumniStudents = alumni::join('old_student', 'alumnis.stid', '=', 'old_student.sid')
-        ->join('student_basic_data', 'alumnis.stid', '=', 'student_basic_data.user_id')
-        ->where('alumnis.schid', $schid)
-        ->where('old_student.status', 'inactive')
-        ->where('old_student.ssn', $ssnid)
-        ->selectRaw("
-            COUNT(DISTINCT CASE WHEN student_basic_data.sex = 'M' THEN alumnis.stid END) AS male,
-            COUNT(DISTINCT CASE WHEN student_basic_data.sex = 'F' THEN alumnis.stid END) AS female
-        ")->first();
+        $pendingStaff = staff::where('schid', $schid)->where('stat', '0')->count();
 
-    // Active learners (all)
-    $activeLearners = old_student::where('schid', $schid)
-        ->where('status', 'active')
-        ->where('ssn', $ssnid)
-        ->distinct('sid')
-        ->count();
-
-    // Declined and deleted students
-    $declinedStudents = student::where('schid', $schid)->where('stat', '2')->count();
-    $deletedStudents = student::where('schid', $schid)->where('stat', '3')->count();
-
-    // Pending staff
-    $pendingStaff = staff::where('schid', $schid)->where('stat', '0')->count();
-
-    // Approved staff by sex
-    $approvedStaff = staff::join('staff_basic_data', 'staff.sid', '=', 'staff_basic_data.user_id')
-        ->where('staff.schid', $schid)
-        ->where('staff.stat', '1')
-        ->selectRaw("
-            COUNT(CASE WHEN staff_basic_data.sex = 'M' THEN 1 END) AS male,
-            COUNT(CASE WHEN staff_basic_data.sex = 'F' THEN 1 END) AS female
-        ")->first();
-
-    // Active staff by sex
-    $activeStaff = old_staff::join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
-        ->where('old_staff.schid', $schid)
-        ->where('old_staff.status', 'active')
-        ->where('old_staff.ssn', $ssnid)
-        ->selectRaw("
-            COUNT(DISTINCT CASE WHEN staff_basic_data.sex = 'M' THEN old_staff.sid END) AS male,
-            COUNT(DISTINCT CASE WHEN staff_basic_data.sex = 'F' THEN old_staff.sid END) AS female
-        ")->first();
-
-    // Total active staff (all)
-    $totalActiveStaff = old_staff::where('schid', $schid)
-        ->where('status', 'active')
-        ->where('ssn', $ssnid)
-        ->distinct('sid')
-        ->count();
-
-    // Declined and deleted staff
-    $declinedStaff = staff::where('schid', $schid)->where('stat', '2')->count();
-    $deletedStaff = staff::where('schid', $schid)->where('stat', '3')->count();
-
-    // Registration fee stats
-    $totalStudentPaidRegFee = student::where('schid', $schid)->where('rfee', "1")->count();
-    $totalStudentNotPaidRegFee = student::where('schid', $schid)->where('rfee', '!=', "1")->count();
-
-    // Total revenue from other payments
-    $totalRevenueOthers = payments::where('schid', $schid)
-        ->select(DB::raw("COALESCE(SUM(CAST(amt AS DECIMAL(15,2))), 0) as total"))
-        ->value('total');
-
-    // Paid and not paid students for specific session/term
-    $paidStudentsCount = student::where('schid', $schid)
-        ->whereExists(function ($query) use ($schid, $ssnid, $trmid) {
-            $query->select(DB::raw(1))
-                ->from('payments')
-                ->whereColumn('payments.stid', 'student.sid')
-                ->where('payments.schid', $schid)
-                ->where('payments.ssnid', $ssnid)
-                ->where('payments.trmid', $trmid);
-        })->count();
-
-    $notPaidStudentsCount = student::where('schid', $schid)
-        ->whereNotExists(function ($query) use ($schid, $ssnid, $trmid) {
-            $query->select(DB::raw(1))
-                ->from('payments')
-                ->whereColumn('payments.stid', 'student.sid')
-                ->where('payments.schid', $schid)
-                ->where('payments.ssnid', $ssnid)
-                ->where('payments.trmid', $trmid);
-        })->count();
-
-    // Return JSON
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => [
-            "pendingStudents" => $pendingStudents,
-            "approvedStudentsMale" => $approvedStudents->male ?? 0,
-            "approvedStudentsFemale" => $approvedStudents->female ?? 0,
-            "activeStudentsMale" => $activeStudents->male ?? 0,
-            "activeStudentsFemale" => $activeStudents->female ?? 0,
-            "alumniStudentsMale" => $alumniStudents->male ?? 0,
-            "alumniStudentsFemale" => $alumniStudents->female ?? 0,
-            "activeLearners" => $activeLearners,
-            "declinedStudents" => $declinedStudents,
-            "deletedStudents" => $deletedStudents,
-            "pendingStaff" => $pendingStaff,
-            "approvedStaffMale" => $approvedStaff->male ?? 0,
-            "approvedStaffFemale" => $approvedStaff->female ?? 0,
-            "activeStaffMale" => $activeStaff->male ?? 0,
-            "activeStaffFemale" => $activeStaff->female ?? 0,
-            "totalActiveStaff" => $totalActiveStaff,
-            "declinedStaff" => $declinedStaff,
-            "deletedStaff" => $deletedStaff,
-            "totalStudentPaidRegFee" => $totalStudentPaidRegFee,
-            "totalStudentNotPaidRegFee" => $totalStudentNotPaidRegFee,
-            "totalRevenueOthers" => $totalRevenueOthers,
-            "paidStudentsCount" => $paidStudentsCount,
-            "notPaidStudentsCount" => $notPaidStudentsCount
-        ]
-    ]);
-}
+        $approvedStaffMale = staff::join('staff_basic_data', 'staff.sid', '=', 'staff_basic_data.user_id')
+            ->where('staff.schid', $schid)
+            ->where('staff.stat', '1')
+            ->where('staff_basic_data.sex', 'M')
+            ->count();
+        $approvedStaffFemale = staff::join('staff_basic_data', 'staff.sid', '=', 'staff_basic_data.user_id')
+            ->where('staff.schid', $schid)
+            ->where('staff.stat', '1')
+            ->where('staff_basic_data.sex', 'F')
+            ->count();
 
 
+
+        $activeStaffMale = old_staff::join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
+            ->where('old_staff.schid', $schid)
+            ->where('old_staff.status', 'active')
+            ->where('staff_basic_data.sex', 'M')
+            ->where('old_staff.ssn', $ssnid)
+            ->distinct('old_staff.sid')
+            ->count();
+        $activeStaffFemale = old_staff::join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
+            ->where('old_staff.schid', $schid)
+            ->where('old_staff.status', 'active')
+            ->where('old_staff.ssn', $ssnid)
+            ->where('staff_basic_data.sex', 'F')
+            ->distinct('old_staff.sid')
+            ->count();
+
+        $activeStaff = old_staff::join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
+            ->where('old_staff.schid', $schid)
+            ->where('old_staff.status', 'active')
+            ->where('old_staff.ssn', $ssnid)
+            ->distinct('old_staff.sid')
+            ->count();
+
+        $declinedStaff = staff::where('schid', $schid)->where('stat', '2')->count();
+        $deletedStaff = staff::where('schid', $schid)->where('stat', '3')->count();
+
+        $totalStudentPaidRegFee = student::where('schid', $schid)->where('rfee', "1")->count();
+        $totalStudentNotPaidRegFee = student::where('schid', $schid)->where('rfee', '!=', "1")->count();
+
+        $totalRevenueOthers = payments::where('schid', $schid)
+            ->select(DB::raw("COALESCE(SUM(CAST(amt AS DECIMAL(15,2))), 0) as total"))
+            ->value('total');
+
+        $paidStudentsCount = student::where('schid', $schid)
+            ->whereExists(function ($query) use ($schid, $ssnid, $trmid) {
+                $query->select(DB::raw(1))
+                    ->from('payments')
+                    ->whereColumn('payments.stid', 'student.sid')
+                    ->where('payments.schid', $schid)
+                    ->where('payments.ssnid', $ssnid)
+                    ->where('payments.trmid', $trmid);
+            })
+            ->count();
+
+        $notPaidStudentsCount = student::where('schid', $schid)
+            ->whereNotExists(function ($query) use ($schid, $ssnid, $trmid) {
+                $query->select(DB::raw(1))
+                    ->from('payments')
+                    ->whereColumn('payments.stid', 'student.sid')
+                    ->where('payments.schid', $schid)
+                    ->where('payments.ssnid', $ssnid)
+                    ->where('payments.trmid', $trmid);
+            })
+            ->count();
+
+        // $totalAmountPaidSchoolFees = student::where('student.schid', $schid)
+        // ->whereExists(function ($query) use ($schid, $ssnid, $trmid) {
+        //     $query->select(DB::raw(1))
+        //         ->from('payments')
+        //         ->whereColumn('payments.stid', 'student.sid')
+        //         ->where('payments.schid', $schid)
+        //         ->where('payments.ssnid', $ssnid)
+        //         ->where('payments.trmid', $trmid);
+        // })
+        // ->join('payments', 'payments.stid', '=', 'student.sid')
+        // ->join('clspay', function($join) use ($schid, $ssnid, $trmid) {
+        //     $join->on('clspay.clsid', '=', 'payments.clsid')
+        //         ->where('clspay.schid', $schid)
+        //         ->where('clspay.sesid', $ssnid)
+        //         ->where('clspay.trmid', $trmid);
+        // })
+        // ->sum(DB::raw('IFNULL(CAST(clspay.amt AS DECIMAL(10, 2)), 0)'));
+
+        // $totalAmountUnpaidSchoolFees = student::where('student.schid', $schid)
+        // ->whereNotExists(function ($query) use ($schid, $ssnid, $trmid) {
+        //     $query->select(DB::raw(1))
+        //         ->from('payments')
+        //         ->whereColumn('payments.stid', 'student.sid')
+        //         ->where('payments.schid', $schid)
+        //         ->where('payments.ssnid', $ssnid)
+        //         ->where('payments.trmid', $trmid);
+        // })
+        // ->leftJoin('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')  // Left join with student_academic_data
+        // ->leftJoin('clspay', function($join) use ($schid, $ssnid, $trmid) {
+        //     $join->on('clspay.clsid', '=', 'student_academic_data.new_class_main')  // Left join with clspay using new_class_main
+        //         ->where('clspay.schid', $schid)
+        //         ->where('clspay.sesid', $ssnid)
+        //         ->where('clspay.trmid', $trmid);
+        // })
+        // ->sum(DB::raw('IFNULL(CAST(clspay.amt AS DECIMAL(10, 2)), 0)'));
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => [
+                "pendingStudents" => $pendingStudents,
+                "approvedStudentsMale" => $approvedStudentsMale,
+                "approvedStudentsFemale" => $approvedStudentsFemale,
+                "activeStudentsMale" => $activeStudentsMale,
+                "activeStudentsFemale" => $activeStudentsFemale,
+                "declinedStudents" => $declinedStudents,
+                "deletedStudents" => $deletedStudents,
+                "totalActiveLearners" => $activeLearners,
+                "alumniStudentsMale" => $alumniStudentsMale,
+                "alumniStudentsFemale" => $alumniStudentsFemale,
+                "totalAlumniStudents" => $alumniStudents,
+
+                "pendingStaff" => $pendingStaff,
+                "approvedStaffMale" => $approvedStaffMale,
+                "approvedStaffFemale" => $approvedStaffFemale,
+                "activeStaffMale" => $activeStaffMale,
+                "activeStaffFemale" => $activeStaffFemale,
+                "declinedStaff" => $declinedStaff,
+                "deletedStaff" => $deletedStaff,
+                "totalActiveStaff" => $activeStaff,
+
+                "totalStudentPaidRegFee" => $totalStudentPaidRegFee,
+                "totalStudentNotPaidRegFee" => $totalStudentNotPaidRegFee,
+                "totalRevenueOthers" => $totalRevenueOthers,
+                "paidStudentsCount" => $paidStudentsCount,
+                "notPaidStudentsCount" => $notPaidStudentsCount,
+
+            ],
+        ]);
+    }
 
     //-- ADMIN
 
