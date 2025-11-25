@@ -14475,6 +14475,8 @@ class ApiController extends Controller
      *             type="object",
      *             @OA\Property(property="schid", type="string"),
      *             @OA\Property(property="clsid", type="string"),
+     *             @OA\Property(property="ssn", type="string"),
+     *             @OA\Property(property="trm", type="string"),
      *             @OA\Property(property="amt", type="string"),
      *         )
      *     ),
