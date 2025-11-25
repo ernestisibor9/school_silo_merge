@@ -957,33 +957,60 @@ class ApiController extends Controller
         ]);
     }
 
-    /**
-     * @OA\Post(
-     *     path="/api/setSchoolAppFee",
-     *     tags={"Api"},
-     *     security={{"bearerAuth": {}}},
-     *     summary="Set school application fee",
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="sid", type="string"),
-     *             @OA\Property(property="fee", type="string"),
-     *         )
-     *     ),
-     *     @OA\Response(response="200", description="Student data set successfully"),
-     *     @OA\Response(response="400", description="Validation error"),
-     * )
-     */
+/**
+ * @OA\Post(
+ *     path="/api/setSchoolAppFee",
+ *     tags={"Api"},
+ *     security={{"bearerAuth": {}}},
+ *     summary="Set or update school application fee for a student (per session & term)",
+ *
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             type="object",
+ *             required={"sid", "fee", "ssn", "trm"},
+ *             @OA\Property(property="sid", type="string", example="22", description="Student ID"),
+ *             @OA\Property(property="fee", type="string", example="5000", description="Application fee amount"),
+ *             @OA\Property(property="ssn", type="string", example="2025", description="Session ID"),
+ *             @OA\Property(property="trm", type="string", example="1", description="Term ID")
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Application fee saved successfully",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success")
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=400,
+ *         description="Validation error",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="Validation failed")
+ *         )
+ *     )
+ * )
+ */
+
     public function setSchoolAppFee(Request $request)
     {
         //Data validation
         $request->validate([
             "sid" => "required",
             "fee" => "required",
+            "ssn" => "required",
+            "trm" => "required",
         ]);
         school_app_fee::updateOrCreate(
-            ["sid" => $request->sid,],
+            [
+                "sid" => $request->sid,
+                "ssn" => $request->ssn,
+                "trm" => $request->trm,
+            ],
             [
                 "fee" => $request->fee,
             ]
@@ -5812,119 +5839,119 @@ class ApiController extends Controller
 
 
 
-/**
- * @OA\Get(
- *     path="/api/getOldStudents/{schid}/{ssn}/{trm}/{clsm}/{clsa}",
- *     summary="Get old students history (with pagination)",
- *     description="Fetch old students by school, session, term, main class, and class arm.
- *                  Use '-1' for trm, clsm, or clsa to fetch all.
- *                  Supports pagination using 'start' and 'count'.",
- *     operationId="getOldStudents",
- *     tags={"Api"},
- *     security={{"bearerAuth": {}}},
- *
- *     @OA\Parameter(
- *         name="schid",
- *         in="path",
- *         required=true,
- *         description="School ID",
- *         @OA\Schema(type="integer", example=12)
- *     ),
- *     @OA\Parameter(
- *         name="ssn",
- *         in="path",
- *         required=true,
- *         description="Academic Session",
- *         @OA\Schema(type="string", example="2024")
- *     ),
- *     @OA\Parameter(
- *         name="trm",
- *         in="path",
- *         required=true,
- *         description="Term ID ('-1' to fetch all terms)",
- *         @OA\Schema(type="string", example="1")
- *     ),
- *     @OA\Parameter(
- *         name="clsm",
- *         in="path",
- *         required=true,
- *         description="Main class (e.g., JSS1, SS2; '-1' to fetch all)",
- *         @OA\Schema(type="string", example="JSS1")
- *     ),
- *     @OA\Parameter(
- *         name="clsa",
- *         in="path",
- *         required=true,
- *         description="Class arm ('-1' to fetch all)",
- *         @OA\Schema(type="string", example="A")
- *     ),
- *
- *     @OA\Parameter(
- *         name="start",
- *         in="query",
- *         required=false,
- *         description="Offset for pagination (default: 0)",
- *         @OA\Schema(type="integer", example=0)
- *     ),
- *     @OA\Parameter(
- *         name="count",
- *         in="query",
- *         required=false,
- *         description="Number of records to return (default: 20)",
- *         @OA\Schema(type="integer", example=20)
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Successful Response",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Success"),
- *             @OA\Property(property="total", type="integer", example=150),
- *             @OA\Property(property="start", type="integer", example=0),
- *             @OA\Property(property="count", type="integer", example=20),
- *             @OA\Property(property="returned", type="integer", example=20),
- *
- *             @OA\Property(
- *                 property="pld",
- *                 type="array",
- *                 @OA\Items(
- *                     type="object",
- *                     @OA\Property(property="sid", type="integer", example=101),
- *                     @OA\Property(property="suid", type="integer", example=5001),
- *                     @OA\Property(property="fname", type="string", example="John"),
- *                     @OA\Property(property="mname", type="string", example="Michael"),
- *                     @OA\Property(property="lname", type="string", example="Smith"),
- *                     @OA\Property(property="ssn", type="string", example="2024"),
- *                     @OA\Property(property="trm", type="string", example="1"),
- *                     @OA\Property(property="clsm", type="string", example="JSS1"),
- *                     @OA\Property(property="clsa", type="string", example="A"),
- *                     @OA\Property(property="last_school", type="string", example="St. Mary's School"),
- *                     @OA\Property(property="last_class", type="string", example="Primary 6"),
- *                     @OA\Property(property="new_class", type="string", example="JSS1"),
- *                     @OA\Property(property="new_class_main", type="string", example="Junior Secondary"),
- *                     @OA\Property(property="adm_ssn", type="string", example="U123/2023/001"),
- *                     @OA\Property(property="adm_trm", type="integer", example=1),
- *                     @OA\Property(property="cls_of_adm", type="string", example="JSS1"),
- *                     @OA\Property(property="date_of_adm", type="string", example="2023-09-01"),
- *                     @OA\Property(property="adm_status", type="string", example="active")
- *                 )
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=404,
- *         description="No records found",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="No records found")
- *         )
- *     )
- * )
- */
+    /**
+     * @OA\Get(
+     *     path="/api/getOldStudents/{schid}/{ssn}/{trm}/{clsm}/{clsa}",
+     *     summary="Get old students history (with pagination)",
+     *     description="Fetch old students by school, session, term, main class, and class arm.
+     *                  Use '-1' for trm, clsm, or clsa to fetch all.
+     *                  Supports pagination using 'start' and 'count'.",
+     *     operationId="getOldStudents",
+     *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
+     *
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="path",
+     *         required=true,
+     *         description="School ID",
+     *         @OA\Schema(type="integer", example=12)
+     *     ),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="path",
+     *         required=true,
+     *         description="Academic Session",
+     *         @OA\Schema(type="string", example="2024")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Term ID ('-1' to fetch all terms)",
+     *         @OA\Schema(type="string", example="1")
+     *     ),
+     *     @OA\Parameter(
+     *         name="clsm",
+     *         in="path",
+     *         required=true,
+     *         description="Main class (e.g., JSS1, SS2; '-1' to fetch all)",
+     *         @OA\Schema(type="string", example="JSS1")
+     *     ),
+     *     @OA\Parameter(
+     *         name="clsa",
+     *         in="path",
+     *         required=true,
+     *         description="Class arm ('-1' to fetch all)",
+     *         @OA\Schema(type="string", example="A")
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         required=false,
+     *         description="Offset for pagination (default: 0)",
+     *         @OA\Schema(type="integer", example=0)
+     *     ),
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         required=false,
+     *         description="Number of records to return (default: 20)",
+     *         @OA\Schema(type="integer", example=20)
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful Response",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(property="total", type="integer", example=150),
+     *             @OA\Property(property="start", type="integer", example=0),
+     *             @OA\Property(property="count", type="integer", example=20),
+     *             @OA\Property(property="returned", type="integer", example=20),
+     *
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="sid", type="integer", example=101),
+     *                     @OA\Property(property="suid", type="integer", example=5001),
+     *                     @OA\Property(property="fname", type="string", example="John"),
+     *                     @OA\Property(property="mname", type="string", example="Michael"),
+     *                     @OA\Property(property="lname", type="string", example="Smith"),
+     *                     @OA\Property(property="ssn", type="string", example="2024"),
+     *                     @OA\Property(property="trm", type="string", example="1"),
+     *                     @OA\Property(property="clsm", type="string", example="JSS1"),
+     *                     @OA\Property(property="clsa", type="string", example="A"),
+     *                     @OA\Property(property="last_school", type="string", example="St. Mary's School"),
+     *                     @OA\Property(property="last_class", type="string", example="Primary 6"),
+     *                     @OA\Property(property="new_class", type="string", example="JSS1"),
+     *                     @OA\Property(property="new_class_main", type="string", example="Junior Secondary"),
+     *                     @OA\Property(property="adm_ssn", type="string", example="U123/2023/001"),
+     *                     @OA\Property(property="adm_trm", type="integer", example=1),
+     *                     @OA\Property(property="cls_of_adm", type="string", example="JSS1"),
+     *                     @OA\Property(property="date_of_adm", type="string", example="2023-09-01"),
+     *                     @OA\Property(property="adm_status", type="string", example="active")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="No records found",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="No records found")
+     *         )
+     *     )
+     * )
+     */
 
 
     // public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
@@ -6046,7 +6073,7 @@ class ApiController extends Controller
     // }
 
 
-// public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
+    // public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
 // {
 //     // Base query
 //     $query = old_student::with(['academicData'])
@@ -6055,20 +6082,20 @@ class ApiController extends Controller
 //         ->where("trm", $trm)
 //         ->where("status", "active");
 
-//     // Filter by main class if not "ALL"
+    //     // Filter by main class if not "ALL"
 //     if ($clsm !== 'zzz') {
 //         $query->where("clsm", $clsm);
 //     }
 
-//     // Filter by arm if not "ALL"
+    //     // Filter by arm if not "ALL"
 //     if ($clsa !== 'zzz') {
 //         $query->where("clsa", $clsa);
 //     }
 
-//     // Get total count of unique students
+    //     // Get total count of unique students
 //     $total = $query->distinct('sid')->count('sid');
 
-//     // Fetch students with selected columns
+    //     // Fetch students with selected columns
 //     $students = $query->select(
 //             'sid',
 //             'suid',
@@ -6088,10 +6115,10 @@ class ApiController extends Controller
 //         ->orderBy('lname', 'asc')
 //         ->get();
 
-//     // Remove duplicates by 'sid' after fetching
+    //     // Remove duplicates by 'sid' after fetching
 //     $uniqueStudents = $students->unique('sid')->values();
 
-//     // Map for response payload
+    //     // Map for response payload
 //     $pld = $uniqueStudents->map(function ($student) {
 //         return [
 //             "sid" => $student->sid,
@@ -6115,7 +6142,7 @@ class ApiController extends Controller
 //         ];
 //     });
 
-//     return response()->json([
+    //     return response()->json([
 //         "status" => true,
 //         "message" => "Success",
 //         "total" => $total, // total number of unique records
@@ -6124,7 +6151,7 @@ class ApiController extends Controller
 // }
 
 
-// public function getOldStudents($schid, $ssn, $trm = '-1', $clsm = '-1', $clsa = '-1')
+    // public function getOldStudents($schid, $ssn, $trm = '-1', $clsm = '-1', $clsa = '-1')
 // {
 //     // Base query
 //     $query = old_student::with(['academicData'])
@@ -6132,25 +6159,25 @@ class ApiController extends Controller
 //         ->where("ssn", $ssn)
 //         ->where("status", "active");
 
-//     // Filter by term if not "-1"
+    //     // Filter by term if not "-1"
 //     if ($trm !== '-1') {
 //         $query->where("trm", $trm);
 //     }
 
-//     // Filter by main class if not "-1"
+    //     // Filter by main class if not "-1"
 //     if ($clsm !== '-1') {
 //         $query->where("clsm", $clsm);
 //     }
 
-//     // Filter by arm if not "-1"
+    //     // Filter by arm if not "-1"
 //     if ($clsa !== '-1') {
 //         $query->where("clsa", $clsa);
 //     }
 
-//     // Get total count of unique students
+    //     // Get total count of unique students
 //     $total = $query->distinct('sid')->count('sid');
 
-//     // Fetch students with selected columns
+    //     // Fetch students with selected columns
 //     $students = $query->select(
 //             'sid',
 //             'suid',
@@ -6170,10 +6197,10 @@ class ApiController extends Controller
 //         ->orderBy('lname', 'asc')
 //         ->get();
 
-//     // Remove duplicates by 'sid' after fetching
+    //     // Remove duplicates by 'sid' after fetching
 //     $uniqueStudents = $students->unique('sid')->values();
 
-//     // Map for response payload
+    //     // Map for response payload
 //     $pld = $uniqueStudents->map(function ($student) {
 //         return [
 //             "sid" => $student->sid,
@@ -6197,7 +6224,7 @@ class ApiController extends Controller
 //         ];
 //     });
 
-//     return response()->json([
+    //     return response()->json([
 //         "status" => true,
 //         "message" => "Success",
 //         "total" => $total, // total number of unique records
@@ -6206,38 +6233,38 @@ class ApiController extends Controller
 // }
 
 
-public function getOldStudents($schid, $ssn, $trm = '-1', $clsm = '-1', $clsa = '-1')
-{
-    // 🔹 Pagination
-    $start = request()->input('start', 0);   // default 0
-    $count = request()->input('count', 20);  // default 20
+    public function getOldStudents($schid, $ssn, $trm = '-1', $clsm = '-1', $clsa = '-1')
+    {
+        // 🔹 Pagination
+        $start = request()->input('start', 0);   // default 0
+        $count = request()->input('count', 20);  // default 20
 
-    // 🔹 Base query
-    $query = old_student::with(['academicData'])
-        ->where("schid", $schid)
-        ->where("ssn", $ssn)
-        ->where("status", "active");
+        // 🔹 Base query
+        $query = old_student::with(['academicData'])
+            ->where("schid", $schid)
+            ->where("ssn", $ssn)
+            ->where("status", "active");
 
-    // 🔹 Filter by term if not "-1"
-    if ($trm !== '-1') {
-        $query->where("trm", $trm);
-    }
+        // 🔹 Filter by term if not "-1"
+        if ($trm !== '-1') {
+            $query->where("trm", $trm);
+        }
 
-    // 🔹 Filter by main class if not "-1"
-    if ($clsm !== '-1') {
-        $query->where("clsm", $clsm);
-    }
+        // 🔹 Filter by main class if not "-1"
+        if ($clsm !== '-1') {
+            $query->where("clsm", $clsm);
+        }
 
-    // 🔹 Filter by arm if not "-1"
-    if ($clsa !== '-1') {
-        $query->where("clsa", $clsa);
-    }
+        // 🔹 Filter by arm if not "-1"
+        if ($clsa !== '-1') {
+            $query->where("clsa", $clsa);
+        }
 
-    // 🔹 Total count of unique students BEFORE pagination
-    $total = $query->distinct('sid')->count('sid');
+        // 🔹 Total count of unique students BEFORE pagination
+        $total = $query->distinct('sid')->count('sid');
 
-    // 🔹 Fetch paginated students
-    $students = $query->select(
+        // 🔹 Fetch paginated students
+        $students = $query->select(
             'sid',
             'suid',
             'fname',
@@ -6253,48 +6280,48 @@ public function getOldStudents($schid, $ssn, $trm = '-1', $clsm = '-1', $clsa = 
             'date_of_adm',
             'adm_status'
         )
-        ->orderBy('lname', 'asc')
-        ->skip($start)
-        ->take($count)
-        ->get();
+            ->orderBy('lname', 'asc')
+            ->skip($start)
+            ->take($count)
+            ->get();
 
-    // 🔹 Remove duplicates by 'sid'
-    $uniqueStudents = $students->unique('sid')->values();
+        // 🔹 Remove duplicates by 'sid'
+        $uniqueStudents = $students->unique('sid')->values();
 
-    // 🔹 Map payload
-    $pld = $uniqueStudents->map(function ($student) {
-        return [
-            "sid" => $student->sid,
-            "suid" => $student->suid,
-            "fname" => $student->fname,
-            "mname" => $student->mname,
-            "lname" => $student->lname,
-            "ssn" => $student->ssn,
-            "trm" => $student->trm,
-            "clsm" => $student->clsm,
-            "clsa" => $student->clsa,
-            "last_school" => $student->academicData?->last_school,
-            "last_class" => $student->academicData?->last_class,
-            "new_class" => $student->academicData?->new_class,
-            "new_class_main" => $student->academicData?->new_class_main,
-            "adm_ssn" => $student->adm_ssn,
-            "adm_trm" => $student->adm_trm,
-            "cls_of_adm" => $student->cls_of_adm,
-            "date_of_adm" => $student->date_of_adm,
-            "adm_status" => $student->adm_status,
-        ];
-    });
+        // 🔹 Map payload
+        $pld = $uniqueStudents->map(function ($student) {
+            return [
+                "sid" => $student->sid,
+                "suid" => $student->suid,
+                "fname" => $student->fname,
+                "mname" => $student->mname,
+                "lname" => $student->lname,
+                "ssn" => $student->ssn,
+                "trm" => $student->trm,
+                "clsm" => $student->clsm,
+                "clsa" => $student->clsa,
+                "last_school" => $student->academicData?->last_school,
+                "last_class" => $student->academicData?->last_class,
+                "new_class" => $student->academicData?->new_class,
+                "new_class_main" => $student->academicData?->new_class_main,
+                "adm_ssn" => $student->adm_ssn,
+                "adm_trm" => $student->adm_trm,
+                "cls_of_adm" => $student->cls_of_adm,
+                "date_of_adm" => $student->date_of_adm,
+                "adm_status" => $student->adm_status,
+            ];
+        });
 
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "total" => $total,      // total unique students
-        "start" => $start,      // current start
-        "count" => $count,      // number of records returned
-        "returned" => $pld->count(), // for frontend UI
-        "pld" => $pld,
-    ]);
-}
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "total" => $total,      // total unique students
+            "start" => $start,      // current start
+            "count" => $count,      // number of records returned
+            "returned" => $pld->count(), // for frontend UI
+            "pld" => $pld,
+        ]);
+    }
 
 
 
@@ -6343,66 +6370,66 @@ public function getOldStudents($schid, $ssn, $trm = '-1', $clsm = '-1', $clsa = 
         ]);
     }
 
-/**
- * @OA\Get(
- *     path="/api/getOldStudentsStat/{schid}/{ssn}",
- *     tags={"Api"},
- *     security={{"bearerAuth": {}}},
- *     summary="Get old students statistics",
- *     description="Fetch male and female counts of old students based on optional filters for term, main class, and class arm.",
- *     @OA\Parameter(
- *         name="schid",
- *         in="path",
- *         required=true,
- *         description="ID of the school",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Parameter(
- *         name="ssn",
- *         in="path",
- *         required=true,
- *         description="ID of the session",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Parameter(
- *         name="trm",
- *         in="query",
- *         required=false,
- *         description="Term ID (optional). Default is '-1' for all terms.",
- *         @OA\Schema(type="string", default="-1", nullable=true)
- *     ),
- *     @OA\Parameter(
- *         name="clsm",
- *         in="query",
- *         required=false,
- *         description="Main class ID (optional). Default is '-1' for all classes.",
- *         @OA\Schema(type="string", default="-1", nullable=true)
- *     ),
- *     @OA\Parameter(
- *         name="clsa",
- *         in="query",
- *         required=false,
- *         description="Class arm ID (optional). Default is '-1' for all arms.",
- *         @OA\Schema(type="string", default="-1", nullable=true)
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Success",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Success"),
- *             @OA\Property(
- *                 property="pld",
- *                 type="object",
- *                 @OA\Property(property="male", type="integer", example=10),
- *                 @OA\Property(property="female", type="integer", example=8)
- *             )
- *         )
- *     ),
- *     @OA\Response(response=401, description="Unauthorized")
- * )
- */
+    /**
+     * @OA\Get(
+     *     path="/api/getOldStudentsStat/{schid}/{ssn}",
+     *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
+     *     summary="Get old students statistics",
+     *     description="Fetch male and female counts of old students based on optional filters for term, main class, and class arm.",
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="path",
+     *         required=true,
+     *         description="ID of the school",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="path",
+     *         required=true,
+     *         description="ID of the session",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="query",
+     *         required=false,
+     *         description="Term ID (optional). Default is '-1' for all terms.",
+     *         @OA\Schema(type="string", default="-1", nullable=true)
+     *     ),
+     *     @OA\Parameter(
+     *         name="clsm",
+     *         in="query",
+     *         required=false,
+     *         description="Main class ID (optional). Default is '-1' for all classes.",
+     *         @OA\Schema(type="string", default="-1", nullable=true)
+     *     ),
+     *     @OA\Parameter(
+     *         name="clsa",
+     *         in="query",
+     *         required=false,
+     *         description="Class arm ID (optional). Default is '-1' for all arms.",
+     *         @OA\Schema(type="string", default="-1", nullable=true)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 @OA\Property(property="male", type="integer", example=10),
+     *                 @OA\Property(property="female", type="integer", example=8)
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthorized")
+     * )
+     */
 
     // public function getOldStudentsStat($schid, $ssn, $trm, $clsm, $clsa)
     // {
@@ -6457,51 +6484,51 @@ public function getOldStudents($schid, $ssn, $trm = '-1', $clsm = '-1', $clsa = 
     // }
 
 
-public function getOldStudentsStat($schid, $ssn, $trm = '-1', $clsm = '-1', $clsa = '-1')
-{
-    // Base query for male students
-    $maleQuery = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-        ->where('old_student.schid', $schid)
-        ->where('old_student.ssn', $ssn)
-        ->where('old_student.status', 'active')
-        ->where('student_basic_data.sex', 'M');
+    public function getOldStudentsStat($schid, $ssn, $trm = '-1', $clsm = '-1', $clsa = '-1')
+    {
+        // Base query for male students
+        $maleQuery = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
+            ->where('old_student.schid', $schid)
+            ->where('old_student.ssn', $ssn)
+            ->where('old_student.status', 'active')
+            ->where('student_basic_data.sex', 'M');
 
-    // Base query for female students
-    $femaleQuery = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-        ->where('old_student.schid', $schid)
-        ->where('old_student.ssn', $ssn)
-        ->where('old_student.status', 'active')
-        ->where('student_basic_data.sex', 'F');
+        // Base query for female students
+        $femaleQuery = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
+            ->where('old_student.schid', $schid)
+            ->where('old_student.ssn', $ssn)
+            ->where('old_student.status', 'active')
+            ->where('student_basic_data.sex', 'F');
 
-    // Apply optional filters only if they are not "-1"
-    if ($trm !== '-1') {
-        $maleQuery->where('old_student.trm', $trm);
-        $femaleQuery->where('old_student.trm', $trm);
+        // Apply optional filters only if they are not "-1"
+        if ($trm !== '-1') {
+            $maleQuery->where('old_student.trm', $trm);
+            $femaleQuery->where('old_student.trm', $trm);
+        }
+
+        if ($clsm !== '-1') {
+            $maleQuery->where('old_student.clsm', $clsm);
+            $femaleQuery->where('old_student.clsm', $clsm);
+        }
+
+        if ($clsa !== '-1') {
+            $maleQuery->where('old_student.clsa', $clsa);
+            $femaleQuery->where('old_student.clsa', $clsa);
+        }
+
+        // Get counts of distinct students
+        $maleCount = $maleQuery->distinct('old_student.sid')->count('old_student.sid');
+        $femaleCount = $femaleQuery->distinct('old_student.sid')->count('old_student.sid');
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => [
+                "male" => $maleCount,
+                "female" => $femaleCount,
+            ]
+        ]);
     }
-
-    if ($clsm !== '-1') {
-        $maleQuery->where('old_student.clsm', $clsm);
-        $femaleQuery->where('old_student.clsm', $clsm);
-    }
-
-    if ($clsa !== '-1') {
-        $maleQuery->where('old_student.clsa', $clsa);
-        $femaleQuery->where('old_student.clsa', $clsa);
-    }
-
-    // Get counts of distinct students
-    $maleCount = $maleQuery->distinct('old_student.sid')->count('old_student.sid');
-    $femaleCount = $femaleQuery->distinct('old_student.sid')->count('old_student.sid');
-
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => [
-            "male" => $maleCount,
-            "female" => $femaleCount,
-        ]
-    ]);
-}
 
 
 
@@ -13197,87 +13224,87 @@ public function getOldStudentsStat($schid, $ssn, $trm = '-1', $clsm = '-1', $cls
      *     )
      * )
      */
-public function setAcctPref(Request $request)
-{
-    $request->validate([
-        'sid' => 'required',
-        'pref' => 'required',
-        'ssn' => 'required',
-        'trm' => 'required',
-    ]);
+    public function setAcctPref(Request $request)
+    {
+        $request->validate([
+            'sid' => 'required',
+            'pref' => 'required',
+            'ssn' => 'required',
+            'trm' => 'required',
+        ]);
 
-    acct_pref::updateOrCreate(
-        [
-            "sid" => $request->sid,
-            "ssn" => $request->ssn,
-            "trm" => $request->trm,
-        ],
-        [
-            "pref" => $request->pref
-        ]
-    );
+        acct_pref::updateOrCreate(
+            [
+                "sid" => $request->sid,
+                "ssn" => $request->ssn,
+                "trm" => $request->trm,
+            ],
+            [
+                "pref" => $request->pref
+            ]
+        );
 
-    return response()->json([
-        "status" => true,
-        "message" => "Preference Recorded"
-    ]);
-}
+        return response()->json([
+            "status" => true,
+            "message" => "Preference Recorded"
+        ]);
+    }
 
-/**
- * @OA\Get(
- *     path="/api/getAcctPref/{schid}/{ssn}/{trm}",
- *     tags={"Api"},
- * security={{"bearerAuth": {}}},
- *     summary="Get preference for account number",
- *     description="Use this endpoint to get preference settings for account numbers.",
- *
- *     @OA\Parameter(
- *         name="schid",
- *         in="path",
- *         required=true,
- *         description="School ID",
- *         @OA\Schema(type="string", example="12")
- *     ),
- *     @OA\Parameter(
- *         name="ssn",
- *         in="path",
- *         required=true,
- *         description="Session ID",
- *         @OA\Schema(type="string", example="2025")
- *     ),
- *     @OA\Parameter(
- *         name="trm",
- *         in="path",
- *         required=true,
- *         description="Term ID",
- *         @OA\Schema(type="string", example="1")
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Success",
- *         @OA\JsonContent()
- *     ),
- *
- *     @OA\Response(
- *         response=401,
- *         description="Unauthorized"
- *     )
- * )
- */
-public function getAcctPref($schid, $ssn, $trm)
-{
-    $pld = acct_pref::where('sid', $schid)
-        ->where('ssn', $ssn)
-        ->where('trm', $trm)
-        ->first();
+    /**
+     * @OA\Get(
+     *     path="/api/getAcctPref/{schid}/{ssn}/{trm}",
+     *     tags={"Api"},
+     * security={{"bearerAuth": {}}},
+     *     summary="Get preference for account number",
+     *     description="Use this endpoint to get preference settings for account numbers.",
+     *
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="path",
+     *         required=true,
+     *         description="School ID",
+     *         @OA\Schema(type="string", example="12")
+     *     ),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="path",
+     *         required=true,
+     *         description="Session ID",
+     *         @OA\Schema(type="string", example="2025")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Term ID",
+     *         @OA\Schema(type="string", example="1")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success",
+     *         @OA\JsonContent()
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized"
+     *     )
+     * )
+     */
+    public function getAcctPref($schid, $ssn, $trm)
+    {
+        $pld = acct_pref::where('sid', $schid)
+            ->where('ssn', $ssn)
+            ->where('trm', $trm)
+            ->first();
 
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => $pld,
-    ]);
-}
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld,
+        ]);
+    }
 
 
 
@@ -14162,150 +14189,150 @@ public function getAcctPref($schid, $ssn, $trm)
 
 
 
-/**
- * @OA\Get(
- *     path="/api/getAccountStat/{schid}/{ssn}/{trm}",
- *     tags={"Api"},
- *     security={{"bearerAuth": {}}},
- *     summary="Get how many accounts are available",
- *     description="Use this endpoint to get the total number of available accounts for a school, session, and term.",
- *
- *     @OA\Parameter(
- *         name="schid",
- *         in="path",
- *         required=true,
- *         description="School ID",
- *         @OA\Schema(type="string", example="12")
- *     ),
- *     @OA\Parameter(
- *         name="ssn",
- *         in="path",
- *         required=true,
- *         description="Session ID",
- *         @OA\Schema(type="string", example="2025")
- *     ),
- *     @OA\Parameter(
- *         name="trm",
- *         in="path",
- *         required=true,
- *         description="Term ID",
- *         @OA\Schema(type="string", example="1")
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Success",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Success"),
- *             @OA\Property(
- *                 property="pld",
- *                 type="object",
- *                 @OA\Property(property="total", type="integer", example=128)
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(response=401, description="Unauthorized")
- * )
- */
-public function getAccountStat($schid, $ssn, $trm)
-{
-    $total = accts::where('schid', $schid)
-        ->where('ssn', $ssn)
-        ->where('trm', $trm)
-        ->count();
+    /**
+     * @OA\Get(
+     *     path="/api/getAccountStat/{schid}/{ssn}/{trm}",
+     *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
+     *     summary="Get how many accounts are available",
+     *     description="Use this endpoint to get the total number of available accounts for a school, session, and term.",
+     *
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="path",
+     *         required=true,
+     *         description="School ID",
+     *         @OA\Schema(type="string", example="12")
+     *     ),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="path",
+     *         required=true,
+     *         description="Session ID",
+     *         @OA\Schema(type="string", example="2025")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Term ID",
+     *         @OA\Schema(type="string", example="1")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 @OA\Property(property="total", type="integer", example=128)
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(response=401, description="Unauthorized")
+     * )
+     */
+    public function getAccountStat($schid, $ssn, $trm)
+    {
+        $total = accts::where('schid', $schid)
+            ->where('ssn', $ssn)
+            ->where('trm', $trm)
+            ->count();
 
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => [
-            "total" => $total,
-        ],
-    ]);
-}
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => [
+                "total" => $total,
+            ],
+        ]);
+    }
 
 
-/**
- * @OA\Get(
- *     path="/api/getAccountsBySchool/{schid}/{ssn}/{trm}",
- *     tags={"Payments"},
- *     security={{"bearerAuth": {}}},
- *     summary="Get all Accounts by School",
- *     description="Retrieve all accounts for a school, session, and term, including sub-account details.",
- *
- *     @OA\Parameter(
- *         name="schid",
- *         in="path",
- *         required=true,
- *         description="School ID",
- *         @OA\Schema(type="string", example="12")
- *     ),
- *     @OA\Parameter(
- *         name="ssn",
- *         in="path",
- *         required=true,
- *         description="Session ID",
- *         @OA\Schema(type="string", example="2025")
- *     ),
- *     @OA\Parameter(
- *         name="trm",
- *         in="path",
- *         required=true,
- *         description="Term ID",
- *         @OA\Schema(type="string", example="1")
- *     ),
- *     @OA\Parameter(
- *         name="start",
- *         in="query",
- *         required=false,
- *         description="Index to start at",
- *         @OA\Schema(type="integer", example=0)
- *     ),
- *     @OA\Parameter(
- *         name="count",
- *         in="query",
- *         required=false,
- *         description="Number of records to retrieve",
- *         @OA\Schema(type="integer", example=20)
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Success",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Success"),
- *             @OA\Property(
- *                 property="pld",
- *                 type="array",
- *                 @OA\Items(
- *                     type="object",
- *                     @OA\Property(property="id", type="integer", example=10),
- *                     @OA\Property(property="name", type="string", example="School Fees"),
- *                     @OA\Property(property="amount", type="number", format="float", example=15000),
- *                     @OA\Property(property="schid", type="integer", example=12),
- *                     @OA\Property(property="ssn", type="string", example="2025"),
- *                     @OA\Property(property="trm", type="string", example="1"),
- *                     @OA\Property(
- *                         property="subAccounts",
- *                         type="array",
- *                         description="Related sub-account breakdown",
- *                         @OA\Items(
- *                             @OA\Property(property="id", type="integer", example=1),
- *                             @OA\Property(property="accts_id", type="integer", example=10),
- *                             @OA\Property(property="name", type="string", example="Development Levy"),
- *                             @OA\Property(property="amount", type="number", example=2000)
- *                         )
- *                     )
- *                 )
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(response=401, description="Unauthorized")
- * )
- */
+    /**
+     * @OA\Get(
+     *     path="/api/getAccountsBySchool/{schid}/{ssn}/{trm}",
+     *     tags={"Payments"},
+     *     security={{"bearerAuth": {}}},
+     *     summary="Get all Accounts by School",
+     *     description="Retrieve all accounts for a school, session, and term, including sub-account details.",
+     *
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="path",
+     *         required=true,
+     *         description="School ID",
+     *         @OA\Schema(type="string", example="12")
+     *     ),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="path",
+     *         required=true,
+     *         description="Session ID",
+     *         @OA\Schema(type="string", example="2025")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Term ID",
+     *         @OA\Schema(type="string", example="1")
+     *     ),
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         required=false,
+     *         description="Index to start at",
+     *         @OA\Schema(type="integer", example=0)
+     *     ),
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         required=false,
+     *         description="Number of records to retrieve",
+     *         @OA\Schema(type="integer", example=20)
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="id", type="integer", example=10),
+     *                     @OA\Property(property="name", type="string", example="School Fees"),
+     *                     @OA\Property(property="amount", type="number", format="float", example=15000),
+     *                     @OA\Property(property="schid", type="integer", example=12),
+     *                     @OA\Property(property="ssn", type="string", example="2025"),
+     *                     @OA\Property(property="trm", type="string", example="1"),
+     *                     @OA\Property(
+     *                         property="subAccounts",
+     *                         type="array",
+     *                         description="Related sub-account breakdown",
+     *                         @OA\Items(
+     *                             @OA\Property(property="id", type="integer", example=1),
+     *                             @OA\Property(property="accts_id", type="integer", example=10),
+     *                             @OA\Property(property="name", type="string", example="Development Levy"),
+     *                             @OA\Property(property="amount", type="number", example=2000)
+     *                         )
+     *                     )
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(response=401, description="Unauthorized")
+     * )
+     */
 
     public function getAccountsBySchool($schid, $ssn, $trm)
     {
@@ -18694,69 +18721,69 @@ public function getAccountStat($schid, $ssn, $trm)
     //         "pld" => $pld,
     //     ]);
     // }
-public function getStudentsBySchool(Request $request, $schid, $stat)
-{
-    $start = $request->input('start', 0);
-    $count = $request->input('count', 20);
-    $year  = $request->input('year');   // optional
-    $cls   = $request->input('cls', 'zzz'); // "zzz" = ALL classes
-    $term  = $request->input('term');   // optional
+    public function getStudentsBySchool(Request $request, $schid, $stat)
+    {
+        $start = $request->input('start', 0);
+        $count = $request->input('count', 20);
+        $year = $request->input('year');   // optional
+        $cls = $request->input('cls', 'zzz'); // "zzz" = ALL classes
+        $term = $request->input('term');   // optional
 
-    // Base query: join latest student_academic_data
-    $query = student::query()
-        ->leftJoin('student_academic_data as sad', function ($join) {
-            $join->on('student.sid', '=', 'sad.user_id')
-                 ->whereRaw('sad.created_at = (
+        // Base query: join latest student_academic_data
+        $query = student::query()
+            ->leftJoin('student_academic_data as sad', function ($join) {
+                $join->on('student.sid', '=', 'sad.user_id')
+                    ->whereRaw('sad.created_at = (
                      SELECT MAX(created_at)
                      FROM student_academic_data
                      WHERE user_id = student.sid
                  )');
-        })
-        ->where('student.schid', $schid)
-        ->where('student.stat', $stat);
+            })
+            ->where('student.schid', $schid)
+            ->where('student.stat', $stat);
 
-    // Filter by class if not "ALL"
-    if ($cls !== 'zzz') {
-        $query->where('sad.new_class_main', $cls);
+        // Filter by class if not "ALL"
+        if ($cls !== 'zzz') {
+            $query->where('sad.new_class_main', $cls);
+        }
+
+        // Optional filters
+        if ($year) {
+            $query->where('student.year', $year);
+        }
+        if ($term) {
+            $query->where('student.term', $term);
+        }
+
+        // Clone query for total count
+        $total = (clone $query)->distinct('student.sid')->count('student.sid');
+
+        // Fetch paginated results
+        $students = $query->select('student.*', 'sad.new_class_main')
+            ->distinct('student.sid')
+            ->orderBy('student.lname', 'asc')
+            ->skip($start)
+            ->take($count)
+            ->get();
+
+        // Format payload
+        $pld = $students->map(function ($student) {
+            return [
+                's' => $student,
+                'b' => student_basic_data::where('user_id', $student->sid)->first(),
+                'a' => student_academic_data::where('user_id', $student->sid)
+                    ->orderBy('created_at', 'desc')
+                    ->first(),
+            ];
+        });
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "total" => $total,
+            "pld" => $pld,
+        ]);
     }
-
-    // Optional filters
-    if ($year) {
-        $query->where('student.year', $year);
-    }
-    if ($term) {
-        $query->where('student.term', $term);
-    }
-
-    // Clone query for total count
-    $total = (clone $query)->distinct('student.sid')->count('student.sid');
-
-    // Fetch paginated results
-    $students = $query->select('student.*', 'sad.new_class_main')
-                      ->distinct('student.sid')
-                      ->orderBy('student.lname', 'asc')
-                      ->skip($start)
-                      ->take($count)
-                      ->get();
-
-    // Format payload
-    $pld = $students->map(function($student) {
-        return [
-            's' => $student,
-            'b' => student_basic_data::where('user_id', $student->sid)->first(),
-            'a' => student_academic_data::where('user_id', $student->sid)
-                                         ->orderBy('created_at', 'desc')
-                                         ->first(),
-        ];
-    });
-
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "total"  => $total,
-        "pld"    => $pld,
-    ]);
-}
 
 
 
@@ -19014,55 +19041,55 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
      */
 
 
-public function getStudentsStatBySchool(Request $request)
-{
-    // Required
-    $schid = $request->query('schid');
-    $stat = $request->query('stat');
+    public function getStudentsStatBySchool(Request $request)
+    {
+        // Required
+        $schid = $request->query('schid');
+        $stat = $request->query('stat');
 
-    if (!$schid) {
+        if (!$schid) {
+            return response()->json([
+                'status' => false,
+                'message' => 'schid and stat are required',
+                'pld' => []
+            ], 400);
+        }
+
+        // Optional filters
+        $cls = $request->query('cls', 'zzz');
+        $term = $request->query('term', null);
+        $year = $request->query('year', null);
+
+        // Base query
+        $query = student::where('schid', $schid)
+            ->where('status', 'active')
+            ->where('stat', $stat);
+
+        // Join with academic data if class filter is specified
+        if ($cls !== 'zzz') {
+            $query->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
+                ->where('student_academic_data.new_class_main', $cls);
+        }
+
+        // Apply optional term filter
+        if (!is_null($term)) {
+            $query->where('term', $term);
+        }
+
+        // Apply optional year filter
+        if (!is_null($year)) {
+            $query->where('year', $year);
+        }
+
+        // Count distinct students to avoid duplicates caused by join
+        $total = $query->distinct('student.sid')->count('student.sid');
+
         return response()->json([
-            'status' => false,
-            'message' => 'schid and stat are required',
-            'pld' => []
-        ], 400);
+            'status' => true,
+            'message' => 'Success',
+            'pld' => ['total' => $total],
+        ]);
     }
-
-    // Optional filters
-    $cls = $request->query('cls', 'zzz');
-    $term = $request->query('term', null);
-    $year = $request->query('year', null);
-
-    // Base query
-    $query = student::where('schid', $schid)
-        ->where('status', 'active')
-        ->where('stat', $stat);
-
-    // Join with academic data if class filter is specified
-    if ($cls !== 'zzz') {
-        $query->join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
-              ->where('student_academic_data.new_class_main', $cls);
-    }
-
-    // Apply optional term filter
-    if (!is_null($term)) {
-        $query->where('term', $term);
-    }
-
-    // Apply optional year filter
-    if (!is_null($year)) {
-        $query->where('year', $year);
-    }
-
-    // Count distinct students to avoid duplicates caused by join
-    $total = $query->distinct('student.sid')->count('student.sid');
-
-    return response()->json([
-        'status' => true,
-        'message' => 'Success',
-        'pld' => ['total' => $total],
-    ]);
-}
 
 
 
@@ -30455,152 +30482,152 @@ public function getStudentsStatBySchool(Request $request)
     // }
 
 
-public function getAllSchoolsInfo(Request $request)
-{
-    $start = $request->input('start', 0);
-    $count = $request->input('count', 20);
-    $state = $request->input('state');
-    $lga = $request->input('lga');
+    public function getAllSchoolsInfo(Request $request)
+    {
+        $start = $request->input('start', 0);
+        $count = $request->input('count', 20);
+        $state = $request->input('state');
+        $lga = $request->input('lga');
 
-    // 🔹 Base query with optional filters
-    $query = DB::table('school as s')
-        ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id')
-        ->select('s.*', 'sw.state as web_state', 'sw.lga as web_lga', 'sw.country as web_country');
+        // 🔹 Base query with optional filters
+        $query = DB::table('school as s')
+            ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id')
+            ->select('s.*', 'sw.state as web_state', 'sw.lga as web_lga', 'sw.country as web_country');
 
-    if (!empty($state)) {
-        $query->where('sw.state', $state);
-    }
+        if (!empty($state)) {
+            $query->where('sw.state', $state);
+        }
 
-    if (!empty($lga)) {
-        $query->where('sw.lga', $lga);
-    }
+        if (!empty($lga)) {
+            $query->where('sw.lga', $lga);
+        }
 
-    // 🔹 Get total records before pagination
-    $totalRecords = $query->count();
+        // 🔹 Get total records before pagination
+        $totalRecords = $query->count();
 
-    // 🔹 Apply pagination
-    $schools = $query->orderBy('s.name', 'asc')
-        ->skip($start)
-        ->take($count)
-        ->get();
+        // 🔹 Apply pagination
+        $schools = $query->orderBy('s.name', 'asc')
+            ->skip($start)
+            ->take($count)
+            ->get();
 
-    if ($schools->isEmpty()) {
+        if ($schools->isEmpty()) {
+            return response()->json([
+                "status" => true,
+                "message" => "No schools found",
+                "total_records" => 0,
+                "pld" => [],
+            ]);
+        }
+
+        // 🔹 Collect all school IDs for bulk queries
+        $schoolIds = $schools->pluck('sid')->toArray();
+
+        // 🔹 Bulk fetch active learners
+        $learners = DB::table('old_student')
+            ->whereIn('schid', $schoolIds)
+            ->where('status', 'active')
+            ->select('schid', DB::raw('COUNT(DISTINCT sid) as active_learners'))
+            ->groupBy('schid')
+            ->pluck('active_learners', 'schid');
+
+        // 🔹 Bulk fetch alumni counts
+        $alumni = DB::table('alumnis')
+            ->whereIn('schid', $schoolIds)
+            ->select('schid', DB::raw('COUNT(*) as alumni_count'))
+            ->groupBy('schid')
+            ->pluck('alumni_count', 'schid');
+
+        // 🔹 Bulk fetch active staff
+        $staff = DB::table('old_staff')
+            ->whereIn('schid', $schoolIds)
+            ->where('status', 'active')
+            ->select('schid', DB::raw('COUNT(DISTINCT sid) as active_staff'))
+            ->groupBy('schid')
+            ->pluck('active_staff', 'schid');
+
+        // 🔹 Bulk fetch classes grouped by school
+        $classes = DB::table('sch_cls')
+            ->whereIn('schid', $schoolIds)
+            ->get(['schid', 'cls_id', 'name'])
+            ->groupBy('schid')
+            ->map(function ($items) {
+                return $items->groupBy('cls_id')->map(fn($i) => $i->pluck('name')->toArray())->toArray();
+            });
+
+        // 🔹 Bulk fetch web data
+        $webData = DB::table('school_web_data')
+            ->whereIn('user_id', $schoolIds)
+            ->get()
+            ->keyBy('user_id');
+
+        $pld = [];
+
+        foreach ($schools as $school) {
+            $sid = $school->sid;
+
+            $schoolCode = strtoupper($school->sch3) . '/' . str_pad($sid, 4, '0', STR_PAD_LEFT);
+
+            $pld[] = [
+                's' => [
+                    'sid' => $sid,
+                    'school_id' => $schoolCode,
+                    'name' => $school->name,
+                    'count' => $school->count,
+                    's_web' => $school->s_web,
+                    's_info' => $school->s_info,
+                    'sbd' => $school->sbd,
+                    'sch3' => $school->sch3,
+                    'cssn' => $school->cssn,
+                    'ctrm' => $school->ctrm,
+                    'ctrmn' => $school->ctrmn,
+                    'lattitude' => $school->latt,
+                    'longitude' => $school->longi,
+                    'country' => $school->web_country ?? 'N/A',
+                    'state' => $school->web_state ?? 'N/A',
+                    'lga' => $school->web_lga ?? 'N/A',
+                    'created_at' => $school->created_at,
+                    'updated_at' => $school->updated_at,
+                    'active_learners' => $learners[$sid] ?? 0,
+                    'alumni' => $alumni[$sid] ?? 0,
+                    'active_staff' => $staff[$sid] ?? 0,
+                    'classes' => $classes[$sid] ?? [],
+                    'total_classes' => count($classes[$sid] ?? []),
+                ],
+                'w' => isset($webData[$sid]) ? [
+                    'user_id' => $webData[$sid]->user_id,
+                    'school_name' => $webData[$sid]->sname ?? 'N/A',
+                    'color' => $webData[$sid]->color ?? 'N/A',
+                    'address' => $webData[$sid]->addr ?? 'N/A',
+                    'country' => $webData[$sid]->country ?? 'N/A',
+                    'state' => $webData[$sid]->state ?? 'N/A',
+                    'lga' => $webData[$sid]->lga ?? 'N/A',
+                    'phone' => $webData[$sid]->phn ?? 'N/A',
+                    'email' => $webData[$sid]->eml ?? 'N/A',
+                    'vision' => $webData[$sid]->vision ?? 'N/A',
+                    'values' => $webData[$sid]->values ?? 'N/A',
+                    'year' => $webData[$sid]->year ?? 'N/A',
+                    'about' => $webData[$sid]->about ?? 'N/A',
+                    'motto' => $webData[$sid]->motto ?? 'N/A',
+                    'facebook' => $webData[$sid]->fb ?? 'N/A',
+                    'instagram' => $webData[$sid]->isg ?? 'N/A',
+                    'youtube' => $webData[$sid]->yt ?? 'N/A',
+                    'whatsapp' => $webData[$sid]->wh ?? 'N/A',
+                    'linkedin' => $webData[$sid]->lkd ?? 'N/A',
+                    'twitter' => $webData[$sid]->tw ?? 'N/A',
+                    'created_at' => $webData[$sid]->created_at,
+                    'updated_at' => $webData[$sid]->updated_at,
+                ] : null,
+            ];
+        }
+
         return response()->json([
             "status" => true,
-            "message" => "No schools found",
-            "total_records" => 0,
-            "pld" => [],
+            "message" => "Success",
+            "total_records" => $totalRecords,
+            "pld" => $pld,
         ]);
     }
-
-    // 🔹 Collect all school IDs for bulk queries
-    $schoolIds = $schools->pluck('sid')->toArray();
-
-    // 🔹 Bulk fetch active learners
-    $learners = DB::table('old_student')
-        ->whereIn('schid', $schoolIds)
-        ->where('status', 'active')
-        ->select('schid', DB::raw('COUNT(DISTINCT sid) as active_learners'))
-        ->groupBy('schid')
-        ->pluck('active_learners', 'schid');
-
-    // 🔹 Bulk fetch alumni counts
-    $alumni = DB::table('alumnis')
-        ->whereIn('schid', $schoolIds)
-        ->select('schid', DB::raw('COUNT(*) as alumni_count'))
-        ->groupBy('schid')
-        ->pluck('alumni_count', 'schid');
-
-    // 🔹 Bulk fetch active staff
-    $staff = DB::table('old_staff')
-        ->whereIn('schid', $schoolIds)
-        ->where('status', 'active')
-        ->select('schid', DB::raw('COUNT(DISTINCT sid) as active_staff'))
-        ->groupBy('schid')
-        ->pluck('active_staff', 'schid');
-
-    // 🔹 Bulk fetch classes grouped by school
-    $classes = DB::table('sch_cls')
-        ->whereIn('schid', $schoolIds)
-        ->get(['schid', 'cls_id', 'name'])
-        ->groupBy('schid')
-        ->map(function ($items) {
-            return $items->groupBy('cls_id')->map(fn($i) => $i->pluck('name')->toArray())->toArray();
-        });
-
-    // 🔹 Bulk fetch web data
-    $webData = DB::table('school_web_data')
-        ->whereIn('user_id', $schoolIds)
-        ->get()
-        ->keyBy('user_id');
-
-    $pld = [];
-
-    foreach ($schools as $school) {
-        $sid = $school->sid;
-
-        $schoolCode = strtoupper($school->sch3) . '/' . str_pad($sid, 4, '0', STR_PAD_LEFT);
-
-        $pld[] = [
-            's' => [
-                'sid' => $sid,
-                'school_id' => $schoolCode,
-                'name' => $school->name,
-                'count' => $school->count,
-                's_web' => $school->s_web,
-                's_info' => $school->s_info,
-                'sbd' => $school->sbd,
-                'sch3' => $school->sch3,
-                'cssn' => $school->cssn,
-                'ctrm' => $school->ctrm,
-                'ctrmn' => $school->ctrmn,
-                'lattitude' => $school->latt,
-                'longitude' => $school->longi,
-                'country' => $school->web_country ?? 'N/A',
-                'state' => $school->web_state ?? 'N/A',
-                'lga' => $school->web_lga ?? 'N/A',
-                'created_at' => $school->created_at,
-                'updated_at' => $school->updated_at,
-                'active_learners' => $learners[$sid] ?? 0,
-                'alumni' => $alumni[$sid] ?? 0,
-                'active_staff' => $staff[$sid] ?? 0,
-                'classes' => $classes[$sid] ?? [],
-                'total_classes' => count($classes[$sid] ?? []),
-            ],
-            'w' => isset($webData[$sid]) ? [
-                'user_id' => $webData[$sid]->user_id,
-                'school_name' => $webData[$sid]->sname ?? 'N/A',
-                'color' => $webData[$sid]->color ?? 'N/A',
-                'address' => $webData[$sid]->addr ?? 'N/A',
-                'country' => $webData[$sid]->country ?? 'N/A',
-                'state' => $webData[$sid]->state ?? 'N/A',
-                'lga' => $webData[$sid]->lga ?? 'N/A',
-                'phone' => $webData[$sid]->phn ?? 'N/A',
-                'email' => $webData[$sid]->eml ?? 'N/A',
-                'vision' => $webData[$sid]->vision ?? 'N/A',
-                'values' => $webData[$sid]->values ?? 'N/A',
-                'year' => $webData[$sid]->year ?? 'N/A',
-                'about' => $webData[$sid]->about ?? 'N/A',
-                'motto' => $webData[$sid]->motto ?? 'N/A',
-                'facebook' => $webData[$sid]->fb ?? 'N/A',
-                'instagram' => $webData[$sid]->isg ?? 'N/A',
-                'youtube' => $webData[$sid]->yt ?? 'N/A',
-                'whatsapp' => $webData[$sid]->wh ?? 'N/A',
-                'linkedin' => $webData[$sid]->lkd ?? 'N/A',
-                'twitter' => $webData[$sid]->tw ?? 'N/A',
-                'created_at' => $webData[$sid]->created_at,
-                'updated_at' => $webData[$sid]->updated_at,
-            ] : null,
-        ];
-    }
-
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "total_records" => $totalRecords,
-        "pld" => $pld,
-    ]);
-}
 
 
 
@@ -33375,146 +33402,146 @@ public function getAllSchoolsInfo(Request $request)
     // }
 
 
-public function getStaffsEnrollmentInfo(Request $request)
-{
-    $start = $request->input('start', 0);
-    $count = $request->input('count', 20);
-    $state = $request->input('state');
-    $lga = $request->input('lga');
+    public function getStaffsEnrollmentInfo(Request $request)
+    {
+        $start = $request->input('start', 0);
+        $count = $request->input('count', 20);
+        $state = $request->input('state');
+        $lga = $request->input('lga');
 
-    // 🔹 Base school query with optional filters
-    $schoolQuery = DB::table('school as s')
-        ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id')
-        ->select('s.*', 'sw.state as web_state', 'sw.lga as web_lga', 'sw.country as web_country');
+        // 🔹 Base school query with optional filters
+        $schoolQuery = DB::table('school as s')
+            ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id')
+            ->select('s.*', 'sw.state as web_state', 'sw.lga as web_lga', 'sw.country as web_country');
 
-    if (!empty($state)) {
-        $schoolQuery->where('sw.state', $state);
-    }
-    if (!empty($lga)) {
-        $schoolQuery->where('sw.lga', $lga);
-    }
+        if (!empty($state)) {
+            $schoolQuery->where('sw.state', $state);
+        }
+        if (!empty($lga)) {
+            $schoolQuery->where('sw.lga', $lga);
+        }
 
-    $totalRecords = $schoolQuery->count();
+        $totalRecords = $schoolQuery->count();
 
-    $schools = $schoolQuery->orderBy('s.name', 'asc')
-        ->skip($start)
-        ->take($count)
-        ->get();
+        $schools = $schoolQuery->orderBy('s.name', 'asc')
+            ->skip($start)
+            ->take($count)
+            ->get();
 
-    $schoolIds = $schools->pluck('sid')->toArray();
+        $schoolIds = $schools->pluck('sid')->toArray();
 
-    // 🔹 Preload staff counts and gender breakdowns in one query
-    $staffData = DB::table('old_staff as os')
-        ->join('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
-        ->select(
-            'os.schid',
-            'os.status',
-            'sb.sex',
-            DB::raw('COUNT(DISTINCT os.sid) as total')
-        )
-        ->whereIn('os.schid', $schoolIds)
-        ->groupBy('os.schid', 'os.status', 'sb.sex')
-        ->get();
+        // 🔹 Preload staff counts and gender breakdowns in one query
+        $staffData = DB::table('old_staff as os')
+            ->join('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
+            ->select(
+                'os.schid',
+                'os.status',
+                'sb.sex',
+                DB::raw('COUNT(DISTINCT os.sid) as total')
+            )
+            ->whereIn('os.schid', $schoolIds)
+            ->groupBy('os.schid', 'os.status', 'sb.sex')
+            ->get();
 
-    // Map staff data properly
-    $staffDataProcessed = [];
-    foreach ($staffData as $item) {
-        $sid = $item->schid;
-        $status = strtolower($item->status); // 'active' or 'inactive'
-        $gender = $item->sex === 'M' ? 'male' : 'female';
+        // Map staff data properly
+        $staffDataProcessed = [];
+        foreach ($staffData as $item) {
+            $sid = $item->schid;
+            $status = strtolower($item->status); // 'active' or 'inactive'
+            $gender = $item->sex === 'M' ? 'male' : 'female';
 
-        if (!isset($staffDataProcessed[$sid])) {
-            $staffDataProcessed[$sid] = [
+            if (!isset($staffDataProcessed[$sid])) {
+                $staffDataProcessed[$sid] = [
+                    'active' => ['male' => 0, 'female' => 0, 'total' => 0],
+                    'inactive' => ['male' => 0, 'female' => 0, 'total' => 0],
+                ];
+            }
+
+            $staffDataProcessed[$sid][$status][$gender] = $item->total;
+            $staffDataProcessed[$sid][$status]['total'] =
+                $staffDataProcessed[$sid][$status]['male'] +
+                $staffDataProcessed[$sid][$status]['female'];
+        }
+
+        // 🔹 Preload role summaries in one query
+        $roleData = DB::table('old_staff')
+            ->select('schid', 'role', DB::raw('COUNT(DISTINCT sid) as total'))
+            ->whereIn('schid', $schoolIds)
+            ->groupBy('schid', 'role')
+            ->get();
+
+        // Map role data properly
+        $roleDataProcessed = [];
+        foreach ($roleData as $item) {
+            $sid = $item->schid;
+            if (!isset($roleDataProcessed[$sid])) {
+                $roleDataProcessed[$sid] = [];
+            }
+            $roleDataProcessed[$sid][$item->role] = $item->total;
+        }
+
+        // 🔹 Preload web data for all schools
+        $webData = DB::table('school_web_data')
+            ->whereIn('user_id', $schoolIds)
+            ->get()
+            ->keyBy('user_id');
+
+        $pld = [];
+
+        foreach ($schools as $school) {
+            $sid = $school->sid;
+
+            $genderSummary = $staffDataProcessed[$sid] ?? [
                 'active' => ['male' => 0, 'female' => 0, 'total' => 0],
                 'inactive' => ['male' => 0, 'female' => 0, 'total' => 0],
             ];
+
+            $totalStaff = $genderSummary['active']['total'] + $genderSummary['inactive']['total'];
+            $roles = $roleDataProcessed[$sid] ?? [];
+
+            $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
+            $w = $webData[$sid] ?? null;
+
+            $pld[] = [
+                's' => [
+                    'sid' => $school->sid,
+                    'school_id' => $schoolCode,
+                    'name' => $school->name,
+                    's_info' => $school->s_info,
+                    'sch3' => $school->sch3,
+                    'created_at' => $school->created_at,
+                    'updated_at' => $school->updated_at,
+                    'country' => $school->web_country ?? 'N/A',
+                    'state' => $school->web_state ?? 'N/A',
+                    'lga' => $school->web_lga ?? 'N/A',
+                    'total_staff' => $totalStaff,
+                    'active_staff' => $genderSummary['active']['total'],
+                    'inactive_staff' => $genderSummary['inactive']['total'],
+                    'gender_summary' => $genderSummary,
+                    'role_summary' => $roles,
+                ],
+                'w' => $w ? [
+                    'user_id' => $w->user_id,
+                    'school_name' => $w->sname ?? 'N/A',
+                    'address' => $w->addr ?? 'N/A',
+                    'state' => $w->state ?? 'N/A',
+                    'lga' => $w->lga ?? 'N/A',
+                    'email' => $w->eml ?? 'N/A',
+                    'phone' => $w->phn ?? 'N/A',
+                    'website' => $w->website ?? 'N/A',
+                    'created_at' => $w->created_at,
+                    'updated_at' => $w->updated_at,
+                ] : null,
+            ];
         }
 
-        $staffDataProcessed[$sid][$status][$gender] = $item->total;
-        $staffDataProcessed[$sid][$status]['total'] =
-            $staffDataProcessed[$sid][$status]['male'] +
-            $staffDataProcessed[$sid][$status]['female'];
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "total_records" => $totalRecords,
+            "pld" => $pld,
+        ]);
     }
-
-    // 🔹 Preload role summaries in one query
-    $roleData = DB::table('old_staff')
-        ->select('schid', 'role', DB::raw('COUNT(DISTINCT sid) as total'))
-        ->whereIn('schid', $schoolIds)
-        ->groupBy('schid', 'role')
-        ->get();
-
-    // Map role data properly
-    $roleDataProcessed = [];
-    foreach ($roleData as $item) {
-        $sid = $item->schid;
-        if (!isset($roleDataProcessed[$sid])) {
-            $roleDataProcessed[$sid] = [];
-        }
-        $roleDataProcessed[$sid][$item->role] = $item->total;
-    }
-
-    // 🔹 Preload web data for all schools
-    $webData = DB::table('school_web_data')
-        ->whereIn('user_id', $schoolIds)
-        ->get()
-        ->keyBy('user_id');
-
-    $pld = [];
-
-    foreach ($schools as $school) {
-        $sid = $school->sid;
-
-        $genderSummary = $staffDataProcessed[$sid] ?? [
-            'active' => ['male' => 0, 'female' => 0, 'total' => 0],
-            'inactive' => ['male' => 0, 'female' => 0, 'total' => 0],
-        ];
-
-        $totalStaff = $genderSummary['active']['total'] + $genderSummary['inactive']['total'];
-        $roles = $roleDataProcessed[$sid] ?? [];
-
-        $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
-        $w = $webData[$sid] ?? null;
-
-        $pld[] = [
-            's' => [
-                'sid' => $school->sid,
-                'school_id' => $schoolCode,
-                'name' => $school->name,
-                's_info' => $school->s_info,
-                'sch3' => $school->sch3,
-                'created_at' => $school->created_at,
-                'updated_at' => $school->updated_at,
-                'country' => $school->web_country ?? 'N/A',
-                'state' => $school->web_state ?? 'N/A',
-                'lga' => $school->web_lga ?? 'N/A',
-                'total_staff' => $totalStaff,
-                'active_staff' => $genderSummary['active']['total'],
-                'inactive_staff' => $genderSummary['inactive']['total'],
-                'gender_summary' => $genderSummary,
-                'role_summary' => $roles,
-            ],
-            'w' => $w ? [
-                'user_id' => $w->user_id,
-                'school_name' => $w->sname ?? 'N/A',
-                'address' => $w->addr ?? 'N/A',
-                'state' => $w->state ?? 'N/A',
-                'lga' => $w->lga ?? 'N/A',
-                'email' => $w->eml ?? 'N/A',
-                'phone' => $w->phn ?? 'N/A',
-                'website' => $w->website ?? 'N/A',
-                'created_at' => $w->created_at,
-                'updated_at' => $w->updated_at,
-            ] : null,
-        ];
-    }
-
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "total_records" => $totalRecords,
-        "pld" => $pld,
-    ]);
-}
 
 
 
@@ -34120,159 +34147,161 @@ public function getStaffsEnrollmentInfo(Request $request)
     //         "pld" => $pld,
     //     ], 200, [], JSON_PRETTY_PRINT);
     // }
-public function getLearnersStaffRatioInfo(Request $request)
-{
-    $start = $request->input('start', 0);
-    $count = $request->input('count', 20);
-    $state = $request->input('state');
-    $lga = $request->input('lga');
-    $ssn = $request->input('ssn'); // academic session
+    public function getLearnersStaffRatioInfo(Request $request)
+    {
+        $start = $request->input('start', 0);
+        $count = $request->input('count', 20);
+        $state = $request->input('state');
+        $lga = $request->input('lga');
+        $ssn = $request->input('ssn'); // academic session
 
-    // Base school query with optional filters
-    $query = DB::table('school as s')
-        ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id')
-        ->select('s.*', 'sw.state as web_state', 'sw.lga as web_lga', 'sw.country as web_country');
+        // Base school query with optional filters
+        $query = DB::table('school as s')
+            ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id')
+            ->select('s.*', 'sw.state as web_state', 'sw.lga as web_lga', 'sw.country as web_country');
 
-    if (!empty($state)) $query->where('sw.state', $state);
-    if (!empty($lga)) $query->where('sw.lga', $lga);
+        if (!empty($state))
+            $query->where('sw.state', $state);
+        if (!empty($lga))
+            $query->where('sw.lga', $lga);
 
-    $totalRecords = $query->count();
+        $totalRecords = $query->count();
 
-    $schools = $query->orderBy('s.name', 'asc')
-        ->skip($start)
-        ->take($count)
-        ->get();
+        $schools = $query->orderBy('s.name', 'asc')
+            ->skip($start)
+            ->take($count)
+            ->get();
 
-    $schoolIds = $schools->pluck('sid')->toArray();
+        $schoolIds = $schools->pluck('sid')->toArray();
 
-    if (empty($schoolIds)) {
+        if (empty($schoolIds)) {
+            return response()->json([
+                "status" => true,
+                "message" => "Success",
+                "total_records" => 0,
+                "pld" => [],
+            ], 200, [], JSON_PRETTY_PRINT);
+        }
+
+        // 🔹 Bulk fetch active students
+        $activeStudents = DB::table('old_student as os')
+            ->join('student_basic_data as sb', 'os.sid', '=', 'sb.user_id')
+            ->select('os.schid', 'sb.sex', DB::raw('COUNT(*) as total'))
+            ->whereIn('os.schid', $schoolIds)
+            ->where('os.status', 'active')
+            ->where('os.ssn', $ssn)
+            ->groupBy('os.schid', 'sb.sex')
+            ->get()
+            ->groupBy('schid');
+
+        // 🔹 Bulk fetch alumni
+        $alumni = DB::table('alumnis as a')
+            ->join('student_basic_data as sb', 'a.stid', '=', 'sb.user_id')
+            ->select('a.schid', 'sb.sex', DB::raw('COUNT(*) as total'))
+            ->whereIn('a.schid', $schoolIds)
+            ->groupBy('a.schid', 'sb.sex')
+            ->get()
+            ->groupBy('schid');
+
+        // 🔹 Bulk fetch active staff
+        $activeStaff = DB::table('old_staff as os')
+            ->join('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
+            ->select('os.schid', 'sb.sex', DB::raw('COUNT(*) as total'))
+            ->whereIn('os.schid', $schoolIds)
+            ->where('os.status', 'active')
+            ->where('os.ssn', $ssn)
+            ->groupBy('os.schid', 'sb.sex')
+            ->get()
+            ->groupBy('schid');
+
+        // 🔹 Bulk fetch classes
+        $classes = DB::table('sch_cls')
+            ->whereIn('schid', $schoolIds)
+            ->get()
+            ->groupBy('schid')
+            ->map(fn($items) => $items->groupBy('cls_id')->map(fn($cls) => $cls->pluck('name')->toArray())->toArray());
+
+        // 🔹 Bulk fetch web data
+        $webData = DB::table('school_web_data')
+            ->whereIn('user_id', $schoolIds)
+            ->get()
+            ->keyBy('user_id');
+
+        $pld = [];
+
+        foreach ($schools as $school) {
+            $sid = $school->sid;
+            $schoolCode = strtoupper($school->sch3) . '/' . str_pad($sid, 4, '0', STR_PAD_LEFT);
+
+            // Active students gender summary
+            $as = collect($activeStudents[$sid] ?? []);
+            $activeMale = $as->firstWhere('sex', 'M')->total ?? 0;
+            $activeFemale = $as->firstWhere('sex', 'F')->total ?? 0;
+
+            // Alumni gender summary
+            $al = collect($alumni[$sid] ?? []);
+            $alumniMale = $al->firstWhere('sex', 'M')->total ?? 0;
+            $alumniFemale = $al->firstWhere('sex', 'F')->total ?? 0;
+
+            // Active staff gender summary
+            $st = collect($activeStaff[$sid] ?? []);
+            $activeStaffMale = $st->firstWhere('sex', 'M')->total ?? 0;
+            $activeStaffFemale = $st->firstWhere('sex', 'F')->total ?? 0;
+
+            $pld[] = [
+                "s" => [
+                    "sid" => (string) $sid,
+                    "school_id" => $schoolCode,
+                    "name" => $school->name,
+                    "count" => $school->count,
+                    "s_web" => $school->s_web,
+                    "s_info" => $school->s_info,
+                    "sbd" => $school->sbd,
+                    "sch3" => $school->sch3,
+                    "cssn" => $school->cssn,
+                    "ctrm" => $school->ctrm,
+                    "ctrmn" => $school->ctrmn,
+                    "lattitude" => $school->latt,
+                    "longitude" => $school->longi,
+                    "country" => $school->web_country ?? "NG",
+                    "state" => $school->web_state ?? "N/A",
+                    "lga" => $school->web_lga ?? "N/A",
+                    "created_at" => $school->created_at,
+                    "updated_at" => $school->updated_at,
+                    "active_learners" => $activeMale + $activeFemale,
+                    "alumni" => $alumniMale + $alumniFemale,
+                    "active_staff" => $activeStaffMale + $activeStaffFemale,
+                    "classes" => $classes[$sid] ?? [],
+                    "total_classes" => count($classes[$sid] ?? []),
+                    "gender_summary" => [
+                        "active_students" => [
+                            "male" => $activeMale,
+                            "female" => $activeFemale,
+                            "total" => $activeMale + $activeFemale,
+                        ],
+                        "alumni" => [
+                            "male" => $alumniMale,
+                            "female" => $alumniFemale,
+                            "total" => $alumniMale + $alumniFemale,
+                        ],
+                        "active_staff" => [
+                            "male" => $activeStaffMale,
+                            "female" => $activeStaffFemale,
+                            "total" => $activeStaffMale + $activeStaffFemale,
+                        ],
+                    ],
+                ],
+                "w" => $webData[$sid] ?? null
+            ];
+        }
+
         return response()->json([
             "status" => true,
             "message" => "Success",
-            "total_records" => 0,
-            "pld" => [],
+            "total_records" => $totalRecords,
+            "pld" => $pld,
         ], 200, [], JSON_PRETTY_PRINT);
     }
-
-    // 🔹 Bulk fetch active students
-    $activeStudents = DB::table('old_student as os')
-        ->join('student_basic_data as sb', 'os.sid', '=', 'sb.user_id')
-        ->select('os.schid', 'sb.sex', DB::raw('COUNT(*) as total'))
-        ->whereIn('os.schid', $schoolIds)
-        ->where('os.status', 'active')
-        ->where('os.ssn', $ssn)
-        ->groupBy('os.schid', 'sb.sex')
-        ->get()
-        ->groupBy('schid');
-
-    // 🔹 Bulk fetch alumni
-    $alumni = DB::table('alumnis as a')
-        ->join('student_basic_data as sb', 'a.stid', '=', 'sb.user_id')
-        ->select('a.schid', 'sb.sex', DB::raw('COUNT(*) as total'))
-        ->whereIn('a.schid', $schoolIds)
-        ->groupBy('a.schid', 'sb.sex')
-        ->get()
-        ->groupBy('schid');
-
-    // 🔹 Bulk fetch active staff
-    $activeStaff = DB::table('old_staff as os')
-        ->join('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
-        ->select('os.schid', 'sb.sex', DB::raw('COUNT(*) as total'))
-        ->whereIn('os.schid', $schoolIds)
-        ->where('os.status', 'active')
-        ->where('os.ssn', $ssn)
-        ->groupBy('os.schid', 'sb.sex')
-        ->get()
-        ->groupBy('schid');
-
-    // 🔹 Bulk fetch classes
-    $classes = DB::table('sch_cls')
-        ->whereIn('schid', $schoolIds)
-        ->get()
-        ->groupBy('schid')
-        ->map(fn($items) => $items->groupBy('cls_id')->map(fn($cls) => $cls->pluck('name')->toArray())->toArray());
-
-    // 🔹 Bulk fetch web data
-    $webData = DB::table('school_web_data')
-        ->whereIn('user_id', $schoolIds)
-        ->get()
-        ->keyBy('user_id');
-
-    $pld = [];
-
-    foreach ($schools as $school) {
-        $sid = $school->sid;
-        $schoolCode = strtoupper($school->sch3) . '/' . str_pad($sid, 4, '0', STR_PAD_LEFT);
-
-        // Active students gender summary
-        $as = collect($activeStudents[$sid] ?? []);
-        $activeMale = $as->firstWhere('sex', 'M')->total ?? 0;
-        $activeFemale = $as->firstWhere('sex', 'F')->total ?? 0;
-
-        // Alumni gender summary
-        $al = collect($alumni[$sid] ?? []);
-        $alumniMale = $al->firstWhere('sex', 'M')->total ?? 0;
-        $alumniFemale = $al->firstWhere('sex', 'F')->total ?? 0;
-
-        // Active staff gender summary
-        $st = collect($activeStaff[$sid] ?? []);
-        $activeStaffMale = $st->firstWhere('sex', 'M')->total ?? 0;
-        $activeStaffFemale = $st->firstWhere('sex', 'F')->total ?? 0;
-
-        $pld[] = [
-            "s" => [
-                "sid" => (string) $sid,
-                "school_id" => $schoolCode,
-                "name" => $school->name,
-                "count" => $school->count,
-                "s_web" => $school->s_web,
-                "s_info" => $school->s_info,
-                "sbd" => $school->sbd,
-                "sch3" => $school->sch3,
-                "cssn" => $school->cssn,
-                "ctrm" => $school->ctrm,
-                "ctrmn" => $school->ctrmn,
-                "lattitude" => $school->latt,
-                "longitude" => $school->longi,
-                "country" => $school->web_country ?? "NG",
-                "state" => $school->web_state ?? "N/A",
-                "lga" => $school->web_lga ?? "N/A",
-                "created_at" => $school->created_at,
-                "updated_at" => $school->updated_at,
-                "active_learners" => $activeMale + $activeFemale,
-                "alumni" => $alumniMale + $alumniFemale,
-                "active_staff" => $activeStaffMale + $activeStaffFemale,
-                "classes" => $classes[$sid] ?? [],
-                "total_classes" => count($classes[$sid] ?? []),
-                "gender_summary" => [
-                    "active_students" => [
-                        "male" => $activeMale,
-                        "female" => $activeFemale,
-                        "total" => $activeMale + $activeFemale,
-                    ],
-                    "alumni" => [
-                        "male" => $alumniMale,
-                        "female" => $alumniFemale,
-                        "total" => $alumniMale + $alumniFemale,
-                    ],
-                    "active_staff" => [
-                        "male" => $activeStaffMale,
-                        "female" => $activeStaffFemale,
-                        "total" => $activeStaffMale + $activeStaffFemale,
-                    ],
-                ],
-            ],
-            "w" => $webData[$sid] ?? null
-        ];
-    }
-
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "total_records" => $totalRecords,
-        "pld" => $pld,
-    ], 200, [], JSON_PRETTY_PRINT);
-}
 
 
     /**
@@ -35326,184 +35355,190 @@ public function getLearnersStaffRatioInfo(Request $request)
 
 
     public function getAllSchoolsInfoRecord(Request $request)
-{
-    try {
-        // 🔹 Filters
-        $start = $request->input('start', 0);
-        $count = $request->input('count', 20);
-        $state = $request->input('state');
-        $lga = $request->input('lga');
-        $ssnYear = $request->input('ssn'); // academic year
-        $trmNo = $request->input('trm');   // term number
+    {
+        try {
+            // 🔹 Filters
+            $start = $request->input('start', 0);
+            $count = $request->input('count', 20);
+            $state = $request->input('state');
+            $lga = $request->input('lga');
+            $ssnYear = $request->input('ssn'); // academic year
+            $trmNo = $request->input('trm');   // term number
 
-        // 🔹 Resolve session name (e.g., "2024" → "2024/2025")
-        $sessionName = null;
-        if (!empty($ssnYear)) {
-            $sessionRecord = DB::table('sesn')->where('year', $ssnYear)->first();
-            $sessionName = $sessionRecord ? $sessionRecord->name : null;
-        }
+            // 🔹 Resolve session name (e.g., "2024" → "2024/2025")
+            $sessionName = null;
+            if (!empty($ssnYear)) {
+                $sessionRecord = DB::table('sesn')->where('year', $ssnYear)->first();
+                $sessionName = $sessionRecord ? $sessionRecord->name : null;
+            }
 
-        // 🔹 Resolve term name (e.g., "1" → "First Term")
-        $termName = null;
-        if (!empty($trmNo)) {
-            $termRecord = DB::table('trm')->where('no', $trmNo)->first();
-            $termName = $termRecord ? $termRecord->name : null;
-        }
+            // 🔹 Resolve term name (e.g., "1" → "First Term")
+            $termName = null;
+            if (!empty($trmNo)) {
+                $termRecord = DB::table('trm')->where('no', $trmNo)->first();
+                $termName = $termRecord ? $termRecord->name : null;
+            }
 
-        // 🔹 Base query with join
-        $query = DB::table('school as s')
-            ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id')
-            ->select('s.*', 'sw.state as web_state', 'sw.lga as web_lga', 'sw.country as web_country');
+            // 🔹 Base query with join
+            $query = DB::table('school as s')
+                ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id')
+                ->select('s.*', 'sw.state as web_state', 'sw.lga as web_lga', 'sw.country as web_country');
 
-        if (!empty($state)) $query->where('sw.state', $state);
-        if (!empty($lga)) $query->where('sw.lga', $lga);
+            if (!empty($state))
+                $query->where('sw.state', $state);
+            if (!empty($lga))
+                $query->where('sw.lga', $lga);
 
-        // 🔹 Get total before pagination
-        $totalRecords = $query->count();
+            // 🔹 Get total before pagination
+            $totalRecords = $query->count();
 
-        // 🔹 Apply pagination
-        $schools = $query->orderBy('s.name', 'asc')
-            ->skip($start)
-            ->take($count)
-            ->get();
+            // 🔹 Apply pagination
+            $schools = $query->orderBy('s.name', 'asc')
+                ->skip($start)
+                ->take($count)
+                ->get();
 
-        if ($schools->isEmpty()) {
+            if ($schools->isEmpty()) {
+                return response()->json([
+                    "status" => true,
+                    "message" => "No schools found",
+                    "total_records" => 0,
+                    "pld" => [],
+                ]);
+            }
+
+            // 🔹 Collect all school IDs for bulk queries
+            $schoolIds = $schools->pluck('sid')->toArray();
+
+            // 🔹 Bulk fetch active learners with optional session/term
+            $learnersQuery = DB::table('old_student')
+                ->whereIn('schid', $schoolIds)
+                ->where('status', 'active');
+
+            if ($sessionName)
+                $learnersQuery->where('ssn', $sessionName);
+            if ($termName)
+                $learnersQuery->where('trm', $termName);
+
+            $learners = $learnersQuery
+                ->select('schid', DB::raw('COUNT(DISTINCT sid) as active_learners'))
+                ->groupBy('schid')
+                ->pluck('active_learners', 'schid');
+
+            // 🔹 Bulk fetch alumni
+            $alumni = DB::table('alumnis')
+                ->whereIn('schid', $schoolIds)
+                ->select('schid', DB::raw('COUNT(*) as alumni_count'))
+                ->groupBy('schid')
+                ->pluck('alumni_count', 'schid');
+
+            // 🔹 Bulk fetch active staff with optional session/term
+            $staffQuery = DB::table('old_staff')
+                ->whereIn('schid', $schoolIds)
+                ->where('status', 'active');
+
+            if ($sessionName)
+                $staffQuery->where('ssn', $sessionName);
+            if ($termName)
+                $staffQuery->where('trm', $termName);
+
+            $staff = $staffQuery
+                ->select('schid', DB::raw('COUNT(DISTINCT sid) as active_staff'))
+                ->groupBy('schid')
+                ->pluck('active_staff', 'schid');
+
+            // 🔹 Bulk fetch classes grouped by school
+            $classes = DB::table('sch_cls')
+                ->whereIn('schid', $schoolIds)
+                ->get(['schid', 'cls_id', 'name'])
+                ->groupBy('schid')
+                ->map(function ($items) {
+                    return $items->groupBy('cls_id')
+                        ->map(fn($i) => $i->pluck('name')->toArray())
+                        ->toArray();
+                });
+
+            // 🔹 Bulk fetch web data
+            $webData = DB::table('school_web_data')
+                ->whereIn('user_id', $schoolIds)
+                ->get()
+                ->keyBy('user_id');
+
+            $pld = [];
+
+            foreach ($schools as $school) {
+                $sid = $school->sid;
+                $schoolCode = strtoupper($school->sch3) . '/' . str_pad($sid, 4, '0', STR_PAD_LEFT);
+
+                $pld[] = [
+                    's' => [
+                        'sid' => (string) $sid,
+                        'school_id' => $schoolCode,
+                        'name' => $school->name,
+                        'count' => (string) $school->count,
+                        's_web' => $school->s_web,
+                        's_info' => $school->s_info,
+                        'sbd' => $school->sbd,
+                        'sch3' => $school->sch3,
+                        'cssn' => $school->cssn,
+                        'ctrm' => $school->ctrm,
+                        'ctrmn' => $school->ctrmn,
+                        'lattitude' => $school->latt,
+                        'longitude' => $school->longi,
+                        'country' => $school->web_country ?? 'N/A',
+                        'state' => $school->web_state ?? 'N/A',
+                        'lga' => $school->web_lga ?? 'N/A',
+                        'created_at' => $school->created_at,
+                        'updated_at' => $school->updated_at,
+                        'active_learners' => $learners[$sid] ?? 0,
+                        'alumni' => $alumni[$sid] ?? 0,
+                        'active_staff' => $staff[$sid] ?? 0,
+                        'classes' => $classes[$sid] ?? [],
+                        'total_classes' => count($classes[$sid] ?? []),
+                    ],
+                    'w' => isset($webData[$sid]) ? [
+                        'user_id' => $webData[$sid]->user_id,
+                        'school_name' => $webData[$sid]->sname ?? 'N/A',
+                        'color' => $webData[$sid]->color ?? 'N/A',
+                        'address' => $webData[$sid]->addr ?? 'N/A',
+                        'country' => $webData[$sid]->country ?? 'N/A',
+                        'state' => $webData[$sid]->state ?? 'N/A',
+                        'lga' => $webData[$sid]->lga ?? 'N/A',
+                        'phone' => $webData[$sid]->phn ?? 'N/A',
+                        'email' => $webData[$sid]->eml ?? 'N/A',
+                        'vision' => $webData[$sid]->vision ?? 'N/A',
+                        'values' => $webData[$sid]->values ?? 'N/A',
+                        'year' => $webData[$sid]->year ?? 'N/A',
+                        'about' => $webData[$sid]->about ?? 'N/A',
+                        'motto' => $webData[$sid]->motto ?? 'N/A',
+                        'facebook' => $webData[$sid]->fb ?? 'N/A',
+                        'instagram' => $webData[$sid]->isg ?? 'N/A',
+                        'youtube' => $webData[$sid]->yt ?? 'N/A',
+                        'whatsapp' => $webData[$sid]->wh ?? 'N/A',
+                        'linkedin' => $webData[$sid]->lkd ?? 'N/A',
+                        'twitter' => $webData[$sid]->tw ?? 'N/A',
+                        'created_at' => $webData[$sid]->created_at,
+                        'updated_at' => $webData[$sid]->updated_at,
+                    ] : null,
+                ];
+            }
+
             return response()->json([
                 "status" => true,
-                "message" => "No schools found",
-                "total_records" => 0,
-                "pld" => [],
+                "message" => "Success",
+                "total_records" => $totalRecords,
+                "session_used" => $sessionName ?? 'All Sessions',
+                "term_used" => $termName ?? 'All Terms',
+                "pld" => $pld,
             ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                "status" => false,
+                "message" => "Error: " . $e->getMessage(),
+            ], 500);
         }
-
-        // 🔹 Collect all school IDs for bulk queries
-        $schoolIds = $schools->pluck('sid')->toArray();
-
-        // 🔹 Bulk fetch active learners with optional session/term
-        $learnersQuery = DB::table('old_student')
-            ->whereIn('schid', $schoolIds)
-            ->where('status', 'active');
-
-        if ($sessionName) $learnersQuery->where('ssn', $sessionName);
-        if ($termName) $learnersQuery->where('trm', $termName);
-
-        $learners = $learnersQuery
-            ->select('schid', DB::raw('COUNT(DISTINCT sid) as active_learners'))
-            ->groupBy('schid')
-            ->pluck('active_learners', 'schid');
-
-        // 🔹 Bulk fetch alumni
-        $alumni = DB::table('alumnis')
-            ->whereIn('schid', $schoolIds)
-            ->select('schid', DB::raw('COUNT(*) as alumni_count'))
-            ->groupBy('schid')
-            ->pluck('alumni_count', 'schid');
-
-        // 🔹 Bulk fetch active staff with optional session/term
-        $staffQuery = DB::table('old_staff')
-            ->whereIn('schid', $schoolIds)
-            ->where('status', 'active');
-
-        if ($sessionName) $staffQuery->where('ssn', $sessionName);
-        if ($termName) $staffQuery->where('trm', $termName);
-
-        $staff = $staffQuery
-            ->select('schid', DB::raw('COUNT(DISTINCT sid) as active_staff'))
-            ->groupBy('schid')
-            ->pluck('active_staff', 'schid');
-
-        // 🔹 Bulk fetch classes grouped by school
-        $classes = DB::table('sch_cls')
-            ->whereIn('schid', $schoolIds)
-            ->get(['schid', 'cls_id', 'name'])
-            ->groupBy('schid')
-            ->map(function ($items) {
-                return $items->groupBy('cls_id')
-                    ->map(fn($i) => $i->pluck('name')->toArray())
-                    ->toArray();
-            });
-
-        // 🔹 Bulk fetch web data
-        $webData = DB::table('school_web_data')
-            ->whereIn('user_id', $schoolIds)
-            ->get()
-            ->keyBy('user_id');
-
-        $pld = [];
-
-        foreach ($schools as $school) {
-            $sid = $school->sid;
-            $schoolCode = strtoupper($school->sch3) . '/' . str_pad($sid, 4, '0', STR_PAD_LEFT);
-
-            $pld[] = [
-                's' => [
-                    'sid' => (string)$sid,
-                    'school_id' => $schoolCode,
-                    'name' => $school->name,
-                    'count' => (string)$school->count,
-                    's_web' => $school->s_web,
-                    's_info' => $school->s_info,
-                    'sbd' => $school->sbd,
-                    'sch3' => $school->sch3,
-                    'cssn' => $school->cssn,
-                    'ctrm' => $school->ctrm,
-                    'ctrmn' => $school->ctrmn,
-                    'lattitude' => $school->latt,
-                    'longitude' => $school->longi,
-                    'country' => $school->web_country ?? 'N/A',
-                    'state' => $school->web_state ?? 'N/A',
-                    'lga' => $school->web_lga ?? 'N/A',
-                    'created_at' => $school->created_at,
-                    'updated_at' => $school->updated_at,
-                    'active_learners' => $learners[$sid] ?? 0,
-                    'alumni' => $alumni[$sid] ?? 0,
-                    'active_staff' => $staff[$sid] ?? 0,
-                    'classes' => $classes[$sid] ?? [],
-                    'total_classes' => count($classes[$sid] ?? []),
-                ],
-                'w' => isset($webData[$sid]) ? [
-                    'user_id' => $webData[$sid]->user_id,
-                    'school_name' => $webData[$sid]->sname ?? 'N/A',
-                    'color' => $webData[$sid]->color ?? 'N/A',
-                    'address' => $webData[$sid]->addr ?? 'N/A',
-                    'country' => $webData[$sid]->country ?? 'N/A',
-                    'state' => $webData[$sid]->state ?? 'N/A',
-                    'lga' => $webData[$sid]->lga ?? 'N/A',
-                    'phone' => $webData[$sid]->phn ?? 'N/A',
-                    'email' => $webData[$sid]->eml ?? 'N/A',
-                    'vision' => $webData[$sid]->vision ?? 'N/A',
-                    'values' => $webData[$sid]->values ?? 'N/A',
-                    'year' => $webData[$sid]->year ?? 'N/A',
-                    'about' => $webData[$sid]->about ?? 'N/A',
-                    'motto' => $webData[$sid]->motto ?? 'N/A',
-                    'facebook' => $webData[$sid]->fb ?? 'N/A',
-                    'instagram' => $webData[$sid]->isg ?? 'N/A',
-                    'youtube' => $webData[$sid]->yt ?? 'N/A',
-                    'whatsapp' => $webData[$sid]->wh ?? 'N/A',
-                    'linkedin' => $webData[$sid]->lkd ?? 'N/A',
-                    'twitter' => $webData[$sid]->tw ?? 'N/A',
-                    'created_at' => $webData[$sid]->created_at,
-                    'updated_at' => $webData[$sid]->updated_at,
-                ] : null,
-            ];
-        }
-
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "total_records" => $totalRecords,
-            "session_used" => $sessionName ?? 'All Sessions',
-            "term_used" => $termName ?? 'All Terms',
-            "pld" => $pld,
-        ]);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            "status" => false,
-            "message" => "Error: " . $e->getMessage(),
-        ], 500);
     }
-}
 
 
 
@@ -35766,520 +35801,520 @@ public function getLearnersStaffRatioInfo(Request $request)
 
 
 
-/**
- * @OA\Get(
- *     path="/api/getOldStudentsAndSubjects/{schid}/{ssn}/{trm}/{clsm}/{clsa}/{stf}",
- *     summary="Get old students and their subjects",
- *     tags={"Api"},
- *    security={{"bearerAuth":{}}},
- *
- *     @OA\Parameter(
- *         name="schid",
- *         in="path",
- *         required=true,
- *         description="School ID",
- *         @OA\Schema(type="string")
- *     ),
- *     @OA\Parameter(
- *         name="ssn",
- *         in="path",
- *         required=true,
- *         description="Session (academic year)",
- *         @OA\Schema(type="string")
- *     ),
- *     @OA\Parameter(
- *         name="trm",
- *         in="path",
- *         required=true,
- *         description="Term number",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Parameter(
- *         name="clsm",
- *         in="path",
- *         required=true,
- *         description="Class (e.g., 11)",
- *         @OA\Schema(type="string")
- *     ),
- *     @OA\Parameter(
- *         name="clsa",
- *         in="path",
- *         required=true,
- *         description="Class section (`-1` means all sections)",
- *         @OA\Schema(type="string")
- *     ),
- *     @OA\Parameter(
- *         name="stf",
- *         in="path",
- *         required=true,
- *         description="Staff ID (`-1` if not used)",
- *         @OA\Schema(type="string")
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Success"
- *     )
- * )
- */
-public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf)
-{
-    // 🔹 Pagination
-    $start = request()->input('start', 0);   // default 0
-    $count = request()->input('count', 20);  // default 20
+    /**
+     * @OA\Get(
+     *     path="/api/getOldStudentsAndSubjects/{schid}/{ssn}/{trm}/{clsm}/{clsa}/{stf}",
+     *     summary="Get old students and their subjects",
+     *     tags={"Api"},
+     *    security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="path",
+     *         required=true,
+     *         description="School ID",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="path",
+     *         required=true,
+     *         description="Session (academic year)",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Term number",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="clsm",
+     *         in="path",
+     *         required=true,
+     *         description="Class (e.g., 11)",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="clsa",
+     *         in="path",
+     *         required=true,
+     *         description="Class section (`-1` means all sections)",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="stf",
+     *         in="path",
+     *         required=true,
+     *         description="Staff ID (`-1` if not used)",
+     *         @OA\Schema(type="string")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success"
+     *     )
+     * )
+     */
+    public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf)
+    {
+        // 🔹 Pagination
+        $start = request()->input('start', 0);   // default 0
+        $count = request()->input('count', 20);  // default 20
 
-    //  Get students with filters
-    $ostdQuery = old_student::where("schid", $schid)
-        ->where("ssn", $ssn)
-        ->where("trm", $trm)
-        ->where("clsm", $clsm)
-        ->when($clsa != '-1', function ($q) use ($clsa) {
-            $q->where("clsa", $clsa);
-        })
-        ->where("status", "active")
-        ->orderBy('lname', 'asc');
+        //  Get students with filters
+        $ostdQuery = old_student::where("schid", $schid)
+            ->where("ssn", $ssn)
+            ->where("trm", $trm)
+            ->where("clsm", $clsm)
+            ->when($clsa != '-1', function ($q) use ($clsa) {
+                $q->where("clsa", $clsa);
+            })
+            ->where("status", "active")
+            ->orderBy('lname', 'asc');
 
-    $totalStudents = $ostdQuery->count();
+        $totalStudents = $ostdQuery->count();
 
-    // Apply pagination
-    $ostd = $ostdQuery->skip($start)->take($count)->get();
+        // Apply pagination
+        $ostd = $ostdQuery->skip($start)->take($count)->get();
 
-    //  Get class subjects (IDs + details)
-    $classSubjects = class_subj::where("schid", $schid)
-        ->where("clsid", $clsm)
-        ->where("sesn", $ssn)
-        ->where("trm", $trm)
-        ->get();
+        //  Get class subjects (IDs + details)
+        $classSubjects = class_subj::where("schid", $schid)
+            ->where("clsid", $clsm)
+            ->where("sesn", $ssn)
+            ->where("trm", $trm)
+            ->get();
 
-    $classSubjectIds = $classSubjects->pluck('subj_id')->map(fn($id) => (string)$id)->toArray();
+        $classSubjectIds = $classSubjects->pluck('subj_id')->map(fn($id) => (string) $id)->toArray();
 
-    // Get all student subjects at once (include term/session)
-    $studentSubjectsMap = student_subj::whereIn('stid', $ostd->pluck('sid'))
-        ->where("schid", $schid)
-        ->where("clsid", $clsm)
-        ->where("ssn", $ssn)
-        ->where("trm", $trm)
-        ->get()
-        ->groupBy('stid')
-        ->map(function ($items) {
-            return $items->pluck('sbj')->map(fn($id) => (string)$id)->toArray();
-        });
+        // Get all student subjects at once (include term/session)
+        $studentSubjectsMap = student_subj::whereIn('stid', $ostd->pluck('sid'))
+            ->where("schid", $schid)
+            ->where("clsid", $clsm)
+            ->where("ssn", $ssn)
+            ->where("trm", $trm)
+            ->get()
+            ->groupBy('stid')
+            ->map(function ($items) {
+                return $items->pluck('sbj')->map(fn($id) => (string) $id)->toArray();
+            });
 
-    // Prepare student payload
-    $stdPld = [];
-    foreach ($ostd as $std) {
-        $user_id = $std->sid;
+        // Prepare student payload
+        $stdPld = [];
+        foreach ($ostd as $std) {
+            $user_id = $std->sid;
 
-        // Get subjects actually assigned to this student
-        $studentSubjects = $studentSubjectsMap[$user_id] ?? [];
+            // Get subjects actually assigned to this student
+            $studentSubjects = $studentSubjectsMap[$user_id] ?? [];
 
-        // Only include subjects that are both in classSubjects and actually assigned
-        $filteredSubjects = array_values(array_filter($classSubjectIds, fn($id) => in_array($id, $studentSubjects)));
+            // Only include subjects that are both in classSubjects and actually assigned
+            $filteredSubjects = array_values(array_filter($classSubjectIds, fn($id) => in_array($id, $studentSubjects)));
 
-        $stdPld[] = [
-            'std' => $std,
-            'sbj' => $filteredSubjects,
-        ];
-    }
-
-    // Prepare class subject payload
-    $clsSbj = $classSubjects->map(function ($subj) {
-        return [
-            'id' => (string)$subj->subj_id,
-            'name' => $subj->name,
-            'comp' => (string)$subj->comp,
-        ];
-    });
-
-    // 6️⃣ Return structured JSON
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => [
-            "std-pld" => $stdPld,
-            "cls-sbj" => $clsSbj,
-        ],
-        "pagination" => [
-            "start" => $start,
-            "count" => $count,
-            "total" => $totalStudents,
-            "returned" => count($stdPld),
-        ],
-    ]);
-}
-
-
-
-/**
- * @OA\Post(
- *     path="/api/setStudentSubjectBulk",
- *     summary="Assign multiple subjects to multiple students",
- *     description="Bulk assign subjects to students. It checks for existing assignments and only inserts new ones. Also updates class subjects if needed.",
- *     operationId="setStudentSubjectBulk",
- *     tags={"Api"},
- *   security={{"bearerAuth":{}}},
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             type="object",
- *             required={"uid","stid","sbj","comp","schid"},
- *             @OA\Property(
- *                 property="uid",
- *                 type="string",
- *                 description="UID of the user performing the action"
- *             ),
- *             @OA\Property(
- *                 property="stid",
- *                 type="array",
- *                 description="Array of student IDs to assign subjects",
- *                 @OA\Items(type="integer")
- *             ),
- *             @OA\Property(
- *                 property="sbj",
- *                 type="array",
- *                 description="Array of subject IDs to assign",
- *                 @OA\Items(type="integer")
- *             ),
- *             @OA\Property(
- *                 property="comp",
- *                 type="integer",
- *                 description="Subject component"
- *             ),
- *             @OA\Property(
- *                 property="schid",
- *                 type="integer",
- *                 description="School ID"
- *             ),
- *             @OA\Property(
- *                 property="clsid",
- *                 type="integer",
- *                 description="Class ID (optional)"
- *             ),
- *             @OA\Property(
- *                 property="trm",
- *                 type="integer",
- *                 description="Term (optional)"
- *             ),
- *             @OA\Property(
- *                 property="ssn",
- *                 type="integer",
- *                 description="Session (optional)"
- *             )
- *         )
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Subjects assignment completed successfully",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Subjects assignment completed."),
- *             @OA\Property(
- *                 property="assigned",
- *                 type="array",
- *                 description="List of newly assigned student-subject pairs",
- *                 @OA\Items(
- *                     type="object",
- *                     @OA\Property(property="stid", type="integer", example=564),
- *                     @OA\Property(property="sbj", type="integer", example=1)
- *                 )
- *             ),
- *             @OA\Property(
- *                 property="skipped",
- *                 type="array",
- *                 description="List of skipped student-subject pairs that already existed",
- *                 @OA\Items(
- *                     type="object",
- *                     @OA\Property(property="stid", type="integer", example=564),
- *                     @OA\Property(property="sbj", type="integer", example=126)
- *                 )
- *             )
- *         )
- *     ),
- *     @OA\Response(
- *         response=422,
- *         description="Validation error",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="message", type="string", example="The stid field is required."),
- *             @OA\Property(property="errors", type="object")
- *         )
- *     )
- * )
- */
-
-public function setStudentSubjectBulk(Request $request)
-{
-    // Validate request
-    $request->validate([
-        "stid" => "required", // single or array of student IDs
-        "sbj" => "required",  // single or array of subject IDs
-        "comp" => "required",
-        "schid" => "required",
-        "clsid" => "nullable",
-        "trm" => "nullable",
-        "ssn" => "nullable"
-    ]);
-
-    $students = is_array($request->stid) ? $request->stid : [$request->stid];
-    $subjects = is_array($request->sbj) ? $request->sbj : [$request->sbj];
-
-    $assigned = [];
-    $skipped = [];
-
-    $bulkInsert = [];
-
-    // 1️⃣ Prepare all student-subject records with generated UID
-    foreach ($students as $stid) {
-        foreach ($subjects as $sbj) {
-            $uid = $request->schid
-                 . ($request->clsid ?? '00')
-                 . ($request->ssn ?? '0000')
-                 . ($request->trm ?? '0')
-                 . $sbj
-                 . $stid; // optional: include student ID to make UID unique per student
-
-            $bulkInsert[] = [
-                "uid" => $uid, // ✅ generated UID
-                "stid" => $stid,
-                "sbj" => $sbj,
-                "comp" => $request->comp,
-                "schid" => $request->schid,
-                "clsid" => $request->clsid,
-                "trm" => $request->trm,
-                "ssn" => $request->ssn,
-                "created_at" => now(),
-                "updated_at" => now(),
+            $stdPld[] = [
+                'std' => $std,
+                'sbj' => $filteredSubjects,
             ];
         }
-    }
 
-    // 2️⃣ Fetch existing student-subject records to avoid duplicates
-    $existing = student_subj::whereIn('stid', $students)
-        ->whereIn('sbj', $subjects)
-        ->where('schid', $request->schid)
-        ->when($request->clsid, fn($q) => $q->where('clsid', $request->clsid))
-        ->when($request->trm, fn($q) => $q->where('trm', $request->trm))
-        ->when($request->ssn, fn($q) => $q->where('ssn', $request->ssn))
-        ->get(['stid', 'sbj'])
-        ->map(fn($row) => $row->stid . '-' . $row->sbj)
-        ->toArray();
-
-    // 3️⃣ Filter out existing records
-    $toInsert = array_filter($bulkInsert, function($item) use ($existing, &$assigned, &$skipped) {
-        $key = $item['stid'] . '-' . $item['sbj'];
-        if (in_array($key, $existing)) {
-            $skipped[] = ["stid" => $item['stid'], "sbj" => $item['sbj']];
-            return false;
-        } else {
-            $assigned[] = ["stid" => $item['stid'], "sbj" => $item['sbj']];
-            return true;
-        }
-    });
-
-    // 4️⃣ Bulk insert new student-subject records
-    if (!empty($toInsert)) {
-        student_subj::insert($toInsert);
-    }
-
-    // 5️⃣ Handle class subjects (updateOrCreate) with UID based on schema
-    foreach ($subjects as $sbj) {
-        $uid = $request->schid
-             . ($request->clsid ?? '00')
-             . ($request->ssn ?? '0000')
-             . ($request->trm ?? '0')
-             . $sbj;
-
-        class_subj::updateOrCreate(
-            [
-                "subj_id" => $sbj,
-                "schid" => $request->schid,
-                "clsid" => $request->clsid,
-                "sesn" => $request->ssn,
-                "trm" => $request->trm,
-            ],
-            [
-                "uid" => $uid, // ✅ UID now in desired format
-                "comp" => $request->comp,
-                "name" => subj::find($sbj)?->name, // optional
-            ]
-        );
-    }
-
-    return response()->json([
-        "status" => true,
-        "message" => "Subjects assignment completed.",
-        "assigned" => $assigned,
-        "skipped" => $skipped,
-    ]);
-}
-
-
-
-
-/**
- * @OA\Get(
- *     path="/api/getStudentSubjectBulk",
- *     summary="Retrieve bulk student subject records",
- *     description="Retrieve student subjects with optional filters: school, class, class arm, session, term, and pagination.",
- *     tags={"Api"},
- *      security={{"bearerAuth":{}}},
- *     @OA\Parameter(
- *         name="schid",
- *         in="query",
- *         description="School ID",
- *         required=false,
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Parameter(
- *         name="clsid",
- *         in="query",
- *         description="Class ID",
- *         required=false,
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Parameter(
- *         name="clsa",
- *         in="query",
- *         description="Class arm ID",
- *         required=false,
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Parameter(
- *         name="ssn",
- *         in="query",
- *         description="Session (e.g., 2025)",
- *         required=false,
- *         @OA\Schema(type="string")
- *     ),
- *     @OA\Parameter(
- *         name="trm",
- *         in="query",
- *         description="Term (e.g., 1)",
- *         required=false,
- *         @OA\Schema(type="string")
- *     ),
- *     @OA\Parameter(
- *         name="start",
- *         in="query",
- *         description="Pagination start index",
- *         required=false,
- *         @OA\Schema(type="integer", default=0)
- *     ),
- *     @OA\Parameter(
- *         name="count",
- *         in="query",
- *         description="Number of records to return",
- *         required=false,
- *         @OA\Schema(type="integer", default=200)
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Successful response",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Success"),
- *             @OA\Property(
- *                 property="pld",
- *                 type="array",
- *                 @OA\Items(
- *                     type="object",
- *                     @OA\Property(property="id", type="integer", example=1),
- *                     @OA\Property(property="stid", type="integer", example=207),
- *                     @OA\Property(property="sbj", type="string", example="Mathematics"),
- *                     @OA\Property(property="comp", type="integer", example=1),
- *                     @OA\Property(property="trm", type="integer", example=1),
- *                     @OA\Property(property="ssn", type="string", example="2025"),
- *                     @OA\Property(property="schid", type="integer", example=13),
- *                     @OA\Property(property="clsid", type="integer", example=10),
- *                     @OA\Property(property="clsa", type="integer", example=1),
- *                     @OA\Property(property="created_at", type="string", format="date-time", example="2025-03-04T14:04:57"),
- *                     @OA\Property(property="updated_at", type="string", format="date-time", example="2025-03-04T14:04:57")
- *                 )
- *             )
- *         )
- *     ),
- *     @OA\Response(
- *         response=400,
- *         description="Bad request"
- *     )
- * )
- */
-
-
-public function getStudentSubjectBulk(Request $request)
-{
-    // Optional input parameters
-    $schid = $request->input('schid');
-    $clsid = $request->input('clsid');
-    $clsa  = $request->input('clsa'); // class arm (old_student.clsa)
-    $ssn   = $request->input('ssn');
-    $trm   = $request->input('trm');
-
-    // Pagination optional
-    $start = $request->input('start', 0);
-    $count = $request->input('count', 200);
-
-    // Base query
-    $query = student_subj::query()
-        ->join("subj", "subj.id", "=", "student_subj.sbj")
-        ->join("old_student", function ($join) {
-            $join->on("old_student.sid", "=", "student_subj.stid");
+        // Prepare class subject payload
+        $clsSbj = $classSubjects->map(function ($subj) {
+            return [
+                'id' => (string) $subj->subj_id,
+                'name' => $subj->name,
+                'comp' => (string) $subj->comp,
+            ];
         });
 
-    // Apply filters only when provided
-    if (!empty($schid)) {
-        $query->where("student_subj.schid", $schid);
+        // 6️⃣ Return structured JSON
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => [
+                "std-pld" => $stdPld,
+                "cls-sbj" => $clsSbj,
+            ],
+            "pagination" => [
+                "start" => $start,
+                "count" => $count,
+                "total" => $totalStudents,
+                "returned" => count($stdPld),
+            ],
+        ]);
     }
 
-    if (!empty($clsid)) {
-        $query->where("student_subj.clsid", $clsid);
-        $query->where("old_student.clsm", $clsid);
+
+
+    /**
+     * @OA\Post(
+     *     path="/api/setStudentSubjectBulk",
+     *     summary="Assign multiple subjects to multiple students",
+     *     description="Bulk assign subjects to students. It checks for existing assignments and only inserts new ones. Also updates class subjects if needed.",
+     *     operationId="setStudentSubjectBulk",
+     *     tags={"Api"},
+     *   security={{"bearerAuth":{}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             required={"uid","stid","sbj","comp","schid"},
+     *             @OA\Property(
+     *                 property="uid",
+     *                 type="string",
+     *                 description="UID of the user performing the action"
+     *             ),
+     *             @OA\Property(
+     *                 property="stid",
+     *                 type="array",
+     *                 description="Array of student IDs to assign subjects",
+     *                 @OA\Items(type="integer")
+     *             ),
+     *             @OA\Property(
+     *                 property="sbj",
+     *                 type="array",
+     *                 description="Array of subject IDs to assign",
+     *                 @OA\Items(type="integer")
+     *             ),
+     *             @OA\Property(
+     *                 property="comp",
+     *                 type="integer",
+     *                 description="Subject component"
+     *             ),
+     *             @OA\Property(
+     *                 property="schid",
+     *                 type="integer",
+     *                 description="School ID"
+     *             ),
+     *             @OA\Property(
+     *                 property="clsid",
+     *                 type="integer",
+     *                 description="Class ID (optional)"
+     *             ),
+     *             @OA\Property(
+     *                 property="trm",
+     *                 type="integer",
+     *                 description="Term (optional)"
+     *             ),
+     *             @OA\Property(
+     *                 property="ssn",
+     *                 type="integer",
+     *                 description="Session (optional)"
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Subjects assignment completed successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Subjects assignment completed."),
+     *             @OA\Property(
+     *                 property="assigned",
+     *                 type="array",
+     *                 description="List of newly assigned student-subject pairs",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="stid", type="integer", example=564),
+     *                     @OA\Property(property="sbj", type="integer", example=1)
+     *                 )
+     *             ),
+     *             @OA\Property(
+     *                 property="skipped",
+     *                 type="array",
+     *                 description="List of skipped student-subject pairs that already existed",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="stid", type="integer", example=564),
+     *                     @OA\Property(property="sbj", type="integer", example=126)
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="The stid field is required."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     )
+     * )
+     */
+
+    public function setStudentSubjectBulk(Request $request)
+    {
+        // Validate request
+        $request->validate([
+            "stid" => "required", // single or array of student IDs
+            "sbj" => "required",  // single or array of subject IDs
+            "comp" => "required",
+            "schid" => "required",
+            "clsid" => "nullable",
+            "trm" => "nullable",
+            "ssn" => "nullable"
+        ]);
+
+        $students = is_array($request->stid) ? $request->stid : [$request->stid];
+        $subjects = is_array($request->sbj) ? $request->sbj : [$request->sbj];
+
+        $assigned = [];
+        $skipped = [];
+
+        $bulkInsert = [];
+
+        // 1️⃣ Prepare all student-subject records with generated UID
+        foreach ($students as $stid) {
+            foreach ($subjects as $sbj) {
+                $uid = $request->schid
+                    . ($request->clsid ?? '00')
+                    . ($request->ssn ?? '0000')
+                    . ($request->trm ?? '0')
+                    . $sbj
+                    . $stid; // optional: include student ID to make UID unique per student
+
+                $bulkInsert[] = [
+                    "uid" => $uid, // ✅ generated UID
+                    "stid" => $stid,
+                    "sbj" => $sbj,
+                    "comp" => $request->comp,
+                    "schid" => $request->schid,
+                    "clsid" => $request->clsid,
+                    "trm" => $request->trm,
+                    "ssn" => $request->ssn,
+                    "created_at" => now(),
+                    "updated_at" => now(),
+                ];
+            }
+        }
+
+        // 2️⃣ Fetch existing student-subject records to avoid duplicates
+        $existing = student_subj::whereIn('stid', $students)
+            ->whereIn('sbj', $subjects)
+            ->where('schid', $request->schid)
+            ->when($request->clsid, fn($q) => $q->where('clsid', $request->clsid))
+            ->when($request->trm, fn($q) => $q->where('trm', $request->trm))
+            ->when($request->ssn, fn($q) => $q->where('ssn', $request->ssn))
+            ->get(['stid', 'sbj'])
+            ->map(fn($row) => $row->stid . '-' . $row->sbj)
+            ->toArray();
+
+        // 3️⃣ Filter out existing records
+        $toInsert = array_filter($bulkInsert, function ($item) use ($existing, &$assigned, &$skipped) {
+            $key = $item['stid'] . '-' . $item['sbj'];
+            if (in_array($key, $existing)) {
+                $skipped[] = ["stid" => $item['stid'], "sbj" => $item['sbj']];
+                return false;
+            } else {
+                $assigned[] = ["stid" => $item['stid'], "sbj" => $item['sbj']];
+                return true;
+            }
+        });
+
+        // 4️⃣ Bulk insert new student-subject records
+        if (!empty($toInsert)) {
+            student_subj::insert($toInsert);
+        }
+
+        // 5️⃣ Handle class subjects (updateOrCreate) with UID based on schema
+        foreach ($subjects as $sbj) {
+            $uid = $request->schid
+                . ($request->clsid ?? '00')
+                . ($request->ssn ?? '0000')
+                . ($request->trm ?? '0')
+                . $sbj;
+
+            class_subj::updateOrCreate(
+                [
+                    "subj_id" => $sbj,
+                    "schid" => $request->schid,
+                    "clsid" => $request->clsid,
+                    "sesn" => $request->ssn,
+                    "trm" => $request->trm,
+                ],
+                [
+                    "uid" => $uid, // ✅ UID now in desired format
+                    "comp" => $request->comp,
+                    "name" => subj::find($sbj)?->name, // optional
+                ]
+            );
+        }
+
+        return response()->json([
+            "status" => true,
+            "message" => "Subjects assignment completed.",
+            "assigned" => $assigned,
+            "skipped" => $skipped,
+        ]);
     }
 
-    if (!empty($clsa)) {
-        $query->where("old_student.clsa", $clsa); // only old_student.clsa
+
+
+
+    /**
+     * @OA\Get(
+     *     path="/api/getStudentSubjectBulk",
+     *     summary="Retrieve bulk student subject records",
+     *     description="Retrieve student subjects with optional filters: school, class, class arm, session, term, and pagination.",
+     *     tags={"Api"},
+     *      security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="query",
+     *         description="School ID",
+     *         required=false,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="clsid",
+     *         in="query",
+     *         description="Class ID",
+     *         required=false,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="clsa",
+     *         in="query",
+     *         description="Class arm ID",
+     *         required=false,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="query",
+     *         description="Session (e.g., 2025)",
+     *         required=false,
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="query",
+     *         description="Term (e.g., 1)",
+     *         required=false,
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         description="Pagination start index",
+     *         required=false,
+     *         @OA\Schema(type="integer", default=0)
+     *     ),
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         description="Number of records to return",
+     *         required=false,
+     *         @OA\Schema(type="integer", default=200)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful response",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="stid", type="integer", example=207),
+     *                     @OA\Property(property="sbj", type="string", example="Mathematics"),
+     *                     @OA\Property(property="comp", type="integer", example=1),
+     *                     @OA\Property(property="trm", type="integer", example=1),
+     *                     @OA\Property(property="ssn", type="string", example="2025"),
+     *                     @OA\Property(property="schid", type="integer", example=13),
+     *                     @OA\Property(property="clsid", type="integer", example=10),
+     *                     @OA\Property(property="clsa", type="integer", example=1),
+     *                     @OA\Property(property="created_at", type="string", format="date-time", example="2025-03-04T14:04:57"),
+     *                     @OA\Property(property="updated_at", type="string", format="date-time", example="2025-03-04T14:04:57")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Bad request"
+     *     )
+     * )
+     */
+
+
+    public function getStudentSubjectBulk(Request $request)
+    {
+        // Optional input parameters
+        $schid = $request->input('schid');
+        $clsid = $request->input('clsid');
+        $clsa = $request->input('clsa'); // class arm (old_student.clsa)
+        $ssn = $request->input('ssn');
+        $trm = $request->input('trm');
+
+        // Pagination optional
+        $start = $request->input('start', 0);
+        $count = $request->input('count', 200);
+
+        // Base query
+        $query = student_subj::query()
+            ->join("subj", "subj.id", "=", "student_subj.sbj")
+            ->join("old_student", function ($join) {
+                $join->on("old_student.sid", "=", "student_subj.stid");
+            });
+
+        // Apply filters only when provided
+        if (!empty($schid)) {
+            $query->where("student_subj.schid", $schid);
+        }
+
+        if (!empty($clsid)) {
+            $query->where("student_subj.clsid", $clsid);
+            $query->where("old_student.clsm", $clsid);
+        }
+
+        if (!empty($clsa)) {
+            $query->where("old_student.clsa", $clsa); // only old_student.clsa
+        }
+
+        if (!empty($ssn)) {
+            $query->where("student_subj.ssn", $ssn);
+            $query->where("old_student.ssn", $ssn);
+        }
+
+        if (!empty($trm)) {
+            $query->where("student_subj.trm", $trm);
+            $query->where("old_student.trm", $trm);
+        }
+
+        // Select columns (removed student_subj.clsa)
+        $query->select(
+            "student_subj.id",
+            "student_subj.stid",
+            "subj.name as sbj",
+            "student_subj.comp",
+            "student_subj.trm",
+            "student_subj.ssn",
+            "student_subj.schid",
+            "student_subj.clsid",
+            "old_student.clsa", // include clsa from old_student
+            "student_subj.created_at",
+            "student_subj.updated_at"
+        );
+
+        // Execute query with pagination
+        $pld = $query
+            ->orderBy("student_subj.stid")
+            ->skip($start)
+            ->take($count)
+            ->get();
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld
+        ]);
     }
-
-    if (!empty($ssn)) {
-        $query->where("student_subj.ssn", $ssn);
-        $query->where("old_student.ssn", $ssn);
-    }
-
-    if (!empty($trm)) {
-        $query->where("student_subj.trm", $trm);
-        $query->where("old_student.trm", $trm);
-    }
-
-    // Select columns (removed student_subj.clsa)
-    $query->select(
-        "student_subj.id",
-        "student_subj.stid",
-        "subj.name as sbj",
-        "student_subj.comp",
-        "student_subj.trm",
-        "student_subj.ssn",
-        "student_subj.schid",
-        "student_subj.clsid",
-        "old_student.clsa", // include clsa from old_student
-        "student_subj.created_at",
-        "student_subj.updated_at"
-    );
-
-    // Execute query with pagination
-    $pld = $query
-        ->orderBy("student_subj.stid")
-        ->skip($start)
-        ->take($count)
-        ->get();
-
-    return response()->json([
-        "status"  => true,
-        "message" => "Success",
-        "pld"     => $pld
-    ]);
-}
 
 
 

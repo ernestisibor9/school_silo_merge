@@ -758,19 +758,39 @@
                 "tags": [
                     "Api"
                 ],
-                "summary": "Set school application fee",
+                "summary": "Set or update school application fee for a student (per session & term)",
                 "operationId": "eedae96eb1ff94a192a2fb180bb945f8",
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
+                                "required": [
+                                    "sid",
+                                    "fee",
+                                    "ssn",
+                                    "trm"
+                                ],
                                 "properties": {
                                     "sid": {
-                                        "type": "string"
+                                        "description": "Student ID",
+                                        "type": "string",
+                                        "example": "22"
                                     },
                                     "fee": {
-                                        "type": "string"
+                                        "description": "Application fee amount",
+                                        "type": "string",
+                                        "example": "5000"
+                                    },
+                                    "ssn": {
+                                        "description": "Session ID",
+                                        "type": "string",
+                                        "example": "2025"
+                                    },
+                                    "trm": {
+                                        "description": "Term ID",
+                                        "type": "string",
+                                        "example": "1"
                                     }
                                 },
                                 "type": "object"
@@ -780,10 +800,44 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Student data set successfully"
+                        "description": "Application fee saved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "400": {
-                        "description": "Validation error"
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation failed"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
@@ -4208,7 +4262,7 @@
                     "Api"
                 ],
                 "summary": "Get old students history (with pagination)",
-                "description": "Fetch old students by school, session, term, main class, and class arm.\n *                  Use '-1' for trm, clsm, or clsa to fetch all.\n *                  Supports pagination using 'start' and 'count'.",
+                "description": "Fetch old students by school, session, term, main class, and class arm.\n     *                  Use '-1' for trm, clsm, or clsa to fetch all.\n     *                  Supports pagination using 'start' and 'count'.",
                 "operationId": "getOldStudents",
                 "parameters": [
                     {

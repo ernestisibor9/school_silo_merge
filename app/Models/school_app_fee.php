@@ -10,7 +10,7 @@ class school_app_fee extends Model
     protected $primaryKey = 'sid';
     public $incrementing = false;
     protected $fillable = [
-        'sid', 'fee'
+        'sid', 'fee', 'ssn', 'trm'
     ];
     /*protected $hidden = [
         'password',
