@@ -13197,27 +13197,31 @@ public function getOldStudentsStat($schid, $ssn, $trm = '-1', $clsm = '-1', $cls
      *     )
      * )
      */
-    public function setAcctPref(Request $request)
-    {
-        $request->validate([
-            'sid' => 'required',
-            'pref' => 'required',
-            'ssn' => 'required',
-            'trm' => 'required',
-        ]);
-        acct_pref::updateOrCreate(
-            ["sid" => $request->sid,],
-            [
-                "pref" => $request->pref,
-                "ssn" => $request->ssn,
-                "trm" => $request->trm,
-            ]
-        );
-        return response()->json([
-            "status" => true,
-            "message" => "Preference Recorded"
-        ]);
-    }
+public function setAcctPref(Request $request)
+{
+    $request->validate([
+        'sid' => 'required',
+        'pref' => 'required',
+        'ssn' => 'required',
+        'trm' => 'required',
+    ]);
+
+    acct_pref::updateOrCreate(
+        [
+            "sid" => $request->sid,
+            "ssn" => $request->ssn,
+            "trm" => $request->trm,
+        ],
+        [
+            "pref" => $request->pref
+        ]
+    );
+
+    return response()->json([
+        "status" => true,
+        "message" => "Preference Recorded"
+    ]);
+}
 
 /**
  * @OA\Get(
@@ -35824,7 +35828,7 @@ public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf
     $start = request()->input('start', 0);   // default 0
     $count = request()->input('count', 20);  // default 20
 
-    // 1️⃣ Get students with filters
+    //  Get students with filters
     $ostdQuery = old_student::where("schid", $schid)
         ->where("ssn", $ssn)
         ->where("trm", $trm)
@@ -35840,7 +35844,7 @@ public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf
     // Apply pagination
     $ostd = $ostdQuery->skip($start)->take($count)->get();
 
-    // 2️⃣ Get class subjects (IDs + details)
+    //  Get class subjects (IDs + details)
     $classSubjects = class_subj::where("schid", $schid)
         ->where("clsid", $clsm)
         ->where("sesn", $ssn)
@@ -35849,7 +35853,7 @@ public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf
 
     $classSubjectIds = $classSubjects->pluck('subj_id')->map(fn($id) => (string)$id)->toArray();
 
-    // 3️⃣ Get all student subjects at once (include term/session)
+    // Get all student subjects at once (include term/session)
     $studentSubjectsMap = student_subj::whereIn('stid', $ostd->pluck('sid'))
         ->where("schid", $schid)
         ->where("clsid", $clsm)
@@ -35861,7 +35865,7 @@ public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf
             return $items->pluck('sbj')->map(fn($id) => (string)$id)->toArray();
         });
 
-    // 4️⃣ Prepare student payload
+    // Prepare student payload
     $stdPld = [];
     foreach ($ostd as $std) {
         $user_id = $std->sid;
@@ -35878,7 +35882,7 @@ public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf
         ];
     }
 
-    // 5️⃣ Prepare class subject payload
+    // Prepare class subject payload
     $clsSbj = $classSubjects->map(function ($subj) {
         return [
             'id' => (string)$subj->subj_id,
