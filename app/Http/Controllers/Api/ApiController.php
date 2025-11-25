@@ -13173,6 +13173,8 @@ public function getOldStudentsStat($schid, $ssn, $trm = '-1', $clsm = '-1', $cls
      *             type="object",
      *             @OA\Property(property="sid", type="string", example="123"),
      *             @OA\Property(property="pref", type="string", example="456"),
+     *             @OA\Property(property="ssn", type="string", example="2025"),
+     *             @OA\Property(property="trm", type="integer", example="1"),
      *         )
      *     ),
      *     @OA\Response(
@@ -13195,51 +13197,87 @@ public function getOldStudentsStat($schid, $ssn, $trm = '-1', $clsm = '-1', $cls
      *     )
      * )
      */
-    public function setAcctPref(Request $request)
-    {
-        $request->validate([
-            'sid' => 'required',
-            'pref' => 'required',
-        ]);
-        acct_pref::updateOrCreate(
-            ["sid" => $request->sid,],
-            [
-                "pref" => $request->pref,
-            ]
-        );
-        return response()->json([
-            "status" => true,
-            "message" => "Preference Recorded"
-        ]);
-    }
+public function setAcctPref(Request $request)
+{
+    $request->validate([
+        'sid' => 'required',
+        'pref' => 'required',
+        'ssn' => 'required',
+        'trm' => 'required',
+    ]);
 
-    /**
-     * @OA\Get(
-     *     path="/api/getAcctPref/{schid}",
-     *     tags={"Api"},
-     *     summary="Get preference for acct number",
-     *     description="Use this endpoint to get pref",
-     *
-     *     @OA\Parameter(
-     *         name="schid",
-     *         in="path",
-     *         required=true,
-     *         description="School ID",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
-     * )
-     */
-    public function getAcctPref($schid)
-    {
-        $pld = acct_pref::where('sid', $schid)->first();
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $pld,
-        ]);
-    }
+    acct_pref::updateOrCreate(
+        [
+            "sid" => $request->sid,
+            "ssn" => $request->ssn,
+            "trm" => $request->trm,
+        ],
+        [
+            "pref" => $request->pref
+        ]
+    );
+
+    return response()->json([
+        "status" => true,
+        "message" => "Preference Recorded"
+    ]);
+}
+
+/**
+ * @OA\Get(
+ *     path="/api/getAcctPref/{schid}/{ssn}/{trm}",
+ *     tags={"Api"},
+ * security={{"bearerAuth": {}}},
+ *     summary="Get preference for account number",
+ *     description="Use this endpoint to get preference settings for account numbers.",
+ *
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="path",
+ *         required=true,
+ *         description="School ID",
+ *         @OA\Schema(type="string", example="12")
+ *     ),
+ *     @OA\Parameter(
+ *         name="ssn",
+ *         in="path",
+ *         required=true,
+ *         description="Session ID",
+ *         @OA\Schema(type="string", example="2025")
+ *     ),
+ *     @OA\Parameter(
+ *         name="trm",
+ *         in="path",
+ *         required=true,
+ *         description="Term ID",
+ *         @OA\Schema(type="string", example="1")
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Success",
+ *         @OA\JsonContent()
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthorized"
+ *     )
+ * )
+ */
+public function getAcctPref($schid, $ssn, $trm)
+{
+    $pld = acct_pref::where('sid', $schid)
+        ->where('ssn', $ssn)
+        ->where('trm', $trm)
+        ->first();
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => $pld,
+    ]);
+}
 
 
 
@@ -13420,6 +13458,8 @@ public function getOldStudentsStat($schid, $ssn, $trm = '-1', $clsm = '-1', $cls
             'anum' => 'required',
             'bnk' => 'required',
             'aname' => 'required',
+            'ssn' => 'required',
+            'trm' => 'required',
             'pay_head_id' => 'nullable',
         ]);
 
@@ -13429,6 +13469,8 @@ public function getOldStudentsStat($schid, $ssn, $trm = '-1', $clsm = '-1', $cls
             'anum' => $request->anum,
             'bnk' => $request->bnk,
             'aname' => $request->aname,
+            'ssn' => $request->ssn,
+            'trm' => $request->trm,
             'pay_head_id' => $request->pay_head_id ?? null,
         ];
 
@@ -13489,6 +13531,8 @@ public function getOldStudentsStat($schid, $ssn, $trm = '-1', $clsm = '-1', $cls
                 'acct_id' => $acct->id,
                 'schid' => $request->schid,
                 'clsid' => $request->clsid,
+                'ssn' => $request->ssn,
+                'trm' => $request->trm,
                 'pay_head_id' => $request->pay_head_id ?? null,
                 'subaccount_code' => $data['data']['subaccount_code'],
                 'percentage_charge' => $percentage_charge,
@@ -13674,6 +13718,8 @@ public function getOldStudentsStat($schid, $ssn, $trm = '-1', $clsm = '-1', $cls
                     'acct_id' => $account->id,
                     'schid' => $account->schid,
                     'clsid' => $account->clsid,
+                    'ssn' => $account->ssn,
+                    'trm' => $account->trm,
                     'subaccount_code' => $data['data']['subaccount_code'],
                     'percentage_charge' => $percentage_charge,
                 ]);
@@ -13714,6 +13760,7 @@ public function getOldStudentsStat($schid, $ssn, $trm = '-1', $clsm = '-1', $cls
             "subaccount" => $responseData,
         ]);
     }
+
 
 
 
@@ -14115,79 +14162,160 @@ public function getOldStudentsStat($schid, $ssn, $trm = '-1', $clsm = '-1', $cls
 
 
 
-    /**
-     * @OA\Get(
-     *     path="/api/getAccountStat/{schid}",
-     *     tags={"Api"},
-     *     summary="Get how many accounts are available",
-     *     description="Use this endpoint to get how many accounts are available",
-     *
-     *     @OA\Parameter(
-     *         name="schid",
-     *         in="path",
-     *         required=true,
-     *         description="School ID",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
-     * )
-     */
-    public function getAccountStat($schid)
-    {
-        $total = accts::where('schid', $schid)->count();
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => [
-                "total" => $total,
-            ],
-        ]);
-    }
+/**
+ * @OA\Get(
+ *     path="/api/getAccountStat/{schid}/{ssn}/{trm}",
+ *     tags={"Api"},
+ *     security={{"bearerAuth": {}}},
+ *     summary="Get how many accounts are available",
+ *     description="Use this endpoint to get the total number of available accounts for a school, session, and term.",
+ *
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="path",
+ *         required=true,
+ *         description="School ID",
+ *         @OA\Schema(type="string", example="12")
+ *     ),
+ *     @OA\Parameter(
+ *         name="ssn",
+ *         in="path",
+ *         required=true,
+ *         description="Session ID",
+ *         @OA\Schema(type="string", example="2025")
+ *     ),
+ *     @OA\Parameter(
+ *         name="trm",
+ *         in="path",
+ *         required=true,
+ *         description="Term ID",
+ *         @OA\Schema(type="string", example="1")
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Success",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="object",
+ *                 @OA\Property(property="total", type="integer", example=128)
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(response=401, description="Unauthorized")
+ * )
+ */
+public function getAccountStat($schid, $ssn, $trm)
+{
+    $total = accts::where('schid', $schid)
+        ->where('ssn', $ssn)
+        ->where('trm', $trm)
+        ->count();
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => [
+            "total" => $total,
+        ],
+    ]);
+}
 
 
-    /**
-     * @OA\Get(
-     *     path="/api/getAccountsBySchool/{schid}",
-     *     tags={"Payments"},
-     *     security={{"bearerAuth": {}}},
-     *     summary="Get all Accounts by School",
-     *     description="Use this endpoint to get all Accounts by School",
-     *
-     *     @OA\Parameter(
-     *         name="schid",
-     *         in="path",
-     *         required=true,
-     *         description="School ID",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="start",
-     *         in="query",
-     *         required=false,
-     *         description="Index to start at",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Parameter(
-     *         name="count",
-     *         in="query",
-     *         required=false,
-     *         description="No of records to retrieve",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
-     * )
-     */
+/**
+ * @OA\Get(
+ *     path="/api/getAccountsBySchool/{schid}/{ssn}/{trm}",
+ *     tags={"Payments"},
+ *     security={{"bearerAuth": {}}},
+ *     summary="Get all Accounts by School",
+ *     description="Retrieve all accounts for a school, session, and term, including sub-account details.",
+ *
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="path",
+ *         required=true,
+ *         description="School ID",
+ *         @OA\Schema(type="string", example="12")
+ *     ),
+ *     @OA\Parameter(
+ *         name="ssn",
+ *         in="path",
+ *         required=true,
+ *         description="Session ID",
+ *         @OA\Schema(type="string", example="2025")
+ *     ),
+ *     @OA\Parameter(
+ *         name="trm",
+ *         in="path",
+ *         required=true,
+ *         description="Term ID",
+ *         @OA\Schema(type="string", example="1")
+ *     ),
+ *     @OA\Parameter(
+ *         name="start",
+ *         in="query",
+ *         required=false,
+ *         description="Index to start at",
+ *         @OA\Schema(type="integer", example=0)
+ *     ),
+ *     @OA\Parameter(
+ *         name="count",
+ *         in="query",
+ *         required=false,
+ *         description="Number of records to retrieve",
+ *         @OA\Schema(type="integer", example=20)
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Success",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(property="id", type="integer", example=10),
+ *                     @OA\Property(property="name", type="string", example="School Fees"),
+ *                     @OA\Property(property="amount", type="number", format="float", example=15000),
+ *                     @OA\Property(property="schid", type="integer", example=12),
+ *                     @OA\Property(property="ssn", type="string", example="2025"),
+ *                     @OA\Property(property="trm", type="string", example="1"),
+ *                     @OA\Property(
+ *                         property="subAccounts",
+ *                         type="array",
+ *                         description="Related sub-account breakdown",
+ *                         @OA\Items(
+ *                             @OA\Property(property="id", type="integer", example=1),
+ *                             @OA\Property(property="accts_id", type="integer", example=10),
+ *                             @OA\Property(property="name", type="string", example="Development Levy"),
+ *                             @OA\Property(property="amount", type="number", example=2000)
+ *                         )
+ *                     )
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(response=401, description="Unauthorized")
+ * )
+ */
 
-
-    public function getAccountsBySchool($schid)
+    public function getAccountsBySchool($schid, $ssn, $trm)
     {
         $start = request()->input('start', 0);
         $count = request()->input('count', 20);
 
         // Retrieve accounts with subaccount details
         $pld = accts::where('schid', $schid)
+            ->where('ssn', $ssn)
+            ->where('trm', $trm)
             ->with('subAccounts') // Load subAccounts relationship
             ->skip($start)
             ->take($count)

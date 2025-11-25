@@ -8,7 +8,7 @@ class accts extends Model
 {
     protected $table = 'accts';
     protected $fillable = [
-        'schid','clsid','anum','bnk','aname', 'pay_head_id'
+        'schid','clsid','anum','bnk','aname', 'ssn', 'trm', 'pay_head_id'
     ];
     /*protected $hidden = [
         'password',
