@@ -237,9 +237,9 @@ Route::group([
     Route::get('confirmAcceptancePayment/{schid}/{clsid}/{stid}', [ApiController::class, 'confirmAcceptancePayment']);
     Route::get('getRegFeePaymentStat/{schid}/{rfee}', [ApiController::class, 'getRegFeePaymentStat']);
     Route::get('getRegFeePayments/{schid}/{rfee}', [ApiController::class, 'getRegFeePayments']);
-    Route::get('getAcctPref/{schid}/{ssn}/{trm}', [ApiController::class, 'getAcctPref']);
-    Route::get('getAccountStat/{schid}/{ssn}/{trm}', [ApiController::class, 'getAccountStat']);
-    Route::get('getAccountsBySchool/{schid}/{ssn}/{trm}', [ApiController::class, 'getAccountsBySchool']);
+    Route::get('getAcctPref/{schid}', [ApiController::class, 'getAcctPref']);
+    Route::get('getAccountStat/{schid}', [ApiController::class, 'getAccountStat']);
+    Route::get('getAccountsBySchool/{schid}', [ApiController::class, 'getAccountsBySchool']);
     Route::get('getAccountsBySchoolAndClass/{schid}/{clsid}', [ApiController::class, 'getAccountsBySchoolAndClass']);
     Route::get('deleteAccount/{schid}/{clsid}', [ApiController::class, 'deleteAcct']);
     Route::get('getAFeeStat/{schid}', [ApiController::class, 'getAFeeStat']);
