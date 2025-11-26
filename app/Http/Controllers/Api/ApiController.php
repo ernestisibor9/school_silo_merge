@@ -19958,66 +19958,93 @@ class ApiController extends Controller
 
 
 
-    /**
-     * @OA\Post(
-     *     path="/api/setApplicationAcct",
-     *     summary="Create or update an application account with Paystack subaccount integration",
-     *     tags={"Accounts"},
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"schid", "anum", "bnk", "aname"},
-     *             @OA\Property(property="schid", type="string", example="12345", description="School ID"),
-     *
-     *             @OA\Property(property="anum", type="string", example="0123456789", description="Account Number"),
-     *             @OA\Property(property="bnk", type="string", example="044", description="Bank Code"),
-     *             @OA\Property(property="aname", type="string", example="John Doe", description="Account Name"),
-     *             @OA\Property(property="id", type="integer", example=1, description="Optional ID for updating an existing account")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Account and Paystack subaccount created successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Account and Paystack Subaccount Created Successfully"),
-     *             @OA\Property(property="paystack_data", type="object", example={"subaccount_code": "SUB_12345", "business_name": "Business_67890"})
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Account not found",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Account Not Found")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=400,
-     *         description="Failed to create Paystack subaccount",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Failed to Create Paystack Subaccount"),
-     *             @OA\Property(property="error", type="string", example="Error details from Paystack")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=422,
-     *         description="Validation Error",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Validation Error"),
-     *             @OA\Property(property="errors", type="object", example={"schid": {"The schid field is required."}})
-     *         )
-     *     ),
-     *     @OA\SecurityScheme(
-     *         securityScheme="bearerAuth",
-     *         type="http",
-     *         scheme="bearer"
-     *     ),
-     *     security={{"bearerAuth":{}}}
-     * )
-     */
+/**
+ * @OA\Post(
+ *     path="/api/setApplicationAcct",
+ *     tags={"Accounts"},
+ *     summary="Create or update an application account with Paystack subaccount integration",
+ *     description="This endpoint creates a new application account or updates an existing one. It also automatically creates a Paystack subaccount.",
+ *     security={{"bearerAuth": {}}},
+ *
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             required={"schid", "anum", "bnk", "aname", "clsid", "ssn", "trm"},
+ *
+ *             @OA\Property(property="schid", type="integer", example=12345, description="School ID"),
+ *             @OA\Property(property="anum", type="string", example="0123456789", description="Account Number"),
+ *             @OA\Property(property="bnk", type="string", example="044", description="Bank Code (e.g First Bank = 011, Access = 044)"),
+ *             @OA\Property(property="aname", type="string", example="John Doe", description="Account Name"),
+ *             @OA\Property(property="clsid", type="integer", example=11, description="Class ID"),
+ *             @OA\Property(property="ssn", type="string", example="2025", description="Session"),
+ *             @OA\Property(property="trm", type="string", example="1", description="Term"),
+ *
+ *             @OA\Property(property="id", type="integer", nullable=true, example=1, description="Optional: Provide this ID to update an existing record")
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Account or Paystack subaccount created successfully",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Account and Paystack Subaccount Created Successfully"),
+ *             @OA\Property(
+ *                 property="paystack_data",
+ *                 type="object",
+ *                 example={
+ *                     "status": true,
+ *                     "message": "Subaccount created",
+ *                     "data": {
+ *                         "subaccount_code": "SUB_012345",
+ *                         "business_name": "Business_679023"
+ *                     }
+ *                 }
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=404,
+ *         description="Account to update not found",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="Account Not Found")
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=400,
+ *         description="Failed to create Paystack subaccount",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="Failed to Create Paystack Subaccount"),
+ *             @OA\Property(property="error", type="string", example="Paystack error response")
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation Error",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="Validation Error"),
+ *             @OA\Property(
+ *                 property="errors",
+ *                 type="object",
+ *                 example={"schid": {"The schid field is required."}}
+ *             )
+ *         )
+ *     )
+ * )
+ *
+ * @OA\SecurityScheme(
+ *     securityScheme="bearerAuth",
+ *     type="http",
+ *     scheme="bearer",
+ *     bearerFormat="JWT"
+ * )
+ */
 
     public function setApplicationAcct(Request $request)
     {
@@ -20026,6 +20053,9 @@ class ApiController extends Controller
             'anum' => 'required',
             'bnk' => 'required',
             'aname' => 'required',
+            'clsid' => 'required',
+            'ssn' => 'required',
+            'trm' => 'required',
         ]);
 
         $data = [
@@ -20033,6 +20063,9 @@ class ApiController extends Controller
             'anum' => $request->anum,
             'bnk' => $request->bnk,
             'aname' => $request->aname,
+            'clsid' => $request->clsid,
+            'ssn' => $request->ssn,
+            'trm' => $request->trm,
         ];
 
         if ($request->has('id')) {

@@ -8681,7 +8681,7 @@
                                     },
                                     "clsid": {
                                         "type": "string",
-                                        "example": "John Doe"
+                                        "example": "11"
                                     },
                                     "ssn": {
                                         "type": "string",
@@ -14400,6 +14400,7 @@
                     "Accounts"
                 ],
                 "summary": "Create or update an application account with Paystack subaccount integration",
+                "description": "This endpoint creates a new application account or updates an existing one. It also automatically creates a Paystack subaccount.",
                 "operationId": "2e50f01730d64cc7384eefacd60d74b5",
                 "requestBody": {
                     "required": true,
@@ -14410,13 +14411,16 @@
                                     "schid",
                                     "anum",
                                     "bnk",
-                                    "aname"
+                                    "aname",
+                                    "clsid",
+                                    "ssn",
+                                    "trm"
                                 ],
                                 "properties": {
                                     "schid": {
                                         "description": "School ID",
-                                        "type": "string",
-                                        "example": "12345"
+                                        "type": "integer",
+                                        "example": 12345
                                     },
                                     "anum": {
                                         "description": "Account Number",
@@ -14424,7 +14428,7 @@
                                         "example": "0123456789"
                                     },
                                     "bnk": {
-                                        "description": "Bank Code",
+                                        "description": "Bank Code (e.g First Bank = 011, Access = 044)",
                                         "type": "string",
                                         "example": "044"
                                     },
@@ -14433,10 +14437,26 @@
                                         "type": "string",
                                         "example": "John Doe"
                                     },
-                                    "id": {
-                                        "description": "Optional ID for updating an existing account",
+                                    "clsid": {
+                                        "description": "Class ID",
                                         "type": "integer",
-                                        "example": 1
+                                        "example": 11
+                                    },
+                                    "ssn": {
+                                        "description": "Session",
+                                        "type": "string",
+                                        "example": "2025"
+                                    },
+                                    "trm": {
+                                        "description": "Term",
+                                        "type": "string",
+                                        "example": "1"
+                                    },
+                                    "id": {
+                                        "description": "Optional: Provide this ID to update an existing record",
+                                        "type": "integer",
+                                        "example": 1,
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -14446,7 +14466,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Account and Paystack subaccount created successfully",
+                        "description": "Account or Paystack subaccount created successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -14462,8 +14482,12 @@
                                         "paystack_data": {
                                             "type": "object",
                                             "example": {
-                                                "subaccount_code": "SUB_12345",
-                                                "business_name": "Business_67890"
+                                                "status": true,
+                                                "message": "Subaccount created",
+                                                "data": {
+                                                    "subaccount_code": "SUB_012345",
+                                                    "business_name": "Business_679023"
+                                                }
                                             }
                                         }
                                     },
@@ -14473,7 +14497,7 @@
                         }
                     },
                     "404": {
-                        "description": "Account not found",
+                        "description": "Account to update not found",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -14508,7 +14532,7 @@
                                         },
                                         "error": {
                                             "type": "string",
-                                            "example": "Error details from Paystack"
+                                            "example": "Paystack error response"
                                         }
                                     },
                                     "type": "object"
