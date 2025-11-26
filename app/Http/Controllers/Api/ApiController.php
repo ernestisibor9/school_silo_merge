@@ -19814,66 +19814,138 @@ class ApiController extends Controller
 
     ////////////////////////////////////////////////////////////
 
-    /**
-     * @OA\Post(
-     *     path="/api/setAcceptanceAcct",
-     *     summary="Create or update an acceptance account with Paystack subaccount integration",
-     *     tags={"Accounts"},
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"schid", "anum", "bnk", "aname"},
-     *             @OA\Property(property="schid", type="string", example="12345", description="School ID"),
-     *
-     *             @OA\Property(property="anum", type="string", example="0123456789", description="Account Number"),
-     *             @OA\Property(property="bnk", type="string", example="044", description="Bank Code"),
-     *             @OA\Property(property="aname", type="string", example="John Doe", description="Account Name"),
-     *             @OA\Property(property="id", type="integer", example=1, description="Optional ID for updating an existing account")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Account and Paystack subaccount created successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Account and Paystack Subaccount Created Successfully"),
-     *             @OA\Property(property="paystack_data", type="object", example={"subaccount_code": "SUB_12345", "business_name": "Business_67890"})
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=400,
-     *         description="Failed to create Paystack subaccount",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Failed to Create Paystack Subaccount"),
-     *             @OA\Property(property="error", type="string", example="Error details from Paystack")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Account not found",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Account Not Found")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=422,
-     *         description="Validation error",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Validation Error"),
-     *             @OA\Property(property="errors", type="object", example={"schid": {"The schid field is required."}})
-     *         )
-     *     ),
-     *     @OA\SecurityScheme(
-     *         securityScheme="bearerAuth",
-     *         type="http",
-     *         scheme="bearer"
-     *     ),
-     *     security={{"bearerAuth":{}}}
-     * )
-     */
+/**
+ * @OA\Post(
+ *     path="/api/setAcceptanceAcct",
+ *     summary="Create or update an acceptance account and integrate with Paystack subaccount",
+ *     tags={"Accounts"},
+ *
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             required={"schid", "clsid", "ssn", "trm", "anum", "bnk", "aname"},
+ *
+ *             @OA\Property(property="schid", type="string", example="6822"),
+ *             @OA\Property(property="clsid", type="string", example="JSS1"),
+ *             @OA\Property(property="ssn", type="string", example="2024"),
+ *             @OA\Property(property="trm", type="string", example="1"),
+ *
+ *             @OA\Property(property="anum", type="string", example="0123456789"),
+ *             @OA\Property(property="bnk", type="string", example="044"),
+ *             @OA\Property(property="aname", type="string", example="John Doe")
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Account Updated Successfully"
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=201,
+ *         description="Account and Paystack Subaccount Created Successfully"
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=400,
+ *         description="Failed to create Paystack subaccount"
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation error"
+ *     ),
+ *
+ *     security={{"bearerAuth":{}}}
+ * )
+ */
+
+
+
+    // public function setAcceptanceAcct(Request $request)
+    // {
+    //     $request->validate([
+    //         'schid' => 'required',
+    //         'anum' => 'required',
+    //         'bnk' => 'required',
+    //         'aname' => 'required',
+    //         'clsid' => 'required',
+    //         'ssn' => 'required',
+    //         'trm' => 'required',
+    //     ]);
+
+    //     $data = [
+    //         'schid' => $request->schid,
+    //         'anum' => $request->anum,
+    //         'bnk' => $request->bnk,
+    //         'aname' => $request->aname,
+    //         'clsid' => $request->clsid,
+    //         'ssn' => $request->ssn,
+    //         'trm' => $request->trm,
+    //     ];
+
+    //     if ($request->has('id')) {
+    //         $acct = acceptance_acct::find($request->id);
+    //         if ($acct) {
+    //             $acct->update($data);
+    //             return response()->json([
+    //                 "status" => true,
+    //                 "message" => "Account Updated",
+    //             ]);
+    //         } else {
+    //             return response()->json([
+    //                 "status" => false,
+    //                 "message" => "Account Not Found",
+    //             ], 404);
+    //         }
+    //     } else {
+    //         $acct = acceptance_acct::create($data);
+
+    //         // Automatically generate Paystack-required fields
+    //         $business_name = "Business_" . uniqid(); // Generate a unique business name
+    //         $percentage_charge = 0; // Default percentage charge
+    //         $settlement_bank = $request->bnk; // Use the bank user provided
+
+    //         // Step 1: Create Paystack subaccount
+    //         $response = Http::withHeaders([
+    //             'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
+    //             'Content-Type' => 'application/json',
+    //         ])->post('https://api.paystack.co/subaccount', [
+    //                     'business_name' => $business_name,
+    //                     'account_number' => $request->anum,
+    //                     'bank_code' => $request->bnk,
+    //                     'percentage_charge' => $percentage_charge,
+    //                     'settlement_bank' => $settlement_bank,
+    //                 ]);
+
+    //         if ($response->successful()) {
+    //             $data = $response->json();
+
+    //             // Step 2: Store subaccount details in the database
+    //             acceptance_sub_acct::create([
+    //                 'acct_id' => $acct->id,
+    //                 'schid' => $request->schid,
+    //                 'subaccount_code' => $data['data']['subaccount_code'],
+    //                 'percentage_charge' => $percentage_charge,
+    //             ]);
+
+    //             return response()->json([
+    //                 "status" => true,
+    //                 "message" => "Account and Paystack Subaccount Created Successfully",
+    //                 "paystack_data" => $data,
+    //             ]);
+    //         } else {
+    //             // Delete the main account if Paystack subaccount creation fails
+    //             $acct->delete();
+
+    //             return response()->json([
+    //                 "status" => false,
+    //                 "message" => "Failed to Create Paystack Subaccount",
+    //                 "error" => $response->body(),
+    //             ], 400);
+    //         }
+    //     }
+    // }
 
 
     public function setAcceptanceAcct(Request $request)
@@ -19883,38 +19955,37 @@ class ApiController extends Controller
             'anum' => 'required',
             'bnk' => 'required',
             'aname' => 'required',
+            'clsid' => 'required',
+            'ssn' => 'required',
+            'trm' => 'required',
         ]);
 
-        $data = [
+        // Fields used to match an existing record
+        $match = [
             'schid' => $request->schid,
+            'clsid' => $request->clsid,
+            'ssn' => $request->ssn,
+            'trm' => $request->trm,
+        ];
+
+        // Fields used to update or create record
+        $data = [
             'anum' => $request->anum,
             'bnk' => $request->bnk,
             'aname' => $request->aname,
         ];
 
-        if ($request->has('id')) {
-            $acct = acceptance_acct::find($request->id);
-            if ($acct) {
-                $acct->update($data);
-                return response()->json([
-                    "status" => true,
-                    "message" => "Account Updated",
-                ]);
-            } else {
-                return response()->json([
-                    "status" => false,
-                    "message" => "Account Not Found",
-                ], 404);
-            }
-        } else {
-            $acct = acceptance_acct::create($data);
+        // Create or update acceptance account
+        $acct = acceptance_acct::updateOrCreate($match, $data);
 
-            // Automatically generate Paystack-required fields
-            $business_name = "Business_" . uniqid(); // Generate a unique business name
-            $percentage_charge = 0; // Default percentage charge
-            $settlement_bank = $request->bnk; // Use the bank user provided
+        // If this is a new record, proceed to create Paystack Subaccount
+        if ($acct->wasRecentlyCreated) {
 
-            // Step 1: Create Paystack subaccount
+            $business_name = "Business_" . uniqid();
+            $percentage_charge = 0;
+            $settlement_bank = $request->bnk;
+
+            // PAYSTACK SUBACCOUNT CREATION
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
                 'Content-Type' => 'application/json',
@@ -19927,9 +19998,10 @@ class ApiController extends Controller
                     ]);
 
             if ($response->successful()) {
+
                 $data = $response->json();
 
-                // Step 2: Store subaccount details in the database
+                // STORE SUBACCOUNT DETAILS
                 acceptance_sub_acct::create([
                     'acct_id' => $acct->id,
                     'schid' => $request->schid,
@@ -19942,107 +20014,107 @@ class ApiController extends Controller
                     "message" => "Account and Paystack Subaccount Created Successfully",
                     "paystack_data" => $data,
                 ]);
-            } else {
-                // Delete the main account if Paystack subaccount creation fails
-                $acct->delete();
-
-                return response()->json([
-                    "status" => false,
-                    "message" => "Failed to Create Paystack Subaccount",
-                    "error" => $response->body(),
-                ], 400);
             }
+
+            // If Paystack failed → rollback new record
+            $acct->delete();
+
+            return response()->json([
+                "status" => false,
+                "message" => "Failed to Create Paystack Subaccount",
+                "error" => $response->body(),
+            ], 400);
         }
+
+        // If record was updated (not created)
+        return response()->json([
+            "status" => true,
+            "message" => "Account Updated Successfully",
+        ]);
     }
 
 
 
 
-/**
- * @OA\Post(
- *     path="/api/setApplicationAcct",
- *     tags={"Accounts"},
- *     summary="Create or update an application account with Paystack subaccount integration",
- *     description="This endpoint automatically creates or updates an application account based on schid, class, session, and term. If the record is newly created, the system creates a Paystack subaccount.",
- *     security={{"bearerAuth": {}}},
+    /**
+     * @OA\Post(
+     *     path="/api/setApplicationAcct",
+     *     tags={"Accounts"},
+     *     summary="Create or update an application account with Paystack subaccount integration",
+     *     description="This endpoint automatically creates or updates an application account based on schid, class, session, and term. If the record is newly created, the system creates a Paystack subaccount.",
+     *     security={{"bearerAuth": {}}},
 
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"schid", "anum", "bnk", "aname", "clsid", "ssn", "trm"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"schid", "anum", "bnk", "aname", "clsid", "ssn", "trm"},
 
- *             @OA\Property(property="schid", type="integer", example=6822, description="School ID"),
- *             @OA\Property(property="anum", type="string", example="0123456789", description="Account Number"),
- *             @OA\Property(property="bnk", type="string", example="044", description="Bank Code (e.g Access Bank = 044)"),
- *             @OA\Property(property="aname", type="string", example="John Doe", description="Account Name"),
- *             @OA\Property(property="clsid", type="integer", example=3, description="Class ID"),
- *             @OA\Property(property="ssn", type="string", example="2024/2025", description="Session"),
- *             @OA\Property(property="trm", type="string", example="1", description="Term")
- *         )
- *     ),
+     *             @OA\Property(property="schid", type="integer", example=6822, description="School ID"),
+     *             @OA\Property(property="anum", type="string", example="0123456789", description="Account Number"),
+     *             @OA\Property(property="bnk", type="string", example="044", description="Bank Code (e.g Access Bank = 044)"),
+     *             @OA\Property(property="aname", type="string", example="John Doe", description="Account Name"),
+     *             @OA\Property(property="clsid", type="integer", example=3, description="Class ID"),
+     *             @OA\Property(property="ssn", type="string", example="2024/2025", description="Session"),
+     *             @OA\Property(property="trm", type="string", example="1", description="Term")
+     *         )
+     *     ),
 
- *     @OA\Response(
- *         response=200,
- *         description="Account created or updated successfully",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Account Updated Successfully")
- *         )
- *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Account created or updated successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Account Updated Successfully")
+     *         )
+     *     ),
 
- *     @OA\Response(
- *         response=201,
- *         description="New account and Paystack subaccount created",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Account and Paystack Subaccount Created Successfully"),
- *             @OA\Property(
- *                 property="paystack_data",
- *                 type="object",
- *                 example={
- *                     "status": true,
- *                     "message": "Subaccount created",
- *                     "data": {
- *                         "subaccount_code": "SUB_31920DSK",
- *                         "business_name": "Business_67A9283"
- *                     }
- *                 }
- *             )
- *         )
- *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="New account and Paystack subaccount created",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Account and Paystack Subaccount Created Successfully"),
+     *             @OA\Property(
+     *                 property="paystack_data",
+     *                 type="object",
+     *                 example={
+     *                     "status": true,
+     *                     "message": "Subaccount created",
+     *                     "data": {
+     *                         "subaccount_code": "SUB_31920DSK",
+     *                         "business_name": "Business_67A9283"
+     *                     }
+     *                 }
+     *             )
+     *         )
+     *     ),
 
- *     @OA\Response(
- *         response=400,
- *         description="Paystack subaccount creation failed",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="Failed to Create Paystack Subaccount"),
- *             @OA\Property(property="error", type="string", example="Paystack error response message")
- *         )
- *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Paystack subaccount creation failed",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Failed to Create Paystack Subaccount"),
+     *             @OA\Property(property="error", type="string", example="Paystack error response message")
+     *         )
+     *     ),
 
- *     @OA\Response(
- *         response=422,
- *         description="Validation Error",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="Validation Error"),
- *             @OA\Property(
- *                 property="errors",
- *                 type="object",
- *                 example={"schid": {"The schid field is required."}}
- *             )
- *         )
- *     )
- * )
- *
- * @OA\SecurityScheme(
- *     securityScheme="bearerAuth",
- *     type="http",
- *     scheme="bearer",
- *     bearerFormat="JWT"
- * )
- */
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation Error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Validation Error"),
+     *             @OA\Property(
+     *                 property="errors",
+     *                 type="object",
+     *                 example={"schid": {"The schid field is required."}}
+     *             )
+     *         )
+     *     )
+     * )
+     *
+     */
 
 
     // public function setApplicationAcct(Request $request)
@@ -20131,88 +20203,88 @@ class ApiController extends Controller
     // }
 
     public function setApplicationAcct(Request $request)
-{
-    $request->validate([
-        'schid' => 'required',
-        'anum' => 'required',
-        'bnk' => 'required',
-        'aname' => 'required',
-        'clsid' => 'required',
-        'ssn' => 'required',
-        'trm' => 'required',
-    ]);
-
-    // Unique fields for update
-    $match = [
-        'schid' => $request->schid,
-        'clsid' => $request->clsid,
-        'ssn'   => $request->ssn,
-        'trm'   => $request->trm,
-    ];
-
-    // Values to update
-    $data = [
-        'anum' => $request->anum,
-        'bnk'  => $request->bnk,
-        'aname'=> $request->aname,
-    ];
-
-    // Create or update the application account
-    $acct = application_acct::updateOrCreate($match, $data);
-
-    // If created (new)
-    if ($acct->wasRecentlyCreated) {
-
-        // PAYSTACK SUBACCOUNT CREATION
-        $business_name = "Business_" . uniqid();
-        $percentage_charge = 0;
-        $settlement_bank = $request->bnk;
-
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
-            'Content-Type' => 'application/json',
-        ])->post('https://api.paystack.co/subaccount', [
-            'business_name' => $business_name,
-            'account_number' => $request->anum,
-            'bank_code' => $request->bnk,
-            'percentage_charge' => $percentage_charge,
-            'settlement_bank' => $settlement_bank,
+    {
+        $request->validate([
+            'schid' => 'required',
+            'anum' => 'required',
+            'bnk' => 'required',
+            'aname' => 'required',
+            'clsid' => 'required',
+            'ssn' => 'required',
+            'trm' => 'required',
         ]);
 
-        if ($response->successful()) {
-            // Save subaccount details
-            $data = $response->json();
+        // Unique fields for update
+        $match = [
+            'schid' => $request->schid,
+            'clsid' => $request->clsid,
+            'ssn' => $request->ssn,
+            'trm' => $request->trm,
+        ];
 
-            application_sub_acct::create([
-                'acct_id' => $acct->id,
-                'schid' => $request->schid,
-                'subaccount_code' => $data['data']['subaccount_code'],
-                'percentage_charge' => $percentage_charge,
-            ]);
+        // Values to update
+        $data = [
+            'anum' => $request->anum,
+            'bnk' => $request->bnk,
+            'aname' => $request->aname,
+        ];
 
-            return response()->json([
-                "status" => true,
-                "message" => "Account and Paystack Subaccount Created Successfully",
-                "paystack_data" => $data,
-            ]);
-        } else {
-            // If subaccount creation fails, delete the account
-            $acct->delete();
+        // Create or update the application account
+        $acct = application_acct::updateOrCreate($match, $data);
 
-            return response()->json([
-                "status" => false,
-                "message" => "Failed to Create Paystack Subaccount",
-                "error" => $response->body(),
-            ], 400);
+        // If created (new)
+        if ($acct->wasRecentlyCreated) {
+
+            // PAYSTACK SUBACCOUNT CREATION
+            $business_name = "Business_" . uniqid();
+            $percentage_charge = 0;
+            $settlement_bank = $request->bnk;
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
+                'Content-Type' => 'application/json',
+            ])->post('https://api.paystack.co/subaccount', [
+                        'business_name' => $business_name,
+                        'account_number' => $request->anum,
+                        'bank_code' => $request->bnk,
+                        'percentage_charge' => $percentage_charge,
+                        'settlement_bank' => $settlement_bank,
+                    ]);
+
+            if ($response->successful()) {
+                // Save subaccount details
+                $data = $response->json();
+
+                application_sub_acct::create([
+                    'acct_id' => $acct->id,
+                    'schid' => $request->schid,
+                    'subaccount_code' => $data['data']['subaccount_code'],
+                    'percentage_charge' => $percentage_charge,
+                ]);
+
+                return response()->json([
+                    "status" => true,
+                    "message" => "Account and Paystack Subaccount Created Successfully",
+                    "paystack_data" => $data,
+                ]);
+            } else {
+                // If subaccount creation fails, delete the account
+                $acct->delete();
+
+                return response()->json([
+                    "status" => false,
+                    "message" => "Failed to Create Paystack Subaccount",
+                    "error" => $response->body(),
+                ], 400);
+            }
         }
-    }
 
-    // If updated
-    return response()->json([
-        "status" => true,
-        "message" => "Account Updated Successfully",
-    ]);
-}
+        // If updated
+        return response()->json([
+            "status" => true,
+            "message" => "Account Updated Successfully",
+        ]);
+    }
 
 
 

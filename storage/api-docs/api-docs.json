@@ -14241,7 +14241,7 @@
                 "tags": [
                     "Accounts"
                 ],
-                "summary": "Create or update an acceptance account with Paystack subaccount integration",
+                "summary": "Create or update an acceptance account and integrate with Paystack subaccount",
                 "operationId": "c0b194779ddbb19f1dd60d52cf5e5dad",
                 "requestBody": {
                     "required": true,
@@ -14250,35 +14250,41 @@
                             "schema": {
                                 "required": [
                                     "schid",
+                                    "clsid",
+                                    "ssn",
+                                    "trm",
                                     "anum",
                                     "bnk",
                                     "aname"
                                 ],
                                 "properties": {
                                     "schid": {
-                                        "description": "School ID",
                                         "type": "string",
-                                        "example": "12345"
+                                        "example": "6822"
+                                    },
+                                    "clsid": {
+                                        "type": "string",
+                                        "example": "JSS1"
+                                    },
+                                    "ssn": {
+                                        "type": "string",
+                                        "example": "2024"
+                                    },
+                                    "trm": {
+                                        "type": "string",
+                                        "example": "1"
                                     },
                                     "anum": {
-                                        "description": "Account Number",
                                         "type": "string",
                                         "example": "0123456789"
                                     },
                                     "bnk": {
-                                        "description": "Bank Code",
                                         "type": "string",
                                         "example": "044"
                                     },
                                     "aname": {
-                                        "description": "Account Name",
                                         "type": "string",
                                         "example": "John Doe"
-                                    },
-                                    "id": {
-                                        "description": "Optional ID for updating an existing account",
-                                        "type": "integer",
-                                        "example": 1
                                     }
                                 },
                                 "type": "object"
@@ -14288,103 +14294,16 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Account and Paystack subaccount created successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Account and Paystack Subaccount Created Successfully"
-                                        },
-                                        "paystack_data": {
-                                            "type": "object",
-                                            "example": {
-                                                "subaccount_code": "SUB_12345",
-                                                "business_name": "Business_67890"
-                                            }
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Account Updated Successfully"
+                    },
+                    "201": {
+                        "description": "Account and Paystack Subaccount Created Successfully"
                     },
                     "400": {
-                        "description": "Failed to create Paystack subaccount",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Failed to Create Paystack Subaccount"
-                                        },
-                                        "error": {
-                                            "type": "string",
-                                            "example": "Error details from Paystack"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Account not found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Account Not Found"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Failed to create Paystack subaccount"
                     },
                     "422": {
-                        "description": "Validation error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Validation Error"
-                                        },
-                                        "errors": {
-                                            "type": "object",
-                                            "example": {
-                                                "schid": [
-                                                    "The schid field is required."
-                                                ]
-                                            }
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Validation error"
                     }
                 },
                 "security": [
