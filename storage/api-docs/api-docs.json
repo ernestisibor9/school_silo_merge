@@ -14494,8 +14494,8 @@
                 "tags": [
                     "Accounts"
                 ],
-                "summary": "Get all Accounts by School",
-                "description": "Use this endpoint to get all Accounts by School",
+                "summary": "Get all Application Accounts by School",
+                "description": "Use this endpoint to get all Application Accounts by School with optional filters",
                 "operationId": "d8647ededa12f38cf84c56b4521ac537",
                 "parameters": [
                     {
@@ -14508,12 +14508,41 @@
                         }
                     },
                     {
+                        "name": "clsid",
+                        "in": "query",
+                        "description": "Class ID (-1 for all classes)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": -1
+                        }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "query",
+                        "description": "Session",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "query",
+                        "description": "Term",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
                         "name": "start",
                         "in": "query",
                         "description": "Index to start at",
                         "required": false,
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "default": 0
                         }
                     },
                     {
@@ -14522,7 +14551,8 @@
                         "description": "Number of records to retrieve",
                         "required": false,
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "default": 20
                         }
                     }
                 ],
@@ -14569,6 +14599,14 @@
                                                         "type": "string",
                                                         "example": "John Doe"
                                                     },
+                                                    "ssn": {
+                                                        "type": "string",
+                                                        "example": "2024/2025"
+                                                    },
+                                                    "trm": {
+                                                        "type": "string",
+                                                        "example": "1st"
+                                                    },
                                                     "subAccounts": {
                                                         "type": "array",
                                                         "items": {
@@ -14599,7 +14637,7 @@
                         "description": "Unauthorized"
                     },
                     "404": {
-                        "description": "Account not found",
+                        "description": "No records found",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -14610,11 +14648,13 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "Account not found"
+                                            "example": "No records found"
                                         },
                                         "pld": {
                                             "type": "array",
-                                            "items": {}
+                                            "items": {
+                                                "type": "object"
+                                            }
                                         }
                                     },
                                     "type": "object"
