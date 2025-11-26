@@ -14400,7 +14400,7 @@
                     "Accounts"
                 ],
                 "summary": "Create or update an application account with Paystack subaccount integration",
-                "description": "This endpoint creates a new application account or updates an existing one. It also automatically creates a Paystack subaccount.",
+                "description": "This endpoint automatically creates or updates an application account based on schid, class, session, and term. If the record is newly created, the system creates a Paystack subaccount.",
                 "operationId": "2e50f01730d64cc7384eefacd60d74b5",
                 "requestBody": {
                     "required": true,
@@ -14420,7 +14420,7 @@
                                     "schid": {
                                         "description": "School ID",
                                         "type": "integer",
-                                        "example": 12345
+                                        "example": 6822
                                     },
                                     "anum": {
                                         "description": "Account Number",
@@ -14428,7 +14428,7 @@
                                         "example": "0123456789"
                                     },
                                     "bnk": {
-                                        "description": "Bank Code (e.g First Bank = 011, Access = 044)",
+                                        "description": "Bank Code (e.g Access Bank = 044)",
                                         "type": "string",
                                         "example": "044"
                                     },
@@ -14440,23 +14440,17 @@
                                     "clsid": {
                                         "description": "Class ID",
                                         "type": "integer",
-                                        "example": 11
+                                        "example": 3
                                     },
                                     "ssn": {
                                         "description": "Session",
                                         "type": "string",
-                                        "example": "2025"
+                                        "example": "2024/2025"
                                     },
                                     "trm": {
                                         "description": "Term",
                                         "type": "string",
                                         "example": "1"
-                                    },
-                                    "id": {
-                                        "description": "Optional: Provide this ID to update an existing record",
-                                        "type": "integer",
-                                        "example": 1,
-                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -14466,7 +14460,27 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Account or Paystack subaccount created successfully",
+                        "description": "Account created or updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Account Updated Successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "201": {
+                        "description": "New account and Paystack subaccount created",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -14485,8 +14499,8 @@
                                                 "status": true,
                                                 "message": "Subaccount created",
                                                 "data": {
-                                                    "subaccount_code": "SUB_012345",
-                                                    "business_name": "Business_679023"
+                                                    "subaccount_code": "SUB_31920DSK",
+                                                    "business_name": "Business_67A9283"
                                                 }
                                             }
                                         }
@@ -14496,28 +14510,8 @@
                             }
                         }
                     },
-                    "404": {
-                        "description": "Account to update not found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Account Not Found"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
                     "400": {
-                        "description": "Failed to create Paystack subaccount",
+                        "description": "Paystack subaccount creation failed",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -14532,7 +14526,7 @@
                                         },
                                         "error": {
                                             "type": "string",
-                                            "example": "Paystack error response"
+                                            "example": "Paystack error response message"
                                         }
                                     },
                                     "type": "object"
