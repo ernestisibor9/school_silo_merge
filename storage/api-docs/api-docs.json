@@ -9853,10 +9853,10 @@
         "/api/getAFeeStat/{schid}": {
             "get": {
                 "tags": [
-                    "Api"
+                    "Payments"
                 ],
-                "summary": "Get how many accpt. Fee are available",
-                "description": "Use this endpoint to get how many accpt. fee are available",
+                "summary": "Get the number of acceptance fees available",
+                "description": "Retrieve the total count of acceptance fees for a specific school with optional filters for session (ssn) and term (trm).",
                 "operationId": "7096e123c40dc43edd5e5e711e73cc08",
                 "parameters": [
                     {
@@ -9867,6 +9867,24 @@
                         "schema": {
                             "type": "string"
                         }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "query",
+                        "description": "Session filter (e.g., 2025)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "query",
+                        "description": "Term filter (e.g., 1, 2, or 3)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
                     }
                 ],
                 "responses": {
@@ -9874,14 +9892,40 @@
                         "description": "Success",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "total": {
+                                                    "type": "integer",
+                                                    "example": 25
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
                     "401": {
                         "description": "Unauthorized"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/getAFeeBySchool/{schid}": {

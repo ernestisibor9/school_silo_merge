@@ -14632,24 +14632,53 @@ class ApiController extends Controller
 
 
 
-    /**
-     * @OA\Get(
-     *     path="/api/getAFeeStat/{schid}",
-     *     tags={"Api"},
-     *     summary="Get how many accpt. Fee are available",
-     *     description="Use this endpoint to get how many accpt. fee are available",
-     *
-     *     @OA\Parameter(
-     *         name="schid",
-     *         in="path",
-     *         required=true,
-     *         description="School ID",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
-     * )
-     */
+/**
+ * @OA\Get(
+ *     path="/api/getAFeeStat/{schid}",
+ *     tags={"Payments"},
+ *    security={{"bearerAuth": {}}},
+ *     summary="Get the number of acceptance fees available",
+ *     description="Retrieve the total count of acceptance fees for a specific school with optional filters for session (ssn) and term (trm).",
+ *
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="path",
+ *         required=true,
+ *         description="School ID",
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Parameter(
+ *         name="ssn",
+ *         in="query",
+ *         required=false,
+ *         description="Session filter (e.g., 2025)",
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Parameter(
+ *         name="trm",
+ *         in="query",
+ *         required=false,
+ *         description="Term filter (e.g., 1, 2, or 3)",
+ *         @OA\Schema(type="integer")
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Success",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="object",
+ *                 @OA\Property(property="total", type="integer", example=25)
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(response=401, description="Unauthorized"),
+ * )
+ */
+
     // public function getAFeeStat($schid)
     // {
     //     $total = afee::where('schid', $schid)->count();
