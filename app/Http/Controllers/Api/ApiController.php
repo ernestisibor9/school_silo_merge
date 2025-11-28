@@ -7492,50 +7492,112 @@ class ApiController extends Controller
      *     @OA\Response(response="400", description="Validation error"),
      * )
      */
-    public function admitStaff(Request $request)
-    {
-        //Data validation
-        $request->validate([
-            "stid" => "required",
-            "stat" => "required",
-            "role" => "required",
-            "role2" => "required",
-            "role_name" => "required",
-            "role2_name" => "required",
-            "schid" => "required",
-        ]);
-        $stf = staff::where('sid', $request->stid)->first();
-        if ($stf) {
-            $stf->update([
-                "stat" => $request->stat,
-                "role" => $request->role,
-                "role2" => $request->role2,
-            ]);
-            $usr = User::where('id', $stf->sid)->first();
-            // Wrap the email sending logic in a try-catch block
-            try {
-                $data = [
-                    'name' => $stf->fname,
-                    'subject' => 'Application ' . ($request->stat == '1' ? 'Approved' : 'Decline'),
-                    'body' => "Your application to our school as a " . $request->role_name . " has been " . ($request->stat == '1' ? 'approved' : 'decline') . ($request->role2 != '-1' ? '. We also assigned you the role: ' . $request->role2_name : '.'),
-                    'link' => env('PORTAL_URL') . '/staffLogin' . '/' . $request->schid,
-                ];
-                Mail::to($usr->email)->send(new SSSMails($data));
-            } catch (\Exception $e) {
-                // Log the email error, but don't stop the process
-                Log::error('Failed to send email: ' . $e->getMessage());
-            }
+    // public function admitStaff(Request $request)
+    // {
+    //     //Data validation
+    //     $request->validate([
+    //         "stid" => "required",
+    //         "stat" => "required",
+    //         "role" => "required",
+    //         "role2" => "required",
+    //         "role_name" => "required",
+    //         "role2_name" => "required",
+    //         "schid" => "required",
+    //     ]);
+    //     $stf = staff::where('sid', $request->stid)->first();
+    //     if ($stf) {
+    //         $stf->update([
+    //             "stat" => $request->stat,
+    //             "role" => $request->role,
+    //             "role2" => $request->role2,
+    //         ]);
+    //         $usr = User::where('id', $stf->sid)->first();
+    //         // Wrap the email sending logic in a try-catch block
+    //         try {
+    //             $data = [
+    //                 'name' => $stf->fname,
+    //                 'subject' => 'Application ' . ($request->stat == '1' ? 'Approved' : 'Decline'),
+    //                 'body' => "Your application to our school as a " . $request->role_name . " has been " . ($request->stat == '1' ? 'approved' : 'decline') . ($request->role2 != '-1' ? '. We also assigned you the role: ' . $request->role2_name : '.'),
+    //                 'link' => env('PORTAL_URL') . '/staffLogin' . '/' . $request->schid,
+    //             ];
+    //             Mail::to($usr->email)->send(new SSSMails($data));
+    //         } catch (\Exception $e) {
+    //             // Log the email error, but don't stop the process
+    //             Log::error('Failed to send email: ' . $e->getMessage());
+    //         }
 
-            return response()->json([
-                "status" => true,
-                "message" => "Success",
-            ]);
+    //         return response()->json([
+    //             "status" => true,
+    //             "message" => "Success",
+    //         ]);
+    //     }
+    //     return response()->json([
+    //         "status" => false,
+    //         "message" => "Student Not Found",
+    //     ], 400);
+    // }
+
+    public function admitStaff(Request $request)
+{
+    // Data validation
+    $request->validate([
+        "stid" => "required",
+        "stat" => "required",
+        "role" => "required",
+        "role2" => "required",
+        "role_name" => "required",
+        "role2_name" => "required",
+        "schid" => "required",
+    ]);
+
+    $stf = staff::where('sid', $request->stid)->first();
+
+    if ($stf) {
+        // Update staff table
+        $stf->update([
+            "stat" => $request->stat,
+            "role" => $request->role,
+            "role2" => $request->role2,
+        ]);
+
+        // Update old_staff table
+        old_staff::where('sid', $request->stid)
+                 ->where('schid', $request->schid)
+                 ->update([
+                     'role' => $request->role,
+                     'role2' => $request->role2,
+                 ]);
+
+        // Get user email
+        $usr = User::where('id', $stf->sid)->first();
+
+        // Wrap the email sending logic in a try-catch block
+        try {
+            $data = [
+                'name' => $stf->fname,
+                'subject' => 'Application ' . ($request->stat == '1' ? 'Approved' : 'Decline'),
+                'body' => "Your application to our school as a " . $request->role_name . " has been "
+                          . ($request->stat == '1' ? 'approved' : 'decline')
+                          . ($request->role2 != '-1' ? '. We also assigned you the role: ' . $request->role2_name : '.'),
+                'link' => env('PORTAL_URL') . '/staffLogin/' . $request->schid,
+            ];
+            Mail::to($usr->email)->send(new SSSMails($data));
+        } catch (\Exception $e) {
+            Log::error('Failed to send email: ' . $e->getMessage());
         }
+
         return response()->json([
-            "status" => false,
-            "message" => "Student Not Found",
-        ], 400);
+            "status" => true,
+            "message" => "Success",
+        ]);
     }
+
+    return response()->json([
+        "status" => false,
+        "message" => "Staff Not Found",
+    ], 400);
+}
+
 
     /**
      * @OA\Post(
