@@ -14632,22 +14632,63 @@ class ApiController extends Controller
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    public function getAFeeBySchool($schid)
+    // public function getAFeeBySchool($schid)
+    // {
+    //     $start = 0;
+    //     $count = 20;
+    //     if (request()->has('start') && request()->has('count')) {
+    //         $start = request()->input('start');
+    //         $count = request()->input('count');
+    //     }
+    //     $pld = afee::where('schid', $schid)->skip($start)->take($count)->get();
+    //     // Respond
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => $pld,
+    //     ]);
+    // }
+
+    public function getAFeeBySchool(Request $request, $schid)
     {
-        $start = 0;
-        $count = 20;
-        if (request()->has('start') && request()->has('count')) {
-            $start = request()->input('start');
-            $count = request()->input('count');
+        // Pagination
+        $start = $request->input('start', 0);
+        $count = $request->input('count', 20);
+
+        // Optional filters
+        $ssn = $request->input('ssn', null);
+        $trm = $request->input('trm', null);
+
+        // Base query
+        $query = afee::where('schid', $schid);
+
+        // Apply optional filters
+        if (!is_null($ssn)) {
+            $query->where('ssn', $ssn);
         }
-        $pld = afee::where('schid', $schid)->skip($start)->take($count)->get();
-        // Respond
+
+        if (!is_null($trm)) {
+            $query->where('trm', $trm);
+        }
+
+        // Pagination
+        $pld = $query->skip($start)->take($count)->get();
+
+        if ($pld->isEmpty()) {
+            return response()->json([
+                "status" => false,
+                "message" => "No records found",
+                "pld" => $pld,
+            ], 404);
+        }
+
         return response()->json([
             "status" => true,
             "message" => "Success",
             "pld" => $pld,
         ]);
     }
+
 
     /**
      * @OA\Get(
@@ -19814,51 +19855,51 @@ class ApiController extends Controller
 
     ////////////////////////////////////////////////////////////
 
-/**
- * @OA\Post(
- *     path="/api/setAcceptanceAcct",
- *     summary="Create or update an acceptance account and integrate with Paystack subaccount",
- *     tags={"Accounts"},
- *
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"schid", "clsid", "ssn", "trm", "anum", "bnk", "aname"},
- *
- *             @OA\Property(property="schid", type="string", example="6822"),
- *             @OA\Property(property="clsid", type="string", example="JSS1"),
- *             @OA\Property(property="ssn", type="string", example="2024"),
- *             @OA\Property(property="trm", type="string", example="1"),
- *
- *             @OA\Property(property="anum", type="string", example="0123456789"),
- *             @OA\Property(property="bnk", type="string", example="044"),
- *             @OA\Property(property="aname", type="string", example="John Doe")
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Account Updated Successfully"
- *     ),
- *
- *     @OA\Response(
- *         response=201,
- *         description="Account and Paystack Subaccount Created Successfully"
- *     ),
- *
- *     @OA\Response(
- *         response=400,
- *         description="Failed to create Paystack subaccount"
- *     ),
- *
- *     @OA\Response(
- *         response=422,
- *         description="Validation error"
- *     ),
- *
- *     security={{"bearerAuth":{}}}
- * )
- */
+    /**
+     * @OA\Post(
+     *     path="/api/setAcceptanceAcct",
+     *     summary="Create or update an acceptance account and integrate with Paystack subaccount",
+     *     tags={"Accounts"},
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"schid", "clsid", "ssn", "trm", "anum", "bnk", "aname"},
+     *
+     *             @OA\Property(property="schid", type="string", example="6822"),
+     *             @OA\Property(property="clsid", type="string", example="JSS1"),
+     *             @OA\Property(property="ssn", type="string", example="2024"),
+     *             @OA\Property(property="trm", type="string", example="1"),
+     *
+     *             @OA\Property(property="anum", type="string", example="0123456789"),
+     *             @OA\Property(property="bnk", type="string", example="044"),
+     *             @OA\Property(property="aname", type="string", example="John Doe")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Account Updated Successfully"
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=201,
+     *         description="Account and Paystack Subaccount Created Successfully"
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=400,
+     *         description="Failed to create Paystack subaccount"
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error"
+     *     ),
+     *
+     *     security={{"bearerAuth":{}}}
+     * )
+     */
 
 
 
@@ -20288,99 +20329,99 @@ class ApiController extends Controller
 
 
 
-/**
- * @OA\Get(
- *     path="/api/getAcctApp/{schid}",
- *     tags={"Accounts"},
- *     security={{"bearerAuth": {}}},
- *     summary="Get all Application Accounts by School",
- *     description="Use this endpoint to get all Application Accounts by School with optional filters",
- *
- *     @OA\Parameter(
- *         name="schid",
- *         in="path",
- *         required=true,
- *         description="School ID",
- *         @OA\Schema(type="string")
- *     ),
- *     @OA\Parameter(
- *         name="clsid",
- *         in="query",
- *         required=false,
- *         description="Class ID (-1 for all classes)",
- *         @OA\Schema(type="integer", default=-1)
- *     ),
- *     @OA\Parameter(
- *         name="ssn",
- *         in="query",
- *         required=false,
- *         description="Session",
- *         @OA\Schema(type="string")
- *     ),
- *     @OA\Parameter(
- *         name="trm",
- *         in="query",
- *         required=false,
- *         description="Term",
- *         @OA\Schema(type="string")
- *     ),
- *     @OA\Parameter(
- *         name="start",
- *         in="query",
- *         required=false,
- *         description="Index to start at",
- *         @OA\Schema(type="integer", default=0)
- *     ),
- *     @OA\Parameter(
- *         name="count",
- *         in="query",
- *         required=false,
- *         description="Number of records to retrieve",
- *         @OA\Schema(type="integer", default=20)
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Success",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Success"),
- *             @OA\Property(property="pld", type="array",
- *                 @OA\Items(
- *                     type="object",
- *                     @OA\Property(property="id", type="integer", example=1),
- *                     @OA\Property(property="schid", type="string", example="12345"),
- *                     @OA\Property(property="clsid", type="string", example="67890"),
- *                     @OA\Property(property="anum", type="string", example="1234567890"),
- *                     @OA\Property(property="bnk", type="string", example="Bank XYZ"),
- *                     @OA\Property(property="aname", type="string", example="John Doe"),
- *                     @OA\Property(property="ssn", type="string", example="2024/2025"),
- *                     @OA\Property(property="trm", type="string", example="1st"),
- *                     @OA\Property(property="subAccounts", type="array",
- *                         @OA\Items(
- *                             type="object",
- *                             @OA\Property(property="subaccount_code", type="string", example="SUB_98765"),
- *                             @OA\Property(property="percentage_charge", type="integer", example=0)
- *                         )
- *                     )
- *                 )
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(response="401", description="Unauthorized"),
- *
- *     @OA\Response(
- *         response=404,
- *         description="No records found",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="No records found"),
- *             @OA\Property(property="pld", type="array", @OA\Items(type="object"))
- *         )
- *     )
- * )
- */
+    /**
+     * @OA\Get(
+     *     path="/api/getAcctApp/{schid}",
+     *     tags={"Accounts"},
+     *     security={{"bearerAuth": {}}},
+     *     summary="Get all Application Accounts by School",
+     *     description="Use this endpoint to get all Application Accounts by School with optional filters",
+     *
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="path",
+     *         required=true,
+     *         description="School ID",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="clsid",
+     *         in="query",
+     *         required=false,
+     *         description="Class ID (-1 for all classes)",
+     *         @OA\Schema(type="integer", default=-1)
+     *     ),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="query",
+     *         required=false,
+     *         description="Session",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="query",
+     *         required=false,
+     *         description="Term",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         required=false,
+     *         description="Index to start at",
+     *         @OA\Schema(type="integer", default=0)
+     *     ),
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         required=false,
+     *         description="Number of records to retrieve",
+     *         @OA\Schema(type="integer", default=20)
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(property="pld", type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="schid", type="string", example="12345"),
+     *                     @OA\Property(property="clsid", type="string", example="67890"),
+     *                     @OA\Property(property="anum", type="string", example="1234567890"),
+     *                     @OA\Property(property="bnk", type="string", example="Bank XYZ"),
+     *                     @OA\Property(property="aname", type="string", example="John Doe"),
+     *                     @OA\Property(property="ssn", type="string", example="2024/2025"),
+     *                     @OA\Property(property="trm", type="string", example="1st"),
+     *                     @OA\Property(property="subAccounts", type="array",
+     *                         @OA\Items(
+     *                             type="object",
+     *                             @OA\Property(property="subaccount_code", type="string", example="SUB_98765"),
+     *                             @OA\Property(property="percentage_charge", type="integer", example=0)
+     *                         )
+     *                     )
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(response="401", description="Unauthorized"),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="No records found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="No records found"),
+     *             @OA\Property(property="pld", type="array", @OA\Items(type="object"))
+     *         )
+     *     )
+     * )
+     */
 
 
     public function getAcctApp(Request $request, $schid)
@@ -20431,99 +20472,99 @@ class ApiController extends Controller
 
 
 
-/**
- * @OA\Get(
- *     path="/api/getAcctAccept/{schid}",
- *     tags={"Accounts"},
- *     security={{"bearerAuth": {}}},
- *     summary="Get all Accounts by School",
- *     description="Use this endpoint to get all Accounts by School with optional filters",
- *
- *     @OA\Parameter(
- *         name="schid",
- *         in="path",
- *         required=true,
- *         description="School ID",
- *         @OA\Schema(type="string")
- *     ),
- *     @OA\Parameter(
- *         name="clsid",
- *         in="query",
- *         required=false,
- *         description="Class ID (-1 for all classes)",
- *         @OA\Schema(type="integer", default=-1)
- *     ),
- *     @OA\Parameter(
- *         name="ssn",
- *         in="query",
- *         required=false,
- *         description="Session",
- *         @OA\Schema(type="string")
- *     ),
- *     @OA\Parameter(
- *         name="trm",
- *         in="query",
- *         required=false,
- *         description="Term",
- *         @OA\Schema(type="string")
- *     ),
- *     @OA\Parameter(
- *         name="start",
- *         in="query",
- *         required=false,
- *         description="Index to start at",
- *         @OA\Schema(type="integer", default=0)
- *     ),
- *     @OA\Parameter(
- *         name="count",
- *         in="query",
- *         required=false,
- *         description="Number of records to retrieve",
- *         @OA\Schema(type="integer", default=20)
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Success",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Success"),
- *             @OA\Property(property="pld", type="array",
- *                 @OA\Items(
- *                     type="object",
- *                     @OA\Property(property="id", type="integer", example=1),
- *                     @OA\Property(property="schid", type="string", example="12345"),
- *                     @OA\Property(property="clsid", type="string", example="67890"),
- *                     @OA\Property(property="anum", type="string", example="1234567890"),
- *                     @OA\Property(property="bnk", type="string", example="Bank XYZ"),
- *                     @OA\Property(property="aname", type="string", example="John Doe"),
- *                     @OA\Property(property="ssn", type="string", example="2024/2025"),
- *                     @OA\Property(property="trm", type="string", example="1st"),
- *                     @OA\Property(property="subAccounts", type="array",
- *                         @OA\Items(
- *                             type="object",
- *                             @OA\Property(property="subaccount_code", type="string", example="SUB_98765"),
- *                             @OA\Property(property="percentage_charge", type="integer", example=0)
- *                         )
- *                     )
- *                 )
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(response="401", description="Unauthorized"),
- *
- *     @OA\Response(
- *         response=404,
- *         description="No records found",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="No records found"),
- *             @OA\Property(property="pld", type="array", @OA\Items(type="object"))
- *         )
- *     )
- * )
- */
+    /**
+     * @OA\Get(
+     *     path="/api/getAcctAccept/{schid}",
+     *     tags={"Accounts"},
+     *     security={{"bearerAuth": {}}},
+     *     summary="Get all Accounts by School",
+     *     description="Use this endpoint to get all Accounts by School with optional filters",
+     *
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="path",
+     *         required=true,
+     *         description="School ID",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="clsid",
+     *         in="query",
+     *         required=false,
+     *         description="Class ID (-1 for all classes)",
+     *         @OA\Schema(type="integer", default=-1)
+     *     ),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="query",
+     *         required=false,
+     *         description="Session",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="query",
+     *         required=false,
+     *         description="Term",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         required=false,
+     *         description="Index to start at",
+     *         @OA\Schema(type="integer", default=0)
+     *     ),
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         required=false,
+     *         description="Number of records to retrieve",
+     *         @OA\Schema(type="integer", default=20)
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(property="pld", type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="schid", type="string", example="12345"),
+     *                     @OA\Property(property="clsid", type="string", example="67890"),
+     *                     @OA\Property(property="anum", type="string", example="1234567890"),
+     *                     @OA\Property(property="bnk", type="string", example="Bank XYZ"),
+     *                     @OA\Property(property="aname", type="string", example="John Doe"),
+     *                     @OA\Property(property="ssn", type="string", example="2024/2025"),
+     *                     @OA\Property(property="trm", type="string", example="1st"),
+     *                     @OA\Property(property="subAccounts", type="array",
+     *                         @OA\Items(
+     *                             type="object",
+     *                             @OA\Property(property="subaccount_code", type="string", example="SUB_98765"),
+     *                             @OA\Property(property="percentage_charge", type="integer", example=0)
+     *                         )
+     *                     )
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(response="401", description="Unauthorized"),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="No records found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="No records found"),
+     *             @OA\Property(property="pld", type="array", @OA\Items(type="object"))
+     *         )
+     *     )
+     * )
+     */
 
 
 
