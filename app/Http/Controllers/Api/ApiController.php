@@ -7538,65 +7538,65 @@ class ApiController extends Controller
     // }
 
     public function admitStaff(Request $request)
-{
-    // Data validation
-    $request->validate([
-        "stid" => "required",
-        "stat" => "required",
-        "role" => "required",
-        "role2" => "required",
-        "role_name" => "required",
-        "role2_name" => "required",
-        "schid" => "required",
-    ]);
-
-    $stf = staff::where('sid', $request->stid)->first();
-
-    if ($stf) {
-        // Update staff table
-        $stf->update([
-            "stat" => $request->stat,
-            "role" => $request->role,
-            "role2" => $request->role2,
+    {
+        // Data validation
+        $request->validate([
+            "stid" => "required",
+            "stat" => "required",
+            "role" => "required",
+            "role2" => "required",
+            "role_name" => "required",
+            "role2_name" => "required",
+            "schid" => "required",
         ]);
 
-        // Update old_staff table
-        old_staff::where('sid', $request->stid)
-                 ->where('schid', $request->schid)
-                 ->update([
-                     'role' => $request->role,
-                     'role2' => $request->role2,
-                 ]);
+        $stf = staff::where('sid', $request->stid)->first();
 
-        // Get user email
-        $usr = User::where('id', $stf->sid)->first();
+        if ($stf) {
+            // Update staff table
+            $stf->update([
+                "stat" => $request->stat,
+                "role" => $request->role,
+                "role2" => $request->role2,
+            ]);
 
-        // Wrap the email sending logic in a try-catch block
-        try {
-            $data = [
-                'name' => $stf->fname,
-                'subject' => 'Application ' . ($request->stat == '1' ? 'Approved' : 'Decline'),
-                'body' => "Your application to our school as a " . $request->role_name . " has been "
-                          . ($request->stat == '1' ? 'approved' : 'decline')
-                          . ($request->role2 != '-1' ? '. We also assigned you the role: ' . $request->role2_name : '.'),
-                'link' => env('PORTAL_URL') . '/staffLogin/' . $request->schid,
-            ];
-            Mail::to($usr->email)->send(new SSSMails($data));
-        } catch (\Exception $e) {
-            Log::error('Failed to send email: ' . $e->getMessage());
+            // Update old_staff table
+            old_staff::where('sid', $request->stid)
+                ->where('schid', $request->schid)
+                ->update([
+                    'role' => $request->role,
+                    'role2' => $request->role2,
+                ]);
+
+            // Get user email
+            $usr = User::where('id', $stf->sid)->first();
+
+            // Wrap the email sending logic in a try-catch block
+            try {
+                $data = [
+                    'name' => $stf->fname,
+                    'subject' => 'Application ' . ($request->stat == '1' ? 'Approved' : 'Decline'),
+                    'body' => "Your application to our school as a " . $request->role_name . " has been "
+                        . ($request->stat == '1' ? 'approved' : 'decline')
+                        . ($request->role2 != '-1' ? '. We also assigned you the role: ' . $request->role2_name : '.'),
+                    'link' => env('PORTAL_URL') . '/staffLogin/' . $request->schid,
+                ];
+                Mail::to($usr->email)->send(new SSSMails($data));
+            } catch (\Exception $e) {
+                Log::error('Failed to send email: ' . $e->getMessage());
+            }
+
+            return response()->json([
+                "status" => true,
+                "message" => "Success",
+            ]);
         }
 
         return response()->json([
-            "status" => true,
-            "message" => "Success",
-        ]);
+            "status" => false,
+            "message" => "Staff Not Found",
+        ], 400);
     }
-
-    return response()->json([
-        "status" => false,
-        "message" => "Staff Not Found",
-    ], 400);
-}
 
 
     /**
@@ -14650,9 +14650,39 @@ class ApiController extends Controller
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    public function getAFeeStat($schid)
+    // public function getAFeeStat($schid)
+    // {
+    //     $total = afee::where('schid', $schid)->count();
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => [
+    //             "total" => $total,
+    //         ],
+    //     ]);
+    // }
+
+    public function getAFeeStat(Request $request, $schid)
     {
-        $total = afee::where('schid', $schid)->count();
+        // Optional filters
+        $ssn = $request->input('ssn', null);
+        $trm = $request->input('trm', null);
+
+        // Base query
+        $query = afee::where('schid', $schid);
+
+        // Apply optional filters
+        if (!is_null($ssn)) {
+            $query->where('ssn', $ssn);
+        }
+
+        if (!is_null($trm)) {
+            $query->where('trm', $trm);
+        }
+
+        // Count the records
+        $total = $query->count();
+
         return response()->json([
             "status" => true,
             "message" => "Success",
@@ -14662,63 +14692,64 @@ class ApiController extends Controller
         ]);
     }
 
-/**
- * @OA\Get(
- *     path="/api/getAFeeBySchool/{schid}",
- *     tags={"Payments"},
- *    security={{"bearerAuth": {}}},
- *     summary="Get all acceptance fee by School",
- *     description="Retrieve acceptance fee records for a specific school with optional filters for session (ssn) and term (trm).",
- *
- *     @OA\Parameter(
- *         name="schid",
- *         in="path",
- *         required=true,
- *         description="School ID",
- *         @OA\Schema(type="string")
- *     ),
- *     @OA\Parameter(
- *         name="start",
- *         in="query",
- *         required=false,
- *         description="Index to start at",
- *         @OA\Schema(type="integer", default=0)
- *     ),
- *     @OA\Parameter(
- *         name="count",
- *         in="query",
- *         required=false,
- *         description="Number of records to retrieve",
- *         @OA\Schema(type="integer", default=20)
- *     ),
- *     @OA\Parameter(
- *         name="ssn",
- *         in="query",
- *         required=false,
- *         description="Session filter (e.g., 2025)",
- *         @OA\Schema(type="string")
- *     ),
- *     @OA\Parameter(
- *         name="trm",
- *         in="query",
- *         required=false,
- *         description="Term filter (e.g., 1, 2, or 3)",
- *         @OA\Schema(type="integer")
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Success",
- *         @OA\JsonContent(
- *              @OA\Property(property="status", type="boolean", example=true),
- *              @OA\Property(property="message", type="string", example="Success"),
- *              @OA\Property(property="pld", type="array", @OA\Items())
- *         )
- *     ),
- *     @OA\Response(response=404, description="No records found"),
- *     @OA\Response(response=401, description="Unauthorized"),
- * )
- */
+
+    /**
+     * @OA\Get(
+     *     path="/api/getAFeeBySchool/{schid}",
+     *     tags={"Payments"},
+     *    security={{"bearerAuth": {}}},
+     *     summary="Get all acceptance fee by School",
+     *     description="Retrieve acceptance fee records for a specific school with optional filters for session (ssn) and term (trm).",
+     *
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="path",
+     *         required=true,
+     *         description="School ID",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         required=false,
+     *         description="Index to start at",
+     *         @OA\Schema(type="integer", default=0)
+     *     ),
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         required=false,
+     *         description="Number of records to retrieve",
+     *         @OA\Schema(type="integer", default=20)
+     *     ),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="query",
+     *         required=false,
+     *         description="Session filter (e.g., 2025)",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="query",
+     *         required=false,
+     *         description="Term filter (e.g., 1, 2, or 3)",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success",
+     *         @OA\JsonContent(
+     *              @OA\Property(property="status", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Success"),
+     *              @OA\Property(property="pld", type="array", @OA\Items())
+     *         )
+     *     ),
+     *     @OA\Response(response=404, description="No records found"),
+     *     @OA\Response(response=401, description="Unauthorized"),
+     * )
+     */
 
     // public function getAFeeBySchool($schid)
     // {
