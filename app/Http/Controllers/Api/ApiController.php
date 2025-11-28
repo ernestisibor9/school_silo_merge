@@ -14600,38 +14600,63 @@ class ApiController extends Controller
         ]);
     }
 
-    /**
-     * @OA\Get(
-     *     path="/api/getAFeeBySchool/{schid}",
-     *     tags={"Payments"},
-     *     summary="Get all accpt. Fee by School",
-     *     description="Use this endpoint to get all accpt. Fee by School",
-     *
-     *     @OA\Parameter(
-     *         name="schid",
-     *         in="path",
-     *         required=true,
-     *         description="School ID",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="start",
-     *         in="query",
-     *         required=false,
-     *         description="Index to start at",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Parameter(
-     *         name="count",
-     *         in="query",
-     *         required=false,
-     *         description="No of records to retrieve",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
-     * )
-     */
+/**
+ * @OA\Get(
+ *     path="/api/getAFeeBySchool/{schid}",
+ *     tags={"Payments"},
+ *     summary="Get all acceptance fee by School",
+ *     description="Retrieve acceptance fee records for a specific school with optional filters for session (ssn) and term (trm).",
+ *
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="path",
+ *         required=true,
+ *         description="School ID",
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Parameter(
+ *         name="start",
+ *         in="query",
+ *         required=false,
+ *         description="Index to start at",
+ *         @OA\Schema(type="integer", default=0)
+ *     ),
+ *     @OA\Parameter(
+ *         name="count",
+ *         in="query",
+ *         required=false,
+ *         description="Number of records to retrieve",
+ *         @OA\Schema(type="integer", default=20)
+ *     ),
+ *     @OA\Parameter(
+ *         name="ssn",
+ *         in="query",
+ *         required=false,
+ *         description="Session filter (e.g., 2025)",
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Parameter(
+ *         name="trm",
+ *         in="query",
+ *         required=false,
+ *         description="Term filter (e.g., 1, 2, or 3)",
+ *         @OA\Schema(type="integer")
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Success",
+ *         @OA\JsonContent(
+ *              @OA\Property(property="status", type="boolean", example=true),
+ *              @OA\Property(property="message", type="string", example="Success"),
+ *              @OA\Property(property="pld", type="array", @OA\Items())
+ *         )
+ *     ),
+ *     @OA\Response(response=404, description="No records found"),
+ *     @OA\Response(response=401, description="Unauthorized"),
+ * )
+ */
+
     // public function getAFeeBySchool($schid)
     // {
     //     $start = 0;
