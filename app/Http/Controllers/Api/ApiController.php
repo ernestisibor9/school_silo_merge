@@ -14604,6 +14604,7 @@ class ApiController extends Controller
  * @OA\Get(
  *     path="/api/getAFeeBySchool/{schid}",
  *     tags={"Payments"},
+ *    security={{"bearerAuth": {}}},
  *     summary="Get all acceptance fee by School",
  *     description="Retrieve acceptance fee records for a specific school with optional filters for session (ssn) and term (trm).",
  *
