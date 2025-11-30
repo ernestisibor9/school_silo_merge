@@ -13242,7 +13242,7 @@ class ApiController extends Controller
      *     path="/api/getRegFeePaymentStat/{schid}/{rfee}",
      *     tags={"Payments"},
      *     summary="Get Registration Fee Payment Statistics by School",
-     *     description="Retrieve the total number of registration fee payments for a school, with optional session (ssn) and term (trm) filters.",
+     *     description="Retrieve the total numbers of registration fee payments for a school, with optional session (ssn) and term (trm) filters.",
      *     security={{"bearerAuth": {}}},
      *
      *     @OA\Parameter(

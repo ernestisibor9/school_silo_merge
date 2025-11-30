@@ -8903,7 +8903,7 @@
                     "Payments"
                 ],
                 "summary": "Get Registration Fee Payment Statistics by School",
-                "description": "Retrieve the total number of registration fee payments for a school, with optional session (ssn) and term (trm) filters.",
+                "description": "Retrieve the total numbers of registration fee payments for a school, with optional session (ssn) and term (trm) filters.",
                 "operationId": "be9d9a82df89f395ce7ac30c5de273c3",
                 "parameters": [
                     {
