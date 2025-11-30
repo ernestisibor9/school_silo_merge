@@ -8945,8 +8945,8 @@
                 "tags": [
                     "Payments"
                 ],
-                "summary": "Get Reg Fee Payments by School",
-                "description": "Use this endpoint to get Payments by School",
+                "summary": "Get Registration Fee Payments by School",
+                "description": "Retrieve registration fee payment records for a school with optional session and term filters.",
                 "operationId": "1f17b267306c8d5390c666f7e699ba47",
                 "parameters": [
                     {
@@ -8955,34 +8955,56 @@
                         "description": "School ID",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "integer"
                         }
                     },
                     {
                         "name": "rfee",
                         "in": "path",
-                        "description": "Reg Fee ID (0/1)",
+                        "description": "Registration Fee (0 = Not Paid, 1 = Paid)",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "integer"
                         }
                     },
                     {
                         "name": "start",
                         "in": "query",
-                        "description": "Index to start at",
+                        "description": "Start index for pagination",
                         "required": false,
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "example": 0
                         }
                     },
                     {
                         "name": "count",
                         "in": "query",
-                        "description": "No of records to retrieve",
+                        "description": "Number of records to retrieve",
                         "required": false,
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "example": 20
+                        }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "query",
+                        "description": "Session (e.g., 2025)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "2025"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "query",
+                        "description": "Term (1, 2, or 3)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
                         }
                     }
                 ],
@@ -8991,14 +9013,37 @@
                         "description": "Success",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
                     "401": {
                         "description": "Unauthorized"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/setAcctPref": {
