@@ -13114,61 +13114,128 @@ class ApiController extends Controller
         ]);
     }
 
-    /**
-     * @OA\Get(
-     *     path="/api/getAcceptancePayments/{schid}/{clsid}",
-     *     tags={"Payments"},
-     *     summary="Get Acceptance Fee Payments by School",
-     *     description="Use this endpoint to get Payments by School",
-     *
-     *     @OA\Parameter(
-     *         name="schid",
-     *         in="path",
-     *         required=true,
-     *         description="School ID",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="clsid",
-     *         in="path",
-     *         required=true,
-     *         description="Class ID",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="start",
-     *         in="query",
-     *         required=false,
-     *         description="Index to start at",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Parameter(
-     *         name="count",
-     *         in="query",
-     *         required=false,
-     *         description="No of records to retrieve",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
-     * )
-     */
-    public function getAcceptancePayments($schid, $clsid)
-    {
-        $start = 0;
-        $count = 20;
-        if (request()->has('start') && request()->has('count')) {
-            $start = request()->input('start');
-            $count = request()->input('count');
-        }
-        $pld = afeerec::where('schid', $schid)->where('clsid', $clsid)->skip($start)->take($count)->get();
-        // Respond
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $pld,
-        ]);
+/**
+ * @OA\Get(
+ *     path="/api/getAcceptancePayments/{schid}/{clsid}",
+ *     tags={"Payments"},
+ *    security={{"bearerAuth": {}}},
+ *     summary="Get Acceptance Fee Payments by School and Class",
+ *     description="Retrieve acceptance fee payment records filtered by school, class, session, and term.",
+ *
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="path",
+ *         required=true,
+ *         description="School ID",
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Parameter(
+ *         name="clsid",
+ *         in="path",
+ *         required=true,
+ *         description="Class ID",
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Parameter(
+ *         name="start",
+ *         in="query",
+ *         required=false,
+ *         description="Index to start retrieving records (pagination)",
+ *         @OA\Schema(type="integer", default=0)
+ *     ),
+ *     @OA\Parameter(
+ *         name="count",
+ *         in="query",
+ *         required=false,
+ *         description="Number of records to retrieve (pagination)",
+ *         @OA\Schema(type="integer", default=20)
+ *     ),
+ *     @OA\Parameter(
+ *         name="ssn",
+ *         in="query",
+ *         required=false,
+ *         description="Session filter (e.g. 2024, 2025)",
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Parameter(
+ *         name="trm",
+ *         in="query",
+ *         required=false,
+ *         description="Term filter (e.g. 1, 2, 3)",
+ *         @OA\Schema(type="string")
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Success",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(type="object")
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthorized"
+ *     )
+ * )
+ */
+
+    // public function getAcceptancePayments($schid, $clsid)
+    // {
+    //     $start = 0;
+    //     $count = 20;
+    //     if (request()->has('start') && request()->has('count')) {
+    //         $start = request()->input('start');
+    //         $count = request()->input('count');
+    //     }
+    //     $pld = afeerec::where('schid', $schid)->where('clsid', $clsid)->skip($start)->take($count)->get();
+    //     // Respond
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => $pld,
+    //     ]);
+    // }
+
+    public function getAcceptancePayments(Request $request, $schid, $clsid)
+{
+    // Pagination
+    $start = $request->input('start', 0);
+    $count = $request->input('count', 20);
+
+    // Optional filters
+    $ssn = $request->input('ssn', null);
+    $trm = $request->input('trm', null);
+
+    // Base query
+    $query = afeerec::where('schid', $schid)->where('clsid', $clsid);
+
+    // Apply optional filters
+    if (!is_null($ssn)) {
+        $query->where('ssn', $ssn);
     }
+
+    if (!is_null($trm)) {
+        $query->where('trm', $trm);
+    }
+
+    // Pagination
+    $pld = $query->skip($start)->take($count)->get();
+
+    // Response
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => $pld,
+    ]);
+}
+
 
     /**
      * @OA\Get(
