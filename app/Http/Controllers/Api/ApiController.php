@@ -13274,73 +13274,92 @@ class ApiController extends Controller
         ]);
     }
 
-/**
- * @OA\Get(
- *     path="/api/getRegFeePayments/{schid}/{rfee}",
- *     tags={"Payments"},
- *    security={{"bearerAuth": {}}},
- *     summary="Get Registration Fee Payments by School",
- *     description="Retrieve registration fee payment records for a school with optional session and term filters.",
- *
- *     @OA\Parameter(
- *         name="schid",
- *         in="path",
- *         required=true,
- *         description="School ID",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Parameter(
- *         name="rfee",
- *         in="path",
- *         required=true,
- *         description="Registration Fee (0 = Not Paid, 1 = Paid)",
- *         @OA\Schema(type="integer")
- *     ),
- *     @OA\Parameter(
- *         name="start",
- *         in="query",
- *         required=false,
- *         description="Start index for pagination",
- *         @OA\Schema(type="integer", example=0)
- *     ),
- *     @OA\Parameter(
- *         name="count",
- *         in="query",
- *         required=false,
- *         description="Number of records to retrieve",
- *         @OA\Schema(type="integer", example=20)
- *     ),
- *     @OA\Parameter(
- *         name="ssn",
- *         in="query",
- *         required=false,
- *         description="Session (e.g., 2025)",
- *         @OA\Schema(type="string", example="2025")
- *     ),
- *     @OA\Parameter(
- *         name="trm",
- *         in="query",
- *         required=false,
- *         description="Term (1, 2, or 3)",
- *         @OA\Schema(type="integer", example=1)
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Success",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Success"),
- *             @OA\Property(
- *                 property="pld",
- *                 type="array",
- *                 @OA\Items(type="object")
- *             )
- *         )
- *     ),
- *     @OA\Response(response=401, description="Unauthorized"),
- * )
- */
+    /**
+     * @OA\Get(
+     *     path="/api/getRegFeePayments/{schid}/{rfee}",
+     *     tags={"Payments"},
+     *     security={{"bearerAuth": {}}},
+     *     summary="Get Registration Fee Payments by School",
+     *     description="Retrieve registration fee payment records for a school with optional session (year) and term filters.",
+     *
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="path",
+     *         required=true,
+     *         description="School ID",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="rfee",
+     *         in="path",
+     *         required=true,
+     *         description="Registration Fee Status (0 = Not Paid, 1 = Paid)",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         required=false,
+     *         description="Start index for pagination",
+     *         @OA\Schema(type="integer", example=0)
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         required=false,
+     *         description="Number of records to retrieve",
+     *         @OA\Schema(type="integer", example=20)
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="query",
+     *         required=false,
+     *         description="Session (stored as `year` in database). Example: 2025",
+     *         @OA\Schema(type="string", example="2025")
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="query",
+     *         required=false,
+     *         description="Term (stored as `term` in database). Example: 1",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     example={
+     *                         "sid": 100,
+     *                         "fname": "John",
+     *                         "lname": "Doe",
+     *                         "year": 2025,
+     *                         "term": 1,
+     *                         "rfee": 1
+     *                     }
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized"
+     *     )
+     * )
+     */
 
     // public function getRegFeePayments($schid, $rfee)
     // {
@@ -13374,11 +13393,11 @@ class ApiController extends Controller
 
         // Apply optional filters
         if (!is_null($ssn)) {
-            $query->where('ssn', $ssn);
+            $query->where('year', $ssn); // FIXED
         }
 
         if (!is_null($trm)) {
-            $query->where('trm', $trm);
+            $query->where('term', $trm); // FIXED
         }
 
         // Pagination

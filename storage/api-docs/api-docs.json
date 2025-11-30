@@ -8946,7 +8946,7 @@
                     "Payments"
                 ],
                 "summary": "Get Registration Fee Payments by School",
-                "description": "Retrieve registration fee payment records for a school with optional session and term filters.",
+                "description": "Retrieve registration fee payment records for a school with optional session (year) and term filters.",
                 "operationId": "1f17b267306c8d5390c666f7e699ba47",
                 "parameters": [
                     {
@@ -8961,7 +8961,7 @@
                     {
                         "name": "rfee",
                         "in": "path",
-                        "description": "Registration Fee (0 = Not Paid, 1 = Paid)",
+                        "description": "Registration Fee Status (0 = Not Paid, 1 = Paid)",
                         "required": true,
                         "schema": {
                             "type": "integer"
@@ -8990,7 +8990,7 @@
                     {
                         "name": "ssn",
                         "in": "query",
-                        "description": "Session (e.g., 2025)",
+                        "description": "Session (stored as `year` in database). Example: 2025",
                         "required": false,
                         "schema": {
                             "type": "string",
@@ -9000,7 +9000,7 @@
                     {
                         "name": "trm",
                         "in": "query",
-                        "description": "Term (1, 2, or 3)",
+                        "description": "Term (stored as `term` in database). Example: 1",
                         "required": false,
                         "schema": {
                             "type": "integer",
@@ -9026,7 +9026,15 @@
                                         "pld": {
                                             "type": "array",
                                             "items": {
-                                                "type": "object"
+                                                "type": "object",
+                                                "example": {
+                                                    "sid": 100,
+                                                    "fname": "John",
+                                                    "lname": "Doe",
+                                                    "year": 2025,
+                                                    "term": 1,
+                                                    "rfee": 1
+                                                }
                                             }
                                         }
                                     },
