@@ -8900,10 +8900,10 @@
         "/api/getRegFeePaymentStat/{schid}/{rfee}": {
             "get": {
                 "tags": [
-                    "Api"
+                    "Payments"
                 ],
-                "summary": "Get how many reg fee payments are available",
-                "description": "Use this endpoint to get how many rFee payments are available",
+                "summary": "Get Registration Fee Payment Statistics by School",
+                "description": "Retrieve the total number of registration fee payments for a school, with optional session (ssn) and term (trm) filters.",
                 "operationId": "be9d9a82df89f395ce7ac30c5de273c3",
                 "parameters": [
                     {
@@ -8912,16 +8912,36 @@
                         "description": "School ID",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "integer"
                         }
                     },
                     {
                         "name": "rfee",
                         "in": "path",
-                        "description": "Reg Fee ID (0/1)",
+                        "description": "Registration Fee status (0 = Not Paid, 1 = Paid)",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "query",
+                        "description": "Session/Academic Year (e.g., 2025)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "2025"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "query",
+                        "description": "Term (1, 2, or 3)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
                         }
                     }
                 ],
@@ -8930,14 +8950,40 @@
                         "description": "Success",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "total": {
+                                                    "type": "integer",
+                                                    "example": 120
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
                     "401": {
                         "description": "Unauthorized"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/getRegFeePayments/{schid}/{rfee}": {

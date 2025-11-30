@@ -13240,31 +13240,90 @@ class ApiController extends Controller
     /**
      * @OA\Get(
      *     path="/api/getRegFeePaymentStat/{schid}/{rfee}",
-     *     tags={"Api"},
-     *     summary="Get how many reg fee payments are available",
-     *     description="Use this endpoint to get how many rFee payments are available",
+     *     tags={"Payments"},
+     *     summary="Get Registration Fee Payment Statistics by School",
+     *     description="Retrieve the total number of registration fee payments for a school, with optional session (ssn) and term (trm) filters.",
+     *     security={{"bearerAuth": {}}},
      *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
      *         required=true,
      *         description="School ID",
-     *         @OA\Schema(type="string")
+     *         @OA\Schema(type="integer")
      *     ),
      *     @OA\Parameter(
      *         name="rfee",
      *         in="path",
      *         required=true,
-     *         description="Reg Fee ID (0/1)",
-     *         @OA\Schema(type="string")
+     *         description="Registration Fee status (0 = Not Paid, 1 = Paid)",
+     *         @OA\Schema(type="integer")
      *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="query",
+     *         required=false,
+     *         description="Session/Academic Year (e.g., 2025)",
+     *         @OA\Schema(type="string", example="2025")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="query",
+     *         required=false,
+     *         description="Term (1, 2, or 3)",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 @OA\Property(property="total", type="integer", example=120)
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthorized")
      * )
      */
-    public function getRegFeePaymentStat($schid, $rfee)
+
+    // public function getRegFeePaymentStat($schid, $rfee)
+    // {
+    //     $total = student::where('schid', $schid)->where('rfee', $rfee)->count();
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => [
+    //             "total" => $total,
+    //         ],
+    //     ]);
+    // }
+
+    public function getRegFeePaymentStat(Request $request, $schid, $rfee)
     {
-        $total = student::where('schid', $schid)->where('rfee', $rfee)->count();
+        // Optional filters
+        $ssn = $request->input('ssn', null);
+        $trm = $request->input('trm', null);
+
+        // Base query
+        $query = student::where('schid', $schid)->where('rfee', $rfee);
+
+        // Apply optional filters
+        if (!is_null($ssn)) {
+            $query->where('year', $ssn); // assuming 'year' column holds session
+        }
+
+        if (!is_null($trm)) {
+            $query->where('term', $trm); // assuming 'term' column
+        }
+
+        // Count the records
+        $total = $query->count();
+
         return response()->json([
             "status" => true,
             "message" => "Success",
@@ -13273,6 +13332,7 @@ class ApiController extends Controller
             ],
         ]);
     }
+
 
     /**
      * @OA\Get(
