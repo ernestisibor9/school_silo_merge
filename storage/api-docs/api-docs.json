@@ -10221,8 +10221,8 @@
                 "tags": [
                     "Payments"
                 ],
-                "summary": "Get all accpt. Fee for a class",
-                "description": "Use this endpoint to get accpt. Fee",
+                "summary": "Get acceptance fee for a specific class",
+                "description": "Retrieve acceptance fee record filtered by school, class, and optional session (ssn) and term (trm).",
                 "operationId": "415d97976c602f4bdd72c3abcd16a646",
                 "parameters": [
                     {
@@ -10231,7 +10231,7 @@
                         "description": "School ID",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "integer"
                         }
                     },
                     {
@@ -10240,7 +10240,27 @@
                         "description": "Class ID",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "query",
+                        "description": "Session / Academic year (e.g. 2025)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "2025"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "query",
+                        "description": "Term (1, 2, or 3)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
                         }
                     }
                 ],
@@ -10256,7 +10276,12 @@
                     "401": {
                         "description": "Unauthorized"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/deleteAFee/{schid}/{clsid}": {
