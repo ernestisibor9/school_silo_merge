@@ -42,6 +42,7 @@ Route::post('setSchoolStaffRole', [ApiController::class, 'setSchoolStaffRole']);
 // Route::post('rePostStaff', [ApiController::class, 'rePostStaff']);
 
 
+Route::get('getAcctApp/{schid}', [ApiController::class, 'getAcctApp']);
 
 Route::get('verifyEmail/{typ}/{code}/{schid}', [ApiController::class, 'verifyEmail']);
 Route::get('getSchoolWebInfo/{uid}', [ApiController::class, 'getSchoolWebInfo']);
@@ -352,7 +353,7 @@ Route::group([
     Route::get('getClassArmsByStaffClass/{stid}/{cls}', [ApiController::class, 'getClassArmsByStaffClass']);
     Route::get('studentHasExamRecord/{schid}/{clsid}/{ssn}/{trm}/{stid}', [ApiController::class, 'studentHasExamRecord']);
     Route::get('getArmResultConf/{schid}/{clsid}/{sbid}/{ssn}/{trm}/{arm}', [ApiController::class, 'getArmResultConf']);
-    Route::get('getAcctApp/{schid}', [ApiController::class, 'getAcctApp']);
+    // Route::get('getAcctApp/{schid}', [ApiController::class, 'getAcctApp']);
     Route::get('getAcctAccept/{schid}', [ApiController::class, 'getAcctAccept']);
     Route::get('getAlumni/{schid}', [ApiController::class, 'getAlumni']);
     Route::get('getExStaff/{schid}', [ApiController::class, 'getExStaff']);
