@@ -13075,44 +13075,110 @@ class ApiController extends Controller
         ]);
     }
 
-    /**
-     * @OA\Get(
-     *     path="/api/getAcceptancePaymentStat/{schid}/{clsid}",
-     *     tags={"Api"},
-     *     summary="Get how many acceptance fee payments are available",
-     *     description="Use this endpoint to get how many aFee payments are available",
-     *
-     *     @OA\Parameter(
-     *         name="schid",
-     *         in="path",
-     *         required=true,
-     *         description="School ID",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="clsid",
-     *         in="path",
-     *         required=true,
-     *         description="Class ID",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
-     * )
-     */
-    public function getAcceptancePaymentStat($schid, $clsid)
-    {
-        $total = afeerec::where('schid', $schid)->where('clsid', $clsid)->count();
-        $totalAmt = afeerec::where('schid', $schid)->where('clsid', $clsid)->sum('amt');
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => [
-                "total" => $total,
-                "totalAmt" => $totalAmt,
-            ],
-        ]);
+/**
+ * @OA\Get(
+ *     path="/api/getAcceptancePaymentStat/{schid}/{clsid}",
+ *     tags={"Api"},
+ *     security={{"bearerAuth": {}}},
+ *     summary="Get Acceptance Fee Payment Statistics",
+ *     description="Retrieve total count and total amount of acceptance fee payments with optional session and term filters.",
+ *
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="path",
+ *         required=true,
+ *         description="School ID",
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Parameter(
+ *         name="clsid",
+ *         in="path",
+ *         required=true,
+ *         description="Class ID",
+ *         @OA\Schema(type="integer")
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="ssn",
+ *         in="query",
+ *         required=false,
+ *         description="Session (e.g., 2025)",
+ *         @OA\Schema(type="string", example="2025")
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="trm",
+ *         in="query",
+ *         required=false,
+ *         description="Term (1, 2, or 3)",
+ *         @OA\Schema(type="integer", example=1)
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Success",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="object",
+ *                 @OA\Property(property="total", type="integer", example=150),
+ *                 @OA\Property(property="totalAmt", type="number", example=450000)
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(response=401, description="Unauthorized")
+ * )
+ */
+
+    // public function getAcceptancePaymentStat($schid, $clsid)
+    // {
+    //     $total = afeerec::where('schid', $schid)->where('clsid', $clsid)->count();
+    //     $totalAmt = afeerec::where('schid', $schid)->where('clsid', $clsid)->sum('amt');
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => [
+    //             "total" => $total,
+    //             "totalAmt" => $totalAmt,
+    //         ],
+    //     ]);
+    // }
+
+    public function getAcceptancePaymentStat(Request $request, $schid, $clsid)
+{
+    // Optional filters
+    $ssn = $request->input('ssn', null);
+    $trm = $request->input('trm', null);
+
+    // Base query
+    $query = afeerec::where('schid', $schid)->where('clsid', $clsid);
+
+    // Apply optional filters
+    if (!is_null($ssn)) {
+        $query->where('ssn', $ssn); // same pattern as getAcctAccept()
     }
+
+    if (!is_null($trm)) {
+        $query->where('trm', $trm); // same pattern as getAcctAccept()
+    }
+
+    // Count & Sum
+    $total = $query->count();
+    $totalAmt = $query->sum('amt');
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => [
+            "total" => $total,
+            "totalAmt" => $totalAmt,
+        ],
+    ]);
+}
+
 
     /**
      * @OA\Get(

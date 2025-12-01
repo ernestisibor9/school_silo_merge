@@ -8755,8 +8755,8 @@
                 "tags": [
                     "Api"
                 ],
-                "summary": "Get how many acceptance fee payments are available",
-                "description": "Use this endpoint to get how many aFee payments are available",
+                "summary": "Get Acceptance Fee Payment Statistics",
+                "description": "Retrieve total count and total amount of acceptance fee payments with optional session and term filters.",
                 "operationId": "90c147667ced4f205caf2f6142c3591c",
                 "parameters": [
                     {
@@ -8765,7 +8765,7 @@
                         "description": "School ID",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "integer"
                         }
                     },
                     {
@@ -8774,7 +8774,27 @@
                         "description": "Class ID",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "query",
+                        "description": "Session (e.g., 2025)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "2025"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "query",
+                        "description": "Term (1, 2, or 3)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
                         }
                     }
                 ],
@@ -8783,14 +8803,44 @@
                         "description": "Success",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "total": {
+                                                    "type": "integer",
+                                                    "example": 150
+                                                },
+                                                "totalAmt": {
+                                                    "type": "number",
+                                                    "example": 450000
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
                             }
                         }
                     },
                     "401": {
                         "description": "Unauthorized"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/getAcceptancePayments/{schid}/{clsid}": {
