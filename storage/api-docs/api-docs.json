@@ -782,11 +782,6 @@
                                         "type": "string",
                                         "example": "5000"
                                     },
-                                    "clsid": {
-                                        "description": "Class ID",
-                                        "type": "string",
-                                        "example": "11"
-                                    },
                                     "ssn": {
                                         "description": "Session ID",
                                         "type": "string",
@@ -14715,7 +14710,6 @@
                                     "anum",
                                     "bnk",
                                     "aname",
-                                    "clsid",
                                     "ssn",
                                     "trm"
                                 ],
@@ -14739,11 +14733,6 @@
                                         "description": "Account Name",
                                         "type": "string",
                                         "example": "John Doe"
-                                    },
-                                    "clsid": {
-                                        "description": "Class ID",
-                                        "type": "integer",
-                                        "example": 3
                                     },
                                     "ssn": {
                                         "description": "Session",
@@ -14892,16 +14881,6 @@
                         }
                     },
                     {
-                        "name": "clsid",
-                        "in": "query",
-                        "description": "Class ID (-1 for all classes)",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "default": -1
-                        }
-                    },
-                    {
                         "name": "ssn",
                         "in": "query",
                         "description": "Session",
@@ -14966,10 +14945,6 @@
                                                     "schid": {
                                                         "type": "string",
                                                         "example": "12345"
-                                                    },
-                                                    "clsid": {
-                                                        "type": "string",
-                                                        "example": "67890"
                                                     },
                                                     "anum": {
                                                         "type": "string",

@@ -971,7 +971,6 @@ class ApiController extends Controller
      *             required={"sid", "fee", "ssn", "trm"},
      *             @OA\Property(property="sid", type="string", example="22", description="Student ID"),
      *             @OA\Property(property="fee", type="string", example="5000", description="Application fee amount"),
-     *             @OA\Property(property="clsid", type="string", example="11", description="Class ID"),
      *             @OA\Property(property="ssn", type="string", example="2025", description="Session ID"),
      *             @OA\Property(property="trm", type="string", example="1", description="Term ID")
      *         )
@@ -1003,14 +1002,12 @@ class ApiController extends Controller
         $request->validate([
             "sid" => "required",
             "fee" => "required",
-            "clsid" => "required",
             "ssn" => "required",
             "trm" => "required",
         ]);
         school_app_fee::updateOrCreate(
             [
                 "sid" => $request->sid,
-                "clsid" => $request->clsid,
                 "ssn" => $request->ssn,
                 "trm" => $request->trm,
 
@@ -1025,74 +1022,74 @@ class ApiController extends Controller
         ]);
     }
 
-/**
- * @OA\Get(
- *     path="/api/getSchoolAppFee/{uid}",
- *     summary="Get school application fee by school ID",
- *     description="Fetches the application fee for a school, with optional filtering by session (ssn) and term (trm).",
- *     operationId="getSchoolAppFee",
- *     tags={"Api"},
- *    security={{"bearerAuth": {}}},
- *
- *     @OA\Parameter(
- *         name="uid",
- *        in="path",
- *         required=true,
- *         description="School ID",
- *         @OA\Schema(type="integer")
- *     ),
- *
- *     @OA\Parameter(
- *         name="ssn",
- *         in="query",
- *         required=false,
- *         description="Session filter (optional)",
- *         @OA\Schema(type="integer", example=2025)
- *     ),
- *
- *     @OA\Parameter(
- *         name="trm",
- *         in="query",
- *         required=false,
- *         description="Term filter (optional)",
- *         @OA\Schema(type="integer", example=1)
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Successful Response",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Success"),
- *             @OA\Property(
- *                 property="pld",
- *                 type="object",
- *                 description="Application fee record",
- *                 nullable=true,
- *                 @OA\Property(property="id", type="integer", example=12),
- *                 @OA\Property(property="sid", type="integer", example=3),
- *                 @OA\Property(property="amount", type="number", example=4500),
- *                 @OA\Property(property="ssn", type="integer", example=2025),
- *                 @OA\Property(property="trm", type="integer", example=1)
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=404,
- *         description="Record not found",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="No records found")
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=401,
- *         description="Unauthenticated"
- *     )
- * )
- */
+    /**
+     * @OA\Get(
+     *     path="/api/getSchoolAppFee/{uid}",
+     *     summary="Get school application fee by school ID",
+     *     description="Fetches the application fee for a school, with optional filtering by session (ssn) and term (trm).",
+     *     operationId="getSchoolAppFee",
+     *     tags={"Api"},
+     *    security={{"bearerAuth": {}}},
+     *
+     *     @OA\Parameter(
+     *         name="uid",
+     *        in="path",
+     *         required=true,
+     *         description="School ID",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="query",
+     *         required=false,
+     *         description="Session filter (optional)",
+     *         @OA\Schema(type="integer", example=2025)
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="query",
+     *         required=false,
+     *         description="Term filter (optional)",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful Response",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 description="Application fee record",
+     *                 nullable=true,
+     *                 @OA\Property(property="id", type="integer", example=12),
+     *                 @OA\Property(property="sid", type="integer", example=3),
+     *                 @OA\Property(property="amount", type="number", example=4500),
+     *                 @OA\Property(property="ssn", type="integer", example=2025),
+     *                 @OA\Property(property="trm", type="integer", example=1)
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="Record not found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="No records found")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated"
+     *     )
+     * )
+     */
     // public function getSchoolAppFee($uid)
     // {
     //     $pld = school_app_fee::where("sid", $uid)->first();
@@ -1104,32 +1101,32 @@ class ApiController extends Controller
     // }
 
     public function getSchoolAppFee(Request $request, $uid)
-{
-    // Optional filters
-    $ssn = $request->input('ssn', null);
-    $trm = $request->input('trm', null);
+    {
+        // Optional filters
+        $ssn = $request->input('ssn', null);
+        $trm = $request->input('trm', null);
 
-    // Base query
-    $query = school_app_fee::where("sid", $uid);
+        // Base query
+        $query = school_app_fee::where("sid", $uid);
 
-    // Apply optional filters
-    if (!is_null($ssn)) {
-        $query->where('ssn', $ssn);
+        // Apply optional filters
+        if (!is_null($ssn)) {
+            $query->where('ssn', $ssn);
+        }
+
+        if (!is_null($trm)) {
+            $query->where('trm', $trm);
+        }
+
+        // Fetch first matching record
+        $pld = $query->first();
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld,
+        ]);
     }
-
-    if (!is_null($trm)) {
-        $query->where('trm', $trm);
-    }
-
-    // Fetch first matching record
-    $pld = $query->first();
-
-    return response()->json([
-        "status"  => true,
-        "message" => "Success",
-        "pld"     => $pld,
-    ]);
-}
 
 
     /**
@@ -20647,13 +20644,12 @@ class ApiController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"schid", "anum", "bnk", "aname", "clsid", "ssn", "trm"},
+     *             required={"schid", "anum", "bnk", "aname", "ssn", "trm"},
 
      *             @OA\Property(property="schid", type="integer", example=6822, description="School ID"),
      *             @OA\Property(property="anum", type="string", example="0123456789", description="Account Number"),
      *             @OA\Property(property="bnk", type="string", example="044", description="Bank Code (e.g Access Bank = 044)"),
      *             @OA\Property(property="aname", type="string", example="John Doe", description="Account Name"),
-     *             @OA\Property(property="clsid", type="integer", example=3, description="Class ID"),
      *             @OA\Property(property="ssn", type="string", example="2024/2025", description="Session"),
      *             @OA\Property(property="trm", type="string", example="1", description="Term")
      *         )
@@ -20809,7 +20805,6 @@ class ApiController extends Controller
             'anum' => 'required',
             'bnk' => 'required',
             'aname' => 'required',
-            'clsid' => 'required',
             'ssn' => 'required',
             'trm' => 'required',
         ]);
@@ -20817,7 +20812,6 @@ class ApiController extends Controller
         // Unique fields for update
         $match = [
             'schid' => $request->schid,
-            'clsid' => $request->clsid,
             'ssn' => $request->ssn,
             'trm' => $request->trm,
         ];
@@ -20904,13 +20898,6 @@ class ApiController extends Controller
      *         @OA\Schema(type="string")
      *     ),
      *     @OA\Parameter(
-     *         name="clsid",
-     *         in="query",
-     *         required=false,
-     *         description="Class ID (-1 for all classes)",
-     *         @OA\Schema(type="integer", default=-1)
-     *     ),
-     *     @OA\Parameter(
      *         name="ssn",
      *         in="query",
      *         required=false,
@@ -20950,7 +20937,6 @@ class ApiController extends Controller
      *                     type="object",
      *                     @OA\Property(property="id", type="integer", example=1),
      *                     @OA\Property(property="schid", type="string", example="12345"),
-     *                     @OA\Property(property="clsid", type="string", example="67890"),
      *                     @OA\Property(property="anum", type="string", example="1234567890"),
      *                     @OA\Property(property="bnk", type="string", example="Bank XYZ"),
      *                     @OA\Property(property="aname", type="string", example="John Doe"),
@@ -20989,7 +20975,6 @@ class ApiController extends Controller
         $count = $request->input('count', 20);
 
         // Optional filters
-        $clsid = $request->input('clsid', -1); // -1 means all classes
         $ssn = $request->input('ssn', null);
         $trm = $request->input('trm', null);
 
@@ -20997,10 +20982,6 @@ class ApiController extends Controller
         $query = application_acct::where('schid', $schid)->with('subAccounts');
 
         // Apply optional filters
-        if ($clsid != -1) {
-            $query->where('clsid', $clsid);
-        }
-
         if (!is_null($ssn)) {
             $query->where('ssn', $ssn);
         }
