@@ -1025,33 +1025,112 @@ class ApiController extends Controller
         ]);
     }
 
-    /**
-     * @OA\Get(
-     *     path="/api/getSchoolAppFee/{uid}",
-     *     tags={"Api"},
-     *     summary="Get School Application Fee",
-     *     description="Use this endpoint to get school app. fee",
-     *     security={{"bearerAuth": {}}},
-     *     @OA\Parameter(
-     *         name="uid",
-     *         in="path",
-     *         required=true,
-     *         description="School Id",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
-     * )
-     */
-    public function getSchoolAppFee($uid)
-    {
-        $pld = school_app_fee::where("sid", $uid)->first();
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $pld,
-        ]);
+/**
+ * @OA\Get(
+ *     path="/api/getSchoolAppFee/{uid}",
+ *     summary="Get school application fee by school ID",
+ *     description="Fetches the application fee for a school, with optional filtering by session (ssn) and term (trm).",
+ *     operationId="getSchoolAppFee",
+ *     tags={"Api"},
+ *    security={{"bearerAuth": {}}},
+ *
+ *     @OA\Parameter(
+ *         name="uid",
+ *        in="path",
+ *         required=true,
+ *         description="School ID",
+ *         @OA\Schema(type="integer")
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="ssn",
+ *         in="query",
+ *         required=false,
+ *         description="Session filter (optional)",
+ *         @OA\Schema(type="integer", example=2025)
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="trm",
+ *         in="query",
+ *         required=false,
+ *         description="Term filter (optional)",
+ *         @OA\Schema(type="integer", example=1)
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful Response",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="object",
+ *                 description="Application fee record",
+ *                 nullable=true,
+ *                 @OA\Property(property="id", type="integer", example=12),
+ *                 @OA\Property(property="sid", type="integer", example=3),
+ *                 @OA\Property(property="amount", type="number", example=4500),
+ *                 @OA\Property(property="ssn", type="integer", example=2025),
+ *                 @OA\Property(property="trm", type="integer", example=1)
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=404,
+ *         description="Record not found",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="No records found")
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthenticated"
+ *     )
+ * )
+ */
+    // public function getSchoolAppFee($uid)
+    // {
+    //     $pld = school_app_fee::where("sid", $uid)->first();
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => $pld,
+    //     ]);
+    // }
+
+    public function getSchoolAppFee(Request $request, $uid)
+{
+    // Optional filters
+    $ssn = $request->input('ssn', null);
+    $trm = $request->input('trm', null);
+
+    // Base query
+    $query = school_app_fee::where("sid", $uid);
+
+    // Apply optional filters
+    if (!is_null($ssn)) {
+        $query->where('ssn', $ssn);
     }
+
+    if (!is_null($trm)) {
+        $query->where('trm', $trm);
+    }
+
+    // Fetch first matching record
+    $pld = $query->first();
+
+    return response()->json([
+        "status"  => true,
+        "message" => "Success",
+        "pld"     => $pld,
+    ]);
+}
+
 
     /**
      * @OA\Get(
