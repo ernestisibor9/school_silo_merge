@@ -2328,20 +2328,50 @@ class ApiController extends Controller
      *     @OA\Response(response="400", description="Validation error"),
      * )
      */
+    // public function setAppFeePaid(Request $request)
+    // {
+    //     //Data validation
+    //     $request->validate([
+    //         "stid" => "required",
+    //     ]);
+    //     student::where('sid', $request->stid)->update([
+    //         "rfee" => '1'
+    //     ]);
+    //     return response()->json([
+    //         "status" => false,
+    //         "message" => "Student Not Found",
+    //     ], 400);
+    // }
+
     public function setAppFeePaid(Request $request)
     {
-        //Data validation
+        // Validate request
         $request->validate([
             "stid" => "required",
         ]);
-        student::where('sid', $request->stid)->update([
-            "rfee" => '1'
+
+        // Find student
+        $student = Student::where('sid', $request->stid)->first();
+
+        // If NOT found, return error
+        if (!$student) {
+            return response()->json([
+                "status" => false,
+                "message" => "Student Not Found",
+            ], 400);
+        }
+
+        // If found, update rfee
+        $student->update([
+            "rfee" => '1',
         ]);
+
         return response()->json([
-            "status" => false,
-            "message" => "Student Not Found",
-        ], 400);
+            "status" => true,
+            "message" => "Application Fee Marked as Paid Successfully",
+        ], 200);
     }
+
 
     /**
      * @OA\Get(
