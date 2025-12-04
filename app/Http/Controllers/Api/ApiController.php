@@ -2351,7 +2351,7 @@ class ApiController extends Controller
         ]);
 
         // Find student
-        $student = Student::where('sid', $request->stid)->first();
+        $student = student::where('sid', $request->stid)->first();
 
         // If NOT found, return error
         if (!$student) {
