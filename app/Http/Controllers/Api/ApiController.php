@@ -10663,67 +10663,141 @@ class ApiController extends Controller
     // }
 
 
+    // public function setStaffClass(Request $request)
+    // {
+    //     // Data validation
+    //     $request->validate([
+    //         "stid" => "required",
+    //         "cls" => "required",
+    //         "schid" => "required",
+    //         "ssn" => "required",
+    //         "trm" => "required",
+    //         "fname" => "required",
+    //         "lname" => "required",
+    //         "mname" => "nullable",
+    //         "suid" => "required",
+    //         "role" => "required",
+    //         "role2" => "required",
+    //     ]);
+
+    //     // Generate deterministic UID without random numbers
+    //     $uid = $request->ssn . $request->trm . $request->stid . $request->cls;
+
+    //     // Save to staff_class
+    //     $pld = staff_class::updateOrCreate(
+    //         ["uid" => $uid],
+    //         [
+    //             "stid" => $request->stid,
+    //             "cls" => $request->cls,
+    //             "schid" => $request->schid,
+    //             "ssn" => $request->ssn,
+    //             "trm" => $request->trm,
+    //         ]
+    //     );
+
+    //     // Save also to old_staff with the same UID style
+    //     $old = old_staff::updateOrCreate(
+    //         ["uid" => $uid],
+    //         [
+    //             'sid' => $request->stid,
+    //             'schid' => $request->schid,
+    //             'fname' => $request->fname,
+    //             'mname' => $request->mname,
+    //             'lname' => $request->lname,
+    //             'suid' => $request->suid,
+    //             'ssn' => $request->ssn,
+    //             'trm' => $request->trm,
+    //             'clsm' => $request->cls,
+    //             'role' => $request->role,
+    //             'role2' => $request->role2,
+    //             'more' => "",
+    //         ]
+    //     );
+
+    //     // Return JSON response
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => [
+    //             "staff_class" => $pld,
+    //             "old_staff" => $old,
+    //         ]
+    //     ]);
+    // }
+
     public function setStaffClass(Request $request)
-    {
-        // Data validation
-        $request->validate([
-            "stid" => "required",
-            "cls" => "required",
-            "schid" => "required",
-            "ssn" => "required",
-            "trm" => "required",
-            "fname" => "required",
-            "lname" => "required",
-            "mname" => "nullable",
-            "suid" => "required",
-            "role" => "required",
-            "role2" => "required",
+{
+    $request->validate([
+        "stid" => "required",
+        "cls" => "required",
+        "schid" => "required",
+        "ssn" => "required",
+        "trm" => "required",
+        "fname" => "required",
+        "lname" => "required",
+        "mname" => "nullable",
+        "suid" => "required",
+        "role" => "required",
+        "role2" => "required",
+    ]);
+
+    // Deterministic UID
+    $uid = $request->ssn . $request->trm . $request->stid . $request->cls;
+
+    // Save staff_class
+    $pld = staff_class::updateOrCreate(
+        ["uid" => $uid],
+        [
+            "stid" => $request->stid,
+            "cls" => $request->cls,
+            "schid" => $request->schid,
+            "ssn" => $request->ssn,
+            "trm" => $request->trm,
+        ]
+    );
+
+    // 🔥 CHECK FOR DUPLICATES IN old_staff
+    $exists = old_staff::where([
+        "sid"  => $request->stid,
+        "ssn"  => $request->ssn,
+        "trm"  => $request->trm,
+        "clsm" => $request->cls,
+    ])->exists();
+
+    if (!$exists) {
+
+        // INSERT ONLY IF NOT EXISTS
+        $old = old_staff::create([
+            'uid' => $uid,
+            'sid' => $request->stid,
+            'schid' => $request->schid,
+            'fname' => $request->fname,
+            'mname' => $request->mname,
+            'lname' => $request->lname,
+            'suid' => $request->suid,
+            'ssn' => $request->ssn,
+            'trm' => $request->trm,
+            'clsm' => $request->cls,
+            'role' => $request->role,
+            'role2' => $request->role2,
+            'more' => "",
         ]);
 
-        // Generate deterministic UID without random numbers
-        $uid = $request->ssn . $request->trm . $request->stid . $request->cls;
-
-        // Save to staff_class
-        $pld = staff_class::updateOrCreate(
-            ["uid" => $uid],
-            [
-                "stid" => $request->stid,
-                "cls" => $request->cls,
-                "schid" => $request->schid,
-                "ssn" => $request->ssn,
-                "trm" => $request->trm,
-            ]
-        );
-
-        // Save also to old_staff with the same UID style
-        $old = old_staff::updateOrCreate(
-            ["uid" => $uid],
-            [
-                'sid' => $request->stid,
-                'schid' => $request->schid,
-                'fname' => $request->fname,
-                'mname' => $request->mname,
-                'lname' => $request->lname,
-                'suid' => $request->suid,
-                'ssn' => $request->ssn,
-                'trm' => $request->trm,
-                'clsm' => $request->cls,
-                'role' => $request->role,
-                'role2' => $request->role2,
-                'more' => "",
-            ]
-        );
-
-        // Return JSON response
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => [
-                "staff_class" => $pld,
-                "old_staff" => $old,
-            ]
-        ]);
+    } else {
+        // Do NOT insert
+        $old = "Old staff exists already — no insert!";
     }
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => [
+            "staff_class" => $pld,
+            "old_staff" => $old,
+        ]
+    ]);
+}
+
 
 
 
