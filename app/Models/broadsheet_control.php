@@ -9,5 +9,5 @@ class broadsheet_control extends Model
 {
     use HasFactory;
 
-    protected $guarded = [];
+    protected $fillable = ['sid', 'schid', 'ssn', 'trm', 'clsm', 'clsa', 'stat'];
 }

@@ -7121,80 +7121,75 @@ class ApiController extends Controller
      */
 
 
-    public function setBroadsheetStatus(Request $request)
-    {
-        // Validate input
-        $request->validate([
-            'schid' => 'required',
-            'ssn' => 'required',
-            'clsm' => 'required',
-            'clsa' => 'required',
-            'stat' => 'required|in:0,1',
-            'sid' => 'required', // student ID is also required
-        ]);
+public function setBroadsheetStatus(Request $request)
+{
+    // Validate input
+    $request->validate([
+        'schid' => 'required|string',
+        'ssn' => 'required|string',
+        'clsm' => 'required|string',
+        'clsa' => 'required|string',
+        'stat' => 'required|in:0,1',
+        'sid' => 'required|string',
+    ]);
 
-        // Get authenticated user
-        $user = auth()->user();
+    $user = auth()->user();
 
-        // Allow School Admins (typ = 'a' or 's')
-        if (in_array($user->typ, ['a', 's'])) {
-            return $this->saveBroadsheetStatus($request);
-        }
-
-        // Check staff table for roles
-        $staff = staff::where('sid', $user->id)->first();
-
-        if (!$staff) {
-            return response()->json([
-                "status" => false,
-                "message" => "Unauthorized: Staff not found."
-            ], 403);
-        }
-
-        // Get role names
-        $roleNames = staff_role::whereIn('id', [$staff->role, $staff->role2])
-            ->pluck('name')
-            ->toArray();
-
-        // Only these roles can lock/unlock
-        $allowedRoles = ['Principal', 'Head Teacher', 'School Admin'];
-
-        if (!array_intersect($allowedRoles, $roleNames)) {
-            return response()->json([
-                "status" => false,
-                "message" => "Unauthorized: Only Principal, Head Teacher, School Admin or System Admin can lock/unlock broadsheet."
-            ], 403);
-        }
-
-        // Pass to saving function
+    // School Admin can always set
+    if (in_array($user->typ, ['a', 's'])) {
         return $this->saveBroadsheetStatus($request);
     }
 
-    /**
-     * Save or update broadsheet status
-     */
-    private function saveBroadsheetStatus(Request $request)
-    {
-        broadsheet_control::updateOrCreate(
-            [
-                'schid' => $request->schid,
-                'ssn' => $request->ssn,
-                'clsm' => $request->clsm,
-                'clsa' => $request->clsa,
-                'sid' => $request->sid,
-            ],
-            [
-                'stat' => $request->stat
-            ]
-        );
+    $staff = staff::where('sid', $user->id)->first();
 
+    if (!$staff) {
         return response()->json([
-            'status' => true,
-            'message' => $request->stat == 1
-                ? 'Broadsheet UNLOCKED successfully'
-                : 'Broadsheet LOCKED successfully'
-        ]);
+            'status' => false,
+            'message' => 'Unauthorized: Staff not found.'
+        ], 403);
     }
+
+    $roleNames = staff_role::whereIn('id', [$staff->role, $staff->role2])
+        ->pluck('name')
+        ->toArray();
+
+    $allowedRoles = ['Principal', 'Head Teacher', 'School Admin'];
+
+    if (!array_intersect($allowedRoles, $roleNames)) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Unauthorized: Only Principal, Head Teacher, or School Admin can lock/unlock broadsheet.'
+        ], 403);
+    }
+
+    return $this->saveBroadsheetStatus($request);
+}
+
+/**
+ * Save or update broadsheet status
+ */
+private function saveBroadsheetStatus(Request $request)
+{
+    $broadsheet = broadsheet_control::updateOrCreate(
+        [
+            'schid' => $request->schid,
+            'ssn' => $request->ssn,
+            'clsm' => $request->clsm,
+            'clsa' => $request->clsa,
+            'sid' => $request->sid, // make sure this is a string matching table
+        ],
+        [
+            'stat' => (int)$request->stat,
+        ]
+    );
+
+    return response()->json([
+        'status' => true,
+        'message' => $request->stat == 1
+            ? 'Broadsheet UNLOCKED successfully'
+            : 'Broadsheet LOCKED successfully'
+    ]);
+}
 
 
 
