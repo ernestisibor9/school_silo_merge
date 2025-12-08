@@ -8697,6 +8697,18 @@ class ApiController extends Controller
             $mySbjs = [];
             $scores = [];
 
+            /*  Note: */
+            // 6. Calculate Total Score
+            $totalScore = 0;
+
+            foreach ($scores as $subScore) {
+                foreach ($subScore['scores'] as $sc) {
+                    $totalScore += (int) $sc['scr'];
+                }
+            }
+
+            /*        */
+
             foreach ($studentSubjects as $sbj) {
                 $sbid = (string) $sbj->sbj;
                 $mySbjs[] = $sbid;
@@ -8775,6 +8787,7 @@ class ApiController extends Controller
                 'std' => $std,
                 'sbj' => array_values(array_unique($mySbjs)),
                 'scr' => collect($scores)->unique('sbid')->values(),
+                'total_score' => $totalScore,   // <-- HERE
                 'psy' => $psy,
                 'res' => $res,
                 'rinfo' => $rinfo ?: []
@@ -28756,6 +28769,15 @@ class ApiController extends Controller
         $subjectPositions = [];
         $subjectAverages = [];
 
+        $control = broadsheet_control::where('schid', $schid)
+            ->where('ssn', $ssn)
+            ->where('clsm', $clsm)
+            ->where('clsa', $clsa)
+            ->first();
+
+        $broadsheetStat = $control->stat ?? 1;  // default = unlocked
+
+
         // Process each subject
         foreach ($subjects as $sbj) {
             $subjectScores = std_score::select(
@@ -28927,7 +28949,9 @@ class ApiController extends Controller
                 'overall_position' => $overallPosition[$stid] ?? null,
                 'no_of_subjects' => $count,
                 'subjects' => $subjectsInfo,
-                'psychomotor' => $psychomotor
+                'psychomotor' => $psychomotor,
+                'broadsheet_status' => $broadsheetStat,
+
             ];
         }
 
