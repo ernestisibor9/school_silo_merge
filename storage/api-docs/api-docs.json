@@ -21839,6 +21839,154 @@
             }
         },
         "/api/autoCommentTemplate": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Fetch auto comment templates for all grades (A–F) for a specific role",
+                "operationId": "330a2f800c4355d0a42f44b7d627bf8d",
+                "parameters": [
+                    {
+                        "name": "schid",
+                        "in": "query",
+                        "description": "School ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "12"
+                        }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "query",
+                        "description": "Session",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "2024"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "query",
+                        "description": "Term",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "1"
+                        }
+                    },
+                    {
+                        "name": "clsm",
+                        "in": "query",
+                        "description": "Class main",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "11"
+                        }
+                    },
+                    {
+                        "name": "clsa",
+                        "in": "query",
+                        "description": "Class arm",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "2"
+                        }
+                    },
+                    {
+                        "name": "role",
+                        "in": "query",
+                        "description": "Role type",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "Principal",
+                                "Head Teacher",
+                                "School Admin"
+                            ],
+                            "example": "Principal"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Auto comments fetched successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Auto comments fetched successfully."
+                                        },
+                                        "role": {
+                                            "type": "string",
+                                            "example": "Principal"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "grade": {
+                                                        "type": "string",
+                                                        "example": "A"
+                                                    },
+                                                    "comment": {
+                                                        "type": "string",
+                                                        "example": "Excellent performance"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "example": {
+                                                "role": [
+                                                    "The selected role is invalid."
+                                                ],
+                                                "schid": [
+                                                    "The schid field is required."
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
             "post": {
                 "tags": [
                     "Api"

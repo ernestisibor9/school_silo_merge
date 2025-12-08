@@ -10726,77 +10726,77 @@ class ApiController extends Controller
     // }
 
     public function setStaffClass(Request $request)
-{
-    $request->validate([
-        "stid" => "required",
-        "cls" => "required",
-        "schid" => "required",
-        "ssn" => "required",
-        "trm" => "required",
-        "fname" => "required",
-        "lname" => "required",
-        "mname" => "nullable",
-        "suid" => "required",
-        "role" => "required",
-        "role2" => "required",
-    ]);
-
-    // Deterministic UID
-    $uid = $request->ssn . $request->trm . $request->stid . $request->cls;
-
-    // Save staff_class
-    $pld = staff_class::updateOrCreate(
-        ["uid" => $uid],
-        [
-            "stid" => $request->stid,
-            "cls" => $request->cls,
-            "schid" => $request->schid,
-            "ssn" => $request->ssn,
-            "trm" => $request->trm,
-        ]
-    );
-
-    // 🔥 CHECK FOR DUPLICATES IN old_staff
-    $exists = old_staff::where([
-        "sid"  => $request->stid,
-        "ssn"  => $request->ssn,
-        "trm"  => $request->trm,
-        "clsm" => $request->cls,
-    ])->exists();
-
-    if (!$exists) {
-
-        // INSERT ONLY IF NOT EXISTS
-        $old = old_staff::create([
-            'uid' => $uid,
-            'sid' => $request->stid,
-            'schid' => $request->schid,
-            'fname' => $request->fname,
-            'mname' => $request->mname,
-            'lname' => $request->lname,
-            'suid' => $request->suid,
-            'ssn' => $request->ssn,
-            'trm' => $request->trm,
-            'clsm' => $request->cls,
-            'role' => $request->role,
-            'role2' => $request->role2,
-            'more' => "",
+    {
+        $request->validate([
+            "stid" => "required",
+            "cls" => "required",
+            "schid" => "required",
+            "ssn" => "required",
+            "trm" => "required",
+            "fname" => "required",
+            "lname" => "required",
+            "mname" => "nullable",
+            "suid" => "required",
+            "role" => "required",
+            "role2" => "required",
         ]);
 
-    } else {
-        // Do NOT insert
-        $old = "Old staff exists already — no insert!";
-    }
+        // Deterministic UID
+        $uid = $request->ssn . $request->trm . $request->stid . $request->cls;
 
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => [
-            "staff_class" => $pld,
-            "old_staff" => $old,
-        ]
-    ]);
-}
+        // Save staff_class
+        $pld = staff_class::updateOrCreate(
+            ["uid" => $uid],
+            [
+                "stid" => $request->stid,
+                "cls" => $request->cls,
+                "schid" => $request->schid,
+                "ssn" => $request->ssn,
+                "trm" => $request->trm,
+            ]
+        );
+
+        // 🔥 CHECK FOR DUPLICATES IN old_staff
+        $exists = old_staff::where([
+            "sid" => $request->stid,
+            "ssn" => $request->ssn,
+            "trm" => $request->trm,
+            "clsm" => $request->cls,
+        ])->exists();
+
+        if (!$exists) {
+
+            // INSERT ONLY IF NOT EXISTS
+            $old = old_staff::create([
+                'uid' => $uid,
+                'sid' => $request->stid,
+                'schid' => $request->schid,
+                'fname' => $request->fname,
+                'mname' => $request->mname,
+                'lname' => $request->lname,
+                'suid' => $request->suid,
+                'ssn' => $request->ssn,
+                'trm' => $request->trm,
+                'clsm' => $request->cls,
+                'role' => $request->role,
+                'role2' => $request->role2,
+                'more' => "",
+            ]);
+
+        } else {
+            // Do NOT insert
+            $old = "Old staff exists already — no insert!";
+        }
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => [
+                "staff_class" => $pld,
+                "old_staff" => $old,
+            ]
+        ]);
+    }
 
 
 
@@ -19931,26 +19931,78 @@ class ApiController extends Controller
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
+    // public function getStaff()
+    // {
+    //     $combined = false;
+    //     if (request()->has('combined')) {
+    //         $combined = request()->input('combined');
+    //     }
+    //     $uid = '';
+    //     if (request()->has('uid')) {
+    //         $uid = request()->input('uid');
+    //     }
+    //     if ($uid == '') {
+    //         return response()->json([
+    //             "status" => false,
+    //             "message" => "No UID provided",
+    //         ], 400);
+    //     }
+    //     $pld = [];
+    //     if ($combined) {
+    //         $members = [];
+    //         $compo = explode("/", $uid);
+    //         if (count($compo) == 4) {
+    //             $sch3 = $compo[0];
+    //             $count = $compo[2];
+    //             $members = staff::where("sch3", $sch3)->where("count", $count)->get();
+    //         } else {
+    //             $members = staff::where("cuid", $uid)->get();
+    //         }
+    //         foreach ($members as $member) {
+    //             $user_id = $member->sid;
+    //             $profData = staff_prof_data::where('user_id', $user_id)->first();
+    //             $basicData = staff_basic_data::where('user_id', $user_id)->first();
+    //             $pld[] = [
+    //                 's' => $member,
+    //                 'b' => $basicData,
+    //                 'p' => $profData,
+    //             ];
+    //         }
+    //     } else {
+    //         $pld = staff::where("sid", $uid)->first();
+    //     }
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => $pld,
+    //     ]);
+    // }
+
     public function getStaff()
     {
         $combined = false;
         if (request()->has('combined')) {
             $combined = request()->input('combined');
         }
+
         $uid = '';
         if (request()->has('uid')) {
             $uid = request()->input('uid');
         }
+
         if ($uid == '') {
             return response()->json([
                 "status" => false,
                 "message" => "No UID provided",
             ], 400);
         }
+
         $pld = [];
+
         if ($combined) {
             $members = [];
             $compo = explode("/", $uid);
+
             if (count($compo) == 4) {
                 $sch3 = $compo[0];
                 $count = $compo[2];
@@ -19958,10 +20010,18 @@ class ApiController extends Controller
             } else {
                 $members = staff::where("cuid", $uid)->get();
             }
+
             foreach ($members as $member) {
+
+                // ⭐ Remove asterisk from role
+                if (!empty($member->role)) {
+                    $member->role = ltrim($member->role, '*');
+                }
+
                 $user_id = $member->sid;
                 $profData = staff_prof_data::where('user_id', $user_id)->first();
                 $basicData = staff_basic_data::where('user_id', $user_id)->first();
+
                 $pld[] = [
                     's' => $member,
                     'b' => $basicData,
@@ -19970,13 +20030,20 @@ class ApiController extends Controller
             }
         } else {
             $pld = staff::where("sid", $uid)->first();
+
+            // ⭐ Remove asterisk from role
+            if ($pld && !empty($pld->role)) {
+                $pld->role = ltrim($pld->role, '*');
+            }
         }
+
         return response()->json([
             "status" => true,
             "message" => "Success",
             "pld" => $pld,
         ]);
     }
+
 
     // public function getStaff() {
     //     $combined = false;
@@ -29491,6 +29558,137 @@ class ApiController extends Controller
         ]);
     }
 
+
+
+    /**
+     * @OA\Get(
+     *     path="/api/autoCommentTemplate",
+     *     summary="Fetch auto comment templates for all grades (A–F) for a specific role",
+     *     tags={"Api"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="query",
+     *         required=true,
+     *         description="School ID",
+     *         @OA\Schema(type="string", example="12")
+     *     ),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="query",
+     *         required=true,
+     *         description="Session",
+     *         @OA\Schema(type="string", example="2024")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="query",
+     *         required=true,
+     *         description="Term",
+     *         @OA\Schema(type="string", example="1")
+     *     ),
+     *     @OA\Parameter(
+     *         name="clsm",
+     *         in="query",
+     *         required=true,
+     *         description="Class main",
+     *         @OA\Schema(type="string", example="11")
+     *     ),
+     *     @OA\Parameter(
+     *         name="clsa",
+     *         in="query",
+     *         required=true,
+     *         description="Class arm",
+     *         @OA\Schema(type="string", example="2")
+     *     ),
+     *     @OA\Parameter(
+     *         name="role",
+     *         in="query",
+     *         required=true,
+     *         description="Role type",
+     *         @OA\Schema(
+     *             type="string",
+     *             enum={"Principal", "Head Teacher", "School Admin"},
+     *             example="Principal"
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Auto comments fetched successfully.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Auto comments fetched successfully."),
+     *             @OA\Property(property="role", type="string", example="Principal"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="grade", type="string", example="A"),
+     *                     @OA\Property(property="comment", type="string", example="Excellent performance")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+     *             @OA\Property(
+     *                 property="errors",
+     *                 type="object",
+     *                 example={
+     *                     "role": {"The selected role is invalid."},
+     *                     "schid": {"The schid field is required."}
+     *                 }
+     *             )
+     *         )
+     *     )
+     * )
+     */
+
+    public function getAutoCommentTemplate(Request $request)
+    {
+        // Validate GET inputs
+        $validated = $request->validate([
+            'schid' => 'required|string',
+            'ssn' => 'required|string',
+            'trm' => 'required|string',
+            'clsm' => 'required|string',
+            'clsa' => 'required|string',
+            'role' => 'required|string|in:Principal,Head Teacher,School Admin',
+        ]);
+
+        $grades = ['A', 'B', 'C', 'D', 'E', 'F'];
+        $response = [];
+
+        foreach ($grades as $grade) {
+            $comment = auto_comment_template::where([
+                'schid' => $validated['schid'],
+                'ssn' => $validated['ssn'],
+                'trm' => $validated['trm'],
+                'clsm' => $validated['clsm'],
+                'clsa' => $validated['clsa'],
+                'role' => $validated['role'],
+                'grade' => $grade,
+            ])->value('comment') ?? '';
+
+            $response[] = [
+                'grade' => $grade,
+                'comment' => $comment
+            ];
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Auto comments fetched successfully.',
+            'role' => $validated['role'],
+            'pld' => $response
+        ]);
+    }
 
 
 

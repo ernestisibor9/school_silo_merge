@@ -203,6 +203,8 @@ Route::group([
     Route::put('updateLessonNote', [ApiController::class, 'updateLessonNote']);
     Route::post('/storeComment', [ApiController::class, 'storeComment']);
     Route::post('/autoCommentTemplate', [ApiController::class, 'autoCommentTemplate']);
+    Route::get('/autoCommentTemplate', [ApiController::class, 'getAutoCommentTemplate']);
+
     Route::post('/allStudentResultsComment', [ApiController::class, 'allStudentResultsComment']);
 
 
