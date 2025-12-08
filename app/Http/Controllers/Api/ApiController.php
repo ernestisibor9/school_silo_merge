@@ -7068,6 +7068,7 @@ class ApiController extends Controller
      *             required={"schid","ssn","clsm","clsa","stat"},
      *             @OA\Property(property="schid", type="string", example="12"),
      *             @OA\Property(property="ssn", type="string", example="2025"),
+     *             @OA\Property(property="trm", type="string", example="1"),
      *             @OA\Property(property="clsm", type="string", example="11"),
      *             @OA\Property(property="clsa", type="string", example="2"),
      *             @OA\Property(
