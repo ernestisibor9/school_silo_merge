@@ -8655,157 +8655,312 @@ class ApiController extends Controller
 
 
     public function getOldStudentsAndSubjectScoreSheet($schid, $ssn, $trm, $clsm, $clsa, $stf)
-    {
-        // 1. Fetch only students that match EXACTLY the session, term, class, and arm
-        $ostd = old_student::where("schid", $schid)
-            ->where("status", "active")
-            ->where("ssn", $ssn)
-            ->where("trm", $trm)
-            ->where("clsm", $clsm)
-            ->when($clsa != "-1", function ($q) use ($clsa) {
-                $q->where("clsa", $clsa);
-            })
-            ->distinct("sid") // prevent duplicate rows for same student
+{
+    /* ----------------------------------------------------------
+     | 🔒 1. Check if Broadsheet for this class is locked
+     ---------------------------------------------------------- */
+    $control = broadsheet_control::where('schid', $schid)
+        ->where('ssn', $ssn)
+        ->where('clsm', $clsm)
+        ->where('clsa', $clsa)
+        ->first();
+
+    if ($control && $control->stat == 0) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Broadsheet is locked for this class.'
+        ], 403);
+    }
+
+    /* ----------------------------------------------------------
+     | 2. Fetch Students (EXACT session, term, class, arm)
+     ---------------------------------------------------------- */
+    $ostd = old_student::where("schid", $schid)
+        ->where("status", "active")
+        ->where("ssn", $ssn)
+        ->where("trm", $trm)
+        ->where("clsm", $clsm)
+        ->when($clsa != "-1", function ($q) use ($clsa) {
+            $q->where("clsa", $clsa);
+        })
+        ->distinct("sid")
+        ->get();
+
+    /* ----------------------------------------------------------
+     | 3. Relevant Subjects
+     ---------------------------------------------------------- */
+    if ($stf == "-1" || $stf == "-2") {
+        $relevantSubjects = class_subj::where('class_subj.schid', $schid)
+            ->where('class_subj.clsid', $clsm)
+            ->distinct()
+            ->pluck('subj_id');
+    } else {
+        $relevantSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
+            ->where('class_subj.schid', $schid)
+            ->where('class_subj.clsid', $clsm)
+            ->where('staff_subj.stid', $stf)
+            ->distinct()
+            ->pluck('sbj');
+    }
+
+    $stdPld = [];
+
+    /* ----------------------------------------------------------
+     | 4. Loop Through Students
+     ---------------------------------------------------------- */
+    foreach ($ostd as $std) {
+        $user_id = $std->sid;
+
+        // Student subjects
+        $studentSubjects = student_subj::where('stid', $user_id)
+            ->whereIn('sbj', $relevantSubjects)
+            ->distinct('sbj')
             ->get();
 
-        // 2. Fetch relevant subjects
-        if ($stf == "-1" || $stf == "-2") {
-            $relevantSubjects = class_subj::where('class_subj.schid', $schid)
-                ->where('class_subj.clsid', $clsm)
-                ->distinct()
-                ->pluck('subj_id');
-        } else {
-            $relevantSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
-                ->where('class_subj.schid', $schid)
-                ->where('class_subj.clsid', $clsm)
-                ->where('staff_subj.stid', $stf)
-                ->distinct()
-                ->pluck('sbj');
-        }
+        $mySbjs = [];
+        $scores = [];
+        $totalScore = 0;
 
-        $stdPld = [];
+        foreach ($studentSubjects as $sbj) {
+            $sbid = (string) $sbj->sbj;
+            $mySbjs[] = $sbid;
 
-        foreach ($ostd as $std) {
-            $user_id = $std->sid;
-
-            // 3. Fetch unique subjects for the student
-            $studentSubjects = student_subj::where('stid', $user_id)
-                ->whereIn('sbj', $relevantSubjects)
-                ->distinct('sbj')
+            // Fetch scores
+            $subjectScores = std_score::where('stid', $user_id)
+                ->where('sbj', $sbid)
+                ->where("schid", $schid)
+                ->where("ssn", $ssn)
+                ->where("trm", $trm)
+                ->where("clsid", $clsm)
                 ->get();
 
-            $mySbjs = [];
-            $scores = [];
-
-            /*  Note: */
-            // 6. Calculate Total Score
-            $totalScore = 0;
-
-            foreach ($scores as $subScore) {
-                foreach ($subScore['scores'] as $sc) {
-                    $totalScore += (int) $sc['scr'];
-                }
+            // If no score, assign default scr = 0
+            if ($subjectScores->isEmpty()) {
+                $subjectScores = collect([
+                    [
+                        "stid" => $user_id,
+                        "sbj" => $sbid,
+                        "scr" => 0,
+                        "schid" => $schid,
+                        "clsid" => $clsm,
+                        "ssn" => $ssn,
+                        "trm" => $trm,
+                    ]
+                ]);
             }
 
-            /*        */
-
-            foreach ($studentSubjects as $sbj) {
-                $sbid = (string) $sbj->sbj;
-                $mySbjs[] = $sbid;
-
-                // 4. Fetch scores (filtered by session, term, class)
-                // $subjectScores = std_score::where('stid', $user_id)
-                //     ->where('sbj', $sbid)
-                //     ->where("schid", $schid)
-                //     ->where("ssn", $ssn)
-                //     ->where("trm", $trm)
-                //     ->where("clsid", $clsm)
-                //     ->get();
-
-                // $scores[] = [
-                //     'sbid' => $sbid,
-                //     'scores' => $subjectScores
-                // ];
-
-                $subjectScores = std_score::where('stid', $user_id)
-                    ->where('sbj', $sbid)
-                    ->where("schid", $schid)
-                    ->where("ssn", $ssn)
-                    ->where("trm", $trm)
-                    ->where("clsid", $clsm)
-                    ->get();
-
-                // If no score record exists, assign scr = 0
-                if ($subjectScores->isEmpty()) {
-                    $subjectScores = collect([
-                        [
-                            "stid" => $user_id,
-                            "sbj" => $sbid,
-                            "scr" => 0,
-                            "schid" => $schid,
-                            "clsid" => $clsm,
-                            "ssn" => $ssn,
-                            "trm" => $trm,
-                        ]
-                    ]);
-                }
-
-                $scores[] = [
-                    'sbid' => $sbid,
-                    'scores' => $subjectScores
-                ];
-
-            }
-
-            // 5. Extra info for staff = -2
-            $psy = false;
-            $res = "0";
-            $rinfo = [];
-
-            if ($stf == "-2") {
-                $psy = student_psy::where("schid", $schid)
-                    ->where("ssn", $ssn)
-                    ->where("trm", $trm)
-                    ->where("clsm", $clsm)
-                    ->where("stid", $user_id)
-                    ->exists();
-
-                $rinfo = student_res::where("schid", $schid)
-                    ->where("ssn", $ssn)
-                    ->where("trm", $trm)
-                    ->where("clsm", $clsm)
-                    ->where("stid", $user_id)
-                    ->first();
-
-                if ($rinfo) {
-                    $res = $rinfo->stat;
-                }
-            }
-
-            // 6. Push result (no duplicate sbj/scr)
-            $stdPld[] = [
-                'std' => $std,
-                'sbj' => array_values(array_unique($mySbjs)),
-                'scr' => collect($scores)->unique('sbid')->values(),
-                'total_score' => $totalScore,   // <-- HERE
-                'psy' => $psy,
-                'res' => $res,
-                'rinfo' => $rinfo ?: []
+            // Add to score array
+            $scores[] = [
+                'sbid' => $sbid,
+                'scores' => $subjectScores
             ];
+
+            // Add to total score
+            foreach ($subjectScores as $sc) {
+                $totalScore += (int) $sc["scr"];
+            }
         }
 
-        // 7. Build unique class subjects using subj model
-        $clsSbj = subj::whereIn('id', $relevantSubjects)->get();
+        /* ----------------------------------------------------------
+         | 5. Extra info for staff = -2
+         ---------------------------------------------------------- */
+        $psy = false;
+        $res = "0";
+        $rinfo = [];
 
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => [
-                'std-pld' => $stdPld,
-                'cls-sbj' => $clsSbj
-            ],
-        ]);
+        if ($stf == "-2") {
+            $psy = student_psy::where("schid", $schid)
+                ->where("ssn", $ssn)
+                ->where("trm", $trm)
+                ->where("clsm", $clsm)
+                ->where("stid", $user_id)
+                ->exists();
+
+            $rinfo = student_res::where("schid", $schid)
+                ->where("ssn", $ssn)
+                ->where("trm", $trm)
+                ->where("clsm", $clsm)
+                ->where("stid", $user_id)
+                ->first();
+
+            if ($rinfo) {
+                $res = $rinfo->stat;
+            }
+        }
+
+        /* ----------------------------------------------------------
+         | 6. Final payload for this student
+         ---------------------------------------------------------- */
+        $stdPld[] = [
+            'std' => $std,
+            'sbj' => array_values(array_unique($mySbjs)),
+            'scr' => collect($scores)->unique('sbid')->values(),
+            'total_score' => $totalScore,
+            'psy' => $psy,
+            'res' => $res,
+            'rinfo' => $rinfo ?: []
+        ];
     }
+
+    /* ----------------------------------------------------------
+     | 7. Unique class subjects
+     ---------------------------------------------------------- */
+    $clsSbj = subj::whereIn('id', $relevantSubjects)->get();
+
+    /* ----------------------------------------------------------
+     | 8. FINAL RESPONSE (structure unchanged)
+     ---------------------------------------------------------- */
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => [
+            'std-pld' => $stdPld,
+            'cls-sbj' => $clsSbj
+        ],
+    ]);
+}
+
+
+
+    // public function getOldStudentsAndSubjectScoreSheet($schid, $ssn, $trm, $clsm, $clsa, $stf)
+    // {
+    //     // 1. Fetch only students that match EXACTLY the session, term, class, and arm
+    //     $ostd = old_student::where("schid", $schid)
+    //         ->where("status", "active")
+    //         ->where("ssn", $ssn)
+    //         ->where("trm", $trm)
+    //         ->where("clsm", $clsm)
+    //         ->when($clsa != "-1", function ($q) use ($clsa) {
+    //             $q->where("clsa", $clsa);
+    //         })
+    //         ->distinct("sid") // prevent duplicate rows for same student
+    //         ->get();
+
+    //     // 2. Fetch relevant subjects
+    //     if ($stf == "-1" || $stf == "-2") {
+    //         $relevantSubjects = class_subj::where('class_subj.schid', $schid)
+    //             ->where('class_subj.clsid', $clsm)
+    //             ->distinct()
+    //             ->pluck('subj_id');
+    //     } else {
+    //         $relevantSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
+    //             ->where('class_subj.schid', $schid)
+    //             ->where('class_subj.clsid', $clsm)
+    //             ->where('staff_subj.stid', $stf)
+    //             ->distinct()
+    //             ->pluck('sbj');
+    //     }
+
+    //     $stdPld = [];
+
+    //     foreach ($ostd as $std) {
+    //         $user_id = $std->sid;
+
+    //         // 3. Fetch unique subjects for the student
+    //         $studentSubjects = student_subj::where('stid', $user_id)
+    //             ->whereIn('sbj', $relevantSubjects)
+    //             ->distinct('sbj')
+    //             ->get();
+
+    //         $mySbjs = [];
+    //         $scores = [];
+
+    //         foreach ($studentSubjects as $sbj) {
+    //             $sbid = (string) $sbj->sbj;
+    //             $mySbjs[] = $sbid;
+
+    //             // 4. Fetch scores (filtered by session, term, class)
+    //             // $subjectScores = std_score::where('stid', $user_id)
+    //             //     ->where('sbj', $sbid)
+    //             //     ->where("schid", $schid)
+    //             //     ->where("ssn", $ssn)
+    //             //     ->where("trm", $trm)
+    //             //     ->where("clsid", $clsm)
+    //             //     ->get();
+
+    //             // $scores[] = [
+    //             //     'sbid' => $sbid,
+    //             //     'scores' => $subjectScores
+    //             // ];
+
+    //             $subjectScores = std_score::where('stid', $user_id)
+    //                 ->where('sbj', $sbid)
+    //                 ->where("schid", $schid)
+    //                 ->where("ssn", $ssn)
+    //                 ->where("trm", $trm)
+    //                 ->where("clsid", $clsm)
+    //                 ->get();
+
+    //             // If no score record exists, assign scr = 0
+    //             if ($subjectScores->isEmpty()) {
+    //                 $subjectScores = collect([
+    //                     [
+    //                         "stid" => $user_id,
+    //                         "sbj" => $sbid,
+    //                         "scr" => 0,
+    //                         "schid" => $schid,
+    //                         "clsid" => $clsm,
+    //                         "ssn" => $ssn,
+    //                         "trm" => $trm,
+    //                     ]
+    //                 ]);
+    //             }
+
+    //             $scores[] = [
+    //                 'sbid' => $sbid,
+    //                 'scores' => $subjectScores
+    //             ];
+
+    //         }
+
+    //         // 5. Extra info for staff = -2
+    //         $psy = false;
+    //         $res = "0";
+    //         $rinfo = [];
+
+    //         if ($stf == "-2") {
+    //             $psy = student_psy::where("schid", $schid)
+    //                 ->where("ssn", $ssn)
+    //                 ->where("trm", $trm)
+    //                 ->where("clsm", $clsm)
+    //                 ->where("stid", $user_id)
+    //                 ->exists();
+
+    //             $rinfo = student_res::where("schid", $schid)
+    //                 ->where("ssn", $ssn)
+    //                 ->where("trm", $trm)
+    //                 ->where("clsm", $clsm)
+    //                 ->where("stid", $user_id)
+    //                 ->first();
+
+    //             if ($rinfo) {
+    //                 $res = $rinfo->stat;
+    //             }
+    //         }
+
+    //         // 6. Push result (no duplicate sbj/scr)
+    //         $stdPld[] = [
+    //             'std' => $std,
+    //             'sbj' => array_values(array_unique($mySbjs)),
+    //             'scr' => collect($scores)->unique('sbid')->values(),
+    //             'psy' => $psy,
+    //             'res' => $res,
+    //             'rinfo' => $rinfo ?: []
+    //         ];
+    //     }
+
+    //     // 7. Build unique class subjects using subj model
+    //     $clsSbj = subj::whereIn('id', $relevantSubjects)->get();
+
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => [
+    //             'std-pld' => $stdPld,
+    //             'cls-sbj' => $clsSbj
+    //         ],
+    //     ]);
+    // }
 
 
 
