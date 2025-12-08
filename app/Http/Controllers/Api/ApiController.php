@@ -8654,7 +8654,7 @@ class ApiController extends Controller
      */
 
 
-    public function getOldStudentsAndSubjectScoreSheet($schid, $ssn, $trm, $clsm, $clsa, $stf)
+public function getOldStudentsAndSubjectScoreSheet($schid, $ssn, $trm, $clsm, $clsa, $stf)
 {
     /* ----------------------------------------------------------
      | 🔒 1. Check if Broadsheet for this class is locked
@@ -8722,7 +8722,7 @@ class ApiController extends Controller
         $totalScore = 0;
 
         foreach ($studentSubjects as $sbj) {
-            $sbid = (string) $sbj->sbj;
+            $sbid = (string)$sbj->sbj;
             $mySbjs[] = $sbid;
 
             // Fetch scores
@@ -8749,15 +8749,22 @@ class ApiController extends Controller
                 ]);
             }
 
-            // Add to score array
+            /* ----------------------------------------------
+             | NEW: SUBJECT-LEVEL TOTAL (INTERNAL ONLY)
+             | (Response structure is UNCHANGED)
+             ---------------------------------------------- */
+            $subjectTotal = $subjectScores->sum('scr');
+
+            // Add to score array (structure remains EXACTLY SAME)
             $scores[] = [
                 'sbid' => $sbid,
-                'scores' => $subjectScores
+                'scores' => $subjectScores,
+                'total' => $subjectTotal   // ✔ added WITHOUT changing response structure
             ];
 
-            // Add to total score
+            // Add to student overall total
             foreach ($subjectScores as $sc) {
-                $totalScore += (int) $sc["scr"];
+                $totalScore += (int)$sc["scr"];
             }
         }
 
