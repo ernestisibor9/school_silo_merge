@@ -7176,7 +7176,7 @@ class ApiController extends Controller
                 'ssn' => $request->ssn,
                 'clsm' => $request->clsm,
                 'clsa' => $request->clsa,
-                'sid' => $request->sid, // make sure this is a string matching table
+                'sid' => $request->sid, // make sure this iis a string matching table.
             ],
             [
                 'stat' => (int) $request->stat,
