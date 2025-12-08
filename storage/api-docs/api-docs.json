@@ -5041,10 +5041,6 @@
                                         "type": "string",
                                         "example": "2025"
                                     },
-                                    "trm": {
-                                        "type": "string",
-                                        "example": "1"
-                                    },
                                     "clsm": {
                                         "type": "string",
                                         "example": "11"

@@ -15,7 +15,6 @@ return new class extends Migration {
             $table->string('sid');
             $table->string('schid');
             $table->string('ssn');
-            $table->string('trm');
             $table->string('clsm');
             $table->string('clsa');
             $table->integer('stat')->default(1); // <-- add your block/unblock column
