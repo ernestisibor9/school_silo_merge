@@ -7058,7 +7058,7 @@ class ApiController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/api/setBroadsheetStatus",
+     *     path="/api/setCummulativeResultStatus",
      *     summary="Lock or unlock a class broadsheet or a specific student (set status 0 or 1)",
      *     tags={"Api"},
      *     security={{"bearerAuth":{}}},
@@ -7121,7 +7121,7 @@ class ApiController extends Controller
      */
 
 
-    public function setBroadsheetStatus(Request $request)
+    public function setCummulativeResultStatus(Request $request)
     {
         // Validate input
         $request->validate([

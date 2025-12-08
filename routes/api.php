@@ -183,7 +183,7 @@ Route::group([
     Route::post('setStudentSubjPos', [ApiController::class, 'setStudentSubjPos']);
     Route::post('addAdmissionInfo', [ApiController::class, 'addAdmissionInfo']);
     Route::put('approveAdmission', [ApiController::class, 'approveAdmission']);
-    Route::post('setBroadsheetStatus', [ApiController::class, 'setBroadsheetStatus']);
+    Route::post('setCummulativeResultStatus', [ApiController::class, 'setCummulativeResultStatus']);
 
 
     Route::post('setAcceptanceAcct', [ApiController::class, 'setAcceptanceAcct']);

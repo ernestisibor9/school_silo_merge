@@ -5013,13 +5013,13 @@
                 ]
             }
         },
-        "/api/setBroadsheetStatus": {
+        "/api/setCummulativeResultStatus": {
             "post": {
                 "tags": [
                     "Api"
                 ],
                 "summary": "Lock or unlock a class broadsheet or a specific student (set status 0 or 1)",
-                "operationId": "f5b8e6e5e0027241a6346f7b074b2ba2",
+                "operationId": "d39de101647d1694d045346776f3ff8f",
                 "requestBody": {
                     "required": true,
                     "content": {
