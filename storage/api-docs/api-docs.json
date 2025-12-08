@@ -5013,6 +5013,139 @@
                 ]
             }
         },
+        "/api/setBroadsheetStatus": {
+            "post": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Lock or unlock a class broadsheet or a specific student (set status 0 or 1)",
+                "operationId": "f5b8e6e5e0027241a6346f7b074b2ba2",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "schid",
+                                    "ssn",
+                                    "clsm",
+                                    "clsa",
+                                    "stat"
+                                ],
+                                "properties": {
+                                    "schid": {
+                                        "type": "string",
+                                        "example": "12"
+                                    },
+                                    "ssn": {
+                                        "type": "string",
+                                        "example": "2025"
+                                    },
+                                    "clsm": {
+                                        "type": "string",
+                                        "example": "11"
+                                    },
+                                    "clsa": {
+                                        "type": "string",
+                                        "example": "2"
+                                    },
+                                    "stat": {
+                                        "description": "0 = unlock, 1 = lock",
+                                        "type": "integer",
+                                        "enum": [
+                                            0,
+                                            1
+                                        ],
+                                        "example": 1
+                                    },
+                                    "sid": {
+                                        "description": "Optional student ID. If provided, only this student's broadsheet will be locked/unlocked. If omitted, the whole class is affected.",
+                                        "type": "string",
+                                        "example": "ST123",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Broadsheet status updated successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Broadsheet UNLOCKED successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Unauthorized action",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthorized: Only Principal, Head Teacher, School Admin or System Admin can lock/unlock broadsheet."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "example": {
+                                                "schid": [
+                                                    "The schid field is required."
+                                                ],
+                                                "stat": [
+                                                    "The selected stat is invalid."
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/getStudentRes/{schid}/{ssn}/{trm}/{clsm}/{clsa}/{stid}": {
             "get": {
                 "tags": [

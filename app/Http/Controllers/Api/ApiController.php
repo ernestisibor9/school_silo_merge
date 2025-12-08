@@ -30,6 +30,7 @@ use App\Models\silo_user;
 use App\Models\pay;
 use App\Models\payhead;
 use App\Models\subaccount_split;
+use App\Models\broadsheet_control;
 
 use App\Models\clspay;
 use App\Models\auto_comment_template;
@@ -7050,6 +7051,148 @@ class ApiController extends Controller
         return response()->json([
             "status" => true,
             "message" => "Info Updated"
+        ]);
+    }
+
+
+
+    /**
+     * @OA\Post(
+     *     path="/api/setBroadsheetStatus",
+     *     summary="Lock or unlock a class broadsheet or a specific student (set status 0 or 1)",
+     *     tags={"Api"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"schid","ssn","clsm","clsa","stat"},
+     *             @OA\Property(property="schid", type="string", example="12"),
+     *             @OA\Property(property="ssn", type="string", example="2025"),
+     *             @OA\Property(property="clsm", type="string", example="11"),
+     *             @OA\Property(property="clsa", type="string", example="2"),
+     *             @OA\Property(
+     *                 property="stat",
+     *                 type="integer",
+     *                 enum={0,1},
+     *                 example=1,
+     *                 description="0 = unlock, 1 = lock"
+     *             ),
+     *             @OA\Property(
+     *                 property="sid",
+     *                 type="string",
+     *                 nullable=true,
+     *                 example="ST123",
+     *                 description="Optional student ID. If provided, only this student's broadsheet will be locked/unlocked. If omitted, the whole class is affected."
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Broadsheet status updated successfully.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Broadsheet UNLOCKED successfully")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Unauthorized action",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Unauthorized: Only Principal, Head Teacher, School Admin or System Admin can lock/unlock broadsheet.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+     *             @OA\Property(
+     *                 property="errors",
+     *                 type="object",
+     *                 example={
+     *                     "schid": {"The schid field is required."},
+     *                     "stat": {"The selected stat is invalid."}
+     *                 }
+     *             )
+     *         )
+     *     )
+     * )
+     */
+
+
+    public function setBroadsheetStatus(Request $request)
+    {
+        // Validate input
+        $request->validate([
+            'schid' => 'required',
+            'ssn' => 'required',
+            'clsm' => 'required',
+            'clsa' => 'required',
+            'stat' => 'required|in:0,1',
+            'sid' => 'required', // student ID is also required
+        ]);
+
+        // Get authenticated user
+        $user = auth()->user();
+
+        // Allow School Admins (typ = 'a' or 's')
+        if (in_array($user->typ, ['a', 's'])) {
+            return $this->saveBroadsheetStatus($request);
+        }
+
+        // Check staff table for roles
+        $staff = staff::where('sid', $user->id)->first();
+
+        if (!$staff) {
+            return response()->json([
+                "status" => false,
+                "message" => "Unauthorized: Staff not found."
+            ], 403);
+        }
+
+        // Get role names
+        $roleNames = staff_role::whereIn('id', [$staff->role, $staff->role2])
+            ->pluck('name')
+            ->toArray();
+
+        // Only these roles can lock/unlock
+        $allowedRoles = ['Principal', 'Head Teacher', 'School Admin'];
+
+        if (!array_intersect($allowedRoles, $roleNames)) {
+            return response()->json([
+                "status" => false,
+                "message" => "Unauthorized: Only Principal, Head Teacher, School Admin or System Admin can lock/unlock broadsheet."
+            ], 403);
+        }
+
+        // Pass to saving function
+        return $this->saveBroadsheetStatus($request);
+    }
+
+    /**
+     * Save or update broadsheet status
+     */
+    private function saveBroadsheetStatus(Request $request)
+    {
+        broadsheet_control::updateOrCreate(
+            [
+                'schid' => $request->schid,
+                'ssn' => $request->ssn,
+                'clsm' => $request->clsm,
+                'clsa' => $request->clsa,
+                'sid' => $request->sid,
+            ],
+            [
+                'stat' => $request->stat
+            ]
+        );
+
+        return response()->json([
+            'status' => true,
+            'message' => $request->stat == 1
+                ? 'Broadsheet UNLOCKED successfully'
+                : 'Broadsheet LOCKED successfully'
         ]);
     }
 
@@ -26294,6 +26437,21 @@ class ApiController extends Controller
 
         $clsm = $studentInfo->clsm;
         $clsa = $studentInfo->clsa;
+
+        // 🔒 Check if broadsheet is locked for this class/arm
+        $control = broadsheet_control::where('schid', $schid)
+            ->where('sid', $stid)
+            ->where('ssn', $ssn)
+            ->where('clsm', $clsm)
+            ->where('clsa', $clsa)
+            ->first();
+
+        if ($control && $control->stat == 0) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Broadsheet is locked for this class.'
+            ], 403);
+        }
 
         // Step 2: Get dynamic grading
         $grades = sch_grade::where('schid', $schid)
