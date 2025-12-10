@@ -28916,14 +28916,14 @@ public function getOldStudentsAndSubjectScoreSheet($schid, $ssn, $trm, $clsm, $c
         $subjectPositions = [];
         $subjectAverages = [];
 
-        $control = broadsheet_control::where('schid', $schid)
-            ->where('ssn', $ssn)
-             ->where('sid', $stid) // 👈 VERY IMPORTANT
-            ->where('clsm', $clsm)
-            ->where('clsa', $clsa)
-            ->first();
+        // $control = broadsheet_control::where('schid', $schid)
+        //     ->where('ssn', $ssn)
+        //      ->where('sid', $stid) // 👈 VERY IMPORTANT
+        //     ->where('clsm', $clsm)
+        //     ->where('clsa', $clsa)
+        //     ->first();
 
-        $broadsheetStat = $control->stat ?? 1;  // default = unlocked
+        // $broadsheetStat = $control->stat ?? 1;  // default = unlocked
 
 
         // Process each subject
@@ -29030,6 +29030,17 @@ public function getOldStudentsAndSubjectScoreSheet($schid, $ssn, $trm, $clsm, $c
 
         foreach ($students as $std) {
             $stid = $std->sid;
+
+        $control = broadsheet_control::where('schid', $schid)
+        ->where('ssn', $ssn)
+        ->where('sid', $stid)
+        ->where('clsm', $clsm)
+        ->where('clsa', $clsa)
+        ->first();
+
+        $broadsheetStat = $control->stat ?? 1;
+
+
 
             // skip students with no average
             if (!isset($finalAverages[$stid]))
