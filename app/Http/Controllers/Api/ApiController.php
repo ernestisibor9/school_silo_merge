@@ -10654,18 +10654,6 @@ class ApiController extends Controller
             ->where("stid", $user_id)
             ->first();
 
-        // Get FINAL AVERAGE GRADE
-        $finalAvg = $rinfo->avg ?? 0;
-
-        $grade = $this->getFinalAverageGrade(
-            $schid,
-            $ssn,
-            $trm,
-            $clsm,
-            $finalAvg
-        );
-
-
         $res = student_res::where([
             ['schid', $schid],
             ['ssn', $ssn],
@@ -10716,7 +10704,6 @@ class ApiController extends Controller
             'present_days' => $presentCount,
             'absent_days' => $absentCount,
             'spos' => $positions, // Subject positions
-            'final_avg_grade' => $grade,
         ];
 
         return response()->json([
@@ -10724,22 +10711,6 @@ class ApiController extends Controller
             "message" => "Success",
             "pld" => $pld,
         ]);
-    }
-
-
-
-    private function getFinalAverageGrade($schid, $ssn, $trm, $clsm, $finalAverage)
-    {
-        // Convert 79.6 → 79
-        $score = floor($finalAverage);
-
-        return sch_grade::where('schid', $schid)
-            ->where('clsid', $clsm)
-            ->where('ssn', $ssn)
-            ->where('trm', $trm)
-            ->where('g0', '<=', $score)
-            ->where('g1', '>=', $score)
-            ->value('grd');
     }
 
 
