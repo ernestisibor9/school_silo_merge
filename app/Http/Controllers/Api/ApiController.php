@@ -8408,7 +8408,8 @@ class ApiController extends Controller
             $user_id = $std->sid;
 
             // Get all subjects assigned to the student
-            $studentSubjects = student_subj::where('stid', $user_id)->get();
+            $studentSubjects = student_subj::where('stid', $user_id)
+            ->get();
 
             $mySbjs = [];
             $scores = [];
@@ -8656,22 +8657,6 @@ class ApiController extends Controller
 
 public function getOldStudentsAndSubjectScoreSheet($schid, $ssn, $trm, $clsm, $clsa, $stf)
 {
-    /* ----------------------------------------------------------
-     | 🔒 1. Check if Broadsheet for this class is locked
-     ---------------------------------------------------------- */
-    $control = broadsheet_control::where('schid', $schid)
-        ->where('ssn', $ssn)
-        ->where('clsm', $clsm)
-        ->where('clsa', $clsa)
-        ->first();
-
-    if ($control && $control->stat == 0) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Broadsheet is locked for this class.'
-        ], 403);
-    }
-
     /* ----------------------------------------------------------
      | 2. Fetch Students (EXACT session, term, class, arm)
      ---------------------------------------------------------- */
@@ -26619,7 +26604,7 @@ public function getOldStudentsAndSubjectScoreSheet($schid, $ssn, $trm, $clsm, $c
         if ($control && $control->stat == 0) {
             return response()->json([
                 'status' => false,
-                'message' => 'Broadsheet is locked for this class.'
+                'message' => 'Broadsheet is locked for this student.'
             ], 403);
         }
 
