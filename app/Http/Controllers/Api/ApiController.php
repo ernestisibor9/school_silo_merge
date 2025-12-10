@@ -26601,7 +26601,7 @@ public function getOldStudentsAndSubjectScoreSheet($schid, $ssn, $trm, $clsm, $c
             ->where('clsa', $clsa)
             ->first();
 
-        if ($control && $control->stat == 0) {
+        if ($control->stat == 0) {
             return response()->json([
                 'status' => false,
                 'message' => 'Broadsheet is locked for this student.'
