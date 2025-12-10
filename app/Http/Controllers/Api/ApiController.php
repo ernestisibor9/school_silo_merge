@@ -28918,6 +28918,7 @@ public function getOldStudentsAndSubjectScoreSheet($schid, $ssn, $trm, $clsm, $c
 
         $control = broadsheet_control::where('schid', $schid)
             ->where('ssn', $ssn)
+             ->where('sid', $stid) // 👈 VERY IMPORTANT
             ->where('clsm', $clsm)
             ->where('clsa', $clsa)
             ->first();
