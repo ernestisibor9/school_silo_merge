@@ -21,6 +21,7 @@ class old_student extends Model
         'trm',
         'clsm',
         'clsa',
+        'cls_sbj_students',
         'adm_ssn',
         'adm_trm',
         'cls_of_adm',
