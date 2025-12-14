@@ -12449,17 +12449,17 @@ class ApiController extends Controller
 
         $payload = $request->input('payload'); // may be string or array
 
-if (is_string($payload)) {
-    $payload = json_decode($payload, true);
-}
+        if (is_string($payload)) {
+            $payload = json_decode($payload, true);
+        }
 
-// fallback if it's still empty
-$payload = $payload ?? json_decode($request->getContent(), true);
+        // fallback if it's still empty
+        $payload = $payload ?? json_decode($request->getContent(), true);
 
         /////////////////////////////////////////////////////
 
         //   $payload = json_decode($request->getContent(), true);
-       // $payload = json_decode($request->input('payload'), true);
+        // $payload = json_decode($request->input('payload'), true);
 
         // Verify Paystack event type
         if (!isset($payload['event']) || $payload['event'] !== "charge.success") {
@@ -12512,9 +12512,10 @@ $payload = $payload ?? json_decode($request->getContent(), true);
                     'clsid' => $clsid,
                     'ssn' => $ssnid,
                     'trm' => $trmid,
-                    'amt' => intval($totalAmountPaid ?? $amt),
+                    'amt' => intval($totalAmountPaid),
                 ]
             );
+
         }
 
         //  Extract metadata
