@@ -12470,6 +12470,7 @@ class ApiController extends Controller
         //  Parse identifiers from reference
         $payinfo = explode('-', $ref);
         [$host, $schid, $amt, $typ, $stid, $ssnid, $trmid, $clsid] = $payinfo;
+        $totalAmountPaid = ($payload['data']['amount'] ?? ($amt * 100)) / 100;
 
         $what = '';
 
@@ -12511,7 +12512,7 @@ class ApiController extends Controller
         $eml = $metadata['eml'] ?? '';
         $tm = $metadata['time'] ?? now()->timestamp;
 
-        $totalAmountPaid = ($payload['data']['amount'] ?? ($amt * 100)) / 100;
+        // $totalAmountPaid = ($payload['data']['amount'] ?? ($amt * 100)) / 100;
 
         //  Get split data (from webhook or stored reference)
         $splitData = $payload['data']['split']['subaccounts'] ?? [];
@@ -12571,8 +12572,7 @@ class ApiController extends Controller
                     'lid' => $lid,
                     'subaccount_code' => $subCode,
                     'main_ref' => $ref,
-                    'total_split_amount' => $totalSplitAmount,
-                    'email' => $eml,
+                    'total_split_amount' => $totalSplitAmount, // total amount paid (₦500, ₦1000, etc.)
                 ]);
 
                 Log::info("Recorded subaccount {$subCode} share: ₦{$subShare}");
@@ -12591,8 +12591,7 @@ class ApiController extends Controller
                 'exp' => $exp,
                 'amt' => $totalAmountPaid,
                 'lid' => $lid,
-                'main_ref' => $ref,
-                'email' => $eml,
+                'main_ref' => $ref
             ]);
 
             Log::info("Non-split payment recorded for ref {$ref}");
