@@ -12496,8 +12496,8 @@ class ApiController extends Controller
                     'stid' => $stid,
                     'schid' => $schid,
                     'clsid' => $clsid,
-                    'ssnid' => $ssnid,
-                    'trmid' => $trmid,
+                    'ssn' => $ssnid,
+                    'trm' => $trmid,
                     'amt' => intval($totalAmountPaid ?? $amt),
                 ]
             );
