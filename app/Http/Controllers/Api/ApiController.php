@@ -7207,154 +7207,157 @@ class ApiController extends Controller
     // }
 
 
-public function getOldStudentsAndSubjectHistory($schid, $ssn, $trm, $clsm, $clsa, $stf)
-{
-    $ostd = [];
-    if ($clsa == '-1') {
-        $ostd = old_student::where("schid", $schid)
-            ->where("ssn", $ssn)
-            ->where("trm", $trm)
-            ->where('status', 'active')
-            ->where("clsm", $clsm)
-            ->get();
-    } else {
-        $ostd = old_student::where("schid", $schid)
-            ->where("ssn", $ssn)
-            ->where("trm", $trm)
-            ->where('status', 'active')
-            ->where("clsm", $clsm)
-            ->where("clsa", $clsa)
-            ->get();
-    }
-
-    $stdPld = [];
-    $relevantSubjects = [];
-    $clsSbj = [];
-
-    foreach ($ostd as $std) {
-        $user_id = $std->sid;
-        $mySbjs = [];
-
-        $allScores = std_score::where('stid', $user_id)
-            ->where("schid", $schid)
-            ->where("ssn", $ssn)
-            ->where("trm", $trm)
-            ->where("clsid", $clsm)
-            ->whereNotNull('scr')
-            ->where('scr', '>', 0)
-            ->get();
-
-        /* ===================== CORRECT AVERAGE & GRADE LOGIC ===================== */
-        $subjectTotals = [];
-
-        foreach ($allScores as $score) {
-            $sbj = $score->sbj;
-
-            if (!isset($subjectTotals[$sbj])) {
-                $subjectTotals[$sbj] = 0;
-            }
-
-            // SUM all scores per subject (CA + Exam)
-            $subjectTotals[$sbj] += $score->scr;
+    public function getOldStudentsAndSubjectHistory($schid, $ssn, $trm, $clsm, $clsa, $stf)
+    {
+        $ostd = [];
+        if ($clsa == '-1') {
+            $ostd = old_student::where("schid", $schid)
+                ->where("ssn", $ssn)
+                ->where("trm", $trm)
+                ->where('status', 'active')
+                ->where("clsm", $clsm)
+                ->get();
+        } else {
+            $ostd = old_student::where("schid", $schid)
+                ->where("ssn", $ssn)
+                ->where("trm", $trm)
+                ->where('status', 'active')
+                ->where("clsm", $clsm)
+                ->where("clsa", $clsa)
+                ->get();
         }
 
-        // Average of SUBJECT TOTALS (NOT raw scores)
-        $average = 0;
-        if (count($subjectTotals) > 0) {
-            $average = array_sum($subjectTotals) / count($subjectTotals);
-        }
+        $stdPld = [];
+        $relevantSubjects = [];
+        $clsSbj = [];
 
-        $grade = \DB::table('sch_grade')
-            ->where('schid', $schid)
-            ->where('clsid', $clsm)
-            ->where('ssn', $ssn)
-            ->where('trm', $trm)
-            ->where('g0', '<=', $average)
-            ->where('g1', '>=', $average)
-            ->value('grd');
-        /* ===================== END CORRECT LOGIC ===================== */
+        foreach ($ostd as $std) {
+            $user_id = $std->sid;
+            $mySbjs = [];
 
-        foreach ($allScores as $scr) {
-            if (!in_array($scr->sbj, $mySbjs)) {
-                $mySbjs[] = $scr->sbj;
+            $allScores = std_score::where('stid', $user_id)
+                ->where("schid", $schid)
+                ->where("ssn", $ssn)
+                ->where("trm", $trm)
+                ->where("clsid", $clsm)
+                ->whereNotNull('scr')
+                ->where('scr', '>', 0)
+                ->get();
+
+            /* ===================== CORRECT AVERAGE & GRADE LOGIC ===================== */
+            $subjectTotals = [];
+
+            foreach ($allScores as $score) {
+                $sbj = $score->sbj;
+
+                if (!isset($subjectTotals[$sbj])) {
+                    $subjectTotals[$sbj] = 0;
+                }
+
+                // SUM all scores per subject (CA + Exam)
+                $subjectTotals[$sbj] += $score->scr;
             }
-            if (!in_array($scr->sbj, $relevantSubjects)) {
-                $schSbj = subj::select('id', 'name', 'created_at', 'updated_at')
-                    ->where('id', $scr->sbj)
-                    ->first();
-                if ($schSbj) {
-                    $clsSbj[] = $schSbj;
-                    $relevantSubjects[] = $scr->sbj;
+
+            // Average of SUBJECT TOTALS (NOT raw scores)
+            $average = 0;
+            if (count($subjectTotals) > 0) {
+                $average = array_sum($subjectTotals) / count($subjectTotals);
+            }
+
+            $avgForGrade = (int) floor($average);
+
+            $grade = \DB::table('sch_grade')
+                ->where('schid', $schid)
+                ->where('clsid', $clsm)
+                ->where('ssn', $ssn)
+                ->where('trm', $trm)
+                ->where('g0', '<=', $avgForGrade)
+                ->where('g1', '>=', $avgForGrade)
+                ->value('grd');
+
+            /* ===================== END CORRECT LOGIC ===================== */
+
+            foreach ($allScores as $scr) {
+                if (!in_array($scr->sbj, $mySbjs)) {
+                    $mySbjs[] = $scr->sbj;
+                }
+                if (!in_array($scr->sbj, $relevantSubjects)) {
+                    $schSbj = subj::select('id', 'name', 'created_at', 'updated_at')
+                        ->where('id', $scr->sbj)
+                        ->first();
+                    if ($schSbj) {
+                        $clsSbj[] = $schSbj;
+                        $relevantSubjects[] = $scr->sbj;
+                    }
                 }
             }
-        }
 
-        $subjectScores = [];
-        foreach ($mySbjs as $sbid) {
-            $subjectScores[$sbid] = [];
-        }
+            $subjectScores = [];
+            foreach ($mySbjs as $sbid) {
+                $subjectScores[$sbid] = [];
+            }
 
-        foreach ($allScores as $scr) {
-            $subjectScores[$scr->sbj][] = $scr;
-        }
+            foreach ($allScores as $scr) {
+                $subjectScores[$scr->sbj][] = $scr;
+            }
 
-        $scores = [];
-        foreach ($mySbjs as $sbid) {
-            $scores[] = [
-                'sbid' => $sbid,
-                'scores' => $subjectScores[$sbid]
+            $scores = [];
+            foreach ($mySbjs as $sbid) {
+                $scores[] = [
+                    'sbid' => $sbid,
+                    'scores' => $subjectScores[$sbid]
+                ];
+            }
+
+            $psy = false;
+            $res = "0";
+            $rinfo = [];
+
+            if ($stf == "-2") {
+                $psy = student_psy::where("schid", $schid)
+                    ->where("ssn", $ssn)
+                    ->where("trm", $trm)
+                    ->where("clsm", $clsm)
+                    ->where("stid", $user_id)
+                    ->exists();
+
+                $rinfo = student_res::where("schid", $schid)
+                    ->where("ssn", $ssn)
+                    ->where("trm", $trm)
+                    ->where("clsm", $clsm)
+                    ->where("stid", $user_id)
+                    ->first();
+
+                if ($rinfo) {
+                    $res = $rinfo->stat;
+                }
+            }
+
+            $stdPld[] = [
+                'std' => $std,
+                'sbj' => $mySbjs,
+                'scr' => $scores,
+                'avg' => round($average, 2),
+                'grade' => $grade,
+                'psy' => $psy,
+                'res' => $res,
+                'rinfo' => $rinfo,
             ];
         }
 
-        $psy = false;
-        $res = "0";
-        $rinfo = [];
+        $clsSbj = collect($clsSbj)->unique('id')->values();
 
-        if ($stf == "-2") {
-            $psy = student_psy::where("schid", $schid)
-                ->where("ssn", $ssn)
-                ->where("trm", $trm)
-                ->where("clsm", $clsm)
-                ->where("stid", $user_id)
-                ->exists();
-
-            $rinfo = student_res::where("schid", $schid)
-                ->where("ssn", $ssn)
-                ->where("trm", $trm)
-                ->where("clsm", $clsm)
-                ->where("stid", $user_id)
-                ->first();
-
-            if ($rinfo) {
-                $res = $rinfo->stat;
-            }
-        }
-
-        $stdPld[] = [
-            'std' => $std,
-            'sbj' => $mySbjs,
-            'scr' => $scores,
-            'avg' => round($average, 2),
-            'grade' => $grade,
-            'psy' => $psy,
-            'res' => $res,
-            'rinfo' => $rinfo,
+        $pld = [
+            'std-pld' => $stdPld,
+            'cls-sbj' => $clsSbj
         ];
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld,
+        ]);
     }
-
-    $clsSbj = collect($clsSbj)->unique('id')->values();
-
-    $pld = [
-        'std-pld' => $stdPld,
-        'cls-sbj' => $clsSbj
-    ];
-
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => $pld,
-    ]);
-}
 
 
 
