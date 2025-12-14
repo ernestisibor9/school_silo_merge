@@ -7207,7 +7207,7 @@ class ApiController extends Controller
     // }
 
 
-    public function getOldStudentsAndSubjectHistory($schid, $ssn, $trm, $clsm, $clsa, $stf)
+public function getOldStudentsAndSubjectHistory($schid, $ssn, $trm, $clsm, $clsa, $stf)
 {
     $ostd = [];
     if ($clsa == '-1') {
@@ -7235,7 +7235,6 @@ class ApiController extends Controller
         $user_id = $std->sid;
         $mySbjs = [];
 
-        // Get all scores where score > 0
         $allScores = std_score::where('stid', $user_id)
             ->where("schid", $schid)
             ->where("ssn", $ssn)
@@ -7245,30 +7244,24 @@ class ApiController extends Controller
             ->where('scr', '>', 0)
             ->get();
 
-        /* ===================== AVERAGE & GRADE LOGIC ===================== */
+        /* ===================== CORRECT AVERAGE & GRADE LOGIC ===================== */
         $subjectTotals = [];
-        $subjectCounts = [];
 
         foreach ($allScores as $score) {
             $sbj = $score->sbj;
 
             if (!isset($subjectTotals[$sbj])) {
                 $subjectTotals[$sbj] = 0;
-                $subjectCounts[$sbj] = 0;
             }
 
+            // SUM all scores per subject (CA + Exam)
             $subjectTotals[$sbj] += $score->scr;
-            $subjectCounts[$sbj] += 1;
         }
 
-        $subjectAverages = [];
-        foreach ($subjectTotals as $sbj => $total) {
-            $subjectAverages[] = $total / $subjectCounts[$sbj];
-        }
-
+        // Average of SUBJECT TOTALS (NOT raw scores)
         $average = 0;
-        if (count($subjectAverages) > 0) {
-            $average = array_sum($subjectAverages) / count($subjectAverages);
+        if (count($subjectTotals) > 0) {
+            $average = array_sum($subjectTotals) / count($subjectTotals);
         }
 
         $grade = \DB::table('sch_grade')
@@ -7279,7 +7272,7 @@ class ApiController extends Controller
             ->where('g0', '<=', $average)
             ->where('g1', '>=', $average)
             ->value('grd');
-        /* ===================== END AVERAGE & GRADE ===================== */
+        /* ===================== END CORRECT LOGIC ===================== */
 
         foreach ($allScores as $scr) {
             if (!in_array($scr->sbj, $mySbjs)) {
@@ -7296,7 +7289,6 @@ class ApiController extends Controller
             }
         }
 
-        // Organize scores by subject
         $subjectScores = [];
         foreach ($mySbjs as $sbid) {
             $subjectScores[$sbid] = [];
@@ -7350,7 +7342,6 @@ class ApiController extends Controller
         ];
     }
 
-    // Remove duplicate subjects
     $clsSbj = collect($clsSbj)->unique('id')->values();
 
     $pld = [
