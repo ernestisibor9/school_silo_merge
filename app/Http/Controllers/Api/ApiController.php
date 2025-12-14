@@ -12445,7 +12445,20 @@ class ApiController extends Controller
     {
         Log::info('------------ PAYSTACK CALLBACK ARRIVED -----------');
 
-           $payload = json_decode($request->getContent(), true);
+        //////////////////////////////////////////////////////
+
+        $payload = $request->input('payload'); // may be string or array
+
+if (is_string($payload)) {
+    $payload = json_decode($payload, true);
+}
+
+// fallback if it's still empty
+$payload = $payload ?? json_decode($request->getContent(), true);
+
+        /////////////////////////////////////////////////////
+
+        //   $payload = json_decode($request->getContent(), true);
        // $payload = json_decode($request->input('payload'), true);
 
         // Verify Paystack event type
