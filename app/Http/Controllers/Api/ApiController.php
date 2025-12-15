@@ -25374,12 +25374,12 @@ public function rePromoteStudent(Request $request)
         ->where('clsid', $request->clsm)
         ->exists();
 
-    if ($hasScores) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Cannot re-promote student: scores/results already exist for this class, session, and term.',
-        ], 422);
-    }
+    // if ($hasScores) {
+    //     return response()->json([
+    //         'status' => false,
+    //         'message' => 'Cannot re-promote student: scores/results already exist for this class, session, and term.',
+    //     ], 422);
+    // }
 
     $uid = $request->sesn . $request->trm . $request->sid . $request->clsm;
 
