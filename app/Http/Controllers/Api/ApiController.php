@@ -10939,6 +10939,7 @@ class ApiController extends Controller
                     'clsid' => $account->clsid,
                     'ssn' => $account->ssn,
                     'trm' => $account->trm,
+                    'pay_head_id' => $account->pay_head_id,
                     'subaccount_code' => $data['data']['subaccount_code'],
                     'percentage_charge' => $percentage_charge,
                 ]);
@@ -11105,6 +11106,7 @@ class ApiController extends Controller
             'subaccount_code' => 'required|array|min:1',
             'metadata' => 'required|array',
             'type' => 'nullable|string', // 'flat' or 'percentage'
+            'payhead_id' => 'required',
         ]);
 
         $email = $request->email;
@@ -11114,6 +11116,8 @@ class ApiController extends Controller
         $subaccounts = $request->subaccount_code;
         $metadata = $request->metadata;
         $splitType = $request->type ?? 'percentage';
+        $payheadId = $request->payhead_id;
+
 
         try {
             $totalAmountKobo = $amount * 100;
@@ -11158,6 +11162,7 @@ class ApiController extends Controller
                 'clsid' => $clsid,
                 'schid' => $schid,
                 'typ' => $typ,
+                'payhead_id' => $payheadId,   // ✅ ADD THIS
                 'name' => $metadata['name'] ?? '',
                 'exp' => $metadata['exp'] ?? '',
                 'eml' => $email,
@@ -12662,6 +12667,7 @@ class ApiController extends Controller
 
         //  Extract metadata
         $metadata = $payload['data']['metadata'] ?? [];
+        $payheadId = $metadata['payhead_id'] ?? null;
         $nm = $metadata['name'] ?? '';
         $exp = $metadata['exp'] ?? '';
         $lid = $metadata['lid'] ?? '';
@@ -12725,6 +12731,7 @@ class ApiController extends Controller
                     'exp' => $exp,
                     'amt' => $totalSplitAmount,
                     'share' => $subShare,         // each subaccount share (₦200, ₦300, etc.)
+                    'pay_head' => $payheadId,   // ✅ HERE
                     'lid' => $lid,
                     'subaccount_code' => $subCode,
                     'main_ref' => $ref,
@@ -12745,6 +12752,7 @@ class ApiController extends Controller
                 'clsid' => $clsid,
                 'name' => $nm,
                 'exp' => $exp,
+                'pay_head' => $payheadId,   // ✅ HERE
                 'amt' => $totalAmountPaid,
                 'lid' => $lid,
                 'main_ref' => $ref
@@ -25341,98 +25349,98 @@ class ApiController extends Controller
     //     ]);
     // }
 
-public function rePromoteStudent(Request $request)
-{
-    $request->validate([
-        'sid' => 'required',
-        'schid' => 'required',
-        'sesn' => 'required',
-        'trm' => 'required',
-        'clsm' => 'required',
-        'clsa' => 'required',
-        'suid' => 'required',
-    ]);
-
-    $student = student::where('sid', $request->sid)->firstOrFail();
-
-    $validArm = DB::table('sch_cls')
-        ->where('id', $request->clsa)
-        ->where('cls_id', $request->clsm)
-        ->where('schid', $request->schid)
-        ->first();
-
-    if (!$validArm) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Invalid class arm for the selected class',
-        ], 422);
-    }
-
-    $hasScores = std_score::where('stid', $request->sid)
-        ->where('ssn', $request->sesn)
-        ->where('trm', $request->trm)
-        ->where('clsid', $request->clsm)
-        ->exists();
-
-    // if ($hasScores) {
-    //     return response()->json([
-    //         'status' => false,
-    //         'message' => 'Cannot re-promote student: scores/results already exist for this class, session, and term.',
-    //     ], 422);
-    // }
-
-    $uid = $request->sesn . $request->trm . $request->sid . $request->clsm;
-
-    // ✅ FIXED DELETE LOGIC
-    old_student::where('sid', $request->sid)
-        ->where('ssn', $request->sesn)
-        ->where('trm', $request->trm)
-        ->where(function ($q) use ($request) {
-            $q->where('clsm', '!=', $request->clsm)
-              ->where('clsa', '!=', $request->clsa);
-        })
-        ->delete();
-
-    $promotion = old_student::updateOrCreate(
-        [
-            'sid' => $request->sid,
-            'ssn' => $request->sesn,
-            'trm' => $request->trm,
-        ],
-        [
-            'uid' => $uid,
-            'schid' => $request->schid,
-            'fname' => $student->fname,
-            'mname' => $student->mname,
-            'lname' => $student->lname,
-            'status' => 'active',
-            'suid' => $request->suid,
-            'clsm' => $request->clsm,
-            'clsa' => $validArm->id,
-            'more' => '',
-        ]
-    );
-
-    student_academic_data::where('user_id', $request->sid)
-        ->update([
-            'new_class_main' => $request->clsm,
-            'new_class' => $validArm->id,
+    public function rePromoteStudent(Request $request)
+    {
+        $request->validate([
+            'sid' => 'required',
+            'schid' => 'required',
+            'sesn' => 'required',
+            'trm' => 'required',
+            'clsm' => 'required',
+            'clsa' => 'required',
+            'suid' => 'required',
         ]);
 
-    return response()->json([
-        'status' => true,
-        'message' => 'Student re-promoted successfully for this term',
-        'data' => [
-            'sid' => $promotion->sid,
-            'suid' => $promotion->suid,
-            'ssn' => $promotion->ssn,
-            'trm' => $promotion->trm,
-            'clsm' => $promotion->clsm,
-            'clsa' => $promotion->clsa,
-            'clsa_name' => $validArm->name,
-        ],
-    ]);
-}
+        $student = student::where('sid', $request->sid)->firstOrFail();
+
+        $validArm = DB::table('sch_cls')
+            ->where('id', $request->clsa)
+            ->where('cls_id', $request->clsm)
+            ->where('schid', $request->schid)
+            ->first();
+
+        if (!$validArm) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Invalid class arm for the selected class',
+            ], 422);
+        }
+
+        $hasScores = std_score::where('stid', $request->sid)
+            ->where('ssn', $request->sesn)
+            ->where('trm', $request->trm)
+            ->where('clsid', $request->clsm)
+            ->exists();
+
+        // if ($hasScores) {
+        //     return response()->json([
+        //         'status' => false,
+        //         'message' => 'Cannot re-promote student: scores/results already exist for this class, session, and term.',
+        //     ], 422);
+        // }
+
+        $uid = $request->sesn . $request->trm . $request->sid . $request->clsm;
+
+        // ✅ FIXED DELETE LOGIC
+        old_student::where('sid', $request->sid)
+            ->where('ssn', $request->sesn)
+            ->where('trm', $request->trm)
+            ->where(function ($q) use ($request) {
+                $q->where('clsm', '!=', $request->clsm)
+                    ->where('clsa', '!=', $request->clsa);
+            })
+            ->delete();
+
+        $promotion = old_student::updateOrCreate(
+            [
+                'sid' => $request->sid,
+                'ssn' => $request->sesn,
+                'trm' => $request->trm,
+            ],
+            [
+                'uid' => $uid,
+                'schid' => $request->schid,
+                'fname' => $student->fname,
+                'mname' => $student->mname,
+                'lname' => $student->lname,
+                'status' => 'active',
+                'suid' => $request->suid,
+                'clsm' => $request->clsm,
+                'clsa' => $validArm->id,
+                'more' => '',
+            ]
+        );
+
+        student_academic_data::where('user_id', $request->sid)
+            ->update([
+                'new_class_main' => $request->clsm,
+                'new_class' => $validArm->id,
+            ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Student re-promoted successfully for this term',
+            'data' => [
+                'sid' => $promotion->sid,
+                'suid' => $promotion->suid,
+                'ssn' => $promotion->ssn,
+                'trm' => $promotion->trm,
+                'clsm' => $promotion->clsm,
+                'clsa' => $promotion->clsa,
+                'clsa_name' => $validArm->name,
+            ],
+        ]);
+    }
 
 
 
