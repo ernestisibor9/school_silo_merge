@@ -12791,8 +12791,8 @@ class ApiController extends Controller
         Log::info('------------ PAYSTACK CALLBACK ARRIVED -----------');
 
         // Decode webhook payload
-        $payload = json_decode($request->getContent(), true);
-      //  $payload = json_decode($request->input('payload'), true);
+       // $payload = json_decode($request->getContent(), true);
+       $payload = json_decode($request->input('payload'), true);
 
         // Verify event type
         if (!isset($payload['event']) || $payload['event'] !== "charge.success") {
