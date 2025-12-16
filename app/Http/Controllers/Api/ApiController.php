@@ -10982,72 +10982,117 @@ class ApiController extends Controller
     }
 
 
-    public function createOrGetSplit(int $schid, int $clsid, array $subaccounts, string $splitType = 'percentage'): array
-    {
-        // Check if a split already exists for this school/class
-        $existing = subaccount_split::where('schid', $schid)
-            ->where('clsid', $clsid)
-            ->first();
+public function createOrGetSplit(int $schid, int $clsid, array $subaccounts, string $splitType = 'percentage'): array
+{
+    // Check if a split already exists for this school/class
+    $existing = subaccount_split::where('schid', $schid)
+        ->where('clsid', $clsid)
+        ->first();
 
-        if ($existing && !empty($existing->split_code)) {
+    if ($existing && !empty($existing->split_code)) {
+        return [
+            'split_code' => $existing->split_code,
+            'total_amount' => null, // Let Paystack handle the actual total during transaction
+            'subaccounts' => $subaccounts
+        ];
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | MERGE DUPLICATE SUBACCOUNTS (VERY IMPORTANT)
+    |--------------------------------------------------------------------------
+    */
+    $merged = [];
+
+    foreach ($subaccounts as $acc) {
+        $code  = $acc['subaccount'];
+        $share = floatval($acc['share']);
+
+        if (!isset($merged[$code])) {
+            $merged[$code] = [
+                'subaccount' => $code,
+                'share' => $share,
+            ];
+        } else {
+            $merged[$code]['share'] += $share;
+        }
+    }
+
+    $subaccounts = array_values($merged);
+
+    /*
+    |--------------------------------------------------------------------------
+    | VALIDATE & NORMALIZE SHARES
+    |--------------------------------------------------------------------------
+    */
+    if ($splitType === 'flat') {
+        $totalShares = collect($subaccounts)->sum('share');
+
+        if ($totalShares <= 0) {
+            throw new \Exception('Invalid flat split shares');
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | NORMALIZE SUBACCOUNT SHARES BASED ON SPLIT TYPE
+    |--------------------------------------------------------------------------
+    */
+    foreach ($subaccounts as &$acc) {
+        if ($splitType === 'flat') {
+            // Convert Naira to Kobo (Paystack expects kobo for flat split)
+            $acc['share'] = intval(round($acc['share'])) * 100;
+        } else {
+            // Percentage split (Paystack expects float)
+            $acc['share'] = floatval($acc['share']);
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | PREPARE PAYSTACK PAYLOAD
+    |--------------------------------------------------------------------------
+    */
+    $payload = [
+        'name' => "Split-{$schid}-{$clsid}-" . uniqid(),
+        'type' => $splitType,
+        'currency' => 'NGN',
+        'subaccounts' => $subaccounts,
+        'bearer_type' => 'account',
+    ];
+
+    try {
+        $response = Http::withToken(env('PAYSTACK_SECRET'))
+            ->post('https://api.paystack.co/split', $payload);
+
+        $respData = $response->json();
+
+        if ($response->successful() && isset($respData['data']['split_code'])) {
+            $splitCode = $respData['data']['split_code'];
+
+            // Save split to DB
+            subaccount_split::create([
+                'schid' => $schid,
+                'clsid' => $clsid,
+                'split_code' => $splitCode,
+            ]);
+
             return [
-                'split_code' => $existing->split_code,
-                'total_amount' => null, // Let Paystack handle the actual total during transaction
+                'split_code' => $splitCode,
+                'total_amount' => null, // Paystack will compute this dynamically
                 'subaccounts' => $subaccounts
             ];
         }
 
-        // Normalize subaccount shares based on split type
-        foreach ($subaccounts as &$acc) {
-            if ($splitType === 'flat') {
-                // Convert Naira to Kobo if using flat split
-                $acc['share'] = intval($acc['share']) * 100;
-            } else {
-                // Keep as percentage if split type is 'percentage'
-                $acc['share'] = floatval($acc['share']);
-            }
-        }
+        // Log Paystack response for debugging
+        Log::error('Paystack Split Error: ' . $response->body());
+        throw new \Exception('Error creating split: ' . $response->body());
 
-        // Prepare payload for Paystack
-        $payload = [
-            'name' => "Split-{$schid}-{$clsid}-" . uniqid(),
-            'type' => $splitType,
-            'currency' => 'NGN',
-            'subaccounts' => $subaccounts,
-            'bearer_type' => 'account',
-        ];
-
-        try {
-            $response = Http::withToken(env('PAYSTACK_SECRET'))
-                ->post('https://api.paystack.co/split', $payload);
-
-            $respData = $response->json();
-
-            if ($response->successful() && isset($respData['data']['split_code'])) {
-                $splitCode = $respData['data']['split_code'];
-
-                // Save split to DB
-                subaccount_split::create([
-                    'schid' => $schid,
-                    'clsid' => $clsid,
-                    'split_code' => $splitCode,
-                ]);
-
-                return [
-                    'split_code' => $splitCode,
-                    'total_amount' => null, // Paystack will compute this dynamically
-                    'subaccounts' => $subaccounts
-                ];
-            }
-
-            // Log Paystack response for debugging
-            Log::error('Paystack Split Error: ' . $response->body());
-            throw new \Exception('Error creating split: ' . $response->body());
-        } catch (\Exception $e) {
-            Log::error('Paystack Split Exception: ' . $e->getMessage());
-            throw new \Exception('Failed to create Paystack split: ' . $e->getMessage());
-        }
+    } catch (\Exception $e) {
+        Log::error('Paystack Split Exception: ' . $e->getMessage());
+        throw new \Exception('Failed to create Paystack split: ' . $e->getMessage());
     }
+}
 
 
 
