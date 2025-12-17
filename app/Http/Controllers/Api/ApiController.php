@@ -12215,23 +12215,57 @@ class ApiController extends Controller
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
+    // public function getClassPays($schid, $clsid, $sesid, $trmid)
+    // {
+    //     $start = 0;
+    //     $count = 20;
+    //     if (request()->has('start') && request()->has('count')) {
+    //         $start = request()->input('start');
+    //         $count = request()->input('count');
+    //     }
+    //     $pld = clspay::where('schid', $schid)->where('clsid', $clsid)
+    //         ->where('sesid', $sesid)->where('trmid', $trmid)->skip($start)->take($count)->get();
+    //     // Respond
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => $pld,
+    //     ]);
+    // }
+
     public function getClassPays($schid, $clsid, $sesid, $trmid)
     {
-        $start = 0;
-        $count = 20;
-        if (request()->has('start') && request()->has('count')) {
-            $start = request()->input('start');
-            $count = request()->input('count');
-        }
-        $pld = clspay::where('schid', $schid)->where('clsid', $clsid)
-            ->where('sesid', $sesid)->where('trmid', $trmid)->skip($start)->take($count)->get();
-        // Respond
+        $start = request()->input('start', 0);
+        $count = request()->input('count', 20);
+
+        $pld = clspay::join('payhead', 'clspay.phid', '=', 'payhead.id')
+            ->where('clspay.schid', $schid)
+            ->where('clspay.clsid', $clsid)
+            ->where('clspay.sesid', $sesid)
+            ->where('clspay.trmid', $trmid)
+            ->select(
+                'clspay.id',
+                'clspay.schid',
+                'clspay.clsid',
+                'clspay.amt',
+                'clspay.phid',
+                'clspay.sesid',
+                'clspay.trmid',
+                'clspay.created_at',
+                'clspay.updated_at',
+                'payhead.name' // 👈 THIS IS THE ONLY ADDITION
+            )
+            ->skip($start)
+            ->take($count)
+            ->get();
+
         return response()->json([
             "status" => true,
             "message" => "Success",
             "pld" => $pld,
         ]);
     }
+
 
     /**
      * @OA\Get(
@@ -12794,8 +12828,8 @@ class ApiController extends Controller
         Log::info('------------ PAYSTACK CALLBACK ARRIVED -----------');
 
         // Decode webhook payload
-       // $payload = json_decode($request->getContent(), true);
-       $payload = json_decode($request->input('payload'), true);
+        // $payload = json_decode($request->getContent(), true);
+        $payload = json_decode($request->input('payload'), true);
 
         // Verify event type
         if (!isset($payload['event']) || $payload['event'] !== "charge.success") {
