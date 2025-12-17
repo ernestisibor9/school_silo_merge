@@ -11185,113 +11185,234 @@ class ApiController extends Controller
      */
 
 
+    // public function setAcct(Request $request)
+    // {
+    //     $request->validate([
+    //         'schid' => 'required',
+    //         'clsid' => 'required',
+    //         'anum' => 'required',
+    //         'bnk' => 'required',
+    //         'aname' => 'required',
+    //         'ssn' => 'required',
+    //         'trm' => 'required',
+    //         'pay_head_id' => 'nullable',
+    //     ]);
+
+    //     $data = [
+    //         'schid' => $request->schid,
+    //         'clsid' => $request->clsid,
+    //         'anum' => $request->anum,
+    //         'bnk' => $request->bnk,
+    //         'aname' => $request->aname,
+    //         'ssn' => $request->ssn,
+    //         'trm' => $request->trm,
+    //         'pay_head_id' => $request->pay_head_id ?? null,
+    //     ];
+
+    //     // If updating existing account
+    //     if ($request->has('id')) {
+    //         $acct = accts::find($request->id);
+    //         if ($acct) {
+    //             $acct->update($data);
+    //             return response()->json([
+    //                 "status" => true,
+    //                 "message" => "Account Updated",
+    //             ]);
+    //         } else {
+    //             return response()->json([
+    //                 "status" => false,
+    //                 "message" => "Account Not Found",
+    //             ], 404);
+    //         }
+    //     }
+
+    //     // Check if this schid & clsid already has a subaccount
+    //     $existingSubAcct = sub_account::where('schid', $request->schid)
+    //         ->where('clsid', $request->clsid)
+    //         ->where('ssn', $request->ssn)
+    //         ->where('trm', $request->trm)
+    //         ->where('pay_head_id', $request->pay_head_id)
+    //         ->first();
+
+    //     if ($existingSubAcct) {
+    //         return response()->json([
+    //             "status" => false,
+    //             "message" => "A subaccount already exists for this school and class.",
+    //         ], 409);
+    //     }
+
+    //     // Create main account
+    //     $acct = accts::create($data);
+
+    //     // Generate Paystack-required fields
+    //     $business_name = "Business_" . uniqid();
+    //     $percentage_charge = 0;
+    //     $settlement_bank = $request->bnk;
+
+    //     // Step 1: Create Paystack subaccount
+    //     $response = Http::withHeaders([
+    //         'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
+    //         'Content-Type' => 'application/json',
+    //     ])->post('https://api.paystack.co/subaccount', [
+    //                 'business_name' => $business_name,
+    //                 'account_number' => $request->anum,
+    //                 'bank_code' => $request->bnk,
+    //                 'percentage_charge' => $percentage_charge,
+    //                 'settlement_bank' => $settlement_bank,
+    //             ]);
+
+    //     if ($response->successful()) {
+    //         $data = $response->json();
+
+    //         // Step 2: Store subaccount details
+    //         sub_account::create([
+    //             'acct_id' => $acct->id,
+    //             'schid' => $request->schid,
+    //             'clsid' => $request->clsid,
+    //             'ssn' => $request->ssn,
+    //             'trm' => $request->trm,
+    //             'pay_head_id' => $request->pay_head_id ?? null,
+    //             'subaccount_code' => $data['data']['subaccount_code'],
+    //             'percentage_charge' => $percentage_charge,
+    //         ]);
+
+    //         return response()->json([
+    //             "status" => true,
+    //             "message" => "Account and Paystack Subaccount Created Successfully",
+    //             "paystack_data" => $data,
+    //         ]);
+    //     } else {
+    //         // Rollback main account creation if Paystack fails
+    //         $acct->delete();
+
+    //         return response()->json([
+    //             "status" => false,
+    //             "message" => "Failed to Create Paystack Subaccount",
+    //             "error" => $response->body(),
+    //         ], 400);
+    //     }
+    // }
+
+
     public function setAcct(Request $request)
-    {
-        $request->validate([
-            'schid' => 'required',
-            'clsid' => 'required',
-            'anum' => 'required',
-            'bnk' => 'required',
-            'aname' => 'required',
-            'ssn' => 'required',
-            'trm' => 'required',
-            'pay_head_id' => 'nullable',
-        ]);
+{
+    $request->validate([
+        'schid' => 'required',
+        'clsid' => 'required',
+        'anum' => 'required',
+        'bnk' => 'required',
+        'aname' => 'required',
+        'ssn' => 'required',
+        'trm' => 'required',
+        'pay_head_id' => 'nullable',
+    ]);
 
-        $data = [
-            'schid' => $request->schid,
-            'clsid' => $request->clsid,
-            'anum' => $request->anum,
-            'bnk' => $request->bnk,
-            'aname' => $request->aname,
-            'ssn' => $request->ssn,
-            'trm' => $request->trm,
-            'pay_head_id' => $request->pay_head_id ?? null,
-        ];
+    $data = [
+        'schid' => $request->schid,
+        'clsid' => $request->clsid,
+        'anum' => $request->anum,
+        'bnk' => $request->bnk,
+        'aname' => $request->aname,
+        'ssn' => $request->ssn,
+        'trm' => $request->trm,
+        'pay_head_id' => $request->pay_head_id ?? null,
+    ];
 
-        // If updating existing account
-        if ($request->has('id')) {
-            $acct = accts::find($request->id);
-            if ($acct) {
-                $acct->update($data);
-                return response()->json([
-                    "status" => true,
-                    "message" => "Account Updated",
-                ]);
-            } else {
-                return response()->json([
-                    "status" => false,
-                    "message" => "Account Not Found",
-                ], 404);
-            }
-        }
+    /*
+    |--------------------------------------------------------------------------
+    | DUPLICATE CHECK (clsid + pay_head_id)
+    |--------------------------------------------------------------------------
+    */
+    $dupQuery = accts::where('clsid', $request->clsid)
+        ->where('pay_head_id', $request->pay_head_id);
 
-        // Check if this schid & clsid already has a subaccount
-        $existingSubAcct = sub_account::where('schid', $request->schid)
-            ->where('clsid', $request->clsid)
-            ->where('ssn', $request->ssn)
-            ->where('trm', $request->trm)
-            ->where('pay_head_id', $request->pay_head_id)
-            ->first();
-
-        if ($existingSubAcct) {
-            return response()->json([
-                "status" => false,
-                "message" => "A subaccount already exists for this school and class.",
-            ], 409);
-        }
-
-        // Create main account
-        $acct = accts::create($data);
-
-        // Generate Paystack-required fields
-        $business_name = "Business_" . uniqid();
-        $percentage_charge = 0;
-        $settlement_bank = $request->bnk;
-
-        // Step 1: Create Paystack subaccount
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
-            'Content-Type' => 'application/json',
-        ])->post('https://api.paystack.co/subaccount', [
-                    'business_name' => $business_name,
-                    'account_number' => $request->anum,
-                    'bank_code' => $request->bnk,
-                    'percentage_charge' => $percentage_charge,
-                    'settlement_bank' => $settlement_bank,
-                ]);
-
-        if ($response->successful()) {
-            $data = $response->json();
-
-            // Step 2: Store subaccount details
-            sub_account::create([
-                'acct_id' => $acct->id,
-                'schid' => $request->schid,
-                'clsid' => $request->clsid,
-                'ssn' => $request->ssn,
-                'trm' => $request->trm,
-                'pay_head_id' => $request->pay_head_id ?? null,
-                'subaccount_code' => $data['data']['subaccount_code'],
-                'percentage_charge' => $percentage_charge,
-            ]);
-
-            return response()->json([
-                "status" => true,
-                "message" => "Account and Paystack Subaccount Created Successfully",
-                "paystack_data" => $data,
-            ]);
-        } else {
-            // Rollback main account creation if Paystack fails
-            $acct->delete();
-
-            return response()->json([
-                "status" => false,
-                "message" => "Failed to Create Paystack Subaccount",
-                "error" => $response->body(),
-            ], 400);
-        }
+    // If updating, ignore the current record
+    if ($request->has('id')) {
+        $dupQuery->where('id', '!=', $request->id);
     }
+
+    if ($dupQuery->exists()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'This pay head has already been assigned to this class.'
+        ], 409);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | UPDATE MODE
+    |--------------------------------------------------------------------------
+    */
+    if ($request->has('id')) {
+        $acct = accts::find($request->id);
+
+        if (!$acct) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Account Not Found'
+            ], 404);
+        }
+
+        $acct->update($data);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Account Updated Successfully'
+        ]);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | CREATE MAIN ACCOUNT
+    |--------------------------------------------------------------------------
+    */
+    $acct = accts::create($data);
+
+    /*
+    |--------------------------------------------------------------------------
+    | CREATE PAYSTACK SUBACCOUNT
+    |--------------------------------------------------------------------------
+    */
+    $response = Http::withHeaders([
+        'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
+        'Content-Type' => 'application/json',
+    ])->post('https://api.paystack.co/subaccount', [
+        'business_name' => 'Business_' . uniqid(),
+        'account_number' => $request->anum,
+        'bank_code' => $request->bnk,
+        'percentage_charge' => 0,
+        'settlement_bank' => $request->bnk,
+    ]);
+
+    if (!$response->successful()) {
+        $acct->delete();
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Failed to Create Paystack Subaccount',
+            'error' => $response->body(),
+        ], 400);
+    }
+
+    $paystack = $response->json();
+
+    sub_account::create([
+        'acct_id' => $acct->id,
+        'schid' => $request->schid,
+        'clsid' => $request->clsid,
+        'ssn' => $request->ssn,
+        'trm' => $request->trm,
+        'pay_head_id' => $request->pay_head_id ?? null,
+        'subaccount_code' => $paystack['data']['subaccount_code'],
+        'percentage_charge' => 0,
+    ]);
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Account and Paystack Subaccount Created Successfully',
+        'paystack_data' => $paystack,
+    ]);
+}
 
 
 
@@ -24545,22 +24666,6 @@ class ApiController extends Controller
 
         ]);
 
-        // Save each comment by role name
-        // foreach ($validated['comment'] as $entry) {
-        //     auto_comment_template::updateOrCreate(
-        //         [
-        //             'schid' => $validated['schid'],
-        //             'ssn' => $validated['ssn'],
-        //             'trm' => $validated['trm'],
-        //             'clsm' => $validated['clsm'],
-        //             'clsa' => $validated['clsa'],
-        //             'role' => $validated['role'],  // using role name directly
-        //             'grade' => $entry['grade'],
-        //         ],
-        //         ['comment' => $entry['comment']]
-        //     );
-        // }
-
         foreach ($validated['comment'] as $entry) {
             auto_comment_template::updateOrCreate(
                 [
@@ -24577,7 +24682,6 @@ class ApiController extends Controller
                 ]
             );
         }
-
 
         // Build response for all 6 grades
         $grades = ['A', 'B', 'C', 'D', 'E', 'F'];
