@@ -171,7 +171,7 @@ Route::group([
     Route::get('getStudentResultsByArm/{schid}/{clsid}/{ssn}/{trm}/{arm}', [ApiController::class, 'getStudentResultsByArm']);
     Route::post('updateLocation/{schid}', [ApiController::class, 'updateLocation']);
 
-        Route::post('toggleResultStatus', [ApiController::class, 'toggleResultStatus']);
+    Route::post('toggleResultStatus', [ApiController::class, 'toggleResultStatus']);
 
     Route::post('setStaffClassArm', [ApiController::class, 'setStaffClassArm']);
     Route::post('setOldStaffInfo', [ApiController::class, 'setOldStaffInfo']);
