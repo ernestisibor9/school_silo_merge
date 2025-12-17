@@ -12166,6 +12166,7 @@ class ApiController extends Controller
      *     path="/api/getClassPays/{schid}/{clsid}/{sesid}/{trmid}",
      *     tags={"Payments"},
      *     summary="Get payments by School And Class",
+     *     security={{"bearerAuth": {}}},
      *     description="Use this endpoint to get payments heads by School And Class",
      *
      *     @OA\Parameter(
