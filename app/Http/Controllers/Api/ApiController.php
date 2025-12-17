@@ -12012,6 +12012,7 @@ class ApiController extends Controller
      *     tags={"Payments"},
      *     summary="Get all pay heads by School",
      *     description="Use this endpoint to get all pay heads by School",
+     *      security={{"bearerAuth":{}}},
      *
      *     @OA\Parameter(
      *         name="schid",
