@@ -28920,8 +28920,8 @@
                 "tags": [
                     "Api"
                 ],
-                "summary": "Toggle the publication status of a student's result",
-                "description": "Toggles the `stat` field of a student result between 0 and 1 based on schid, stid, clsm, ssn, and trm.",
+                "summary": "Toggle result publication status by class parameters",
+                "description": "Toggles the `stat` field (published/unpublished) for a result based on school, class arm, class, session, and term.",
                 "operationId": "toggleResultStatus",
                 "requestBody": {
                     "required": true,
@@ -28930,7 +28930,7 @@
                             "schema": {
                                 "required": [
                                     "schid",
-                                    "stid",
+                                    "clsa",
                                     "clsm",
                                     "ssn",
                                     "trm"
@@ -28939,22 +28939,22 @@
                                     "schid": {
                                         "description": "School ID",
                                         "type": "integer",
-                                        "example": 73
+                                        "example": 12
                                     },
-                                    "stid": {
-                                        "description": "Student ID",
+                                    "clsa": {
+                                        "description": "Class Arm ID",
                                         "type": "integer",
-                                        "example": 911
+                                        "example": 3
                                     },
                                     "clsm": {
-                                        "description": "Class/Arm ID",
+                                        "description": "Class ID",
                                         "type": "integer",
-                                        "example": 14
+                                        "example": 11
                                     },
                                     "ssn": {
-                                        "description": "Session/Year",
+                                        "description": "Session / Academic Year",
                                         "type": "integer",
-                                        "example": 2025
+                                        "example": 2024
                                     },
                                     "trm": {
                                         "description": "Term",
@@ -28982,35 +28982,38 @@
                                             "type": "string",
                                             "example": "Result status updated successfully."
                                         },
-                                        "data": {
-                                            "properties": {
-                                                "stid": {
-                                                    "type": "integer",
-                                                    "example": 911
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "clsa": {
+                                                        "type": "integer",
+                                                        "example": 3
+                                                    },
+                                                    "schid": {
+                                                        "type": "integer",
+                                                        "example": 12
+                                                    },
+                                                    "clsm": {
+                                                        "type": "integer",
+                                                        "example": 11
+                                                    },
+                                                    "ssn": {
+                                                        "type": "integer",
+                                                        "example": 2024
+                                                    },
+                                                    "trm": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "new_stat": {
+                                                        "description": "New result status (1 = published, 0 = unpublished)",
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    }
                                                 },
-                                                "schid": {
-                                                    "type": "integer",
-                                                    "example": 73
-                                                },
-                                                "clsm": {
-                                                    "type": "integer",
-                                                    "example": 14
-                                                },
-                                                "ssn": {
-                                                    "type": "integer",
-                                                    "example": 2025
-                                                },
-                                                "trm": {
-                                                    "type": "integer",
-                                                    "example": 1
-                                                },
-                                                "new_stat": {
-                                                    "description": "New status after toggle",
-                                                    "type": "integer",
-                                                    "example": 0
-                                                }
-                                            },
-                                            "type": "object"
+                                                "type": "object"
+                                            }
                                         }
                                     },
                                     "type": "object"
@@ -29039,7 +29042,7 @@
                         }
                     },
                     "422": {
-                        "description": "Validation Error",
+                        "description": "Validation error",
                         "content": {
                             "application/json": {
                                 "schema": {
