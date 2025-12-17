@@ -10774,6 +10774,7 @@ class ApiController extends Controller
             ->where('clsid', $request->clsid)
             ->where('ssn', $request->ssn)
             ->where('trm', $request->trm)
+            ->where('pay_head_id', $request->pay_head_id)
             ->first();
 
         if ($existingSubAcct) {
