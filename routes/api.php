@@ -71,7 +71,7 @@ Route::get('getStudentPsy/{schid}/{ssn}/{trm}/{clsm}/{clsa}/{stid}', [ApiControl
 Route::get('getStudentRes/{schid}/{ssn}/{trm}/{clsm}/{clsa}/{stid}', [ApiController::class, 'getStudentRes']);
 Route::get('getStudentResult/{schid}/{ssn}/{trm}/{clsm}/{clsa}/{stid}', [ApiController::class, 'getStudentResult']);
 Route::get('getClassSubject/{schid}/{clsid}/{sbid}', [ApiController::class, 'getClassSubject']);
-Route::get('getStudentResultsByArm/{schid}/{clsid}/{ssn}/{trm}/{arm}', [ApiController::class, 'getStudentResultsByArm']);
+
 Route::get('getResultMeta/{schid}/{ssn}/{trm}', [ApiController::class, 'getResultMeta']);
 Route::get('getClassSubjectsByStaff/{schid}/{clsid}/{stid}', [ApiController::class, 'getClassSubjectsByStaff']);
 Route::get('getClassSubjects/{schid}/{clsid}/{sesn}/{trm}', [ApiController::class, 'getClassSubjects']);
@@ -168,8 +168,10 @@ Route::group([
 
     Route::post('assignSubjectStaff', [ApiController::class, 'assignSubjectStaff']);
     Route::post('setRepostStaff', [ApiController::class, 'setRepostStaff']);
-
+    Route::get('getStudentResultsByArm/{schid}/{clsid}/{ssn}/{trm}/{arm}', [ApiController::class, 'getStudentResultsByArm']);
     Route::post('updateLocation/{schid}', [ApiController::class, 'updateLocation']);
+
+        Route::post('toggleResultStatus', [ApiController::class, 'toggleResultStatus']);
 
     Route::post('setStaffClassArm', [ApiController::class, 'setStaffClassArm']);
     Route::post('setOldStaffInfo', [ApiController::class, 'setOldStaffInfo']);

@@ -28914,6 +28914,156 @@
                     }
                 ]
             }
+        },
+        "/api/toggleResultStatus": {
+            "post": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Toggle the publication status of a student's result",
+                "description": "Toggles the `stat` field of a student result between 0 and 1 based on schid, stid, clsm, ssn, and trm.",
+                "operationId": "toggleResultStatus",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "schid",
+                                    "stid",
+                                    "clsm",
+                                    "ssn",
+                                    "trm"
+                                ],
+                                "properties": {
+                                    "schid": {
+                                        "description": "School ID",
+                                        "type": "integer",
+                                        "example": 73
+                                    },
+                                    "stid": {
+                                        "description": "Student ID",
+                                        "type": "integer",
+                                        "example": 911
+                                    },
+                                    "clsm": {
+                                        "description": "Class/Arm ID",
+                                        "type": "integer",
+                                        "example": 14
+                                    },
+                                    "ssn": {
+                                        "description": "Session/Year",
+                                        "type": "integer",
+                                        "example": 2025
+                                    },
+                                    "trm": {
+                                        "description": "Term",
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Result status toggled successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Result status updated successfully."
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "stid": {
+                                                    "type": "integer",
+                                                    "example": 911
+                                                },
+                                                "schid": {
+                                                    "type": "integer",
+                                                    "example": 73
+                                                },
+                                                "clsm": {
+                                                    "type": "integer",
+                                                    "example": 14
+                                                },
+                                                "ssn": {
+                                                    "type": "integer",
+                                                    "example": 2025
+                                                },
+                                                "trm": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "new_stat": {
+                                                    "description": "New status after toggle",
+                                                    "type": "integer",
+                                                    "example": 0
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Result not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Result not found."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
