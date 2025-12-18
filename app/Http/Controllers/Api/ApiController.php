@@ -11560,108 +11560,109 @@ class ApiController extends Controller
         ]);
     }
 
-public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): array
-{
-    $MAX_SUBACCOUNT_SHARE = 99.0; // merchant keeps 1%
+    public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): array
+    {
+        $MAX_SUBACCOUNT_SHARE = 99.0; // merchant keeps 1%
 
-    /* ===============================
-       CHECK EXISTING SPLIT
-    =============================== */
-    $existing = subaccount_split::where('schid', $schid)
-        ->where('clsid', $clsid)
-        ->first();
+        /* ===============================
+           CHECK EXISTING SPLIT
+        =============================== */
+        $existing = subaccount_split::where('schid', $schid)
+            ->where('clsid', $clsid)
+            ->first();
 
-    if ($existing && $existing->split_code) {
-        $check = Http::withToken(env('PAYSTACK_SECRET'))
-            ->get("https://api.paystack.co/split/{$existing->split_code}");
+        if ($existing && $existing->split_code) {
+            $check = Http::withToken(env('PAYSTACK_SECRET'))
+                ->get("https://api.paystack.co/split/{$existing->split_code}");
 
-        if ($check->successful()) {
-            $sum = collect($check->json('data.subaccounts') ?? [])
-                ->sum('share');
+            if ($check->successful()) {
+                $sum = collect($check->json('data.subaccounts') ?? [])
+                    ->sum('share');
 
-            if ($sum > 0 && $sum <= $MAX_SUBACCOUNT_SHARE) {
-                return [
-                    'split_code' => $existing->split_code,
-                    'subaccounts' => $check->json('data.subaccounts'),
-                ];
+                if ($sum > 0 && $sum <= $MAX_SUBACCOUNT_SHARE) {
+                    return [
+                        'split_code' => $existing->split_code,
+                        'subaccounts' => $check->json('data.subaccounts'),
+                    ];
+                }
             }
+
+            // delete broken split
+            $existing->delete();
         }
 
-        // delete broken split
-        $existing->delete();
-    }
-
-    /* ===============================
-       MERGE & VALIDATE
-    =============================== */
-    $merged = [];
-    foreach ($subaccounts as $acc) {
-        if (empty($acc['subaccount']) || $acc['share'] <= 0) {
-            throw new \Exception('Invalid subaccount payload');
-        }
-        $merged[$acc['subaccount']] =
-            ($merged[$acc['subaccount']] ?? 0) + floatval($acc['share']);
-    }
-
-    $total = array_sum($merged);
-    if ($total <= 0) {
-        throw new \Exception('Invalid split total');
-    }
-
-    /* ===============================
-       NORMALIZE TO 99%
-    =============================== */
-    $normalized = [];
-    $running = 0;
-    $last = count($merged) - 1;
-    $i = 0;
-
-    foreach ($merged as $code => $share) {
-        if ($i === $last) {
-            $pct = round($MAX_SUBACCOUNT_SHARE - $running, 2);
-        } else {
-            $pct = round(($share / $total) * $MAX_SUBACCOUNT_SHARE, 2);
-            $running += $pct;
+        /* ===============================
+           MERGE & VALIDATE
+        =============================== */
+        $merged = [];
+        foreach ($subaccounts as $acc) {
+            if (empty($acc['subaccount']) || $acc['share'] <= 0) {
+                throw new \Exception('Invalid subaccount payload');
+            }
+            $merged[$acc['subaccount']] =
+                ($merged[$acc['subaccount']] ?? 0) + floatval($acc['share']);
         }
 
-        $normalized[] = [
-            'subaccount' => $code,
-            'share' => $pct,
-        ];
+        $total = array_sum($merged);
+        if ($total <= 0) {
+            throw new \Exception('Invalid split total');
+        }
 
-        $i++;
-    }
+        /* ===============================
+           NORMALIZE TO 99%
+        =============================== */
+        $normalized = [];
+        $running = 0;
+        $last = count($merged) - 1;
+        $i = 0;
 
-    /* ===============================
-       CREATE SPLIT
-    =============================== */
-    $response = Http::withToken(env('PAYSTACK_SECRET'))
-        ->post('https://api.paystack.co/split', [
-            'name' => "Split-{$schid}-{$clsid}",
-            'type' => 'percentage',
-            'currency' => 'NGN',
-            'subaccounts' => $normalized,
-            'bearer_type' => 'account',
+        foreach ($merged as $code => $share) {
+            if ($i === $last) {
+                $pct = round($MAX_SUBACCOUNT_SHARE - $running, 2);
+            } else {
+                $pct = round(($share / $total) * $MAX_SUBACCOUNT_SHARE, 2);
+                $running += $pct;
+            }
+
+            $normalized[] = [
+                'subaccount' => $code,
+                'share' => $pct,
+            ];
+
+            $i++;
+        }
+
+        /* ===============================
+           CREATE SPLIT
+        =============================== */
+        $response = Http::withToken(env('PAYSTACK_SECRET'))
+            ->post('https://api.paystack.co/split', [
+                'name' => "Split-{$schid}-{$clsid}",
+                'type' => 'percentage',
+                'currency' => 'NGN',
+                'subaccounts' => $normalized,
+                'bearer_type' => 'subaccount', // 🔥 FIX
+            ]);
+
+
+        if (!$response->successful()) {
+            throw new \Exception($response->body());
+        }
+
+        $splitCode = $response->json('data.split_code');
+
+        subaccount_split::create([
+            'schid' => $schid,
+            'clsid' => $clsid,
+            'split_code' => $splitCode,
+            'subaccounts' => json_encode($normalized),
         ]);
 
-    if (!$response->successful()) {
-        throw new \Exception($response->body());
+        return [
+            'split_code' => $splitCode,
+            'subaccounts' => $normalized,
+        ];
     }
-
-    $splitCode = $response->json('data.split_code');
-
-    subaccount_split::create([
-        'schid' => $schid,
-        'clsid' => $clsid,
-        'split_code' => $splitCode,
-        'subaccounts' => json_encode($normalized),
-    ]);
-
-    return [
-        'split_code' => $splitCode,
-        'subaccounts' => $normalized,
-    ];
-}
 
     public function handleCallback(Request $request)
     {
