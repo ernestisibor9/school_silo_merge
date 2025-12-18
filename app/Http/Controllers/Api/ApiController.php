@@ -7997,199 +7997,202 @@ class ApiController extends Controller
 
     public function getStudentResult($schid, $ssn, $trm, $clsm, $clsa, $stid)
     {
-        try{
-                    $user = auth()->user();
+        try {
+            $user = auth()->user();
+            $userType = $user->typ ?? null; // null-safe
 
-        // Check if results are published for this class/arm/term
-        $isPublished = student_res::where([
-            ['schid', $schid],
-            ['ssn', $ssn],
-            ['trm', $trm],
-            ['clsm', $clsm],
-            ['clsa', $clsa],
-            ['stat', 1], // PUBLISHED
-        ])->exists();
+            // Check if results are published for this class/arm/term
+            $isPublished = student_res::where([
+                ['schid', $schid],
+                ['ssn', $ssn],
+                ['trm', $trm],
+                ['clsm', $clsm],
+                ['clsa', $clsa],
+                ['stat', 1], // PUBLISHED
+            ])->exists();
 
-        /**
-         * IF NOT PUBLISHED:
-         * - Only School Admin (a, s) can view (Bulk Result)
-         * - Everyone else is blocked
-         */
-        if (!$isPublished) {
-            if (!$user || !in_array($user->typ, ['a', 's'])) {
+            /**
+             * IF NOT PUBLISHED:
+             * - Only School Admin (a, s) can view (Bulk Result)
+             * - Everyone else is blocked
+             */
+            if (!$isPublished) {
+                if (!$userType || !in_array($userType, ['a', 's'])) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Results have not been published yet.'
+                    ], 403);
+                }
+            }
+
+            $totalStd = student::join('old_student', 'student.sid', '=', 'old_student.sid')
+                ->where('student.schid', $schid)
+                ->where('student.stat', "1")
+                ->where('old_student.ssn', $ssn)
+                ->where('old_student.clsm', $clsm)
+                ->where('old_student.clsa', $clsa)
+                ->count();
+
+            $std = old_student::where("schid", $schid)
+                ->where("ssn", $ssn)
+                ->where("clsm", $clsm)
+                ->where("clsa", $clsa)
+                ->where("sid", $stid)
+                ->first();
+
+            if (!$std) {
                 return response()->json([
-                    'status' => false,
-                    'message' => 'Results have not been published yet.'
-                ], 403);
+                    "status" => false,
+                    "message" => "Student has been exited",
+                    "pld" => []
+                ], 404);
             }
-        }
 
-        $totalStd = student::join('old_student', 'student.sid', '=', 'old_student.sid')
-            ->where('student.schid', $schid)
-            ->where('student.stat', "1")
-            ->where('old_student.ssn', $ssn)
-            ->where('old_student.clsm', $clsm)
-            ->where('old_student.clsa', $clsa)
-            ->count();
+            $user_id = $std->sid;
+            $scores = [];
+            $mySbjs = [];
 
-        $std = old_student::where("schid", $schid)->where("ssn", $ssn)
-            ->where("clsm", $clsm)
-            ->where("clsa", $clsa)->where("sid", $stid)->first();
+            // Get the relevant subjects for the student
+            $relevantSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
+                ->where('class_subj.schid', $schid)
+                ->where('class_subj.clsid', $clsm)
+                ->pluck('sbj');
 
-        if (!$std) {
-            return response()->json([
-                "status" => false,
-                "message" => "Student has been exited",
-                "pld" => []
-            ], 404);
-        }
+            // Get subjects the student is registered for
+            $studentSubjects = student_subj::where('stid', $user_id)
+                ->whereIn('sbj', $relevantSubjects)
+                ->pluck('sbj');
 
-        $user_id = $std->sid;
-        $scores = [];
-        $mySbjs = [];
-
-        // Get the relevant subjects for the student
-        $relevantSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
-            ->where('class_subj.schid', $schid)
-            ->where('class_subj.clsid', $clsm)
-            ->pluck('sbj');
-
-        // Get subjects the student is registered for
-        $studentSubjects = student_subj::where('stid', $user_id)
-            ->whereIn('sbj', $relevantSubjects)
-            ->pluck('sbj');
-
-        // Get all scores, excluding subjects with zero or null scores
-        $allScores = std_score::where('stid', $user_id)
-            ->where("schid", $schid)
-            ->where("ssn", $ssn)
-            ->where("trm", $trm)
-            ->where("clsid", $clsm)
-            ->whereIn("sbj", $studentSubjects)
-            ->whereNotNull('scr')
-            ->where('scr', '>', 0) // Ensure only subjects with scores > 0 are considered
-            ->get();
-
-        // Populate subjects that have scores
-        foreach ($allScores as $scr) {
-            $sbid = $scr->sbj;
-            if (!in_array($sbid, $mySbjs)) {
-                $mySbjs[] = $sbid;
-            }
-        }
-
-        $subjectScores = [];
-        foreach ($mySbjs as $sbid) {
-            $subjectScores[$sbid] = [];
-        }
-
-        // Assign scores to subjects
-        foreach ($allScores as $scr) {
-            $sbid = $scr->sbj;
-            $subjectScores[$sbid][] = $scr;
-        }
-
-        $positions = [];
-        foreach ($mySbjs as $sbid) {
-            $scores[] = [
-                'sbid' => $sbid,
-                'scores' => $subjectScores[$sbid]
-            ];
-
-            // Get subject position, excluding zero/null score subjects
-            $subjectPosition = student_sub_res::where('stid', $user_id)
-                ->where('sbj', $sbid)
+            // Get all scores, excluding subjects with zero or null scores
+            $allScores = std_score::where('stid', $user_id)
                 ->where("schid", $schid)
                 ->where("ssn", $ssn)
                 ->where("trm", $trm)
+                ->where("clsid", $clsm)
+                ->whereIn("sbj", $studentSubjects)
+                ->whereNotNull('scr')
+                ->where('scr', '>', 0)
+                ->get();
+
+            // Populate subjects that have scores
+            foreach ($allScores as $scr) {
+                $sbid = $scr->sbj;
+                if (!in_array($sbid, $mySbjs)) {
+                    $mySbjs[] = $sbid;
+                }
+            }
+
+            $subjectScores = [];
+            foreach ($mySbjs as $sbid) {
+                $subjectScores[$sbid] = [];
+            }
+
+            // Assign scores to subjects
+            foreach ($allScores as $scr) {
+                $sbid = $scr->sbj;
+                $subjectScores[$sbid][] = $scr;
+            }
+
+            $positions = [];
+            foreach ($mySbjs as $sbid) {
+                $scores[] = [
+                    'sbid' => $sbid,
+                    'scores' => $subjectScores[$sbid]
+                ];
+
+                // Get subject position, excluding zero/null score subjects
+                $subjectPosition = student_sub_res::where('stid', $user_id)
+                    ->where('sbj', $sbid)
+                    ->where("schid", $schid)
+                    ->where("ssn", $ssn)
+                    ->where("trm", $trm)
+                    ->where("clsm", $clsm)
+                    ->where("clsa", $clsa)
+                    ->first();
+
+                if ($subjectPosition) {
+                    $positions[] = [
+                        'sbid' => $sbid,
+                        'pos' => $subjectPosition->pos,
+                    ];
+                }
+            }
+
+            // Check for student psychological result
+            $psy = student_psy::where([
+                ['schid', $schid],
+                ['ssn', $ssn],
+                ['trm', $trm],
+                ['clsm', $clsm],
+                ['stid', $user_id]
+            ])->exists();
+
+            // Get student result info
+            $rinfo = student_res::where("schid", $schid)
+                ->where("ssn", $ssn)
+                ->where("trm", $trm)
                 ->where("clsm", $clsm)
-                ->where("clsa", $clsa)
+                ->where("stid", $user_id)
+                ->when($userType && !in_array($userType, ['a', 's']), function ($q) {
+                    $q->where('stat', 1); // enforce published for non-admin/public
+                })
                 ->first();
 
-            if ($subjectPosition) {
-                $positions[] = [
-                    'sbid' => $sbid,
-                    'pos' => $subjectPosition->pos,
-                ];
+            $res = $rinfo ? $rinfo->stat : "0";
+
+            // Get the number of fails (nof) from the result_meta table
+            $nof = result_meta::where([
+                ['schid', $schid],
+                ['ssn', $ssn],
+                ['trm', $trm],
+            ])->value('num_of_days') ?? 0;
+
+            $presentCountQuery = \DB::table('attendances')
+                ->where('schid', $schid)
+                ->where('ssn', $ssn)
+                ->where('trm', $trm)
+                ->where('sid', $std->sid);
+
+            // Check if any attendance exists for this student
+            $attendanceExists = (clone $presentCountQuery)->exists();
+
+            if ($attendanceExists) {
+                Log::info('Success:' . $attendanceExists . ' yes it is');
+                $presentCount = (clone $presentCountQuery)->where('status', 1)->count();
+                $absentCount = max(0, $nof - $presentCount);
+            } else {
+                Log::info('Error: no attendance');
+                $presentCount = null;
+                $absentCount = null;
             }
+
+            $pld = [
+                'std' => $std,
+                'sbj' => $mySbjs,  // List of subjects with valid scores
+                'scr' => $scores,  // List of scores
+                'psy' => $psy,
+                'res' => $res,
+                'rinfo' => $rinfo,
+                'cnt' => $totalStd,
+                'num_of_days' => $nof,
+                'present_days' => $presentCount,
+                'absent_days' => $absentCount,
+                'spos' => $positions, // Subject positions
+            ];
+
+            return response()->json([
+                "status" => true,
+                "message" => "Success",
+                "pld" => $pld,
+            ]);
+        } catch (Throwable $e) {
+            Log::error($e->getMessage() . "\n" . $e->getTraceAsString());
+            return response()->json([
+                "status" => false,
+                "message" => "Server Error: " . $e->getMessage(),
+                "pld" => []
+            ], 500);
         }
-
-        // Check for student psychological result
-        $psy = student_psy::where([
-            ['schid', $schid],
-            ['ssn', $ssn],
-            ['trm', $trm],
-            ['clsm', $clsm],
-            ['stid', $user_id]
-        ])->exists();
-
-        // Get student result info
-        $rinfo = student_res::where("schid", $schid)
-            ->where("ssn", $ssn)
-            ->where("trm", $trm)
-            ->where("clsm", $clsm)
-            ->where("stid", $user_id)
-            ->when(!in_array($user->typ, ['a', 's']), function ($q) {
-                $q->where('stat', 1); // enforce published for non-admin
-            })
-            ->first();
-
-        $res = $rinfo ? $rinfo->stat : "0";
-
-        // Get the number of fails (nof) from the result_meta table
-        $nof = result_meta::where([
-            ['schid', $schid],
-            ['ssn', $ssn],
-            ['trm', $trm],
-        ])->value('num_of_days') ?? 0;
-
-        $presentCountQuery = \DB::table('attendances')
-            ->where('schid', $schid)
-            ->where('ssn', $ssn)
-            ->where('trm', $trm)
-            ->where('sid', $std->sid);
-
-        // Check if any attendance exists for this student
-        $attendanceExists = $presentCountQuery->exists();
-
-        if ($attendanceExists) {
-            Log::info('Success:' . $attendanceExists . 'yes it is');
-            $presentCount = $presentCountQuery->where('status', 1)->count();
-            $absentCount = max(0, $nof - $presentCount);
-        } else {
-            Log::info('Error' . 'no attendance');
-            $presentCount = null;
-            $absentCount = null;
-        }
-
-        $pld = [
-            'std' => $std,
-            'sbj' => $mySbjs,  // List of subjects with valid scores
-            'scr' => $scores,  // List of scores
-            'psy' => $psy,
-            'res' => $res,
-            'rinfo' => $rinfo,
-            'cnt' => $totalStd,
-            'num_of_days' => $nof,
-            'present_days' => $presentCount,
-            'absent_days' => $absentCount,
-            'spos' => $positions, // Subject positions
-        ];
-
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $pld,
-        ]);
-        }
- catch (Throwable $e) {
-        Log::error($e->getMessage() . "\n" . $e->getTraceAsString());
-        return response()->json([
-            "status" => false,
-            "message" => "Server Error: " . $e->getMessage(),
-            "pld" => []
-        ], 500);
-    }
     }
 
 
@@ -11570,85 +11573,85 @@ class ApiController extends Controller
         ]);
     }
 
-/**
- * @OA\Post(
- *     path="/api/getSplitCode",
- *     summary="Get or create a split code for subaccounts",
- *     description="Creates a new split code or retrieves an existing one for the specified school, class, and subaccount codes.",
- *     operationId="getSplitCode",
- *     tags={"Payments"},
- *      security={{"bearerAuth": {}}},
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             type="object",
- *             required={"schid","clsid","subaccount_code"},
- *             @OA\Property(
- *                 property="schid",
- *                 type="integer",
- *                 example=12,
- *                 description="School ID"
- *             ),
- *             @OA\Property(
- *                 property="clsid",
- *                 type="integer",
- *                 example=11,
- *                 description="Class ID"
- *             ),
- *             @OA\Property(
- *                 property="subaccount_code",
- *                 type="array",
- *                 @OA\Items(type="string"),
- *                 description="Array of subaccount codes"
- *             )
- *         )
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Split code retrieved successfully",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="split_code", type="string", example="SPLIT12345"),
- *             @OA\Property(
- *                 property="subaccounts",
- *                 type="array",
- *                 @OA\Items(
- *                     type="object",
- *                     @OA\Property(property="id", type="integer", example=1),
- *                     @OA\Property(property="code", type="string", example="SUB001"),
- *                     @OA\Property(property="name", type="string", example="Sub Account Name")
- *                 )
- *             )
- *         )
- *     ),
- *     @OA\Response(
- *         response=422,
- *         description="Validation Error",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="message", type="string", example="The schid field is required."),
- *             @OA\Property(property="errors", type="object")
- *         )
- *     )
- * )
- */
-public function getSplitCode(Request $request)
-{
-    $request->validate([
-        'schid' => 'required|integer',
-        'clsid' => 'required|integer',
-        'subaccount_code' => 'required|array|min:1'
-    ]);
+    /**
+     * @OA\Post(
+     *     path="/api/getSplitCode",
+     *     summary="Get or create a split code for subaccounts",
+     *     description="Creates a new split code or retrieves an existing one for the specified school, class, and subaccount codes.",
+     *     operationId="getSplitCode",
+     *     tags={"Payments"},
+     *      security={{"bearerAuth": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             required={"schid","clsid","subaccount_code"},
+     *             @OA\Property(
+     *                 property="schid",
+     *                 type="integer",
+     *                 example=12,
+     *                 description="School ID"
+     *             ),
+     *             @OA\Property(
+     *                 property="clsid",
+     *                 type="integer",
+     *                 example=11,
+     *                 description="Class ID"
+     *             ),
+     *             @OA\Property(
+     *                 property="subaccount_code",
+     *                 type="array",
+     *                 @OA\Items(type="string"),
+     *                 description="Array of subaccount codes"
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Split code retrieved successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="split_code", type="string", example="SPLIT12345"),
+     *             @OA\Property(
+     *                 property="subaccounts",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="code", type="string", example="SUB001"),
+     *                     @OA\Property(property="name", type="string", example="Sub Account Name")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation Error",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="The schid field is required."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     )
+     * )
+     */
+    public function getSplitCode(Request $request)
+    {
+        $request->validate([
+            'schid' => 'required|integer',
+            'clsid' => 'required|integer',
+            'subaccount_code' => 'required|array|min:1'
+        ]);
 
-    $splitData = $this->createOrGetSplit($request->schid, $request->clsid, $request->subaccount_code);
+        $splitData = $this->createOrGetSplit($request->schid, $request->clsid, $request->subaccount_code);
 
-    return response()->json([
-        'status' => true,
-        'split_code' => $splitData['split_code'],
-        'subaccounts' => $splitData['subaccounts']
-    ]);
-}
+        return response()->json([
+            'status' => true,
+            'split_code' => $splitData['split_code'],
+            'subaccounts' => $splitData['subaccounts']
+        ]);
+    }
 
 
 
