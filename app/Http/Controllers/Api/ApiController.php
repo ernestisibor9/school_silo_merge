@@ -11566,7 +11566,7 @@ class ApiController extends Controller
  *     summary="Get or create a split code for subaccounts",
  *     description="Creates a new split code or retrieves an existing one for the specified school, class, and subaccount codes.",
  *     operationId="getSplitCode",
- *     tags={"Payment"},
+ *     tags={"Payments"},
  *      security={{"bearerAuth": {}}},
  *     @OA\RequestBody(
  *         required=true,
