@@ -11641,8 +11641,12 @@ class ApiController extends Controller
                 'type' => 'percentage',
                 'currency' => 'NGN',
                 'subaccounts' => $normalized,
-                'bearer_type' => 'account', 
+
+                // 🔑 THIS IS THE FIX
+                'bearer_type' => 'subaccount',
+                'bearer_subaccount' => $normalized[0]['subaccount'], // one of them
             ]);
+
 
 
         if (!$response->successful()) {
