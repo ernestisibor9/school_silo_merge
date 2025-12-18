@@ -11560,22 +11560,86 @@ class ApiController extends Controller
         ]);
     }
 
-    public function getSplitCode(Request $request)
-    {
-        $request->validate([
-            'schid' => 'required|integer',
-            'clsid' => 'required|integer',
-            'subaccount_code' => 'required|array|min:1'
-        ]);
+/**
+ * @OA\Post(
+ *     path="/api/getSplitCode",
+ *     summary="Get or create a split code for subaccounts",
+ *     description="Creates a new split code or retrieves an existing one for the specified school, class, and subaccount codes.",
+ *     operationId="getSplitCode",
+ *     tags={"Payment"},
+ *      security={{"bearerAuth": {}}},
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             type="object",
+ *             required={"schid","clsid","subaccount_code"},
+ *             @OA\Property(
+ *                 property="schid",
+ *                 type="integer",
+ *                 example=12,
+ *                 description="School ID"
+ *             ),
+ *             @OA\Property(
+ *                 property="clsid",
+ *                 type="integer",
+ *                 example=11,
+ *                 description="Class ID"
+ *             ),
+ *             @OA\Property(
+ *                 property="subaccount_code",
+ *                 type="array",
+ *                 @OA\Items(type="string"),
+ *                 description="Array of subaccount codes"
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Split code retrieved successfully",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="split_code", type="string", example="SPLIT12345"),
+ *             @OA\Property(
+ *                 property="subaccounts",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(property="id", type="integer", example=1),
+ *                     @OA\Property(property="code", type="string", example="SUB001"),
+ *                     @OA\Property(property="name", type="string", example="Sub Account Name")
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation Error",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="message", type="string", example="The schid field is required."),
+ *             @OA\Property(property="errors", type="object")
+ *         )
+ *     )
+ * )
+ */
+public function getSplitCode(Request $request)
+{
+    $request->validate([
+        'schid' => 'required|integer',
+        'clsid' => 'required|integer',
+        'subaccount_code' => 'required|array|min:1'
+    ]);
 
-        $splitData = $this->createOrGetSplit($request->schid, $request->clsid, $request->subaccount_code);
+    $splitData = $this->createOrGetSplit($request->schid, $request->clsid, $request->subaccount_code);
 
-        return response()->json([
-            'status' => true,
-            'split_code' => $splitData['split_code'],
-            'subaccounts' => $splitData['subaccounts']
-        ]);
-    }
+    return response()->json([
+        'status' => true,
+        'split_code' => $splitData['split_code'],
+        'subaccounts' => $splitData['subaccounts']
+    ]);
+}
+
 
 
     public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): array

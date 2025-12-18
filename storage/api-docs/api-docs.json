@@ -9831,6 +9831,116 @@
                 ]
             }
         },
+        "/api/getSplitCode": {
+            "post": {
+                "tags": [
+                    "Payment"
+                ],
+                "summary": "Get or create a split code for subaccounts",
+                "description": "Creates a new split code or retrieves an existing one for the specified school, class, and subaccount codes.",
+                "operationId": "getSplitCode",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "schid",
+                                    "clsid",
+                                    "subaccount_code"
+                                ],
+                                "properties": {
+                                    "schid": {
+                                        "description": "School ID",
+                                        "type": "integer",
+                                        "example": 12
+                                    },
+                                    "clsid": {
+                                        "description": "Class ID",
+                                        "type": "integer",
+                                        "example": 11
+                                    },
+                                    "subaccount_code": {
+                                        "description": "Array of subaccount codes",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Split code retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "split_code": {
+                                            "type": "string",
+                                            "example": "SPLIT12345"
+                                        },
+                                        "subaccounts": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "code": {
+                                                        "type": "string",
+                                                        "example": "SUB001"
+                                                    },
+                                                    "name": {
+                                                        "type": "string",
+                                                        "example": "Sub Account Name"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The schid field is required."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/getAccountStat/{schid}/{ssn}/{trm}": {
             "get": {
                 "tags": [
