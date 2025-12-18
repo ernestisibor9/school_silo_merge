@@ -35,6 +35,8 @@ Route::post('setClass', [ApiController::class, 'setCls']);
 Route::post('setAdminStaffRole', [ApiController::class, 'setAdminStaffRole']);
 Route::post('setSchoolStaffRole', [ApiController::class, 'setSchoolStaffRole']);
 
+Route::post('getSplitCode', [ApiController::class, 'getSplitCode']);
+
 // Route::post('promoteStudent', [ApiController::class, 'promoteStudent']);
 // Route::post('repeatStudent', [ApiController::class, 'repeatStudent']);
 // Route::post('rePromoteStudent', [ApiController::class, 'rePromoteStudent']);

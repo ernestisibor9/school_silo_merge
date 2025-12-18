@@ -11560,6 +11560,24 @@ class ApiController extends Controller
         ]);
     }
 
+    public function getSplitCode(Request $request)
+    {
+        $request->validate([
+            'schid' => 'required|integer',
+            'clsid' => 'required|integer',
+            'subaccount_code' => 'required|array|min:1'
+        ]);
+
+        $splitData = $this->createOrGetSplit($request->schid, $request->clsid, $request->subaccount_code);
+
+        return response()->json([
+            'status' => true,
+            'split_code' => $splitData['split_code'],
+            'subaccounts' => $splitData['subaccounts']
+        ]);
+    }
+
+
     public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): array
     {
         $MAX_SUBACCOUNT_SHARE = 99.0; // merchant keeps 1%
