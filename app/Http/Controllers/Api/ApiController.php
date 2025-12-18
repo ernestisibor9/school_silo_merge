@@ -11295,124 +11295,124 @@ class ApiController extends Controller
 
 
     public function setAcct(Request $request)
-{
-    $request->validate([
-        'schid' => 'required',
-        'clsid' => 'required',
-        'anum' => 'required',
-        'bnk' => 'required',
-        'aname' => 'required',
-        'ssn' => 'required',
-        'trm' => 'required',
-        'pay_head_id' => 'nullable',
-    ]);
+    {
+        $request->validate([
+            'schid' => 'required',
+            'clsid' => 'required',
+            'anum' => 'required',
+            'bnk' => 'required',
+            'aname' => 'required',
+            'ssn' => 'required',
+            'trm' => 'required',
+            'pay_head_id' => 'nullable',
+        ]);
 
-    $data = [
-        'schid' => $request->schid,
-        'clsid' => $request->clsid,
-        'anum' => $request->anum,
-        'bnk' => $request->bnk,
-        'aname' => $request->aname,
-        'ssn' => $request->ssn,
-        'trm' => $request->trm,
-        'pay_head_id' => $request->pay_head_id ?? null,
-    ];
+        $data = [
+            'schid' => $request->schid,
+            'clsid' => $request->clsid,
+            'anum' => $request->anum,
+            'bnk' => $request->bnk,
+            'aname' => $request->aname,
+            'ssn' => $request->ssn,
+            'trm' => $request->trm,
+            'pay_head_id' => $request->pay_head_id ?? null,
+        ];
 
-    /*
-    |--------------------------------------------------------------------------
-    | DUPLICATE CHECK (clsid + pay_head_id)
-    |--------------------------------------------------------------------------
-    */
-    $dupQuery = accts::where('clsid', $request->clsid)
-        ->where('pay_head_id', $request->pay_head_id);
+        /*
+        |--------------------------------------------------------------------------
+        | DUPLICATE CHECK (clsid + pay_head_id)
+        |--------------------------------------------------------------------------
+        */
+        $dupQuery = accts::where('clsid', $request->clsid)
+            ->where('pay_head_id', $request->pay_head_id);
 
-    // If updating, ignore the current record
-    if ($request->has('id')) {
-        $dupQuery->where('id', '!=', $request->id);
-    }
-
-    if ($dupQuery->exists()) {
-        return response()->json([
-            'status' => false,
-            'message' => 'This pay head has already been assigned to this class.'
-        ], 409);
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | UPDATE MODE
-    |--------------------------------------------------------------------------
-    */
-    if ($request->has('id')) {
-        $acct = accts::find($request->id);
-
-        if (!$acct) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Account Not Found'
-            ], 404);
+        // If updating, ignore the current record
+        if ($request->has('id')) {
+            $dupQuery->where('id', '!=', $request->id);
         }
 
-        $acct->update($data);
+        if ($dupQuery->exists()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'This pay head has already been assigned to this class.'
+            ], 409);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | UPDATE MODE
+        |--------------------------------------------------------------------------
+        */
+        if ($request->has('id')) {
+            $acct = accts::find($request->id);
+
+            if (!$acct) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Account Not Found'
+                ], 404);
+            }
+
+            $acct->update($data);
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Account Updated Successfully'
+            ]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | CREATE MAIN ACCOUNT
+        |--------------------------------------------------------------------------
+        */
+        $acct = accts::create($data);
+
+        /*
+        |--------------------------------------------------------------------------
+        | CREATE PAYSTACK SUBACCOUNT
+        |--------------------------------------------------------------------------
+        */
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
+            'Content-Type' => 'application/json',
+        ])->post('https://api.paystack.co/subaccount', [
+                    'business_name' => 'Business_' . uniqid(),
+                    'account_number' => $request->anum,
+                    'bank_code' => $request->bnk,
+                    'percentage_charge' => 0,
+                    'settlement_bank' => $request->bnk,
+                ]);
+
+        if (!$response->successful()) {
+            $acct->delete();
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to Create Paystack Subaccount',
+                'error' => $response->body(),
+            ], 400);
+        }
+
+        $paystack = $response->json();
+
+        sub_account::create([
+            'acct_id' => $acct->id,
+            'schid' => $request->schid,
+            'clsid' => $request->clsid,
+            'ssn' => $request->ssn,
+            'trm' => $request->trm,
+            'pay_head_id' => $request->pay_head_id ?? null,
+            'subaccount_code' => $paystack['data']['subaccount_code'],
+            'percentage_charge' => 0,
+        ]);
 
         return response()->json([
             'status' => true,
-            'message' => 'Account Updated Successfully'
+            'message' => 'Account and Paystack Subaccount Created Successfully',
+            'paystack_data' => $paystack,
         ]);
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | CREATE MAIN ACCOUNT
-    |--------------------------------------------------------------------------
-    */
-    $acct = accts::create($data);
-
-    /*
-    |--------------------------------------------------------------------------
-    | CREATE PAYSTACK SUBACCOUNT
-    |--------------------------------------------------------------------------
-    */
-    $response = Http::withHeaders([
-        'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
-        'Content-Type' => 'application/json',
-    ])->post('https://api.paystack.co/subaccount', [
-        'business_name' => 'Business_' . uniqid(),
-        'account_number' => $request->anum,
-        'bank_code' => $request->bnk,
-        'percentage_charge' => 0,
-        'settlement_bank' => $request->bnk,
-    ]);
-
-    if (!$response->successful()) {
-        $acct->delete();
-
-        return response()->json([
-            'status' => false,
-            'message' => 'Failed to Create Paystack Subaccount',
-            'error' => $response->body(),
-        ], 400);
-    }
-
-    $paystack = $response->json();
-
-    sub_account::create([
-        'acct_id' => $acct->id,
-        'schid' => $request->schid,
-        'clsid' => $request->clsid,
-        'ssn' => $request->ssn,
-        'trm' => $request->trm,
-        'pay_head_id' => $request->pay_head_id ?? null,
-        'subaccount_code' => $paystack['data']['subaccount_code'],
-        'percentage_charge' => 0,
-    ]);
-
-    return response()->json([
-        'status' => true,
-        'message' => 'Account and Paystack Subaccount Created Successfully',
-        'paystack_data' => $paystack,
-    ]);
-}
 
 
 
@@ -11563,19 +11563,34 @@ class ApiController extends Controller
 
     public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): array
     {
-        // Always percentage for safety
-        $splitType = 'percentage';
-
         $existing = subaccount_split::where('schid', $schid)
             ->where('clsid', $clsid)
             ->first();
 
         if ($existing && $existing->split_code) {
-            return [
-                'split_code' => $existing->split_code,
-                'subaccounts' => $subaccounts
-            ];
+
+            // 🔍 verify split from Paystack
+            $check = Http::withToken(env('PAYSTACK_SECRET'))
+                ->get("https://api.paystack.co/split/{$existing->split_code}");
+
+            if ($check->successful()) {
+                $psSubs = $check->json('data.subaccounts') ?? [];
+                $sum = collect($psSubs)->sum('share');
+
+                if ($sum > 0 && $sum < 100) {
+                    return [
+                        'split_code' => $existing->split_code,
+                        'subaccounts' => $psSubs
+                    ];
+                }
+
+            }
+
+            // ❌ split is broken → delete locally
+            $existing->delete();
         }
+
+        /* -------- CREATE NEW SPLIT -------- */
 
         // Merge duplicates
         $merged = [];
@@ -11584,30 +11599,43 @@ class ApiController extends Controller
                 ($merged[$acc['subaccount']] ?? 0) + floatval($acc['share']);
         }
 
-        // Normalize to percentages
         $total = array_sum($merged);
         if ($total <= 0) {
             throw new \Exception('Invalid split shares');
         }
 
         $normalized = [];
+        $running = 0;
+        $last = count($merged) - 1;
+        $i = 0;
+
         foreach ($merged as $code => $share) {
+            if ($i === $last) {
+                $pct = round(99.99 - $running, 2);
+            } else {
+                $pct = round(($share / $total) * 99.99, 2);
+                $running += $pct;
+            }
+
             $normalized[] = [
                 'subaccount' => $code,
-                'share' => round(($share / $total) * 100, 4),
+                'share' => $pct,
             ];
+            $i++;
         }
 
-        $payload = [
-            'name' => "Split-{$schid}-{$clsid}",
-            'type' => 'percentage',
-            'currency' => 'NGN',
-            'subaccounts' => $normalized,
-            'bearer_type' => 'account',
-        ];
+        if (collect($normalized)->sum('share') >= 100) {
+            throw new \Exception('Invalid split: exceeds 100%');
+        }
 
         $response = Http::withToken(env('PAYSTACK_SECRET'))
-            ->post('https://api.paystack.co/split', $payload);
+            ->post('https://api.paystack.co/split', [
+                'name' => "Split-{$schid}-{$clsid}",
+                'type' => 'percentage',
+                'currency' => 'NGN',
+                'subaccounts' => $normalized,
+                'bearer_type' => 'account',
+            ]);
 
         if (!$response->successful()) {
             throw new \Exception($response->body());
@@ -11619,6 +11647,7 @@ class ApiController extends Controller
             'schid' => $schid,
             'clsid' => $clsid,
             'split_code' => $splitCode,
+            'subaccounts' => json_encode($normalized), // ✅ STORE THIS
         ]);
 
         return [
