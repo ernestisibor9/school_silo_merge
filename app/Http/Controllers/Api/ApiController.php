@@ -11701,7 +11701,7 @@ class ApiController extends Controller
             return $this->redirectToError();
         }
 
-        // Lookup school subdomain
+        // Lookup school subdomain.
         $school = \DB::table('school')->where('sid', $schid)->first();
         $subdomain = $school->sbd ?? null;
 
