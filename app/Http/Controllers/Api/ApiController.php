@@ -11810,10 +11810,6 @@ class ApiController extends Controller
                 $payload['split_code'] = $splitCode;
             }
 
-            if ($request->has('transaction_charge')) {
-                $payload['transaction_charge'] = intval($request->transaction_charge) * 100;
-            }
-
             // Initialize payment on Paystack
             $response = Http::withToken(env('PAYSTACK_SECRET'))
                 ->post('https://api.paystack.co/transaction/initialize', $payload);
