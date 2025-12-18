@@ -7997,7 +7997,8 @@ class ApiController extends Controller
 
     public function getStudentResult($schid, $ssn, $trm, $clsm, $clsa, $stid)
     {
-        $user = auth()->user();
+        try{
+                    $user = auth()->user();
 
         // Check if results are published for this class/arm/term
         $isPublished = student_res::where([
@@ -8180,6 +8181,15 @@ class ApiController extends Controller
             "message" => "Success",
             "pld" => $pld,
         ]);
+        }
+ catch (Throwable $e) {
+        Log::error($e->getMessage() . "\n" . $e->getTraceAsString());
+        return response()->json([
+            "status" => false,
+            "message" => "Server Error: " . $e->getMessage(),
+            "pld" => []
+        ], 500);
+    }
     }
 
 

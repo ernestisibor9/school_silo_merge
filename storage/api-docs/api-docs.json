@@ -9834,7 +9834,7 @@
         "/api/getSplitCode": {
             "post": {
                 "tags": [
-                    "Payment"
+                    "Payments"
                 ],
                 "summary": "Get or create a split code for subaccounts",
                 "description": "Creates a new split code or retrieves an existing one for the specified school, class, and subaccount codes.",
