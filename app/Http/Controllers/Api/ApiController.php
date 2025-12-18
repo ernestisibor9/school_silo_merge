@@ -11563,12 +11563,15 @@ class ApiController extends Controller
 
     public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): array
     {
+        /* ===============================
+           1️⃣ CHECK EXISTING SPLIT
+        =============================== */
         $existing = subaccount_split::where('schid', $schid)
             ->where('clsid', $clsid)
             ->first();
 
         if ($existing && $existing->split_code) {
-            // Verify split from Paystack
+
             $check = Http::withToken(env('PAYSTACK_SECRET'))
                 ->get("https://api.paystack.co/split/{$existing->split_code}");
 
@@ -11576,7 +11579,8 @@ class ApiController extends Controller
                 $psSubs = $check->json('data.subaccounts') ?? [];
                 $sum = collect($psSubs)->sum('share');
 
-                if ($sum > 0 && $sum < 100) {
+                // ✅ reuse only if merchant still has share
+                if ($sum > 0 && $sum < 99.99) {
                     return [
                         'split_code' => $existing->split_code,
                         'subaccounts' => $psSubs
@@ -11584,15 +11588,19 @@ class ApiController extends Controller
                 }
             }
 
-            // Split is broken → delete locally
+            // ❌ Broken split → delete and recreate
             $existing->delete();
         }
 
-        /* -------- CREATE NEW SPLIT -------- */
-
-        // Merge duplicates
+        /* ===============================
+           2️⃣ MERGE DUPLICATES
+        =============================== */
         $merged = [];
         foreach ($subaccounts as $acc) {
+            if (empty($acc['subaccount']) || floatval($acc['share']) <= 0) {
+                throw new \Exception('Invalid subaccount payload');
+            }
+
             $merged[$acc['subaccount']] =
                 ($merged[$acc['subaccount']] ?? 0) + floatval($acc['share']);
         }
@@ -11602,7 +11610,9 @@ class ApiController extends Controller
             throw new \Exception('Invalid split shares');
         }
 
-        // Normalize shares safely
+        /* ===============================
+           3️⃣ NORMALIZE SAFELY (99.99 MAX)
+        =============================== */
         $normalized = [];
         $running = 0;
         $lastIndex = count($merged) - 1;
@@ -11610,27 +11620,39 @@ class ApiController extends Controller
 
         foreach ($merged as $code => $share) {
             if ($i === $lastIndex) {
-                // Ensure merchant gets at least 0.01% left
-                $pct = round(100 - $running, 2);
+                // ✅ leave at least 0.01% for merchant
+                $pct = round(99.99 - $running, 2);
             } else {
                 $pct = round(($share / $total) * 99.99, 2);
                 $running += $pct;
+            }
+
+            if ($pct <= 0) {
+                throw new \Exception("Invalid split percentage for {$code}");
             }
 
             $normalized[] = [
                 'subaccount' => $code,
                 'share' => $pct,
             ];
+
             $i++;
         }
 
-        // Final safety check
+        /* ===============================
+           4️⃣ FINAL SAFETY CHECK
+        =============================== */
         $totalNormalized = collect($normalized)->sum('share');
-        if ($totalNormalized >= 100) {
-            throw new \Exception('Invalid split: subaccount shares exceed 100%');
+
+        if ($totalNormalized >= 99.99) {
+            throw new \Exception(
+                "Invalid split: merchant share would be zero ({$totalNormalized}%)"
+            );
         }
 
-        // Create split on Paystack
+        /* ===============================
+           5️⃣ CREATE SPLIT ON PAYSTACK
+        =============================== */
         $response = Http::withToken(env('PAYSTACK_SECRET'))
             ->post('https://api.paystack.co/split', [
                 'name' => "Split-{$schid}-{$clsid}",
@@ -11646,7 +11668,9 @@ class ApiController extends Controller
 
         $splitCode = $response->json('data.split_code');
 
-        // Store locally
+        /* ===============================
+           6️⃣ STORE LOCALLY
+        =============================== */
         subaccount_split::create([
             'schid' => $schid,
             'clsid' => $clsid,
