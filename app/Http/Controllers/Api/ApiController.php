@@ -11563,15 +11563,11 @@ class ApiController extends Controller
 
     public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): array
     {
-        /* ===============================
-           1️⃣ CHECK EXISTING SPLIT
-        =============================== */
         $existing = subaccount_split::where('schid', $schid)
             ->where('clsid', $clsid)
             ->first();
 
         if ($existing && $existing->split_code) {
-
             $check = Http::withToken(env('PAYSTACK_SECRET'))
                 ->get("https://api.paystack.co/split/{$existing->split_code}");
 
@@ -11579,8 +11575,8 @@ class ApiController extends Controller
                 $psSubs = $check->json('data.subaccounts') ?? [];
                 $sum = collect($psSubs)->sum('share');
 
-                // ✅ reuse only if merchant still has share
-                if ($sum > 0 && $sum < 99.99) {
+                // ✅ 99.99 is allowed
+                if ($sum > 0 && $sum < 100) {
                     return [
                         'split_code' => $existing->split_code,
                         'subaccounts' => $psSubs
@@ -11588,12 +11584,11 @@ class ApiController extends Controller
                 }
             }
 
-            // ❌ Broken split → delete and recreate
             $existing->delete();
         }
 
         /* ===============================
-           2️⃣ MERGE DUPLICATES
+           MERGE DUPLICATES
         =============================== */
         $merged = [];
         foreach ($subaccounts as $acc) {
@@ -11611,16 +11606,15 @@ class ApiController extends Controller
         }
 
         /* ===============================
-           3️⃣ NORMALIZE SAFELY (99.99 MAX)
+           NORMALIZE TO MAX 99.99
         =============================== */
         $normalized = [];
         $running = 0;
-        $lastIndex = count($merged) - 1;
         $i = 0;
+        $lastIndex = count($merged) - 1;
 
         foreach ($merged as $code => $share) {
             if ($i === $lastIndex) {
-                // ✅ leave at least 0.01% for merchant
                 $pct = round(99.99 - $running, 2);
             } else {
                 $pct = round(($share / $total) * 99.99, 2);
@@ -11640,18 +11634,19 @@ class ApiController extends Controller
         }
 
         /* ===============================
-           4️⃣ FINAL SAFETY CHECK
+           FINAL CHECK (FIXED)
         =============================== */
         $totalNormalized = collect($normalized)->sum('share');
 
-        if ($totalNormalized >= 99.99) {
+        // ✅ allow 99.99
+        if ($totalNormalized > 99.99) {
             throw new \Exception(
-                "Invalid split: merchant share would be zero ({$totalNormalized}%)"
+                "Invalid split: subaccount shares exceed 100% ({$totalNormalized})"
             );
         }
 
         /* ===============================
-           5️⃣ CREATE SPLIT ON PAYSTACK
+           CREATE PAYSTACK SPLIT
         =============================== */
         $response = Http::withToken(env('PAYSTACK_SECRET'))
             ->post('https://api.paystack.co/split', [
@@ -11668,9 +11663,6 @@ class ApiController extends Controller
 
         $splitCode = $response->json('data.split_code');
 
-        /* ===============================
-           6️⃣ STORE LOCALLY
-        =============================== */
         subaccount_split::create([
             'schid' => $schid,
             'clsid' => $clsid,
@@ -11683,7 +11675,6 @@ class ApiController extends Controller
             'subaccounts' => $normalized
         ];
     }
-
 
 
     public function handleCallback(Request $request)
