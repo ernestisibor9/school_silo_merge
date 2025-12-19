@@ -35,8 +35,6 @@ Route::post('setClass', [ApiController::class, 'setCls']);
 Route::post('setAdminStaffRole', [ApiController::class, 'setAdminStaffRole']);
 Route::post('setSchoolStaffRole', [ApiController::class, 'setSchoolStaffRole']);
 
-Route::post('getSplitCode', [ApiController::class, 'getSplitCode']);
-
 // Route::post('promoteStudent', [ApiController::class, 'promoteStudent']);
 // Route::post('repeatStudent', [ApiController::class, 'repeatStudent']);
 // Route::post('rePromoteStudent', [ApiController::class, 'rePromoteStudent']);
@@ -44,7 +42,6 @@ Route::post('getSplitCode', [ApiController::class, 'getSplitCode']);
 // Route::post('rePostStaff', [ApiController::class, 'rePostStaff']);
 
 
-Route::get('getAcctApp/{schid}', [ApiController::class, 'getAcctApp']);
 
 Route::get('verifyEmail/{typ}/{code}/{schid}', [ApiController::class, 'verifyEmail']);
 Route::get('getSchoolWebInfo/{uid}', [ApiController::class, 'getSchoolWebInfo']);
@@ -73,7 +70,7 @@ Route::get('getStudentPsy/{schid}/{ssn}/{trm}/{clsm}/{clsa}/{stid}', [ApiControl
 Route::get('getStudentRes/{schid}/{ssn}/{trm}/{clsm}/{clsa}/{stid}', [ApiController::class, 'getStudentRes']);
 Route::get('getStudentResult/{schid}/{ssn}/{trm}/{clsm}/{clsa}/{stid}', [ApiController::class, 'getStudentResult']);
 Route::get('getClassSubject/{schid}/{clsid}/{sbid}', [ApiController::class, 'getClassSubject']);
-
+Route::get('getStudentResultsByArm/{schid}/{clsid}/{ssn}/{trm}/{arm}', [ApiController::class, 'getStudentResultsByArm']);
 Route::get('getResultMeta/{schid}/{ssn}/{trm}', [ApiController::class, 'getResultMeta']);
 Route::get('getClassSubjectsByStaff/{schid}/{clsid}/{stid}', [ApiController::class, 'getClassSubjectsByStaff']);
 Route::get('getClassSubjects/{schid}/{clsid}/{sesn}/{trm}', [ApiController::class, 'getClassSubjects']);
@@ -170,10 +167,8 @@ Route::group([
 
     Route::post('assignSubjectStaff', [ApiController::class, 'assignSubjectStaff']);
     Route::post('setRepostStaff', [ApiController::class, 'setRepostStaff']);
-    Route::get('getStudentResultsByArm/{schid}/{clsid}/{ssn}/{trm}/{arm}', [ApiController::class, 'getStudentResultsByArm']);
-    Route::post('updateLocation/{schid}', [ApiController::class, 'updateLocation']);
 
-    Route::post('toggleResultStatus', [ApiController::class, 'toggleResultStatus']);
+    Route::post('updateLocation/{schid}', [ApiController::class, 'updateLocation']);
 
     Route::post('setStaffClassArm', [ApiController::class, 'setStaffClassArm']);
     Route::post('setOldStaffInfo', [ApiController::class, 'setOldStaffInfo']);
@@ -187,7 +182,6 @@ Route::group([
     Route::post('setStudentSubjPos', [ApiController::class, 'setStudentSubjPos']);
     Route::post('addAdmissionInfo', [ApiController::class, 'addAdmissionInfo']);
     Route::put('approveAdmission', [ApiController::class, 'approveAdmission']);
-    Route::post('setCummulativeResultStatus', [ApiController::class, 'setCummulativeResultStatus']);
 
 
     Route::post('setAcceptanceAcct', [ApiController::class, 'setAcceptanceAcct']);
@@ -208,8 +202,6 @@ Route::group([
     Route::put('updateLessonNote', [ApiController::class, 'updateLessonNote']);
     Route::post('/storeComment', [ApiController::class, 'storeComment']);
     Route::post('/autoCommentTemplate', [ApiController::class, 'autoCommentTemplate']);
-    Route::get('/autoCommentTemplate', [ApiController::class, 'getAutoCommentTemplate']);
-
     Route::post('/allStudentResultsComment', [ApiController::class, 'allStudentResultsComment']);
 
 
@@ -219,7 +211,7 @@ Route::group([
     Route::post('resetPass', [ApiController::class, 'resetPass']);
     Route::post('rePostStaff', [ApiController::class, 'rePostStaff']);
 
-
+        Route::post('toggleResultStatus', [ApiController::class, 'toggleResultStatus']);
 
     Route::get('/getSubAccount/{acctid}', [ApiController::class, 'getSubAccount']);
     Route::get('getSchoolBasicInfo/{uid}', [ApiController::class, 'getSchoolBasicInfo']);
@@ -245,9 +237,9 @@ Route::group([
     Route::get('confirmAcceptancePayment/{schid}/{clsid}/{stid}', [ApiController::class, 'confirmAcceptancePayment']);
     Route::get('getRegFeePaymentStat/{schid}/{rfee}', [ApiController::class, 'getRegFeePaymentStat']);
     Route::get('getRegFeePayments/{schid}/{rfee}', [ApiController::class, 'getRegFeePayments']);
-    Route::get('getAcctPref/{schid}/{ssn}/{trm}', [ApiController::class, 'getAcctPref']);
-    Route::get('getAccountStat/{schid}/{ssn}/{trm}', [ApiController::class, 'getAccountStat']);
-    Route::get('getAccountsBySchool/{schid}/{ssn}/{trm}', [ApiController::class, 'getAccountsBySchool']);
+    Route::get('getAcctPref/{schid}', [ApiController::class, 'getAcctPref']);
+    Route::get('getAccountStat/{schid}', [ApiController::class, 'getAccountStat']);
+    Route::get('getAccountsBySchool/{schid}', [ApiController::class, 'getAccountsBySchool']);
     Route::get('getAccountsBySchoolAndClass/{schid}/{clsid}', [ApiController::class, 'getAccountsBySchoolAndClass']);
     Route::get('deleteAccount/{schid}/{clsid}', [ApiController::class, 'deleteAcct']);
     Route::get('getAFeeStat/{schid}', [ApiController::class, 'getAFeeStat']);
@@ -360,7 +352,7 @@ Route::group([
     Route::get('getClassArmsByStaffClass/{stid}/{cls}', [ApiController::class, 'getClassArmsByStaffClass']);
     Route::get('studentHasExamRecord/{schid}/{clsid}/{ssn}/{trm}/{stid}', [ApiController::class, 'studentHasExamRecord']);
     Route::get('getArmResultConf/{schid}/{clsid}/{sbid}/{ssn}/{trm}/{arm}', [ApiController::class, 'getArmResultConf']);
-    // Route::get('getAcctApp/{schid}', [ApiController::class, 'getAcctApp']);
+    Route::get('getAcctApp/{schid}', [ApiController::class, 'getAcctApp']);
     Route::get('getAcctAccept/{schid}', [ApiController::class, 'getAcctAccept']);
     Route::get('getAlumni/{schid}', [ApiController::class, 'getAlumni']);
     Route::get('getExStaff/{schid}', [ApiController::class, 'getExStaff']);

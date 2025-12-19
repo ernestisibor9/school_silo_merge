@@ -758,39 +758,19 @@
                 "tags": [
                     "Api"
                 ],
-                "summary": "Set or update school application fee for a student (per session & term)",
+                "summary": "Set school application fee",
                 "operationId": "eedae96eb1ff94a192a2fb180bb945f8",
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
-                                "required": [
-                                    "sid",
-                                    "fee",
-                                    "ssn",
-                                    "trm"
-                                ],
                                 "properties": {
                                     "sid": {
-                                        "description": "Student ID",
-                                        "type": "string",
-                                        "example": "22"
+                                        "type": "string"
                                     },
                                     "fee": {
-                                        "description": "Application fee amount",
-                                        "type": "string",
-                                        "example": "5000"
-                                    },
-                                    "ssn": {
-                                        "description": "Session ID",
-                                        "type": "string",
-                                        "example": "2025"
-                                    },
-                                    "trm": {
-                                        "description": "Term ID",
-                                        "type": "string",
-                                        "example": "1"
+                                        "type": "string"
                                     }
                                 },
                                 "type": "object"
@@ -800,44 +780,10 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Application fee saved successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Success"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Student data set successfully"
                     },
                     "400": {
-                        "description": "Validation error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Validation failed"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Validation error"
                     }
                 },
                 "security": [
@@ -852,110 +798,31 @@
                 "tags": [
                     "Api"
                 ],
-                "summary": "Get school application fee by school ID",
-                "description": "Fetches the application fee for a school, with optional filtering by session (ssn) and term (trm).",
-                "operationId": "getSchoolAppFee",
+                "summary": "Get School Application Fee",
+                "description": "Use this endpoint to get school app. fee",
+                "operationId": "2a31a668d8379498122eca17eb3cba61",
                 "parameters": [
                     {
                         "name": "uid",
                         "in": "path",
-                        "description": "School ID",
+                        "description": "School Id",
                         "required": true,
                         "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "ssn",
-                        "in": "query",
-                        "description": "Session filter (optional)",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "example": 2025
-                        }
-                    },
-                    {
-                        "name": "trm",
-                        "in": "query",
-                        "description": "Term filter (optional)",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "example": 1
+                            "type": "string"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Successful Response",
+                        "description": "Success",
                         "content": {
                             "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Success"
-                                        },
-                                        "pld": {
-                                            "description": "Application fee record",
-                                            "properties": {
-                                                "id": {
-                                                    "type": "integer",
-                                                    "example": 12
-                                                },
-                                                "sid": {
-                                                    "type": "integer",
-                                                    "example": 3
-                                                },
-                                                "amount": {
-                                                    "type": "number",
-                                                    "example": 4500
-                                                },
-                                                "ssn": {
-                                                    "type": "integer",
-                                                    "example": 2025
-                                                },
-                                                "trm": {
-                                                    "type": "integer",
-                                                    "example": 1
-                                                }
-                                            },
-                                            "type": "object",
-                                            "nullable": true
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Record not found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "No records found"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
+                                "schema": {}
                             }
                         }
                     },
                     "401": {
-                        "description": "Unauthenticated"
+                        "description": "Unauthorized"
                     }
                 },
                 "security": [
@@ -5013,139 +4880,6 @@
                 ]
             }
         },
-        "/api/setCummulativeResultStatus": {
-            "post": {
-                "tags": [
-                    "Api"
-                ],
-                "summary": "Lock or unlock a class broadsheet or a specific student (set status 0 or 1)",
-                "operationId": "d39de101647d1694d045346776f3ff8f",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "schid",
-                                    "ssn",
-                                    "clsm",
-                                    "clsa",
-                                    "stat"
-                                ],
-                                "properties": {
-                                    "schid": {
-                                        "type": "string",
-                                        "example": "12"
-                                    },
-                                    "ssn": {
-                                        "type": "string",
-                                        "example": "2025"
-                                    },
-                                    "clsm": {
-                                        "type": "string",
-                                        "example": "11"
-                                    },
-                                    "clsa": {
-                                        "type": "string",
-                                        "example": "2"
-                                    },
-                                    "stat": {
-                                        "description": "0 = unlock, 1 = lock",
-                                        "type": "integer",
-                                        "enum": [
-                                            0,
-                                            1
-                                        ],
-                                        "example": 1
-                                    },
-                                    "sid": {
-                                        "description": "Optional student ID. If provided, only this student's broadsheet will be locked/unlocked. If omitted, the whole class is affected.",
-                                        "type": "string",
-                                        "example": "ST123",
-                                        "nullable": true
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Broadsheet status updated successfully.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Broadsheet UNLOCKED successfully"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Unauthorized action",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Unauthorized: Only Principal, Head Teacher, School Admin or System Admin can lock/unlock broadsheet."
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "The given data was invalid."
-                                        },
-                                        "errors": {
-                                            "type": "object",
-                                            "example": {
-                                                "schid": [
-                                                    "The schid field is required."
-                                                ],
-                                                "stat": [
-                                                    "The selected stat is invalid."
-                                                ]
-                                            }
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
         "/api/getStudentRes/{schid}/{ssn}/{trm}/{clsm}/{clsa}/{stid}": {
             "get": {
                 "tags": [
@@ -8888,15 +8622,7 @@
                                     },
                                     "clsid": {
                                         "type": "string",
-                                        "example": "11"
-                                    },
-                                    "ssn": {
-                                        "type": "string",
-                                        "example": "2025"
-                                    },
-                                    "trm": {
-                                        "type": "string",
-                                        "example": "1"
+                                        "example": "John Doe"
                                     },
                                     "amt": {
                                         "type": "integer",
@@ -8962,8 +8688,8 @@
                 "tags": [
                     "Api"
                 ],
-                "summary": "Get Acceptance Fee Payment Statistics",
-                "description": "Retrieve total count and total amount of acceptance fee payments with optional session and term filters.",
+                "summary": "Get how many acceptance fee payments are available",
+                "description": "Use this endpoint to get how many aFee payments are available",
                 "operationId": "90c147667ced4f205caf2f6142c3591c",
                 "parameters": [
                     {
@@ -8972,7 +8698,7 @@
                         "description": "School ID",
                         "required": true,
                         "schema": {
-                            "type": "integer"
+                            "type": "string"
                         }
                     },
                     {
@@ -8981,27 +8707,7 @@
                         "description": "Class ID",
                         "required": true,
                         "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "ssn",
-                        "in": "query",
-                        "description": "Session (e.g., 2025)",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "example": "2025"
-                        }
-                    },
-                    {
-                        "name": "trm",
-                        "in": "query",
-                        "description": "Term (1, 2, or 3)",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "example": 1
+                            "type": "string"
                         }
                     }
                 ],
@@ -9010,44 +8716,14 @@
                         "description": "Success",
                         "content": {
                             "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Success"
-                                        },
-                                        "pld": {
-                                            "properties": {
-                                                "total": {
-                                                    "type": "integer",
-                                                    "example": 150
-                                                },
-                                                "totalAmt": {
-                                                    "type": "number",
-                                                    "example": 450000
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
+                                "schema": {}
                             }
                         }
                     },
                     "401": {
                         "description": "Unauthorized"
                     }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/getAcceptancePayments/{schid}/{clsid}": {
@@ -9055,8 +8731,8 @@
                 "tags": [
                     "Payments"
                 ],
-                "summary": "Get Acceptance Fee Payments by School and Class",
-                "description": "Retrieve acceptance fee payment records filtered by school, class, session, and term.",
+                "summary": "Get Acceptance Fee Payments by School",
+                "description": "Use this endpoint to get Payments by School",
                 "operationId": "c88830fc40b9376f6e1713cd618937f8",
                 "parameters": [
                     {
@@ -9065,7 +8741,7 @@
                         "description": "School ID",
                         "required": true,
                         "schema": {
-                            "type": "integer"
+                            "type": "string"
                         }
                     },
                     {
@@ -9074,45 +8750,25 @@
                         "description": "Class ID",
                         "required": true,
                         "schema": {
-                            "type": "integer"
+                            "type": "string"
                         }
                     },
                     {
                         "name": "start",
                         "in": "query",
-                        "description": "Index to start retrieving records (pagination)",
+                        "description": "Index to start at",
                         "required": false,
                         "schema": {
-                            "type": "integer",
-                            "default": 0
+                            "type": "integer"
                         }
                     },
                     {
                         "name": "count",
                         "in": "query",
-                        "description": "Number of records to retrieve (pagination)",
+                        "description": "No of records to retrieve",
                         "required": false,
                         "schema": {
-                            "type": "integer",
-                            "default": 20
-                        }
-                    },
-                    {
-                        "name": "ssn",
-                        "in": "query",
-                        "description": "Session filter (e.g. 2024, 2025)",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "trm",
-                        "in": "query",
-                        "description": "Term filter (e.g. 1, 2, 3)",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
+                            "type": "integer"
                         }
                     }
                 ],
@@ -9121,46 +8777,23 @@
                         "description": "Success",
                         "content": {
                             "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Success"
-                                        },
-                                        "pld": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object"
-                                            }
-                                        }
-                                    },
-                                    "type": "object"
-                                }
+                                "schema": {}
                             }
                         }
                     },
                     "401": {
                         "description": "Unauthorized"
                     }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/getRegFeePaymentStat/{schid}/{rfee}": {
             "get": {
                 "tags": [
-                    "Payments"
+                    "Api"
                 ],
-                "summary": "Get Registration Fee Payment Statistics by School",
-                "description": "Retrieve the total numbers of registration fee payments for a school, with optional session (ssn) and term (trm) filters.",
+                "summary": "Get how many reg fee payments are available",
+                "description": "Use this endpoint to get how many rFee payments are available",
                 "operationId": "be9d9a82df89f395ce7ac30c5de273c3",
                 "parameters": [
                     {
@@ -9169,36 +8802,16 @@
                         "description": "School ID",
                         "required": true,
                         "schema": {
-                            "type": "integer"
+                            "type": "string"
                         }
                     },
                     {
                         "name": "rfee",
                         "in": "path",
-                        "description": "Registration Fee status (0 = Not Paid, 1 = Paid)",
+                        "description": "Reg Fee ID (0/1)",
                         "required": true,
                         "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "ssn",
-                        "in": "query",
-                        "description": "Session/Academic Year (e.g., 2025)",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "example": "2025"
-                        }
-                    },
-                    {
-                        "name": "trm",
-                        "in": "query",
-                        "description": "Term (1, 2, or 3)",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "example": 1
+                            "type": "string"
                         }
                     }
                 ],
@@ -9207,40 +8820,14 @@
                         "description": "Success",
                         "content": {
                             "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Success"
-                                        },
-                                        "pld": {
-                                            "properties": {
-                                                "total": {
-                                                    "type": "integer",
-                                                    "example": 120
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
+                                "schema": {}
                             }
                         }
                     },
                     "401": {
                         "description": "Unauthorized"
                     }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/getRegFeePayments/{schid}/{rfee}": {
@@ -9248,8 +8835,8 @@
                 "tags": [
                     "Payments"
                 ],
-                "summary": "Get Registration Fee Payments by School",
-                "description": "Retrieve registration fee payment records for a school with optional session (year) and term filters.",
+                "summary": "Get Reg Fee Payments by School",
+                "description": "Use this endpoint to get Payments by School",
                 "operationId": "1f17b267306c8d5390c666f7e699ba47",
                 "parameters": [
                     {
@@ -9258,56 +8845,34 @@
                         "description": "School ID",
                         "required": true,
                         "schema": {
-                            "type": "integer"
+                            "type": "string"
                         }
                     },
                     {
                         "name": "rfee",
                         "in": "path",
-                        "description": "Registration Fee Status (0 = Not Paid, 1 = Paid)",
+                        "description": "Reg Fee ID (0/1)",
                         "required": true,
                         "schema": {
-                            "type": "integer"
+                            "type": "string"
                         }
                     },
                     {
                         "name": "start",
                         "in": "query",
-                        "description": "Start index for pagination",
+                        "description": "Index to start at",
                         "required": false,
                         "schema": {
-                            "type": "integer",
-                            "example": 0
+                            "type": "integer"
                         }
                     },
                     {
                         "name": "count",
                         "in": "query",
-                        "description": "Number of records to retrieve",
+                        "description": "No of records to retrieve",
                         "required": false,
                         "schema": {
-                            "type": "integer",
-                            "example": 20
-                        }
-                    },
-                    {
-                        "name": "ssn",
-                        "in": "query",
-                        "description": "Session (stored as `year` in database). Example: 2025",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "example": "2025"
-                        }
-                    },
-                    {
-                        "name": "trm",
-                        "in": "query",
-                        "description": "Term (stored as `term` in database). Example: 1",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "example": 1
+                            "type": "integer"
                         }
                     }
                 ],
@@ -9316,45 +8881,14 @@
                         "description": "Success",
                         "content": {
                             "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Success"
-                                        },
-                                        "pld": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object",
-                                                "example": {
-                                                    "sid": 100,
-                                                    "fname": "John",
-                                                    "lname": "Doe",
-                                                    "year": 2025,
-                                                    "term": 1,
-                                                    "rfee": 1
-                                                }
-                                            }
-                                        }
-                                    },
-                                    "type": "object"
-                                }
+                                "schema": {}
                             }
                         }
                     },
                     "401": {
                         "description": "Unauthorized"
                     }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/setAcctPref": {
@@ -9377,14 +8911,6 @@
                                     "pref": {
                                         "type": "string",
                                         "example": "456"
-                                    },
-                                    "ssn": {
-                                        "type": "string",
-                                        "example": "2025"
-                                    },
-                                    "trm": {
-                                        "type": "integer",
-                                        "example": "1"
                                     }
                                 },
                                 "type": "object"
@@ -9441,14 +8967,14 @@
                 ]
             }
         },
-        "/api/getAcctPref/{schid}/{ssn}/{trm}": {
+        "/api/getAcctPref/{schid}": {
             "get": {
                 "tags": [
                     "Api"
                 ],
-                "summary": "Get preference for account number",
-                "description": "Use this endpoint to get preference settings for account numbers.",
-                "operationId": "284dfa0bdf02ae229d571a9ec56542a7",
+                "summary": "Get preference for acct number",
+                "description": "Use this endpoint to get pref",
+                "operationId": "189f2762aca90892816ce5160cb83440",
                 "parameters": [
                     {
                         "name": "schid",
@@ -9456,28 +8982,7 @@
                         "description": "School ID",
                         "required": true,
                         "schema": {
-                            "type": "string",
-                            "example": "12"
-                        }
-                    },
-                    {
-                        "name": "ssn",
-                        "in": "path",
-                        "description": "Session ID",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "example": "2025"
-                        }
-                    },
-                    {
-                        "name": "trm",
-                        "in": "path",
-                        "description": "Term ID",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "example": "1"
+                            "type": "string"
                         }
                     }
                 ],
@@ -9493,12 +8998,7 @@
                     "401": {
                         "description": "Unauthorized"
                     }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/setAccount": {
@@ -9831,124 +9331,14 @@
                 ]
             }
         },
-        "/api/getSplitCode": {
-            "post": {
-                "tags": [
-                    "Payments"
-                ],
-                "summary": "Get or create a split code for subaccounts",
-                "description": "Creates a new split code or retrieves an existing one for the specified school, class, and subaccount codes.",
-                "operationId": "getSplitCode",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "schid",
-                                    "clsid",
-                                    "subaccount_code"
-                                ],
-                                "properties": {
-                                    "schid": {
-                                        "description": "School ID",
-                                        "type": "integer",
-                                        "example": 12
-                                    },
-                                    "clsid": {
-                                        "description": "Class ID",
-                                        "type": "integer",
-                                        "example": 11
-                                    },
-                                    "subaccount_code": {
-                                        "description": "Array of subaccount codes",
-                                        "type": "array",
-                                        "items": {
-                                            "type": "string"
-                                        }
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Split code retrieved successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "split_code": {
-                                            "type": "string",
-                                            "example": "SPLIT12345"
-                                        },
-                                        "subaccounts": {
-                                            "type": "array",
-                                            "items": {
-                                                "properties": {
-                                                    "id": {
-                                                        "type": "integer",
-                                                        "example": 1
-                                                    },
-                                                    "code": {
-                                                        "type": "string",
-                                                        "example": "SUB001"
-                                                    },
-                                                    "name": {
-                                                        "type": "string",
-                                                        "example": "Sub Account Name"
-                                                    }
-                                                },
-                                                "type": "object"
-                                            }
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "The schid field is required."
-                                        },
-                                        "errors": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/api/getAccountStat/{schid}/{ssn}/{trm}": {
+        "/api/getAccountStat/{schid}": {
             "get": {
                 "tags": [
                     "Api"
                 ],
                 "summary": "Get how many accounts are available",
-                "description": "Use this endpoint to get the total number of available accounts for a school, session, and term.",
-                "operationId": "46bcac5a48d0220ab11a0c2701fac7af",
+                "description": "Use this endpoint to get how many accounts are available",
+                "operationId": "9584364bfae0301e6d107317e869e9cb",
                 "parameters": [
                     {
                         "name": "schid",
@@ -9956,28 +9346,7 @@
                         "description": "School ID",
                         "required": true,
                         "schema": {
-                            "type": "string",
-                            "example": "12"
-                        }
-                    },
-                    {
-                        "name": "ssn",
-                        "in": "path",
-                        "description": "Session ID",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "example": "2025"
-                        }
-                    },
-                    {
-                        "name": "trm",
-                        "in": "path",
-                        "description": "Term ID",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "example": "1"
+                            "type": "string"
                         }
                     }
                 ],
@@ -9986,50 +9355,24 @@
                         "description": "Success",
                         "content": {
                             "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Success"
-                                        },
-                                        "pld": {
-                                            "properties": {
-                                                "total": {
-                                                    "type": "integer",
-                                                    "example": 128
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
+                                "schema": {}
                             }
                         }
                     },
                     "401": {
                         "description": "Unauthorized"
                     }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
+                }
             }
         },
-        "/api/getAccountsBySchool/{schid}/{ssn}/{trm}": {
+        "/api/getAccountsBySchool/{schid}": {
             "get": {
                 "tags": [
                     "Payments"
                 ],
                 "summary": "Get all Accounts by School",
-                "description": "Retrieve all accounts for a school, session, and term, including sub-account details.",
-                "operationId": "cf67021d453c51c9eee5a4dcb36791d0",
+                "description": "Use this endpoint to get all Accounts by School",
+                "operationId": "e7bdf3af71d884c848e6df2923dc8794",
                 "parameters": [
                     {
                         "name": "schid",
@@ -10037,28 +9380,7 @@
                         "description": "School ID",
                         "required": true,
                         "schema": {
-                            "type": "string",
-                            "example": "12"
-                        }
-                    },
-                    {
-                        "name": "ssn",
-                        "in": "path",
-                        "description": "Session ID",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "example": "2025"
-                        }
-                    },
-                    {
-                        "name": "trm",
-                        "in": "path",
-                        "description": "Term ID",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "example": "1"
+                            "type": "string"
                         }
                     },
                     {
@@ -10067,18 +9389,16 @@
                         "description": "Index to start at",
                         "required": false,
                         "schema": {
-                            "type": "integer",
-                            "example": 0
+                            "type": "integer"
                         }
                     },
                     {
                         "name": "count",
                         "in": "query",
-                        "description": "Number of records to retrieve",
+                        "description": "No of records to retrieve",
                         "required": false,
                         "schema": {
-                            "type": "integer",
-                            "example": 20
+                            "type": "integer"
                         }
                     }
                 ],
@@ -10087,77 +9407,7 @@
                         "description": "Success",
                         "content": {
                             "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Success"
-                                        },
-                                        "pld": {
-                                            "type": "array",
-                                            "items": {
-                                                "properties": {
-                                                    "id": {
-                                                        "type": "integer",
-                                                        "example": 10
-                                                    },
-                                                    "name": {
-                                                        "type": "string",
-                                                        "example": "School Fees"
-                                                    },
-                                                    "amount": {
-                                                        "type": "number",
-                                                        "format": "float",
-                                                        "example": 15000
-                                                    },
-                                                    "schid": {
-                                                        "type": "integer",
-                                                        "example": 12
-                                                    },
-                                                    "ssn": {
-                                                        "type": "string",
-                                                        "example": "2025"
-                                                    },
-                                                    "trm": {
-                                                        "type": "string",
-                                                        "example": "1"
-                                                    },
-                                                    "subAccounts": {
-                                                        "description": "Related sub-account breakdown",
-                                                        "type": "array",
-                                                        "items": {
-                                                            "properties": {
-                                                                "id": {
-                                                                    "type": "integer",
-                                                                    "example": 1
-                                                                },
-                                                                "accts_id": {
-                                                                    "type": "integer",
-                                                                    "example": 10
-                                                                },
-                                                                "name": {
-                                                                    "type": "string",
-                                                                    "example": "Development Levy"
-                                                                },
-                                                                "amount": {
-                                                                    "type": "number",
-                                                                    "example": 2000
-                                                                }
-                                                            },
-                                                            "type": "object"
-                                                        }
-                                                    }
-                                                },
-                                                "type": "object"
-                                            }
-                                        }
-                                    },
-                                    "type": "object"
-                                }
+                                "schema": {}
                             }
                         }
                     },
@@ -10295,12 +9545,6 @@
                                     "clsid": {
                                         "type": "string"
                                     },
-                                    "ssn": {
-                                        "type": "string"
-                                    },
-                                    "trm": {
-                                        "type": "string"
-                                    },
                                     "amt": {
                                         "type": "string"
                                     }
@@ -10351,21 +9595,16 @@
                             }
                         }
                     }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/getAFeeStat/{schid}": {
             "get": {
                 "tags": [
-                    "Payments"
+                    "Api"
                 ],
-                "summary": "Get the number of acceptance fees available",
-                "description": "Retrieve the total count of acceptance fees for a specific school with optional filters for session (ssn) and term (trm).",
+                "summary": "Get how many accpt. Fee are available",
+                "description": "Use this endpoint to get how many accpt. fee are available",
                 "operationId": "7096e123c40dc43edd5e5e711e73cc08",
                 "parameters": [
                     {
@@ -10376,24 +9615,6 @@
                         "schema": {
                             "type": "string"
                         }
-                    },
-                    {
-                        "name": "ssn",
-                        "in": "query",
-                        "description": "Session filter (e.g., 2025)",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "trm",
-                        "in": "query",
-                        "description": "Term filter (e.g., 1, 2, or 3)",
-                        "required": false,
-                        "schema": {
-                            "type": "integer"
-                        }
                     }
                 ],
                 "responses": {
@@ -10401,40 +9622,14 @@
                         "description": "Success",
                         "content": {
                             "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Success"
-                                        },
-                                        "pld": {
-                                            "properties": {
-                                                "total": {
-                                                    "type": "integer",
-                                                    "example": 25
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
+                                "schema": {}
                             }
                         }
                     },
                     "401": {
                         "description": "Unauthorized"
                     }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/getAFeeBySchool/{schid}": {
@@ -10442,8 +9637,8 @@
                 "tags": [
                     "Payments"
                 ],
-                "summary": "Get all acceptance fee by School",
-                "description": "Retrieve acceptance fee records for a specific school with optional filters for session (ssn) and term (trm).",
+                "summary": "Get all accpt. Fee by School",
+                "description": "Use this endpoint to get all accpt. Fee by School",
                 "operationId": "ac09bf2af0a9e777608e4fb2f6152749",
                 "parameters": [
                     {
@@ -10461,123 +9656,16 @@
                         "description": "Index to start at",
                         "required": false,
                         "schema": {
-                            "type": "integer",
-                            "default": 0
+                            "type": "integer"
                         }
                     },
                     {
                         "name": "count",
                         "in": "query",
-                        "description": "Number of records to retrieve",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "default": 20
-                        }
-                    },
-                    {
-                        "name": "ssn",
-                        "in": "query",
-                        "description": "Session filter (e.g., 2025)",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "trm",
-                        "in": "query",
-                        "description": "Term filter (e.g., 1, 2, or 3)",
+                        "description": "No of records to retrieve",
                         "required": false,
                         "schema": {
                             "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Success",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Success"
-                                        },
-                                        "pld": {
-                                            "type": "array",
-                                            "items": {}
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "No records found"
-                    },
-                    "401": {
-                        "description": "Unauthorized"
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/api/getAFee/{schid}/{clsid}": {
-            "get": {
-                "tags": [
-                    "Payments"
-                ],
-                "summary": "Get acceptance fee for a specific class",
-                "description": "Retrieve acceptance fee record filtered by school, class, and optional session (ssn) and term (trm).",
-                "operationId": "415d97976c602f4bdd72c3abcd16a646",
-                "parameters": [
-                    {
-                        "name": "schid",
-                        "in": "path",
-                        "description": "School ID",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "clsid",
-                        "in": "path",
-                        "description": "Class ID",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "ssn",
-                        "in": "query",
-                        "description": "Session / Academic year (e.g. 2025)",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "example": "2025"
-                        }
-                    },
-                    {
-                        "name": "trm",
-                        "in": "query",
-                        "description": "Term (1, 2, or 3)",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "example": 1
                         }
                     }
                 ],
@@ -10593,12 +9681,50 @@
                     "401": {
                         "description": "Unauthorized"
                     }
-                },
-                "security": [
+                }
+            }
+        },
+        "/api/getAFee/{schid}/{clsid}": {
+            "get": {
+                "tags": [
+                    "Payments"
+                ],
+                "summary": "Get all accpt. Fee for a class",
+                "description": "Use this endpoint to get accpt. Fee",
+                "operationId": "415d97976c602f4bdd72c3abcd16a646",
+                "parameters": [
                     {
-                        "bearerAuth": []
+                        "name": "schid",
+                        "in": "path",
+                        "description": "School ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "clsid",
+                        "in": "path",
+                        "description": "Class ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
                     }
-                ]
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                }
             }
         },
         "/api/deleteAFee/{schid}/{clsid}": {
@@ -10799,12 +9925,7 @@
                     "401": {
                         "description": "Unauthorized"
                     }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/deletePayHead/{uid}": {
@@ -10998,12 +10119,7 @@
                     "401": {
                         "description": "Unauthorized"
                     }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/deleteClassPay/{uid}": {
@@ -14873,7 +13989,7 @@
                 "tags": [
                     "Accounts"
                 ],
-                "summary": "Create or update an acceptance account and integrate with Paystack subaccount",
+                "summary": "Create or update an acceptance account with Paystack subaccount integration",
                 "operationId": "c0b194779ddbb19f1dd60d52cf5e5dad",
                 "requestBody": {
                     "required": true,
@@ -14882,95 +13998,15 @@
                             "schema": {
                                 "required": [
                                     "schid",
-                                    "clsid",
-                                    "ssn",
-                                    "trm",
                                     "anum",
                                     "bnk",
                                     "aname"
                                 ],
                                 "properties": {
                                     "schid": {
-                                        "type": "string",
-                                        "example": "6822"
-                                    },
-                                    "clsid": {
-                                        "type": "string",
-                                        "example": "JSS1"
-                                    },
-                                    "ssn": {
-                                        "type": "string",
-                                        "example": "2024"
-                                    },
-                                    "trm": {
-                                        "type": "string",
-                                        "example": "1"
-                                    },
-                                    "anum": {
-                                        "type": "string",
-                                        "example": "0123456789"
-                                    },
-                                    "bnk": {
-                                        "type": "string",
-                                        "example": "044"
-                                    },
-                                    "aname": {
-                                        "type": "string",
-                                        "example": "John Doe"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Account Updated Successfully"
-                    },
-                    "201": {
-                        "description": "Account and Paystack Subaccount Created Successfully"
-                    },
-                    "400": {
-                        "description": "Failed to create Paystack subaccount"
-                    },
-                    "422": {
-                        "description": "Validation error"
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/api/setApplicationAcct": {
-            "post": {
-                "tags": [
-                    "Accounts"
-                ],
-                "summary": "Create or update an application account with Paystack subaccount integration",
-                "description": "This endpoint automatically creates or updates an application account based on schid, class, session, and term. If the record is newly created, the system creates a Paystack subaccount.",
-                "operationId": "2e50f01730d64cc7384eefacd60d74b5",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "schid",
-                                    "anum",
-                                    "bnk",
-                                    "aname",
-                                    "ssn",
-                                    "trm"
-                                ],
-                                "properties": {
-                                    "schid": {
                                         "description": "School ID",
-                                        "type": "integer",
-                                        "example": 6822
+                                        "type": "string",
+                                        "example": "12345"
                                     },
                                     "anum": {
                                         "description": "Account Number",
@@ -14978,7 +14014,7 @@
                                         "example": "0123456789"
                                     },
                                     "bnk": {
-                                        "description": "Bank Code (e.g Access Bank = 044)",
+                                        "description": "Bank Code",
                                         "type": "string",
                                         "example": "044"
                                     },
@@ -14987,15 +14023,10 @@
                                         "type": "string",
                                         "example": "John Doe"
                                     },
-                                    "ssn": {
-                                        "description": "Session",
-                                        "type": "string",
-                                        "example": "2024/2025"
-                                    },
-                                    "trm": {
-                                        "description": "Term",
-                                        "type": "string",
-                                        "example": "1"
+                                    "id": {
+                                        "description": "Optional ID for updating an existing account",
+                                        "type": "integer",
+                                        "example": 1
                                     }
                                 },
                                 "type": "object"
@@ -15005,27 +14036,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Account created or updated successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Account Updated Successfully"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "201": {
-                        "description": "New account and Paystack subaccount created",
+                        "description": "Account and Paystack subaccount created successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -15041,12 +14052,8 @@
                                         "paystack_data": {
                                             "type": "object",
                                             "example": {
-                                                "status": true,
-                                                "message": "Subaccount created",
-                                                "data": {
-                                                    "subaccount_code": "SUB_31920DSK",
-                                                    "business_name": "Business_67A9283"
-                                                }
+                                                "subaccount_code": "SUB_12345",
+                                                "business_name": "Business_67890"
                                             }
                                         }
                                     },
@@ -15056,7 +14063,7 @@
                         }
                     },
                     "400": {
-                        "description": "Paystack subaccount creation failed",
+                        "description": "Failed to create Paystack subaccount",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -15071,7 +14078,185 @@
                                         },
                                         "error": {
                                             "type": "string",
-                                            "example": "Paystack error response message"
+                                            "example": "Error details from Paystack"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Account not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Account Not Found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation Error"
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "example": {
+                                                "schid": [
+                                                    "The schid field is required."
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/setApplicationAcct": {
+            "post": {
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "Create or update an application account with Paystack subaccount integration",
+                "operationId": "2e50f01730d64cc7384eefacd60d74b5",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "schid",
+                                    "anum",
+                                    "bnk",
+                                    "aname"
+                                ],
+                                "properties": {
+                                    "schid": {
+                                        "description": "School ID",
+                                        "type": "string",
+                                        "example": "12345"
+                                    },
+                                    "anum": {
+                                        "description": "Account Number",
+                                        "type": "string",
+                                        "example": "0123456789"
+                                    },
+                                    "bnk": {
+                                        "description": "Bank Code",
+                                        "type": "string",
+                                        "example": "044"
+                                    },
+                                    "aname": {
+                                        "description": "Account Name",
+                                        "type": "string",
+                                        "example": "John Doe"
+                                    },
+                                    "id": {
+                                        "description": "Optional ID for updating an existing account",
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Account and Paystack subaccount created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Account and Paystack Subaccount Created Successfully"
+                                        },
+                                        "paystack_data": {
+                                            "type": "object",
+                                            "example": {
+                                                "subaccount_code": "SUB_12345",
+                                                "business_name": "Business_67890"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Account not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Account Not Found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Failed to create Paystack subaccount",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Failed to Create Paystack Subaccount"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Error details from Paystack"
                                         }
                                     },
                                     "type": "object"
@@ -15120,8 +14305,8 @@
                 "tags": [
                     "Accounts"
                 ],
-                "summary": "Get all Application Accounts by School",
-                "description": "Use this endpoint to get all Application Accounts by School with optional filters",
+                "summary": "Get all Accounts by School",
+                "description": "Use this endpoint to get all Accounts by School",
                 "operationId": "d8647ededa12f38cf84c56b4521ac537",
                 "parameters": [
                     {
@@ -15134,31 +14319,12 @@
                         }
                     },
                     {
-                        "name": "ssn",
-                        "in": "query",
-                        "description": "Session",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "trm",
-                        "in": "query",
-                        "description": "Term",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
                         "name": "start",
                         "in": "query",
                         "description": "Index to start at",
                         "required": false,
                         "schema": {
-                            "type": "integer",
-                            "default": 0
+                            "type": "integer"
                         }
                     },
                     {
@@ -15167,185 +14333,7 @@
                         "description": "Number of records to retrieve",
                         "required": false,
                         "schema": {
-                            "type": "integer",
-                            "default": 20
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Success",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Success"
-                                        },
-                                        "pld": {
-                                            "type": "array",
-                                            "items": {
-                                                "properties": {
-                                                    "id": {
-                                                        "type": "integer",
-                                                        "example": 1
-                                                    },
-                                                    "schid": {
-                                                        "type": "string",
-                                                        "example": "12345"
-                                                    },
-                                                    "anum": {
-                                                        "type": "string",
-                                                        "example": "1234567890"
-                                                    },
-                                                    "bnk": {
-                                                        "type": "string",
-                                                        "example": "Bank XYZ"
-                                                    },
-                                                    "aname": {
-                                                        "type": "string",
-                                                        "example": "John Doe"
-                                                    },
-                                                    "ssn": {
-                                                        "type": "string",
-                                                        "example": "2024/2025"
-                                                    },
-                                                    "trm": {
-                                                        "type": "string",
-                                                        "example": "1st"
-                                                    },
-                                                    "subAccounts": {
-                                                        "type": "array",
-                                                        "items": {
-                                                            "properties": {
-                                                                "subaccount_code": {
-                                                                    "type": "string",
-                                                                    "example": "SUB_98765"
-                                                                },
-                                                                "percentage_charge": {
-                                                                    "type": "integer",
-                                                                    "example": 0
-                                                                }
-                                                            },
-                                                            "type": "object"
-                                                        }
-                                                    }
-                                                },
-                                                "type": "object"
-                                            }
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized"
-                    },
-                    "404": {
-                        "description": "No records found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "No records found"
-                                        },
-                                        "pld": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object"
-                                            }
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/api/getAcctAccept/{schid}": {
-            "get": {
-                "tags": [
-                    "Accounts"
-                ],
-                "summary": "Get all Accounts by School",
-                "description": "Use this endpoint to get all Accounts by School with optional filters",
-                "operationId": "6b8020a0958334efa33219579e822de1",
-                "parameters": [
-                    {
-                        "name": "schid",
-                        "in": "path",
-                        "description": "School ID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "clsid",
-                        "in": "query",
-                        "description": "Class ID (-1 for all classes)",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "default": -1
-                        }
-                    },
-                    {
-                        "name": "ssn",
-                        "in": "query",
-                        "description": "Session",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "trm",
-                        "in": "query",
-                        "description": "Term",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "start",
-                        "in": "query",
-                        "description": "Index to start at",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "default": 0
-                        }
-                    },
-                    {
-                        "name": "count",
-                        "in": "query",
-                        "description": "Number of records to retrieve",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "default": 20
+                            "type": "integer"
                         }
                     }
                 ],
@@ -15392,13 +14380,146 @@
                                                         "type": "string",
                                                         "example": "John Doe"
                                                     },
-                                                    "ssn": {
-                                                        "type": "string",
-                                                        "example": "2024/2025"
+                                                    "subAccounts": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "properties": {
+                                                                "subaccount_code": {
+                                                                    "type": "string",
+                                                                    "example": "SUB_98765"
+                                                                },
+                                                                "percentage_charge": {
+                                                                    "type": "integer",
+                                                                    "example": 0
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        }
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Account not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Account not found"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/getAcctAccept/{schid}": {
+            "get": {
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "Get all Accounts by School",
+                "description": "Use this endpoint to get all Accounts by School",
+                "operationId": "6b8020a0958334efa33219579e822de1",
+                "parameters": [
+                    {
+                        "name": "schid",
+                        "in": "path",
+                        "description": "School ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Index to start at",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "Number of records to retrieve",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
                                                     },
-                                                    "trm": {
+                                                    "schid": {
                                                         "type": "string",
-                                                        "example": "1st"
+                                                        "example": "12345"
+                                                    },
+                                                    "clsid": {
+                                                        "type": "string",
+                                                        "example": "67890"
+                                                    },
+                                                    "anum": {
+                                                        "type": "string",
+                                                        "example": "1234567890"
+                                                    },
+                                                    "bnk": {
+                                                        "type": "string",
+                                                        "example": "Bank XYZ"
+                                                    },
+                                                    "aname": {
+                                                        "type": "string",
+                                                        "example": "John Doe"
                                                     },
                                                     "subAccounts": {
                                                         "type": "array",
@@ -15430,7 +14551,7 @@
                         "description": "Unauthorized"
                     },
                     "404": {
-                        "description": "No records found",
+                        "description": "Account not found",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -15441,13 +14562,11 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "No records found"
+                                            "example": "Account not found"
                                         },
                                         "pld": {
                                             "type": "array",
-                                            "items": {
-                                                "type": "object"
-                                            }
+                                            "items": {}
                                         }
                                     },
                                     "type": "object"
@@ -22092,154 +21211,6 @@
             }
         },
         "/api/autoCommentTemplate": {
-            "get": {
-                "tags": [
-                    "Api"
-                ],
-                "summary": "Fetch auto comment templates for all grades (A–F) for a specific role",
-                "operationId": "330a2f800c4355d0a42f44b7d627bf8d",
-                "parameters": [
-                    {
-                        "name": "schid",
-                        "in": "query",
-                        "description": "School ID",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "example": "12"
-                        }
-                    },
-                    {
-                        "name": "ssn",
-                        "in": "query",
-                        "description": "Session",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "example": "2024"
-                        }
-                    },
-                    {
-                        "name": "trm",
-                        "in": "query",
-                        "description": "Term",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "example": "1"
-                        }
-                    },
-                    {
-                        "name": "clsm",
-                        "in": "query",
-                        "description": "Class main",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "example": "11"
-                        }
-                    },
-                    {
-                        "name": "clsa",
-                        "in": "query",
-                        "description": "Class arm",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "example": "2"
-                        }
-                    },
-                    {
-                        "name": "role",
-                        "in": "query",
-                        "description": "Role type",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "enum": [
-                                "Principal",
-                                "Head Teacher",
-                                "School Admin"
-                            ],
-                            "example": "Principal"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Auto comments fetched successfully.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Auto comments fetched successfully."
-                                        },
-                                        "role": {
-                                            "type": "string",
-                                            "example": "Principal"
-                                        },
-                                        "pld": {
-                                            "type": "array",
-                                            "items": {
-                                                "properties": {
-                                                    "grade": {
-                                                        "type": "string",
-                                                        "example": "A"
-                                                    },
-                                                    "comment": {
-                                                        "type": "string",
-                                                        "example": "Excellent performance"
-                                                    }
-                                                },
-                                                "type": "object"
-                                            }
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "The given data was invalid."
-                                        },
-                                        "errors": {
-                                            "type": "object",
-                                            "example": {
-                                                "role": [
-                                                    "The selected role is invalid."
-                                                ],
-                                                "schid": [
-                                                    "The schid field is required."
-                                                ]
-                                            }
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            },
             "post": {
                 "tags": [
                     "Api"
