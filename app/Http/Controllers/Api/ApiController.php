@@ -13573,6 +13573,32 @@ class ApiController extends Controller
             'pay_head_id' => $request->pay_head_id ?? null,
         ];
 
+                /*
+        |--------------------------------------------------------------------------
+        | DUPLICATE CHECK (clsid + pay_head_id)
+        |--------------------------------------------------------------------------
+        */
+        $dupQuery = accts::where('clsid', $request->clsid)
+            ->where('pay_head_id', $request->pay_head_id);
+
+        // If updating, ignore the current record
+        if ($request->has('id')) {
+            $dupQuery->where('id', '!=', $request->id);
+        }
+
+        if ($dupQuery->exists()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'This pay head has already been assigned to this class.'
+            ], 409);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | UPDATE MODE
+        |--------------------------------------------------------------------------
+        */
+
         // If updating existing account
         if ($request->has('id')) {
             $acct = accts::find($request->id);
