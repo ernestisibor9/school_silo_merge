@@ -6262,7 +6262,48 @@ class ApiController extends Controller
         $uniqueStudents = $students->unique('sid')->values();
 
         // 🔹 Map payload
-        $pld = $uniqueStudents->map(function ($student) {
+        // $pld = $uniqueStudents->map(function ($student) {
+        //     return [
+        //         "sid" => $student->sid,
+        //         "suid" => $student->suid,
+        //         "fname" => $student->fname,
+        //         "mname" => $student->mname,
+        //         "lname" => $student->lname,
+        //         "ssn" => $student->ssn,
+        //         "trm" => $student->trm,
+        //         "clsm" => $student->clsm,
+        //         "clsa" => $student->clsa,
+        //         "last_school" => $student->academicData?->last_school,
+        //         "last_class" => $student->academicData?->last_class,
+        //         "new_class" => $student->academicData?->new_class,
+        //         "new_class_main" => $student->academicData?->new_class_main,
+        //         "adm_ssn" => $student->adm_ssn,
+        //         "adm_trm" => $student->adm_trm,
+        //         "cls_of_adm" => $student->cls_of_adm,
+        //         "date_of_adm" => $student->date_of_adm,
+        //         "adm_status" => $student->adm_status,
+        //     ];
+        // });
+
+        $pld = $uniqueStudents->map(function ($student) use ($schid, $ssn, $trm) {
+
+            // 🔍 Check if student has subjects assigned
+            $hasSubjects = \DB::table('student_subj')
+                ->where('stid', $student->sid)
+                ->where('schid', $schid)
+                ->where('ssn', $ssn)
+                ->exists();
+
+            // 🔹 Update only if needed
+            $newValue = $hasSubjects ? 1 : 0;
+
+            if ($student->cls_sbj_students != $newValue) {
+                \DB::table('old_student')
+                    ->where('sid', $student->sid)
+                    ->where('schid', $schid)
+                    ->update(['cls_sbj_students' => $newValue]);
+            }
+
             return [
                 "sid" => $student->sid,
                 "suid" => $student->suid,
@@ -6273,6 +6314,7 @@ class ApiController extends Controller
                 "trm" => $student->trm,
                 "clsm" => $student->clsm,
                 "clsa" => $student->clsa,
+                "cls_sbj_students" => $newValue,  //  INCLUDED IN RESPONSE
                 "last_school" => $student->academicData?->last_school,
                 "last_class" => $student->academicData?->last_class,
                 "new_class" => $student->academicData?->new_class,
@@ -6285,6 +6327,7 @@ class ApiController extends Controller
             ];
         });
 
+
         return response()->json([
             "status" => true,
             "message" => "Success",
@@ -6295,7 +6338,6 @@ class ApiController extends Controller
             "pld" => $pld,
         ]);
     }
-
 
 
 
