@@ -4565,7 +4565,8 @@ class ApiController extends Controller
     // }
 
 
-    public function getStudentResultsByArm($schid, $clsid, $ssn, $trm, $arm)
+
+     public function getStudentResultsByArm($schid, $clsid, $ssn, $trm, $arm)
     {
         // Ensure we only fetch students for the selected session + class + arm + term
         $members = student::join('old_student', 'student.sid', '=', 'old_student.sid')
@@ -4593,11 +4594,11 @@ class ApiController extends Controller
             ->pluck('sbj')
             ->unique(); // prevent duplicates
 
-        $nof = result_meta::where([
+        $nof = (int) (result_meta::where([
             ['schid', $schid],
             ['ssn', $ssn],
             ['trm', $trm],
-        ])->value('num_of_days') ?? 0;
+        ])->value('num_of_days') ?? 0);
 
         foreach ($members as $member) {
             $user_id = $member->sid;

@@ -211,7 +211,7 @@ Route::group([
     Route::post('resetPass', [ApiController::class, 'resetPass']);
     Route::post('rePostStaff', [ApiController::class, 'rePostStaff']);
 
-        Route::post('toggleResultStatus', [ApiController::class, 'toggleResultStatus']);
+    Route::post('toggleResultStatus', [ApiController::class, 'toggleResultStatus']);
 
     Route::get('/getSubAccount/{acctid}', [ApiController::class, 'getSubAccount']);
     Route::get('getSchoolBasicInfo/{uid}', [ApiController::class, 'getSchoolBasicInfo']);
