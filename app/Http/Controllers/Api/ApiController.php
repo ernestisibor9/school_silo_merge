@@ -981,9 +981,16 @@ class ApiController extends Controller
         $request->validate([
             "sid" => "required",
             "fee" => "required",
+            "ssn" => "required",
+            "trm" => "required",
         ]);
         school_app_fee::updateOrCreate(
-            ["sid" => $request->sid,],
+            [
+                "sid" => $request->sid,
+                "ssn" => $request->ssn,
+                "trm" => $request->trm,
+
+            ],
             [
                 "fee" => $request->fee,
             ]
