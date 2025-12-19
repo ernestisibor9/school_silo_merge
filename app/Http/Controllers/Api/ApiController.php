@@ -13573,11 +13573,11 @@ class ApiController extends Controller
             'pay_head_id' => $request->pay_head_id ?? null,
         ];
 
-                /*
-        |--------------------------------------------------------------------------
-        | DUPLICATE CHECK (clsid + pay_head_id)
-        |--------------------------------------------------------------------------
-        */
+        /*
+|--------------------------------------------------------------------------
+| DUPLICATE CHECK (clsid + pay_head_id)
+|--------------------------------------------------------------------------
+*/
         $dupQuery = accts::where('clsid', $request->clsid)
             ->where('pay_head_id', $request->pay_head_id);
 
@@ -14141,6 +14141,12 @@ class ApiController extends Controller
         $subaccounts = $request->subaccount_code;
         $metadata = $request->metadata;
         $splitType = $request->type ?? 'percentage';
+
+        // OPTION 2: Prevent transaction_charge when split type is flat
+        if ($splitType === 'flat' && $request->has('transaction_charge')) {
+            unset($request['transaction_charge']);
+        }
+
 
         try {
             $totalAmountKobo = $amount * 100;
