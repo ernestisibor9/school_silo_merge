@@ -1,3 +1,5 @@
+
+
 <?php
 
 namespace App\Http\Controllers\Api;
@@ -30,6 +32,7 @@ use App\Models\silo_user;
 use App\Models\pay;
 use App\Models\payhead;
 use App\Models\subaccount_split;
+use App\Models\broadsheet_control;
 
 use App\Models\clspay;
 use App\Models\auto_comment_template;
@@ -962,19 +965,40 @@ class ApiController extends Controller
      *     path="/api/setSchoolAppFee",
      *     tags={"Api"},
      *     security={{"bearerAuth": {}}},
-     *     summary="Set school application fee",
+     *     summary="Set or update school application fee for a student (per session & term)",
+     *
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
      *             type="object",
-     *             @OA\Property(property="sid", type="string"),
-     *             @OA\Property(property="fee", type="string"),
+     *             required={"sid", "fee", "ssn", "trm"},
+     *             @OA\Property(property="sid", type="string", example="22", description="Student ID"),
+     *             @OA\Property(property="fee", type="string", example="5000", description="Application fee amount"),
+     *             @OA\Property(property="ssn", type="string", example="2025", description="Session ID"),
+     *             @OA\Property(property="trm", type="string", example="1", description="Term ID")
      *         )
      *     ),
-     *     @OA\Response(response="200", description="Student data set successfully"),
-     *     @OA\Response(response="400", description="Validation error"),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Application fee saved successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=400,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Validation failed")
+     *         )
+     *     )
      * )
      */
+
     public function setSchoolAppFee(Request $request)
     {
         //Data validation
@@ -1004,30 +1028,109 @@ class ApiController extends Controller
     /**
      * @OA\Get(
      *     path="/api/getSchoolAppFee/{uid}",
+     *     summary="Get school application fee by school ID",
+     *     description="Fetches the application fee for a school, with optional filtering by session (ssn) and term (trm).",
+     *     operationId="getSchoolAppFee",
      *     tags={"Api"},
-     *     summary="Get School Application Fee",
-     *     description="Use this endpoint to get school app. fee",
-     *     security={{"bearerAuth": {}}},
+     *    security={{"bearerAuth": {}}},
+     *
      *     @OA\Parameter(
      *         name="uid",
-     *         in="path",
+     *        in="path",
      *         required=true,
-     *         description="School Id",
-     *         @OA\Schema(type="string")
+     *         description="School ID",
+     *         @OA\Schema(type="integer")
      *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
+     *
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="query",
+     *         required=false,
+     *         description="Session filter (optional)",
+     *         @OA\Schema(type="integer", example=2025)
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="query",
+     *         required=false,
+     *         description="Term filter (optional)",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful Response",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 description="Application fee record",
+     *                 nullable=true,
+     *                 @OA\Property(property="id", type="integer", example=12),
+     *                 @OA\Property(property="sid", type="integer", example=3),
+     *                 @OA\Property(property="amount", type="number", example=4500),
+     *                 @OA\Property(property="ssn", type="integer", example=2025),
+     *                 @OA\Property(property="trm", type="integer", example=1)
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="Record not found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="No records found")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated"
+     *     )
      * )
      */
-    public function getSchoolAppFee($uid)
+    // public function getSchoolAppFee($uid)
+    // {
+    //     $pld = school_app_fee::where("sid", $uid)->first();
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => $pld,
+    //     ]);
+    // }
+
+    public function getSchoolAppFee(Request $request, $uid)
     {
-        $pld = school_app_fee::where("sid", $uid)->first();
+        // Optional filters
+        $ssn = $request->input('ssn', null);
+        $trm = $request->input('trm', null);
+
+        // Base query
+        $query = school_app_fee::where("sid", $uid);
+
+        // Apply optional filters
+        if (!is_null($ssn)) {
+            $query->where('ssn', $ssn);
+        }
+
+        if (!is_null($trm)) {
+            $query->where('trm', $trm);
+        }
+
+        // Fetch first matching record
+        $pld = $query->first();
+
         return response()->json([
             "status" => true,
             "message" => "Success",
             "pld" => $pld,
         ]);
     }
+
 
     /**
      * @OA\Get(
@@ -2228,20 +2331,50 @@ class ApiController extends Controller
      *     @OA\Response(response="400", description="Validation error"),
      * )
      */
+    // public function setAppFeePaid(Request $request)
+    // {
+    //     //Data validation
+    //     $request->validate([
+    //         "stid" => "required",
+    //     ]);
+    //     student::where('sid', $request->stid)->update([
+    //         "rfee" => '1'
+    //     ]);
+    //     return response()->json([
+    //         "status" => false,
+    //         "message" => "Student Not Found",
+    //     ], 400);
+    // }
+
     public function setAppFeePaid(Request $request)
     {
-        //Data validation
+        // Validate request
         $request->validate([
             "stid" => "required",
         ]);
-        student::where('sid', $request->stid)->update([
-            "rfee" => '1'
+
+        // Find student
+        $student = student::where('sid', $request->stid)->first();
+
+        // If NOT found, return error
+        if (!$student) {
+            return response()->json([
+                "status" => false,
+                "message" => "Student Not Found",
+            ], 400);
+        }
+
+        // If found, update rfee
+        $student->update([
+            "rfee" => '1',
         ]);
+
         return response()->json([
-            "status" => false,
-            "message" => "Student Not Found",
-        ], 400);
+            "status" => true,
+            "message" => "Application Fee Marked as Paid Successfully",
+        ], 200);
     }
+
 
     /**
      * @OA\Get(
@@ -2536,42 +2669,6 @@ class ApiController extends Controller
      *     @OA\Response(response="400", description="Validation error"),
      * )
      */
-    // public function setStudentBasicInfo(Request $request){
-    //     //Data validation
-    //     $request->validate([
-    //         "user_id"=> "required",
-    //         "dob"=> "required",
-    //         "sex"=> "required",
-    //         "height"=> "required",
-    //         "country"=> "required",
-    //         "state"=> "required",
-    //         "lga"=> "required",
-    //         "addr"=> "required",
-    //         "fname"=> "required",
-    //         "lname"=> "required",
-    //     ]);
-    //     student_basic_data::updateOrCreate(
-    //         ["user_id"=> $request->user_id,],
-    //         [
-    //         "dob"=> $request->dob,
-    //         "sex"=> $request->sex,
-    //         "height"=> $request->height,
-    //         "country"=> $request->country,
-    //         "state"=> $request->state,
-    //         "lga"=> $request->lga,
-    //         "addr"=> $request->addr,
-    //     ]);
-    //     student::where('sid',$request->user_id)->update([
-    //         "s_basic"=>'1',
-    //         "fname"=> $request->fname,
-    //         "lname"=> $request->lname,
-    //         "mname"=> $request->mname,
-    //     ]);
-    //     return response()->json([
-    //         "status"=> true,
-    //         "message"=> "Success",
-    //     ]);
-    // }
 
 
     public function setStudentBasicInfo(Request $request)
@@ -2716,66 +2813,6 @@ class ApiController extends Controller
      */
 
 
-
-
-    //////////////////////////////////////
-    // public function setStudentSubject(Request $request)
-    // {
-    //     // Validate request
-    //     $request->validate([
-    //         "uid"   => "required",
-    //         "stid"  => "required", // single or array of student IDs
-    //         "sbj"   => "required", // single or array of subject IDs
-    //         "comp"  => "required",
-    //         "schid" => "required",
-    //         "clsid" => "nullable",
-    //         "trm"   => "nullable",
-    //         "ssn"   => "nullable"
-    //     ]);
-
-    //     $students = is_array($request->stid) ? $request->stid : [$request->stid];
-    //     $subjects = is_array($request->sbj)  ? $request->sbj  : [$request->sbj];
-
-    //     $assigned = [];
-    //     $skipped = [];
-
-    //     foreach ($students as $stid) {
-    //         foreach ($subjects as $sbj) {
-    //             $exists = student_subj::where('stid', $stid)
-    //                 ->where('sbj', $sbj)
-    //                 ->where('schid', $request->schid)
-    //                 ->when($request->clsid, fn($q) => $q->where('clsid', $request->clsid))
-    //                 ->when($request->trm, fn($q) => $q->where('trm', $request->trm))
-    //                 ->when($request->ssn, fn($q) => $q->where('ssn', $request->ssn))
-    //                 ->exists();
-
-    //             if (!$exists) {
-    //                 student_subj::create([
-    //                     "uid"   => $request->uid,
-    //                     "stid"  => $stid,
-    //                     "sbj"   => $sbj,
-    //                     "comp"  => $request->comp,
-    //                     "schid" => $request->schid,
-    //                     "clsid" => $request->clsid,
-    //                     "trm"   => $request->trm,
-    //                     "ssn"   => $request->ssn
-    //                 ]);
-    //                 $assigned[] = ["stid" => $stid, "sbj" => $sbj];
-    //             } else {
-    //                 $skipped[] = ["stid" => $stid, "sbj" => $sbj];
-    //             }
-    //         }
-    //     }
-
-    //     return response()->json([
-    //         "status"  => true,
-    //         "message" => "Subjects assignment completed.",
-    //         "assigned" => $assigned,
-    //         "skipped"  => $skipped,
-    //     ]);
-    // }
-
-
     public function setStudentSubject(Request $request)
     {
         // Validate request
@@ -2852,51 +2889,6 @@ class ApiController extends Controller
             "skipped" => $skipped,
         ]);
     }
-
-
-
-
-
-
-    // public function setStudentSubject(Request $request){
-    //     // Data validation
-    //     $request->validate([
-    //         "uid"   => "required",
-    //         "stid"  => "required",
-    //         "sbj"   => "required",
-    //         "comp"  => "required",
-    //         "schid" => "required",
-    //         "clsid" => "nullable",
-    //         "trm" => "nullable",
-    //         "ssn" => "nullable"
-    //     ]);
-    //     $count = student_subj::where('stid',$request->stid)
-    //                     ->where('sbj',$request->sbj)
-    //                     ->where('schid', $request->schid)
-    //                     ->count(); // need to map term session and clsid if once pass from request
-    //     if($count){
-    //         return response()->json([
-    //             "status"  => false,
-    //             "message" => "Subject Already Exist",
-    //         ]);
-    //     }
-
-    //     student_subj::create([
-    //         "uid"   => $request->uid,
-    //         "stid"  => $request->stid,
-    //         "sbj"   => $request->sbj,
-    //         "comp"  => $request->comp,
-    //         "schid" => $request->schid,
-    //         "clsid" => $request->clsid,
-    //         "trm" => $request->trm,
-    //         "ssn" => $request->ssn
-    //     ]);
-
-    //     return response()->json([
-    //         "status"  => true,
-    //         "message" => "Subject Inserted Successfully",
-    //     ]);
-    // }
 
 
     /**
@@ -3090,48 +3082,6 @@ class ApiController extends Controller
      */
 
 
-    // public function deleteStudentSubject($uid, $sbj)
-    // {
-    //     // Retrieve the specific subject assigned to the student
-    //     $subject = student_subj::where('uid', $uid)->where('sbj', $sbj)->first();
-
-    //     if (!$subject) {
-    //         return response()->json([
-    //             "status" => false,
-    //             "message" => "Subject not found."
-    //         ], 404);
-    //     }
-
-    //     // Check if the subject has any score that is NOT zero or null
-    //     $hasValidScores = std_score::where('stid', $subject->stid)
-    //         ->where('sbj', $sbj)
-    //         ->where(function ($query) {
-    //             $query->where('scr', '>', 0);
-    //         })
-    //         ->exists();
-
-    //     if ($hasValidScores) {
-    //         return response()->json([
-    //             "status" => false,
-    //             "message" => "Cannot delete subject. It has scores greater than 0."
-    //         ], 400);
-    //     }
-
-    //     // Delete the student subject and any zero or null scores
-    //     std_score::where('stid', $subject->stid)
-    //         ->where('sbj', $sbj)
-    //         ->where(function ($query) {
-    //             $query->whereNull('scr')
-    //                 ->orWhere('scr', '=', 0);
-    //         })->delete();
-
-    //     $subject->delete();
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Subject and related zero/null scores deleted successfully."
-    //     ]);
-    // }
 
     public function deleteStudentSubject($uid, $sbj, $ssn, $trm)
     {
@@ -3318,36 +3268,6 @@ class ApiController extends Controller
      *     @OA\Response(response="400", description="Validation error"),
      * )
      */
-    // public function setClassSubject(Request $request)
-    // {
-    //     //Data validation
-    //     $request->validate([
-    //         "uid" => "required",
-    //         "schid" => "required",
-    //         "subj_id" => "required",
-    //         "name" => "required",
-    //         "comp" => "required",
-    //         "clsid" => "required",
-    //         "sesn" => "required",
-    //         "trm" => "required",
-    //     ]);
-    //     class_subj::updateOrCreate(
-    //         ["uid" => $request->uid,],
-    //         [
-    //             "schid" => $request->schid,
-    //             "subj_id" => $request->subj_id,
-    //             "name" => $request->name,
-    //             "comp" => $request->comp,
-    //             "clsid" => $request->clsid,
-    //             "sesn" => $request->sesn,
-    //             "trm" => $request->trm,
-    //         ]
-    //     );
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //     ]);
-    // }
 
 
     public function setClassSubject(Request $request)
@@ -3447,21 +3367,6 @@ class ApiController extends Controller
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    // public function getClassSubjects($schid, $clsid, $sesn, $trm)
-    // {
-    //     $start = 0;
-    //     $count = 20;
-    //     if (request()->has('start') && request()->has('count')) {
-    //         $start = request()->input('start');
-    //         $count = request()->input('count');
-    //     }
-    //     $pld = class_subj::where("schid", $schid)->where("clsid", $clsid)->where("sesn", $sesn)->where("trm", $trm)->skip($start)->take($count)->get();
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $pld,
-    //     ]);
-    // }
 
 
     public function getClassSubjects($schid, $clsid, $sesn, $trm)
@@ -3584,75 +3489,6 @@ class ApiController extends Controller
      *     )
      * )
      */
-
-
-    // public function getClassSubjectsByStaff($schid, $clsid, $stid)
-    // {
-    //     $start = request()->input('start', 0);
-    //     $count = request()->input('count', 20);
-
-    //     $pld = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
-    //         ->where('class_subj.schid', $schid)
-    //         ->where('class_subj.clsid', $clsid)
-    //         ->where('staff_subj.stid', $stid)
-    //         // Correct column-to-column comparison
-    //         ->whereColumn('class_subj.sesn', 'staff_subj.sesn')
-    //         ->whereColumn('class_subj.trm', 'staff_subj.trm')
-    //         ->select(
-    //             'class_subj.subj_id',
-    //             'class_subj.name',
-    //             'class_subj.comp',
-    //             'class_subj.clsid',
-    //             'class_subj.schid',
-    //             'class_subj.sesn',
-    //             'class_subj.trm'
-    //         )
-    //         ->distinct() // Ensures unique subjects
-    //         ->skip($start)
-    //         ->take($count)
-    //         ->get();
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $pld,
-    //     ]);
-    // }
-
-
-    // public function getClassSubjectsByStaff($schid, $clsid, $stid)
-// {
-//     $sesn = request()->input('sesn'); // session from query
-//     $trm = request()->input('trm');   // term from query
-//     $start = request()->input('start', 0);
-//     $count = request()->input('count', 20);
-
-    //     $pld = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
-//         ->where('class_subj.schid', $schid)
-//         ->where('class_subj.clsid', $clsid)
-//         ->where('staff_subj.stid', $stid)
-//         ->when($sesn, fn($q) => $q->where('class_subj.sesn', $sesn)->whereColumn('class_subj.sesn', 'staff_subj.sesn'))
-//         ->when($trm, fn($q) => $q->where('class_subj.trm', $trm)->whereColumn('class_subj.trm', 'staff_subj.trm'))
-//         ->select(
-//             'class_subj.subj_id',
-//             'class_subj.name',
-//             'class_subj.comp',
-//             'class_subj.clsid',
-//             'class_subj.schid',
-//             'class_subj.sesn',
-//             'class_subj.trm'
-//         )
-//         ->distinct()
-//         ->skip($start)
-//         ->take($count)
-//         ->get();
-
-    //     return response()->json([
-//         "status" => true,
-//         "message" => "Success",
-//         "pld" => $pld,
-//     ]);
-// }
 
 
     public function getClassSubjectsByStaff($schid, $clsid, $stid)
@@ -4011,14 +3847,6 @@ class ApiController extends Controller
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    // public function getArmResultConf($schid,$clsid,$sbid,$ssn,$trm,$arm){
-    //     $pld = arm_result_conf::where("schid", $schid)->where("clsid", $clsid)->where("sbid", $sbid)->where("ssn", $ssn)->where("trm", $trm)->where("arm", $arm)->first();
-    //     return response()->json([
-    //         "status"=> true,
-    //         "message"=> "Success",
-    //         "pld"=> $pld,
-    //     ]);
-    // }
 
     public function getArmResultConf($schid, $clsid, $sbid, $ssn, $trm, $arm)
     {
@@ -4039,7 +3867,6 @@ class ApiController extends Controller
             "pld" => $pld,
         ]);
     }
-
 
 
     /**
@@ -4088,314 +3915,50 @@ class ApiController extends Controller
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    // public function getStudentResultsByArm($schid,$clsid,$ssn,$trm,$arm){
-    //         $members = student::join('old_student', 'student.sid', '=', 'old_student.sid')
-    //         ->where('student.schid', $schid)
-    //         ->where('student.stat', "1")
-    //         ->where('student.status', "active")
-    //         ->where('old_student.ssn', $ssn)
-    //         ->where('old_student.clsm', $clsid)
-    //         ->where('old_student.status', "active")
-    //         ->where('old_student.clsa', $arm)
-    //         ->get();
-    //         $totalStd = count($members);
-    //         $cstds = [];
-    //         $relevantSubjects = [];
-    //         $clsSbj = [];
-    // 		//BUG Fix on 19/03/2025
-    //         $relevantClassSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
-    //             ->where('class_subj.schid', $schid)
-    //             ->where('class_subj.clsid', $clsid)
-    //             ->pluck('sbj');
-    //         //BUG Fix End on 19/03/2025
-
-    //         foreach ($members as $member) {
-    //             $user_id = $member->sid;
-    //             $res = student_res::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)
-    //             ->where("clsm", $clsid)->where("clsa", $arm)->where("stid", $user_id)->first();
-
-    //             if(!$res || $res->stat != "2"){
-    //                 $academicData = student_academic_data::where('user_id', $user_id)->first();
-    //                 $basicData = student_basic_data::where('user_id', $user_id)->first();
-    //                 $psy = student_psy::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)
-    //                 ->where("clsm", $clsid)->where("clsa", $arm)->where("stid", $user_id)->first();
-
-    //                 $std = old_student::where("schid", $schid)->where("ssn", $ssn)->where("clsm", $clsid)->where("status", "active")->where("clsa", $arm)->where("sid", $user_id)->first();
-    // 				$studentSubjects = student_subj::where('stid', $user_id)->whereIn('sbj', $relevantClassSubjects)->pluck('sbj'); // bug 19/08/2025
-    //                 $allScores = std_score::where('stid',$user_id)
-    //                 ->where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->whereIn("sbj", $studentSubjects)->where("clsid", $clsid)->get();
-    //                 $mySbjs = [];
-    //                 foreach($allScores as $scr){
-    //                     $sbid = $scr->sbj;
-    //                     if (!in_array($scr->sbj, $mySbjs)) {
-    //                         $mySbjs[] = $scr->sbj;
-    //                     }
-    //                     if (!in_array($scr->sbj, $relevantSubjects)) {
-    //                         $schSbj = subj::where('id',$scr->sbj)->first();
-    //                         $clsSbj[] = $schSbj;
-    //                         $relevantSubjects[] = $scr->sbj;
-    //                     }
-    //                 }
-    //                 $subjectScores = [];
-    //                 foreach($mySbjs as $sbid){
-    //                     $subjectScores[$sbid] = [];
-    //                 }
-    //                 $scores = [];
-    //                 foreach($allScores as $scr){
-    //                     $sbid = $scr->sbj;
-    //                     $subjectScores[$sbid][] = $scr;
-    //                 }
-    //                 $positions = [];
-    //                 foreach($mySbjs as $sbid){
-    //                     $scores[] = [
-    //                         'sbid' => $sbid,
-    //                         'scores' => $subjectScores[$sbid]
-    //                     ];
-    //                     $subjectPosition = student_sub_res::where('stid',$user_id)->where('sbj', $sbid)
-    //                     ->where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where("clsm", $clsid)
-    //                     ->where("clsa", $arm)->first();
-    //                     $positions[] = [
-    //                         'sbid' => $sbid,
-    //                         // 'pos' => $subjectPosition->pos,
-    //                             'pos' => $subjectPosition ? $subjectPosition->pos : null, // âœ… Prevents the error
-    //                     ];
-    //                 }
-    //                 $psyexist = student_psy::where([
-    //                     ['schid', $schid],
-    //                     ['ssn', $ssn],
-    //                     ['trm', $trm],
-    //                     ['clsm', $clsid],
-    //                     ['stid', $user_id]
-    //                 ])->exists();
-
-    //                 $resexist = student_res::where([
-    //                     ['schid', $schid],
-    //                     ['ssn', $ssn],
-    //                     ['trm', $trm],
-    //                     ['clsm', $clsid],
-    //                     ['stid', $user_id]
-    //                 ])->value('stat') ?? "0";
-
-    //                 $studentres = [
-    //                     'std'=> $std,
-    //                     'sbj'=> $mySbjs,
-    //                     'scr'=> $scores,
-    //                     'psy'=> $psyexist,
-    //                     'res'=> $resexist,
-    //                 ];
-
-    //                 $cstds[] = [
-    //                     's'=> $member,
-    //                     'b'=> $basicData,
-    //                     'a'=> $academicData,
-    //                     'p'=> $psy,
-    //                     'r'=> $res,
-    //                     'rs'=> $studentres,
-    //                     'cnt'=> $totalStd,
-    //                     'spos'=> $positions
-    //                 ];
-    //             }
-    //         }
-    //         $pld = [
-    //             'std-pld'=>$cstds,
-    //             'cls-sbj' => $clsSbj
-    //         ];
-    //         return response()->json([
-    //             "status"=> true,
-    //             "message"=> "Success",
-    //             "pld"=> $pld,
-    //  ]);
-    // }
-
-    // public function getStudentResultsByArm($schid, $clsid, $ssn, $trm, $arm) {
-    //     $members = student::join('old_student', 'student.sid', '=', 'old_student.sid')
-    //         ->where('student.schid', $schid)
-    //         ->where('student.stat', "1")
-    //         ->where('student.status', "active")
-    //         ->where('old_student.ssn', $ssn)
-    //         ->where('old_student.clsm', $clsid)
-    //         ->where('old_student.status', "active")
-    //         ->where('old_student.clsa', $arm)
-    //         ->get();
-
-    //     $totalStd = count($members);
-    //     $cstds = [];
-    //     $relevantSubjects = [];
-    //     $clsSbj = [];
-
-    //     $relevantClassSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
-    //         ->where('class_subj.schid', $schid)
-    //         ->where('class_subj.clsid', $clsid)
-    //         ->pluck('sbj');
-
-    //     foreach ($members as $member) {
-    //         $user_id = $member->sid;
-    //         $res = student_res::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)
-    //             ->where("clsm", $clsid)->where("clsa", $arm)->where("stid", $user_id)->first();
-
-    //         if (!$res || $res->stat != "2") {
-    //             $academicData = student_academic_data::where('user_id', $user_id)->first();
-    //             $basicData = student_basic_data::where('user_id', $user_id)->first();
-    //             $psy = student_psy::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)
-    //                 ->where("clsm", $clsid)->where("clsa", $arm)->where("stid", $user_id)->first();
-
-    //             $std = old_student::where("schid", $schid)->where("ssn", $ssn)->where("clsm", $clsid)
-    //                 ->where("status", "active")->where("clsa", $arm)->where("sid", $user_id)->first();
-
-    //             $studentSubjects = student_subj::where('stid', $user_id)
-    //                 ->whereIn('sbj', $relevantClassSubjects)
-    //                 ->pluck('sbj');
-
-    //         $allScores = std_score::where('stid', $user_id)
-    //             ->where("schid", $schid)
-    //             ->where("ssn", $ssn)
-    //             ->where("trm", $trm)
-    //             ->whereIn("sbj", $studentSubjects)
-    //             ->where("clsid", $clsid)
-    //             ->whereNotNull('scr')
-    //             ->where('scr', '>', 0) // Exclude zero or null scores
-    //             ->get();
 
 
-    //             $mySbjs = [];
-    //             foreach ($allScores as $scr) {
-    //                 $sbid = $scr->sbj;
-    //                 if (!in_array($sbid, $mySbjs)) {
-    //                     $mySbjs[] = $sbid;
-    //                 }
-    //                 if (!in_array($sbid, $relevantSubjects)) {
-    //                     $schSbj = subj::where('id', $sbid)->first();
-    //                     $clsSbj[] = $schSbj;
-    //                     $relevantSubjects[] = $sbid;
-    //                 }
-    //             }
-
-    //             $subjectScores = [];
-    //             foreach ($mySbjs as $sbid) {
-    //                 $subjectScores[$sbid] = [];
-    //             }
-
-    //             $scores = [];
-    //             foreach ($allScores as $scr) {
-    //                 $sbid = $scr->sbj;
-    //                 $subjectScores[$sbid][] = $scr;
-    //             }
-
-    //             $positions = [];
-    //             foreach ($mySbjs as $sbid) {
-    //                 $scores[] = [
-    //                     'sbid' => $sbid,
-    //                     'scores' => $subjectScores[$sbid]
-    //                 ];
-    //                 $subjectPosition = student_sub_res::where('stid', $user_id)
-    //                     ->where('sbj', $sbid)
-    //                     ->where("schid", $schid)
-    //                     ->where("ssn", $ssn)
-    //                     ->where("trm", $trm)
-    //                     ->where("clsm", $clsid)
-    //                     ->where("clsa", $arm)
-    //                     ->first();
-
-    //                 $positions[] = [
-    //                     'sbid' => $sbid,
-    //                     'pos' => $subjectPosition ? $subjectPosition->pos : null,
-    //                 ];
-    //             }
-
-
-
-    //             $psyexist = student_psy::where([
-    //                 ['schid', $schid],
-    //                 ['ssn', $ssn],
-    //                 ['trm', $trm],
-    //                 ['clsm', $clsid],
-    //                 ['stid', $user_id]
-    //             ])->exists();
-
-    //             $resexist = student_res::where([
-    //                 ['schid', $schid],
-    //                 ['ssn', $ssn],
-    //                 ['trm', $trm],
-    //                 ['clsm', $clsid],
-    //                 ['stid', $user_id]
-    //             ])->value('stat') ?? "0";
-
-    //             $studentres = [
-    //                 'std' => $std,
-    //                 'sbj' => $mySbjs,
-    //                 'scr' => $scores,
-    //                 'psy' => $psyexist,
-    //                 'res' => $resexist,
-    //             ];
-
-    //             $cstds[] = [
-    //                 's' => $member,
-    //                 'b' => $basicData,
-    //                 'a' => $academicData,
-    //                 'p' => $psy,
-    //                 'r' => $res,
-    //                 'rs' => $studentres,
-    //                 'cnt' => $totalStd,
-    //                 'spos' => $positions
-    //             ];
-    //         }
-    //     }
-
-    //     // Get the number of fails (nof) from the result_meta table
-    //     $nof = result_meta::where([
-    //         ['schid', $schid],
-    //         ['ssn', $ssn],
-    //         ['trm', $trm],
-    //     ])->value('num_of_days') ?? 0;
-
-    //     $presentCountQuery = \DB::table('attendances')
-    //     ->where('schid', $schid)
-    //     ->where('ssn', $ssn)
-    //     ->where('trm', $trm)
-    //     ->where('clsm', $clsid)
-    //     ->where('clsa', $arm)
-    //     ->where('sid', $std->sid);
-
-    //     // Check if any attendance exists for this student
-    //     $attendanceExists = $presentCountQuery->exists();
-
-    //     if ($attendanceExists) {
-    //         $presentCount = $presentCountQuery->where('status', 1)->count();
-    //         $absentCount = max(0, $nof - $presentCount);
-    //     } else {
-    //         $presentCount = null;
-    //         $absentCount = null;
-    //     }
-
-
-    //     $pld = [
-    //         'std-pld' => $cstds,
-    //         'cls-sbj' => $clsSbj,
-    //         'num_of_days' => $nof,
-    //         'present_days' => $presentCount,
-    //         'absent_days' => $absentCount,
-
-    //     ];
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" =>  $pld,
-    //     ]);
-    // }
-
-    ///////////////
 
     // public function getStudentResultsByArm($schid, $clsid, $ssn, $trm, $arm)
     // {
+
+    //     $user = auth()->user();
+
+    //     // Check if results are published for this class/arm/term
+    //     $isPublished = student_res::where([
+    //         ['schid', $schid],
+    //         ['ssn', $ssn],
+    //         ['trm', $trm],
+    //         ['clsm', $clsid],
+    //         ['clsa', $arm],
+    //         ['stat', 1], // PUBLISHED
+    //     ])->exists();
+
+    //     /**
+    //      * IF NOT PUBLISHED:
+    //      * - Only School Admin (a, s) can view (Bulk Result)
+    //      * - Everyone else is blocked
+    //      */
+    //     if (!$isPublished) {
+    //         if (!$user || !in_array($user->typ, ['a', 's'])) {
+    //             return response()->json([
+    //                 'status' => false,
+    //                 'message' => 'Results have not been published yet.'
+    //             ], 403);
+    //         }
+    //     }
+
+    //     // Ensure we only fetch students for the selected session + class + arm + term
     //     $members = student::join('old_student', 'student.sid', '=', 'old_student.sid')
     //         ->where('student.schid', $schid)
     //         ->where('student.stat', "1")
     //         ->where('student.status', "active")
     //         ->where('old_student.ssn', $ssn)
+    //         ->where('old_student.trm', $trm)   // filter by term
     //         ->where('old_student.clsm', $clsid)
     //         ->where('old_student.status', "active")
     //         ->where('old_student.clsa', $arm)
+    //         ->select('student.*', 'old_student.uid as old_uid') // FIX: use uid instead of id
+    //         ->distinct('student.sid') // one record per student
     //         ->get();
 
     //     $totalStd = count($members);
@@ -4403,16 +3966,18 @@ class ApiController extends Controller
     //     $relevantSubjects = [];
     //     $clsSbj = [];
 
+    //     // Get class subjects (avoid duplicate sbj)
     //     $relevantClassSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
     //         ->where('class_subj.schid', $schid)
     //         ->where('class_subj.clsid', $clsid)
-    //         ->pluck('sbj');
+    //         ->pluck('sbj')
+    //         ->unique(); // prevent duplicates
 
-    //     $nof = result_meta::where([
+    //     $nof = (int) (result_meta::where([
     //         ['schid', $schid],
     //         ['ssn', $ssn],
     //         ['trm', $trm],
-    //     ])->value('num_of_days') ?? 0;
+    //     ])->value('num_of_days') ?? 0);
 
     //     foreach ($members as $member) {
     //         $user_id = $member->sid;
@@ -4437,6 +4002,7 @@ class ApiController extends Controller
 
     //         $std = old_student::where("schid", $schid)
     //             ->where("ssn", $ssn)
+    //             ->where("trm", $trm) // make sure it's the selected term
     //             ->where("clsm", $clsid)
     //             ->where("status", "active")
     //             ->where("clsa", $arm)
@@ -4466,7 +4032,7 @@ class ApiController extends Controller
     //             if (!in_array($sbid, $relevantSubjects)) {
     //                 $schSbj = subj::where('id', $sbid)->first();
     //                 if ($schSbj) {
-    //                     $clsSbj[] = $schSbj;
+    //                     $clsSbj[$sbid] = $schSbj; // prevent duplicate subjects
     //                     $relevantSubjects[] = $sbid;
     //                 }
     //             }
@@ -4553,18 +4119,16 @@ class ApiController extends Controller
 
     //     $pld = [
     //         'std-pld' => $cstds,
-    //         'cls-sbj' => $clsSbj,
+    //         'cls-sbj' => array_values($clsSbj), // return unique subjects only
     //         'num_of_days' => $nof,
     //     ];
 
     //     return response()->json([
     //         "status" => true,
     //         "message" => "Success",
-    //         "pld" =>  $pld,
+    //         "pld" => $pld,
     //     ]);
     // }
-
-
 
      public function getStudentResultsByArm($schid, $clsid, $ssn, $trm, $arm)
     {
@@ -4750,169 +4314,6 @@ class ApiController extends Controller
             "pld" => $pld,
         ]);
     }
-
-
-
-    /////////////////////////////////////////////////
-    // public function getStudentResultsByArm($schid, $clsid, $ssn, $trm, $arm)
-    // {
-    //     $members = student::join('old_student', 'student.sid', '=', 'old_student.sid')
-    //         ->where('student.schid', $schid)
-    //         ->where('student.stat', "1")
-    //         ->where('student.status', "active")
-    //         ->where('old_student.ssn', $ssn)
-    //         ->where('old_student.clsm', $clsid)
-    //         ->where('old_student.status', "active")
-    //         ->where('old_student.clsa', $arm)
-    //         ->get();
-
-    //     $totalStd = count($members);
-    //     $cstds = [];
-    //     $relevantSubjects = [];
-    //     $clsSbj = [];
-
-    //     $relevantClassSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
-    //         ->where('class_subj.schid', $schid)
-    //         ->where('class_subj.clsid', $clsid)
-    //         ->pluck('sbj');
-
-    //     $nof = result_meta::where([
-    //         ['schid', $schid],
-    //         ['ssn', $ssn],
-    //         ['trm', $trm],
-    //     ])->value('num_of_days') ?? 0;
-
-    //     foreach ($members as $member) {
-    //         $user_id = $member->sid;
-
-    //         $res = student_res::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)
-    //             ->where("clsm", $clsid)->where("clsa", $arm)->where("stid", $user_id)->first();
-
-    //         $academicData = student_academic_data::where('user_id', $user_id)->first();
-    //         $basicData = student_basic_data::where('user_id', $user_id)->first();
-    //         $psy = student_psy::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)
-    //             ->where("clsm", $clsid)->where("clsa", $arm)->where("stid", $user_id)->first();
-
-    //         $std = old_student::where("schid", $schid)->where("ssn", $ssn)->where("clsm", $clsid)
-    //             ->where("status", "active")->where("clsa", $arm)->where("sid", $user_id)->first();
-
-    //         $studentSubjects = student_subj::where('stid', $user_id)
-    //             ->whereIn('sbj', $relevantClassSubjects)
-    //             ->pluck('sbj');
-
-    //         $allScores = std_score::where('stid', $user_id)
-    //             ->where("schid", $schid)
-    //             ->where("ssn", $ssn)
-    //             ->where("trm", $trm)
-    //             ->whereIn("sbj", $studentSubjects)
-    //             ->where("clsid", $clsid)
-    //             ->whereNotNull('scr')
-    //             ->where('scr', '>', 0)
-    //             ->get();
-
-    //         $mySbjs = [];
-    //         foreach ($allScores as $scr) {
-    //             $sbid = $scr->sbj;
-    //             if (!in_array($sbid, $mySbjs)) {
-    //                 $mySbjs[] = $sbid;
-    //             }
-    //             if (!in_array($sbid, $relevantSubjects)) {
-    //                 $schSbj = subj::where('id', $sbid)->first();
-    //                 $clsSbj[] = $schSbj;
-    //                 $relevantSubjects[] = $sbid;
-    //             }
-    //         }
-
-    //         $subjectScores = [];
-    //         foreach ($mySbjs as $sbid) {
-    //             $subjectScores[$sbid] = [];
-    //         }
-
-    //         $scores = [];
-    //         foreach ($allScores as $scr) {
-    //             $sbid = $scr->sbj;
-    //             $subjectScores[$sbid][] = $scr;
-    //         }
-
-    //         $positions = [];
-    //         foreach ($mySbjs as $sbid) {
-    //             $scores[] = [
-    //                 'sbid' => $sbid,
-    //                 'scores' => $subjectScores[$sbid]
-    //             ];
-    //             $subjectPosition = student_sub_res::where('stid', $user_id)
-    //                 ->where('sbj', $sbid)
-    //                 ->where("schid", $schid)
-    //                 ->where("ssn", $ssn)
-    //                 ->where("trm", $trm)
-    //                 ->where("clsm", $clsid)
-    //                 ->where("clsa", $arm)
-    //                 ->first();
-
-    //             $positions[] = [
-    //                 'sbid' => $sbid,
-    //                 'pos' => $subjectPosition ? $subjectPosition->pos : null,
-    //             ];
-    //         }
-
-    //         $psyexist = student_psy::where([
-    //             ['schid', $schid],
-    //             ['ssn', $ssn],
-    //             ['trm', $trm],
-    //             ['clsm', $clsid],
-    //             ['stid', $user_id]
-    //         ])->exists();
-
-    //         $resexist = $res->stat ?? "0";
-
-    //         // âœ… Per-student attendance calculation
-    //         $presentCount = \DB::table('attendances')
-    //             ->where('schid', $schid)
-    //             ->where('ssn', $ssn)
-    //             ->where('trm', $trm)
-    //             ->where('clsm', $clsid)
-    //             ->where('clsa', $arm)
-    //             ->where('sid', $user_id)
-    //             ->where('status', 1)
-    //             ->count();
-
-    //         $absentCount = max(0, $nof - $presentCount);
-
-    //         $studentres = [
-    //             'std' => $std,
-    //             'sbj' => $mySbjs,
-    //             'scr' => $scores,
-    //             'psy' => $psyexist,
-    //             'res' => $resexist,
-    //         ];
-
-    //         $cstds[] = [
-    //             's' => $member,
-    //             'b' => $basicData,
-    //             'a' => $academicData,
-    //             'p' => $psy,
-    //             'r' => $res,
-    //             'rs' => $studentres,
-    //             'cnt' => $totalStd,
-    //             'spos' => $positions,
-    //             'present_days' => $presentCount,
-    //             'absent_days' => $absentCount,
-    //         ];
-    //     }
-
-    //     $pld = [
-    //         'std-pld' => $cstds,
-    //         'cls-sbj' => $clsSbj,
-    //         'num_of_days' => $nof,
-    //     ];
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" =>  $pld,
-    //     ]);
-    // }
-
 
 
 
@@ -5175,59 +4576,6 @@ class ApiController extends Controller
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    // public function getStudent()
-    // {
-    //     $combined = false;
-    //     if (request()->has('combined')) {
-    //         $combined = request()->input('combined');
-    //     }
-    //     $uid = '';
-    //     if (request()->has('uid')) {
-    //         $uid = request()->input('uid');
-    //     }
-    //     $schid = '';
-    //     if (request()->has('schid')) {
-    //         $schid = request()->input('schid');
-    //     }
-    //     if ($uid == '' || $schid == '') {
-    //         return response()->json([
-    //             "status" => false,
-    //             "message" => "No UID/School ID provided",
-    //         ], 400);
-    //     }
-    //     $pld = [];
-    //     if ($combined) {
-    //         $members = [];
-    //         $compo = explode("/", $uid);
-    //         if (count($compo) == 4) {
-    //             $sch3 = $compo[0];
-    //             $year = $compo[1];
-    //             $term = $compo[2];
-    //             $count = $compo[3];
-    //             $members = student::where("schid", $schid)->where("stat", "1")->where("sch3", $sch3)->where("year", $year)->where("term", $term)
-    //                 ->where("count", $count)->get();
-    //         } else {
-    //             $members = student::where("schid", $schid)->where("stat", "1")->where("cuid", $uid)->get();
-    //         }
-    //         foreach ($members as $member) {
-    //             $user_id = $member->sid;
-    //             $academicData = student_academic_data::where('user_id', $user_id)->first();
-    //             $basicData = student_basic_data::where('user_id', $user_id)->first();
-    //             $pld[] = [
-    //                 's' => $member,
-    //                 'b' => $basicData,
-    //                 'a' => $academicData,
-    //             ];
-    //         }
-    //     } else {
-    //         $pld = student::where("schid", $schid)->where("stat", "1")->where("sid", $uid)->first();
-    //     }
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $pld,
-    //     ]);
-    // }
 
     public function getStudent()
     {
@@ -5533,84 +4881,7 @@ class ApiController extends Controller
      *     @OA\Response(response="400", description="Validation error"),
      * )
      */
-    // public function setStudentAcademicInfo(Request $request)
-    // {
-    //     //Data validation
-    //     $request->validate([
-    //         "user_id" => "required",
-    //         "schid" => "required",
-    //         "last_school" => "required",
-    //         "last_class" => "required",
-    //         "new_class" => "required",
-    //         "new_class_main" => "required",
-    //         "ssn" => "required",
-    //         "trm" => "required",
-    //         "suid" => "required",
-    //     ]);
-    //     $refreshSubjects = false;
-    //     $oldData = student_academic_data::where('user_id', $request->user_id)->first();
-    //     if ($oldData) {
-    //         $refreshSubjects = $oldData->new_class_main != $request->new_class_main;
-    //     } else {
-    //         $refreshSubjects = true;
-    //     }
-    //     student_academic_data::updateOrCreate(
-    //         ["user_id" => $request->user_id,],
-    //         [
-    //             "last_school" => $request->last_school,
-    //             "last_class" => $request->last_class,
-    //             "new_class" => $request->new_class,
-    //             "new_class_main" => $request->new_class_main,
-    //         ]
-    //     );
-    //     if ($refreshSubjects) { //Delete all subjs and set new, comps ones
-    //         student_subj::where('stid', $request->user_id)->delete();
-    //         // $schid = $request->schid;
-    //         // $clsid = $request->new_class_main;
-    //         // $members = class_subj::where("schid", $schid)->where("clsid", $clsid)->where("comp", '1')->get();
-    //         // $pld = [];
-    //         // foreach ($members as $member) {
-    //         //     $sbj = $member->subj_id;
-    //         //     $stid = $request->user_id;
-    //         //     student_subj::updateOrCreate(
-    //         //         ["uid"=> $sbj.$stid],
-    //         //         [
-    //         //         "stid"=> $stid,
-    //         //         "sbj"=> $sbj,
-    //         //         "comp"=> $member->comp,
-    //         //         "schid"=> $member->schid,
-    //         //     ]);
-    //         // }
-    //     }
-    //     $std = student::where('sid', $request->user_id)->first();
-    //     if ($request->new_class != 'NIL') { //Class Arm Specified
-    //         //--- RECORD IN OLD DATA SO DATA SHOWS UP IN CLASS DIST.
-    //         $uid = $request->ssn . $request->user_id;
-    //         old_student::updateOrCreate(
-    //             ["uid" => $uid,],
-    //             [
-    //                 'sid' => $request->user_id,
-    //                 'schid' => $request->schid,
-    //                 'fname' => $std->fname,
-    //                 'mname' => $std->mname,
-    //                 'lname' => $std->lname,
-    //                 'suid' => $request->suid,
-    //                 'ssn' => $request->ssn,
-    //                 'trm' => $request->trm,
-    //                 'clsm' => $request->new_class_main,
-    //                 'clsa' => $request->new_class,
-    //                 'more' => "",
-    //             ]
-    //         );
-    //     }
-    //     $std->update([
-    //         "s_academic" => '1'
-    //     ]);
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //     ]);
-    // }
+
 
     public function setStudentAcademicInfo(Request $request)
     {
@@ -5803,23 +5074,6 @@ class ApiController extends Controller
 
 
 
-    // public function getOldStudents($schid, $ssn, $clsm, $clsa){
-    //     $pld = [];
-    //     if($clsa=='-1'){
-    //         $pld = old_student::where("schid", $schid)->where("ssn", $ssn)->where("clsm", $clsm)->get();
-    //     }else{
-    //         $pld = old_student::where("schid", $schid)->where("ssn", $ssn)->where("clsm", $clsm)->where("clsa", $clsa)->get();
-    //     }
-    //     return response()->json([
-    //         "status"=> true,
-    //         "message"=> "Success",
-    //         "pld"=> $pld,
-    //     ]);
-    // }
-
-
-
-
     /**
      * @OA\Get(
      *     path="/api/getOldStudents/{schid}/{ssn}/{trm}/{clsm}/{clsa}",
@@ -5933,285 +5187,6 @@ class ApiController extends Controller
      *     )
      * )
      */
-
-
-    // public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
-    // {
-    //     $pld = [];
-    //     if ($clsa == '-1') {
-    //         $pld = old_student::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where("clsm", $clsm)->where("status", "active")->get();
-    //     } else {
-    //         $pld = old_student::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where("clsm", $clsm)->where("status", "active")->where("clsa", $clsa)->get();
-    //     }
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $pld,
-    //     ]);
-    // }
-
-    // public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
-    // {
-    //     $query = old_student::with(['academicData']); // eager load academic info
-
-    //     $query->where("schid", $schid)
-    //         ->where("ssn", $ssn)
-    //         ->where("trm", $trm)
-    //         ->where("clsm", $clsm)
-    //         ->where("status", "active");
-
-    //     if ($clsa != '-1') {
-    //         $query->where("clsa", $clsa);
-    //     }
-
-    //     $pld = $query->get()->map(function ($student) {
-    //         return [
-    //             "sid"            => $student->sid,
-    //             "suid"           => $student->suid,
-    //             "fname"          => $student->fname,
-    //             "mname"          => $student->mname,
-    //             "lname"          => $student->lname,
-    //             "ssn"            => $student->ssn,
-    //             "trm"            => $student->trm,
-    //             "clsm"           => $student->clsm,
-    //             "clsa"           => $student->clsa,
-    //             "last_school"    => $student->academicData?->last_school,
-    //             "last_class"     => $student->academicData?->last_class,
-    //             "new_class"      => $student->academicData?->new_class,
-    //             "new_class_main" => $student->academicData?->new_class_main,
-    //         ];
-    //     });
-
-    //     return response()->json([
-    //         "status"  => true,
-    //         "message" => "Success",
-    //         "pld"     => $pld,
-    //     ]);
-    // }
-
-
-    // public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
-    // {
-    //     $query = old_student::with(['academicData'])
-    //         ->where("schid", $schid)
-    //         ->where("ssn", $ssn)
-    //         ->where("trm", $trm)
-    //         ->where("clsm", $clsm)
-    //         ->where("status", "active");
-
-    //     if ($clsa != '-1') {
-    //         $query->where("clsa", $clsa);
-    //     }
-
-    //     // Select only needed columns and make students unique by sid
-    //     $pld = $query->select(
-    //         'sid',
-    //         'suid',
-    //         'fname',
-    //         'mname',
-    //         'lname',
-    //         'ssn',
-    //         'trm',
-    //         'clsm',
-    //         'clsa',
-    //         'adm_ssn',
-    //         'adm_trm',
-    //         'cls_of_adm',
-    //         'date_of_adm',
-    //         'adm_status'
-    //     )
-    //         ->distinct('sid') // ensures unique student records
-    //         ->orderBy('lname', 'asc') // sort alphabetically by first name
-    //         ->get()
-    //         ->map(function ($student) {
-    //             return [
-    //                 "sid" => $student->sid,
-    //                 "suid" => $student->suid,
-    //                 "fname" => $student->fname,
-    //                 "mname" => $student->mname,
-    //                 "lname" => $student->lname,
-    //                 "ssn" => $student->ssn,
-    //                 "trm" => $student->trm,
-    //                 "clsm" => $student->clsm,
-    //                 "clsa" => $student->clsa,
-    //                 "last_school" => $student->academicData?->last_school,
-    //                 "last_class" => $student->academicData?->last_class,
-    //                 "new_class" => $student->academicData?->new_class,
-    //                 "new_class_main" => $student->academicData?->new_class_main,
-    //                 "adm_ssn" => $student->adm_ssn,
-    //                 "adm_trm" => $student->adm_trm,
-    //                 "cls_of_adm" => $student->cls_of_adm,
-    //                 "date_of_adm" => $student->date_of_adm,
-    //                 "adm_status" => $student->adm_status,
-    //             ];
-    //         });
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $pld,
-    //     ]);
-    // }
-
-
-    // public function getOldStudents($schid, $ssn, $trm, $clsm, $clsa)
-// {
-//     // Base query
-//     $query = old_student::with(['academicData'])
-//         ->where("schid", $schid)
-//         ->where("ssn", $ssn)
-//         ->where("trm", $trm)
-//         ->where("status", "active");
-
-    //     // Filter by main class if not "ALL"
-//     if ($clsm !== 'zzz') {
-//         $query->where("clsm", $clsm);
-//     }
-
-    //     // Filter by arm if not "ALL"
-//     if ($clsa !== 'zzz') {
-//         $query->where("clsa", $clsa);
-//     }
-
-    //     // Get total count of unique students
-//     $total = $query->distinct('sid')->count('sid');
-
-    //     // Fetch students with selected columns
-//     $students = $query->select(
-//             'sid',
-//             'suid',
-//             'fname',
-//             'mname',
-//             'lname',
-//             'ssn',
-//             'trm',
-//             'clsm',
-//             'clsa',
-//             'adm_ssn',
-//             'adm_trm',
-//             'cls_of_adm',
-//             'date_of_adm',
-//             'adm_status'
-//         )
-//         ->orderBy('lname', 'asc')
-//         ->get();
-
-    //     // Remove duplicates by 'sid' after fetching
-//     $uniqueStudents = $students->unique('sid')->values();
-
-    //     // Map for response payload
-//     $pld = $uniqueStudents->map(function ($student) {
-//         return [
-//             "sid" => $student->sid,
-//             "suid" => $student->suid,
-//             "fname" => $student->fname,
-//             "mname" => $student->mname,
-//             "lname" => $student->lname,
-//             "ssn" => $student->ssn,
-//             "trm" => $student->trm,
-//             "clsm" => $student->clsm,
-//             "clsa" => $student->clsa,
-//             "last_school" => $student->academicData?->last_school,
-//             "last_class" => $student->academicData?->last_class,
-//             "new_class" => $student->academicData?->new_class,
-//             "new_class_main" => $student->academicData?->new_class_main,
-//             "adm_ssn" => $student->adm_ssn,
-//             "adm_trm" => $student->adm_trm,
-//             "cls_of_adm" => $student->cls_of_adm,
-//             "date_of_adm" => $student->date_of_adm,
-//             "adm_status" => $student->adm_status,
-//         ];
-//     });
-
-    //     return response()->json([
-//         "status" => true,
-//         "message" => "Success",
-//         "total" => $total, // total number of unique records
-//         "pld" => $pld,
-//     ]);
-// }
-
-
-    // public function getOldStudents($schid, $ssn, $trm = '-1', $clsm = '-1', $clsa = '-1')
-// {
-//     // Base query
-//     $query = old_student::with(['academicData'])
-//         ->where("schid", $schid)
-//         ->where("ssn", $ssn)
-//         ->where("status", "active");
-
-    //     // Filter by term if not "-1"
-//     if ($trm !== '-1') {
-//         $query->where("trm", $trm);
-//     }
-
-    //     // Filter by main class if not "-1"
-//     if ($clsm !== '-1') {
-//         $query->where("clsm", $clsm);
-//     }
-
-    //     // Filter by arm if not "-1"
-//     if ($clsa !== '-1') {
-//         $query->where("clsa", $clsa);
-//     }
-
-    //     // Get total count of unique students
-//     $total = $query->distinct('sid')->count('sid');
-
-    //     // Fetch students with selected columns
-//     $students = $query->select(
-//             'sid',
-//             'suid',
-//             'fname',
-//             'mname',
-//             'lname',
-//             'ssn',
-//             'trm',
-//             'clsm',
-//             'clsa',
-//             'adm_ssn',
-//             'adm_trm',
-//             'cls_of_adm',
-//             'date_of_adm',
-//             'adm_status'
-//         )
-//         ->orderBy('lname', 'asc')
-//         ->get();
-
-    //     // Remove duplicates by 'sid' after fetching
-//     $uniqueStudents = $students->unique('sid')->values();
-
-    //     // Map for response payload
-//     $pld = $uniqueStudents->map(function ($student) {
-//         return [
-//             "sid" => $student->sid,
-//             "suid" => $student->suid,
-//             "fname" => $student->fname,
-//             "mname" => $student->mname,
-//             "lname" => $student->lname,
-//             "ssn" => $student->ssn,
-//             "trm" => $student->trm,
-//             "clsm" => $student->clsm,
-//             "clsa" => $student->clsa,
-//             "last_school" => $student->academicData?->last_school,
-//             "last_class" => $student->academicData?->last_class,
-//             "new_class" => $student->academicData?->new_class,
-//             "new_class_main" => $student->academicData?->new_class_main,
-//             "adm_ssn" => $student->adm_ssn,
-//             "adm_trm" => $student->adm_trm,
-//             "cls_of_adm" => $student->cls_of_adm,
-//             "date_of_adm" => $student->date_of_adm,
-//             "adm_status" => $student->adm_status,
-//         ];
-//     });
-
-    //     return response()->json([
-//         "status" => true,
-//         "message" => "Success",
-//         "total" => $total, // total number of unique records
-//         "pld" => $pld,
-//     ]);
-// }
 
 
     public function getOldStudents($schid, $ssn, $trm = '-1', $clsm = '-1', $clsa = '-1')
@@ -6350,6 +5325,7 @@ class ApiController extends Controller
 
 
 
+
     /**
      * @OA\Get(
      *     path="/api/getOldStudent/{schid}/{ssn}/{stid}",
@@ -6454,57 +5430,6 @@ class ApiController extends Controller
      * )
      */
 
-    // public function getOldStudentsStat($schid, $ssn, $trm, $clsm, $clsa)
-    // {
-    //     $male = 0;
-    //     $female = 0;
-    //     if ($clsa == '-1') {
-    //         $male = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-    //             ->where('old_student.schid', $schid)
-    //             ->where('old_student.ssn', $ssn)
-    //             ->where('old_student.trm', $trm)
-    //             ->where('status', 'active')
-    //             ->where('old_student.clsm', $clsm)
-    //             ->where('student_basic_data.sex', 'M')
-    //             ->count();
-    //         $female = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-    //             ->where('old_student.schid', $schid)
-    //             ->where('old_student.ssn', $ssn)
-    //             ->where('old_student.trm', $trm)
-    //             ->where('status', 'active')
-    //             ->where('old_student.clsm', $clsm)
-    //             ->where('student_basic_data.sex', 'F')
-    //             ->count();
-    //     } else {
-    //         $male = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-    //             ->where('old_student.schid', $schid)
-    //             ->where('old_student.ssn', $ssn)
-    //             ->where('old_student.trm', $trm)
-    //             ->where('old_student.clsm', $clsm)
-    //             ->where('status', 'active')
-    //             ->where('old_student.clsa', $clsa)
-    //             ->where('student_basic_data.sex', 'M')
-    //             ->count();
-    //         $female = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-    //             ->where('old_student.schid', $schid)
-    //             ->where('old_student.ssn', $ssn)
-    //             ->where('old_student.trm', $trm)
-    //             ->where('old_student.clsm', $clsm)
-    //             ->where('status', 'active')
-    //             ->where('old_student.clsa', $clsa)
-    //             ->where('student_basic_data.sex', 'F')
-    //             ->count();
-    //     }
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => [
-    //             "male" => $male,
-    //             "female" => $female,
-    //         ]
-    //     ]);
-    // }
 
 
     public function getOldStudentsStat($schid, $ssn, $trm = '-1', $clsm = '-1', $clsa = '-1')
@@ -6552,57 +5477,6 @@ class ApiController extends Controller
             ]
         ]);
     }
-
-
-
-    // public function getOldStudentsStat($schid, $ssn, $clsm, $clsa)
-    // {
-    //     $male = 0;
-    //     $female = 0;
-    //     if ($clsa == '-1') {
-    //         $male = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-    //             ->where('old_student.schid', $schid)
-    //             ->where('old_student.ssn', $ssn)
-    //             ->where('status', 'active')
-    //             ->where('old_student.clsm', $clsm)
-    //             ->where('student_basic_data.sex', 'M')
-    //             ->count();
-    //         $female = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-    //             ->where('old_student.schid', $schid)
-    //             ->where('old_student.ssn', $ssn)
-    //             ->where('status', 'active')
-    //             ->where('old_student.clsm', $clsm)
-    //             ->where('student_basic_data.sex', 'F')
-    //             ->count();
-    //     } else {
-    //         $male = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-    //             ->where('old_student.schid', $schid)
-    //             ->where('old_student.ssn', $ssn)
-    //             ->where('old_student.clsm', $clsm)
-    //             ->where('status', 'active')
-    //             ->where('old_student.clsa', $clsa)
-    //             ->where('student_basic_data.sex', 'M')
-    //             ->count();
-    //         $female = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
-    //             ->where('old_student.schid', $schid)
-    //             ->where('old_student.ssn', $ssn)
-    //             ->where('old_student.clsm', $clsm)
-    //             ->where('status', 'active')
-    //             ->where('old_student.clsa', $clsa)
-    //             ->where('student_basic_data.sex', 'F')
-    //             ->count();
-    //     }
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => [
-    //             "male" => $male,
-    //             "female" => $female,
-    //         ]
-    //     ]);
-    // }
-
 
 
 
@@ -6828,42 +5702,6 @@ class ApiController extends Controller
      * )
      */
 
-    // public function setStudentRes(Request $request){
-    //     //Data validation
-    //     $request->validate([
-    //         "uid"=> "required",
-    //         "stat"=> "required",
-    //         "com" => "required",
-    //         "stid" => "required",
-    //         "schid" => "required",
-    //         "ssn" => "required",
-    //         "trm" => "required",
-    //         "clsm" => "required",
-    //         "clsa" => "required",
-    //         "pos" => "numeric",
-    //         'avg' => 'numeric|min:0|max:100',
-    //         'cavg' => 'numeric|min:0|max:100',
-    //     ]);
-    //     student_res::updateOrCreate(
-    //         ["uid"=> $request->uid,],
-    //         [
-    //         'stat' => $request->stat,
-    //         'com' => $request->com,
-    //         'stid' => $request->stid,
-    //         'schid' => $request->schid,
-    //         'ssn' => $request->ssn,
-    //         'trm' => $request->trm,
-    //         'clsm' => $request->clsm,
-    //         'clsa' => $request->clsa,
-    //         'pos' => $request->pos,
-    //         'avg' => $request->avg,
-    //         'cavg' => $request->cavg,
-    //     ]);
-    //     return response()->json([
-    //         "status"=> true,
-    //         "message"=> "Info Updated"
-    //     ]);
-    // }
 
 
 
@@ -6963,6 +5801,143 @@ class ApiController extends Controller
         return response()->json([
             "status" => true,
             "message" => "Info Updated"
+        ]);
+    }
+
+
+
+    /**
+     * @OA\Post(
+     *     path="/api/setCummulativeResultStatus",
+     *     summary="Lock or unlock a class broadsheet or a specific student (set status 0 or 1)",
+     *     tags={"Api"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"schid","ssn","clsm","clsa","stat"},
+     *             @OA\Property(property="schid", type="string", example="12"),
+     *             @OA\Property(property="ssn", type="string", example="2025"),
+     *             @OA\Property(property="clsm", type="string", example="11"),
+     *             @OA\Property(property="clsa", type="string", example="2"),
+     *             @OA\Property(
+     *                 property="stat",
+     *                 type="integer",
+     *                 enum={0,1},
+     *                 example=1,
+     *                 description="0 = unlock, 1 = lock"
+     *             ),
+     *             @OA\Property(
+     *                 property="sid",
+     *                 type="string",
+     *                 nullable=true,
+     *                 example="ST123",
+     *                 description="Optional student ID. If provided, only this student's broadsheet will be locked/unlocked. If omitted, the whole class is affected."
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Broadsheet status updated successfully.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Broadsheet UNLOCKED successfully")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Unauthorized action",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Unauthorized: Only Principal, Head Teacher, School Admin or System Admin can lock/unlock broadsheet.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+     *             @OA\Property(
+     *                 property="errors",
+     *                 type="object",
+     *                 example={
+     *                     "schid": {"The schid field is required."},
+     *                     "stat": {"The selected stat is invalid."}
+     *                 }
+     *             )
+     *         )
+     *     )
+     * )
+     */
+
+
+    public function setCummulativeResultStatus(Request $request)
+    {
+        // Validate input
+        $request->validate([
+            'schid' => 'required|string',
+            'ssn' => 'required|string',
+            'clsm' => 'required|string',
+            'clsa' => 'required|string',
+            'stat' => 'required|in:0,1',
+            'sid' => 'required|string',
+        ]);
+
+        $user = auth()->user();
+
+        // School Admin can always set
+        if (in_array($user->typ, ['a', 's'])) {
+            return $this->saveBroadsheetStatus($request);
+        }
+
+        $staff = staff::where('sid', $user->id)->first();
+
+        if (!$staff) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized: Staff not found.'
+            ], 403);
+        }
+
+        $roleNames = staff_role::whereIn('id', [$staff->role, $staff->role2])
+            ->pluck('name')
+            ->toArray();
+
+        $allowedRoles = ['Principal', 'Head Teacher', 'School Admin'];
+
+        if (!array_intersect($allowedRoles, $roleNames)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized: Only Principal, Head Teacher, or School Admin can lock/unlock broadsheet.'
+            ], 403);
+        }
+
+        return $this->saveBroadsheetStatus($request);
+    }
+
+    /**
+     * Save or update broadsheet status
+     */
+    private function saveBroadsheetStatus(Request $request)
+    {
+        $broadsheet = broadsheet_control::updateOrCreate(
+            [
+                'schid' => $request->schid,
+                'ssn' => $request->ssn,
+                'clsm' => $request->clsm,
+                'clsa' => $request->clsa,
+                'sid' => $request->sid, // make sure this is a string matching table.
+            ],
+            [
+                'stat' => (int) $request->stat,
+            ]
+        );
+
+        return response()->json([
+            'status' => true,
+            'message' => $request->stat == 1
+                ? 'Broadsheet UNLOCKED successfully'
+                : 'Broadsheet LOCKED successfully'
         ]);
     }
 
@@ -7320,37 +6295,7 @@ class ApiController extends Controller
      *     ),
      * )
      */
-    // public function staffLoginByEmail(Request $request)
-    // {
-    //     //Data validation
-    //     $request->validate([
-    //         "email" => "required|email",
-    //         "password" => "required",
-    //     ]);
-    //     $typ = 'w';
-    //     $usr = User::where("typ", $typ)->where("email", $request->email)->first();
-    //     if ($usr) {
-    //         $token = JWTAuth::attempt([
-    //             "email" => $request->email,
-    //             "password" => $request->password,
-    //         ]);
-    //         if (!empty($token)) {
-    //             $stf = staff::where('sid', strval($usr->id))->first();
-    //             return response()->json([
-    //                 "status" => true,
-    //                 "message" => "Login successful",
-    //                 "token" => $token,
-    //                 "pld" => $usr,
-    //                 "std" => $stf,
-    //             ]);
-    //         }
-    //     }
-    //     // Respond
-    //     return response()->json([
-    //         "status" => false,
-    //         "message" => "Invalid login details",
-    //     ], 400);
-    // }
+
 
     public function staffLoginByEmail(Request $request)
     {
@@ -7408,45 +6353,7 @@ class ApiController extends Controller
      *     ),
      * )
      */
-    // public function staffLoginByID(Request $request)
-    // {
-    //     //Data validation
-    //     $request->validate([
-    //         "stid" => "required",
-    //         "schid" => "required",
-    //         "password" => "required",
-    //     ]);
-    //     $typ = 'w';
-    //     $stf = [];
-    //     $compo = explode("/", $request->stid);
-    //     if (count($compo) == 3) {
-    //         $sch3 = $compo[0];
-    //         $count = $compo[2];
-    //         $stf = staff::where("schid", $request->schid)->where("count", $count)->where("status", "active")->first();
-    //     } else {
-    //         $stf = staff::where("cuid", $request->stid)->first();
-    //     }
-    //     if ($stf) {
-    //         $usr = User::where("typ", $typ)->where("id", $stf->sid)->first();
-    //         $token = JWTAuth::attempt([
-    //             "email" => $usr->email,
-    //             "password" => $request->password,
-    //         ]);
-    //         if (!empty($token)) {
-    //             return response()->json([
-    //                 "status" => true,
-    //                 "message" => "Login successful",
-    //                 "token" => $token,
-    //                 "pld" => $usr,
-    //             ]);
-    //         }
-    //     }
-    //     // Respond
-    //     return response()->json([
-    //         "status" => false,
-    //         "message" => "Invalid login details",
-    //     ], 400);
-    // }
+
 
     public function staffLoginByID(Request $request)
     {
@@ -7511,51 +6418,6 @@ class ApiController extends Controller
      *     @OA\Response(response="400", description="Validation error"),
      * )
      */
-    // public function admitStaff(Request $request)
-    // {
-    //     //Data validation
-    //     $request->validate([
-    //         "stid" => "required",
-    //         "stat" => "required",
-    //         "role" => "required",
-    //         "role2" => "required",
-    //         "role_name" => "required",
-    //         "role2_name" => "required",
-    //         "schid" => "required",
-    //     ]);
-    //     $stf = staff::where('sid', $request->stid)->first();
-    //     if ($stf) {
-    //         $stf->update([
-    //             "stat" => $request->stat,
-    //             "role" => $request->role,
-    //             "role2" => $request->role2,
-    //         ]);
-    //         $usr = User::where('id', $stf->sid)->first();
-    //         // Wrap the email sending logic in a try-catch block
-    //         try {
-    //             $data = [
-    //                 'name' => $stf->fname,
-    //                 'subject' => 'Application ' . ($request->stat == '1' ? 'Approved' : 'Decline'),
-    //                 'body' => "Your application to our school as a " . $request->role_name . " has been " . ($request->stat == '1' ? 'approved' : 'decline') . ($request->role2 != '-1' ? '. We also assigned you the role: ' . $request->role2_name : '.'),
-    //                 'link' => env('PORTAL_URL') . '/staffLogin' . '/' . $request->schid,
-    //             ];
-    //             Mail::to($usr->email)->send(new SSSMails($data));
-    //         } catch (\Exception $e) {
-    //             // Log the email error, but don't stop the process
-    //             Log::error('Failed to send email: ' . $e->getMessage());
-    //         }
-
-    //         return response()->json([
-    //             "status" => true,
-    //             "message" => "Success",
-    //         ]);
-    //     }
-    //     return response()->json([
-    //         "status" => false,
-    //         "message" => "Student Not Found",
-    //     ], 400);
-    // }
-
 
     public function admitStaff(Request $request)
     {
@@ -7856,74 +6718,6 @@ class ApiController extends Controller
      * )
      */
 
-    // public function setStaffSubject(Request $request)
-    // {
-    //     // Data validation
-    //     $request->validate([
-    //         "stid"  => "required",
-    //         "sbj"   => "required",
-    //         "schid" => "required",
-    //         "sesn"  => "required",
-    //         "trm"   => "required",
-    //     ]);
-
-    //     // Generate unique UID
-    //     $uid = $request->sesn . $request->trm . $request->stid . rand(10000, 99999);
-
-    //     // Update or create based on UID only
-    //     $pld = staff_subj::updateOrCreate(
-    //         ["uid" => $uid],
-    //         [
-    //             "stid"  => $request->stid,
-    //             "sbj"   => $request->sbj,
-    //             "schid" => $request->schid,
-    //             "sesn"  => $request->sesn,
-    //             "trm"   => $request->trm,
-    //         ]
-    //     );
-
-    //     return response()->json([
-    //         "status"  => true,
-    //         "message" => "Success",
-    //         "pld"     => $pld
-    //     ]);
-    // }
-
-
-    // public function setStaffSubject(Request $request)
-    // {
-    //     $request->validate([
-    //         "stid" => "required",
-    //         "sbj" => "required",
-    //         "schid" => "required",
-    //         "sesn" => "required",
-    //         "trm" => "required",
-    //     ]);
-
-    //     // Look for existing record by business keys
-    //     $pld = staff_subj::firstOrNew([
-    //         "stid" => $request->stid,
-    //         "sbj" => $request->sbj,
-    //         "schid" => $request->schid,
-    //         "trm" => $request->trm,
-    //     ]);
-
-    //     // Assign sesn and uid
-    //     $pld->sesn = $request->sesn;
-    //     if (!$pld->exists) {
-    //         $pld->uid = $request->sesn . $request->trm . $request->stid;
-    //     }
-
-    //     $pld->save();
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $pld
-    //     ]);
-    // }
-
-
     public function setStaffSubject(Request $request)
     {
         // Data validation
@@ -8014,152 +6808,6 @@ class ApiController extends Controller
      */
 
 
-    // public function getOldStudentsAndSubject($schid, $ssn, $trm, $clsm, $clsa, $stf)
-    // {
-    //     // Fetch students based on class and arm
-    //     $ostd = old_student::where("schid", $schid)
-    //         ->where("status", "active")
-    //         ->where("ssn", $ssn)
-    //         ->where("clsm", $clsm);
-
-    //     if ($clsa != '-1') {
-    //         $ostd = $ostd->where("clsa", $clsa);
-    //     }
-
-    //     // 👉 Ensure unique students by sid (avoid duplicate entries across terms)
-    //     $ostd = $ostd->get()->unique('sid')->values();
-
-    //     $stdPld = [];
-    //     $allSubjects = []; // To track unique subjects for cls-sbj
-
-    //     foreach ($ostd as $std) {
-    //         $user_id = $std->sid;
-
-    //         // Get all subjects assigned to the student
-    //         $studentSubjects = student_subj::where('stid', $user_id)->get();
-
-    //         $mySbjs = [];
-    //         $scores = [];
-    //         $totalScore = 0;
-    //         $scoreCount = 0;
-    //         $studentSubjectIds = []; // Track subjects added for this student
-
-    //         foreach ($studentSubjects as $sbj) {
-    //             // Skip if this subject is already added for this student
-    //             if (in_array($sbj->sbj, $studentSubjectIds)) {
-    //                 continue;
-    //             }
-    //             $studentSubjectIds[] = $sbj->sbj;
-
-    //             // Fetch subject details
-    //             $subject = subj::find($sbj->sbj);
-    //             if ($subject) {
-    //                 $mySbjs[] = $subject;
-
-    //                 // Track unique subjects for class-wide subjects list
-    //                 if (!isset($allSubjects[$sbj->sbj])) {
-    //                     $allSubjects[$sbj->sbj] = $subject;
-    //                 }
-    //             }
-
-    //             // Fetch scores for this subject
-    //             $subjectScores = std_score::where('stid', $user_id)
-    //                 ->where('sbj', $sbj->sbj)
-    //                 ->where('schid', $schid)
-    //                 ->where('ssn', $ssn)
-    //                 ->where('trm', $trm)
-    //                 ->where('clsid', $clsm)
-    //                 ->get();
-
-    //             foreach ($subjectScores as $s) {
-    //                 if (!empty($s->scr) && is_numeric($s->scr)) {
-    //                     $totalScore += $s->scr;
-    //                     $scoreCount++;
-    //                 }
-    //             }
-
-    //             $scores[] = [
-    //                 'sbid' => $sbj->sbj,
-    //                 'scores' => $subjectScores
-    //             ];
-    //         }
-
-    //         $avgScore = $scoreCount > 0 ? round($totalScore / $scoreCount, 2) : 0;
-    //         $grade = $this->gradeFromAvg2($avgScore);
-
-    //         // Check for psychological evaluation if needed
-    //         $psy = false;
-    //         if ($stf == "-2") {
-    //             $psy = student_psy::where("schid", $schid)
-    //                 ->where("ssn", $ssn)
-    //                 ->where("trm", $trm)
-    //                 ->where("clsm", $clsm)
-    //                 ->where("stid", $user_id)
-    //                 ->exists();
-    //         }
-
-    //         // Fetch student result info
-    //         $res = "0";
-    //         $rinfo = student_res::where("schid", $schid)
-    //             ->where("ssn", $ssn)
-    //             ->where("trm", $trm)
-    //             ->where("clsm", $clsm)
-    //             ->where("clsa", $clsa)
-    //             ->where("stid", $user_id)
-    //             ->first();
-
-    //         if ($rinfo) {
-    //             $res = $rinfo->stat;
-    //             $rinfo = [
-    //                 'uid' => $rinfo->uid,
-    //                 'stat' => $rinfo->stat,
-    //                 'com' => $rinfo->com,
-    //                 'stid' => $rinfo->stid,
-    //                 'schid' => $rinfo->schid,
-    //                 'ssn' => $rinfo->ssn,
-    //                 'trm' => $rinfo->trm,
-    //                 'clsm' => $rinfo->clsm,
-    //                 'clsa' => $rinfo->clsa,
-    //                 'pos' => $rinfo->pos,
-    //                 'avg' => $rinfo->avg,
-    //                 'cavg' => $rinfo->cavg,
-    //                 'created_at' => $rinfo->created_at,
-    //                 'updated_at' => $rinfo->updated_at,
-    //                 'grade' => isset($rinfo->avg) ? $this->gradeFromAvg2($rinfo->avg) : null,
-    //             ];
-    //         } else {
-    //             $rinfo = [];
-    //         }
-
-    //         // Build student payload
-    //         $stdPld[] = [
-    //             'std' => $std,
-    //             'sbj' => $mySbjs,
-    //             'scr' => $scores,
-    //             'avg_score' => $avgScore,
-    //             'grade' => $grade,
-    //             'psy' => $psy,
-    //             'res' => $res,
-    //             'rinfo' => $rinfo,
-    //         ];
-    //     }
-
-    //     // Prepare class subjects list without duplicates
-    //     $clsSbj = array_values($allSubjects);
-
-    //     $pld = [
-    //         'std-pld' => $stdPld,
-    //         'cls-sbj' => $clsSbj
-    //     ];
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $pld,
-    //     ]);
-    // }
-
-
     public function getOldStudentsAndSubject($schid, $ssn, $trm, $clsm, $clsa, $stf)
     {
         // Fetch students based on class and arm
@@ -8185,7 +6833,6 @@ class ApiController extends Controller
 
             // Get all subjects assigned to the student
             $studentSubjects = student_subj::where('stid', $user_id)
-                ->where('ssn', $ssn) // 🔹 filter by session
                 ->get();
 
             $mySbjs = [];
@@ -8434,7 +7081,9 @@ class ApiController extends Controller
 
     public function getOldStudentsAndSubjectScoreSheet($schid, $ssn, $trm, $clsm, $clsa, $stf)
     {
-        // 1. Fetch only students that match EXACTLY the session, term, class, and arm
+        /* ----------------------------------------------------------
+         | 2. Fetch Students (EXACT session, term, class, arm)
+         ---------------------------------------------------------- */
         $ostd = old_student::where("schid", $schid)
             ->where("status", "active")
             ->where("ssn", $ssn)
@@ -8443,23 +7092,21 @@ class ApiController extends Controller
             ->when($clsa != "-1", function ($q) use ($clsa) {
                 $q->where("clsa", $clsa);
             })
-            ->distinct("sid") // prevent duplicate rows for same student
+            ->distinct("sid")
             ->get();
 
-        // 2. Fetch relevant subjects
+        /* ----------------------------------------------------------
+         | 3. Relevant Subjects
+         ---------------------------------------------------------- */
         if ($stf == "-1" || $stf == "-2") {
-            // No staff filter
             $relevantSubjects = class_subj::where('class_subj.schid', $schid)
                 ->where('class_subj.clsid', $clsm)
-                ->where('sesn', $ssn)
                 ->distinct()
                 ->pluck('subj_id');
         } else {
-            // Staff-specific subjects
             $relevantSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
                 ->where('class_subj.schid', $schid)
                 ->where('class_subj.clsid', $clsm)
-                ->where('class_subj.sesn', $ssn)
                 ->where('staff_subj.stid', $stf)
                 ->distinct()
                 ->pluck('sbj');
@@ -8467,37 +7114,27 @@ class ApiController extends Controller
 
         $stdPld = [];
 
+        /* ----------------------------------------------------------
+         | 4. Loop Through Students
+         ---------------------------------------------------------- */
         foreach ($ostd as $std) {
             $user_id = $std->sid;
 
-            // 3. Fetch unique subjects for the student
+            // Student subjects
             $studentSubjects = student_subj::where('stid', $user_id)
                 ->whereIn('sbj', $relevantSubjects)
-                ->where('ssn', $ssn) // filter by session
                 ->distinct('sbj')
                 ->get();
 
             $mySbjs = [];
             $scores = [];
+            $totalScore = 0;
 
             foreach ($studentSubjects as $sbj) {
                 $sbid = (string) $sbj->sbj;
                 $mySbjs[] = $sbid;
 
-                // 4. Fetch scores (filtered by session, term, class)
-                // $subjectScores = std_score::where('stid', $user_id)
-                //     ->where('sbj', $sbid)
-                //     ->where("schid", $schid)
-                //     ->where("ssn", $ssn)
-                //     ->where("trm", $trm)
-                //     ->where("clsid", $clsm)
-                //     ->get();
-
-                // $scores[] = [
-                //     'sbid' => $sbid,
-                //     'scores' => $subjectScores
-                // ];
-
+                // Fetch scores
                 $subjectScores = std_score::where('stid', $user_id)
                     ->where('sbj', $sbid)
                     ->where("schid", $schid)
@@ -8506,7 +7143,7 @@ class ApiController extends Controller
                     ->where("clsid", $clsm)
                     ->get();
 
-                // If no score record exists, assign scr = 0
+                // If no score, assign default scr = 0
                 if ($subjectScores->isEmpty()) {
                     $subjectScores = collect([
                         [
@@ -8521,14 +7158,28 @@ class ApiController extends Controller
                     ]);
                 }
 
+                /* ----------------------------------------------
+                 | NEW: SUBJECT-LEVEL TOTAL (INTERNAL ONLY)
+                 | (Response structure is UNCHANGED)
+                 ---------------------------------------------- */
+                $subjectTotal = $subjectScores->sum('scr');
+
+                // Add to score array (structure remains EXACTLY SAME)
                 $scores[] = [
                     'sbid' => $sbid,
-                    'scores' => $subjectScores
+                    'scores' => $subjectScores,
+                    'total' => $subjectTotal   // ✔ added WITHOUT changing response structure
                 ];
 
+                // Add to student overall total
+                foreach ($subjectScores as $sc) {
+                    $totalScore += (int) $sc["scr"];
+                }
             }
 
-            // 5. Extra info for staff = -2
+            /* ----------------------------------------------------------
+             | 5. Extra info for staff = -2
+             ---------------------------------------------------------- */
             $psy = false;
             $res = "0";
             $rinfo = [];
@@ -8553,20 +7204,28 @@ class ApiController extends Controller
                 }
             }
 
-            // 6. Push result (no duplicate sbj/scr)
+            /* ----------------------------------------------------------
+             | 6. Final payload for this student
+             ---------------------------------------------------------- */
             $stdPld[] = [
                 'std' => $std,
                 'sbj' => array_values(array_unique($mySbjs)),
                 'scr' => collect($scores)->unique('sbid')->values(),
+                'total_score' => $totalScore,
                 'psy' => $psy,
                 'res' => $res,
                 'rinfo' => $rinfo ?: []
             ];
         }
 
-        // 7. Build unique class subjects using subj model
+        /* ----------------------------------------------------------
+         | 7. Unique class subjects
+         ---------------------------------------------------------- */
         $clsSbj = subj::whereIn('id', $relevantSubjects)->get();
 
+        /* ----------------------------------------------------------
+         | 8. FINAL RESPONSE (structure unchanged)
+         ---------------------------------------------------------- */
         return response()->json([
             "status" => true,
             "message" => "Success",
@@ -8576,700 +7235,6 @@ class ApiController extends Controller
             ],
         ]);
     }
-
-
-
-
-
-    // public function getOldStudentsAndSubject($schid, $ssn, $trm, $clsm, $clsa, $stf)
-    // {
-    //     $ostd = [];
-    //     // Fetch students based on class and section filters
-    //     if ($clsa == '-1') {
-    //         $ostd = old_student::where("schid", $schid)
-    //             ->where("status", "active")
-    //             ->where("ssn", $ssn)
-    //             ->where("clsm", $clsm)
-    //             ->get();
-    //     } else {
-    //         $ostd = old_student::where("schid", $schid)
-    //             ->where("status", "active")
-    //             ->where("ssn", $ssn)
-    //             ->where("clsm", $clsm)
-    //             ->where("clsa", $clsa)
-    //             ->get();
-    //     }
-
-    //     // Fetch relevant subjects
-    //     $relevantSubjects = [];
-    //     if ($stf == "-1" || $stf == "-2") {
-    //         $relevantSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
-    //             ->where('class_subj.schid', $schid)
-    //             ->where('class_subj.clsid', $clsm)
-    //             ->pluck('sbj');
-    //     } else {
-    //         $relevantSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
-    //             ->where('class_subj.schid', $schid)
-    //             ->where('class_subj.clsid', $clsm)
-    //             ->where('staff_subj.stid', $stf)
-    //             ->pluck('sbj');
-    //     }
-
-    //     $stdPld = [];
-    //     foreach ($ostd as $std) {
-    //         $user_id = $std->sid;
-    //         $studentSubjects = student_subj::where('stid', $user_id)->whereIn('sbj', $relevantSubjects)->get();
-    //         $mySbjs = [];
-    //         $validScores = []; // Store valid (non-zero and non-empty) scores for calculations
-    //         $zeroScoreSubjects = []; // To store subjects with zero or empty scores for display purposes
-
-    //         foreach ($studentSubjects as $sbj) {
-    //             $sbid = $sbj->sbj;
-    //             $mySbjs[] = $sbid;
-
-    //             // Fetch the subject scores
-    //             $subjectScores = std_score::where('stid', $user_id)
-    //                 ->where('sbj', $sbid)
-    //                 ->where("schid", $schid)
-    //                 ->where("ssn", $ssn)
-    //                 ->where("trm", $trm)
-    //                 ->where("clsid", $clsm)
-    //                 ->get();
-
-    //             // Separate zero, null, and valid scores
-    //             $validScoresTemp = $subjectScores->filter(function ($score) {
-    //                 return !empty($score->scr) && $score->scr > 0; // Only valid scores greater than 0 and not empty
-    //             });
-
-    //             $zeroOrNullScores = $subjectScores->filter(function ($score) {
-    //                 return empty($score->scr) || $score->scr == 0; // Zero or null scores
-    //             });
-
-    //             // If there are valid scores, add them to validScores for computation
-    //             if ($validScoresTemp->isNotEmpty()) {
-    //                 $validScores[] = [
-    //                     'sbid' => $sbid,
-    //                     'scores' => $validScoresTemp
-    //                 ];
-    //             }
-    //             // Add zero or empty-score subjects to the list for display purposes
-    //             if ($zeroOrNullScores->isNotEmpty()) {
-    //                 $zeroScoreSubjects[] = [
-    //                     'sbid' => $sbid,
-    //                     'scores' => $zeroOrNullScores
-    //                 ];
-    //             }
-    //         }
-
-    //         // Check for subjects with no score in std_score table (these subjects will have zero score)
-    //         $subjectsWithNoScores = $relevantSubjects->diff($mySbjs); // Subjects not found in student's subjects
-    //         foreach ($subjectsWithNoScores as $sbid) {
-    //             // Add subjects with zero score
-    //             $zeroScoreSubjects[] = [
-    //                 'sbid' => $sbid,
-    //                 'scores' => []  // Empty scores array to indicate no score
-    //             ];
-    //         }
-
-    //         $psy = false;
-    //         $res = "0";
-    //         $rinfo = [];
-    //         if ($stf == "-2") {
-    //             $psy = student_psy::where("schid", $schid)
-    //                 ->where("ssn", $ssn)
-    //                 ->where("trm", $trm)
-    //                 ->where("clsm", $clsm)
-    //                 ->where("stid", $user_id)
-    //                 ->exists();
-    //             $rinfo = student_res::where("schid", $schid)
-    //                 ->where("ssn", $ssn)
-    //                 ->where("trm", $trm)
-    //                 ->where("clsm", $clsm)
-    //                 ->where("stid", $user_id)
-    //                 ->first();
-    //             if ($rinfo) {
-    //                 $res = $rinfo->stat;
-    //             }
-    //         }
-
-    //         // Add the student data with valid (non-zero and non-empty) subjects and scores
-    //         $stdPld[] = [
-    //             'std' => $std,
-    //             'sbj' => $mySbjs,
-    //             'scr' => array_merge($validScores, $zeroScoreSubjects), // Merging valid scores and zero/empty-score subjects for display
-    //             'psy' => $psy,
-    //             'res' => $res,
-    //             'rinfo' => $rinfo,
-    //         ];
-    //     }
-
-    //     // Create a list of all relevant subjects, including those with zero or null scores
-    //     $clsSbj = [];
-    //     $temKeep = [];
-    //     foreach ($relevantSubjects as $sbid) {
-    //         if (!in_array($sbid, $temKeep)) {
-    //             $temKeep[] = $sbid;
-    //             $schSbj = subj::where('id', $sbid)->first();
-    //             if ($schSbj) {
-    //                 $clsSbj[] = $schSbj;
-    //             }
-    //         }
-    //     }
-
-    //     // Get the number of days (nof) from the result_meta table
-    //     $nof = result_meta::where([
-    //         ['schid', $schid],
-    //         ['ssn', $ssn],
-    //         ['trm', $trm],
-    //     ])->value('num_of_days') ?? 0;
-
-    //     // Structure the final response
-    //     $pld = [
-    //         'std-pld' => $stdPld,  // Include student data with subjects and scores
-    //         'num_of_days' => $nof,  // Number of days
-    //         'cls-sbj' => $clsSbj,   // List of all relevant subjects (including zero/null and valid scores)
-    //     ];
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $pld,
-    //     ]);
-    // }
-
-
-
-
-
-    // public function getOldStudentsAndSubject($schid, $ssn, $trm, $clsm, $clsa, $stf)
-    // {
-    //     $ostd = [];
-    //     if ($clsa == '-1') {
-    //         $ostd = old_student::where("schid", $schid)
-    //             ->where("status", "active")
-    //             ->where("ssn", $ssn)
-    //             ->where("clsm", $clsm)
-    //             ->get();
-    //     } else {
-    //         $ostd = old_student::where("schid", $schid)
-    //             ->where("status", "active")
-    //             ->where("ssn", $ssn)
-    //             ->where("clsm", $clsm)
-    //             ->where("clsa", $clsa)
-    //             ->get();
-    //     }
-
-    //     // Fetch relevant subjects
-    //     $relevantSubjects = ($stf == "-1" || $stf == "-2")
-    //         ? class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
-    //             ->where('class_subj.schid', $schid)
-    //             ->where('class_subj.clsid', $clsm)
-    //             ->pluck('sbj')
-    //         : class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
-    //             ->where('class_subj.schid', $schid)
-    //             ->where('class_subj.clsid', $clsm)
-    //             ->where('staff_subj.stid', $stf)
-    //             ->pluck('sbj');
-
-    //     $stdPld = [];
-    //     $validSubjects = []; // Store subjects with at least one non-zero score
-
-    //     foreach ($ostd as $std) {
-    //         $user_id = $std->sid;
-    //         $studentSubjects = student_subj::where('stid', $user_id)
-    //             ->whereIn('sbj', $relevantSubjects)
-    //             ->get();
-
-    //         $mySbjs = [];
-    //         $scores = [];
-
-    //         foreach ($studentSubjects as $sbj) {
-    //             $sbid = $sbj->sbj;
-
-    //             // Fetch student scores, ensuring we exclude zero or null scores
-    //             $subjectScores = std_score::where('stid', $user_id)
-    //                 ->where('sbj', $sbid)
-    //                 ->where("schid", $schid)
-    //                 ->where("ssn", $ssn)
-    //                 ->where("trm", $trm)
-    //                 ->where("clsid", $clsm)
-    //                 ->where('scr', '>', 0) // Exclude zero scores
-    //                 ->get();
-
-    //             $totalScore = $subjectScores->sum('scr');
-
-    //             if ($totalScore > 0) { // Include subject only if it has a valid score
-    //                 $mySbjs[] = $sbid;
-    //                 $scores[] = [
-    //                     'sbid' => $sbid,
-    //                     'scores' => $subjectScores
-    //                 ];
-    //                 $validSubjects[$sbid] = true; // Mark as valid
-    //             }
-    //         }
-
-    //         if (!empty($mySbjs)) { // Only add students who have valid subjects
-    //             $psy = false;
-    //             $res = "0";
-    //             $rinfo = [];
-
-    //             if ($stf == "-2") {
-    //                 $psy = student_psy::where("schid", $schid)
-    //                     ->where("ssn", $ssn)
-    //                     ->where("trm", $trm)
-    //                     ->where("clsm", $clsm)
-    //                     ->where("stid", $user_id)
-    //                     ->exists();
-
-    //                 $rinfo = student_res::where("schid", $schid)
-    //                     ->where("ssn", $ssn)
-    //                     ->where("trm", $trm)
-    //                     ->where("clsm", $clsm)
-    //                     ->where("stid", $user_id)
-    //                     ->first();
-
-    //                 if ($rinfo) {
-    //                     $res = $rinfo->stat;
-    //                 }
-    //             }
-
-    //             $stdPld[] = [
-    //                 'std' => $std,
-    //                 'sbj' => $mySbjs,
-    //                 'scr' => $scores,
-    //                 'psy' => $psy,
-    //                 'res' => $res,
-    //                 'rinfo' => $rinfo,
-    //             ];
-    //         }
-    //     }
-
-    //     // Filter clsSbj to only include subjects that have valid scores
-    //     $clsSbj = [];
-    //     foreach (array_keys($validSubjects) as $sbid) {
-    //         $schSbj = subj::where('id', $sbid)->first();
-    //         if ($schSbj) {
-    //             $clsSbj[] = $schSbj;
-    //         }
-    //     }
-
-    //     $pld = [
-    //         'std-pld' => $stdPld,
-    //         'cls-sbj' => $clsSbj
-    //     ];
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $pld,
-    //     ]);
-    // }
-
-
-    // public function getOldStudentsAndSubject($schid, $ssn, $trm, $clsm, $clsa, $stf)
-    // {
-    //     $ostd = [];
-
-    //     // Get old students based on class arm condition
-    //     if ($clsa == '-1') {
-    //         $ostd = old_student::where("schid", $schid)
-    //             ->where("status", "active")
-    //             ->where("ssn", $ssn)
-    //             ->where("clsm", $clsm)
-    //             ->get();
-    //     } else {
-    //         $ostd = old_student::where("schid", $schid)
-    //             ->where("status", "active")
-    //             ->where("ssn", $ssn)
-    //             ->where("clsm", $clsm)
-    //             ->where("clsa", $clsa)
-    //             ->get();
-    //     }
-
-    //     // Get subjects based on staff
-    //     if ($stf == "-1" || $stf == "-2") {
-    //         $relevantSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
-    //             ->where('class_subj.schid', $schid)
-    //             ->where('class_subj.clsid', $clsm)
-    //             ->pluck('sbj');
-    //     } else {
-    //         $relevantSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
-    //             ->where('class_subj.schid', $schid)
-    //             ->where('class_subj.clsid', $clsm)
-    //             ->where('staff_subj.stid', $stf)
-    //             ->pluck('sbj');
-    //     }
-
-    //     $stdPld = [];
-
-    //     foreach ($ostd as $std) {
-    //         $user_id = $std->sid;
-
-    //         $studentSubjects = student_subj::where('stid', $user_id)
-    //             ->whereIn('sbj', $relevantSubjects)
-    //             ->get();
-
-    //         $mySbjs = [];
-    //         $scores = [];
-
-    //         foreach ($studentSubjects as $sbj) {
-    //             $sbid = $sbj->sbj;
-    //             $mySbjs[] = $sbid;
-
-    //             $subjectScores = std_score::where('stid', $user_id)
-    //                 ->where('sbj', $sbid)
-    //                 ->where("schid", $schid)
-    //                 ->where("ssn", $ssn)
-    //                 ->where("trm", $trm)
-    //                 ->where("clsid", $clsm)
-    //                 ->get();
-
-    //             $scores[] = [
-    //                 'sbid' => $sbid,
-    //                 'scores' => $subjectScores
-    //             ];
-    //         }
-
-    //         $psy = false;
-    //         $res = "0";
-    //         $rinfo = [];
-
-    //         if ($stf == "-2") {
-    //             $psy = student_psy::where("schid", $schid)
-    //                 ->where("ssn", $ssn)
-    //                 ->where("trm", $trm)
-    //                 ->where("clsm", $clsm)
-    //                 ->where("stid", $user_id)
-    //                 ->exists();
-
-    //             $rinfo = student_res::where("schid", $schid)
-    //                 ->where("ssn", $ssn)
-    //                 ->where("trm", $trm)
-    //                 ->where("clsm", $clsm)
-    //                 ->where("stid", $user_id)
-    //                 ->first();
-
-    //             if ($rinfo) {
-    //                 $res = $rinfo->stat;
-    //             }
-    //         }
-
-    //         $stdPld[] = [
-    //             'std' => $std,
-    //             'sbj' => $mySbjs,
-    //             'scr' => $scores,
-    //             'psy' => $psy,
-    //             'res' => $res,
-    //             'rinfo' => $rinfo,
-    //         ];
-    //     }
-
-    //     // Get unique class subjects
-    //     $clsSbj = [];
-    //     $temKeep = [];
-
-    //     foreach ($relevantSubjects as $sbid) {
-    //         if (!in_array($sbid, $temKeep)) {
-    //             $temKeep[] = $sbid;
-    //             $schSbj = subj::where('id', $sbid)->first();
-    //             if ($schSbj) {
-    //                 $clsSbj[] = $schSbj;
-    //             }
-    //         }
-    //     }
-
-    //     $pld = [
-    //         'std-pld' => $stdPld,
-    //         'cls-sbj' => $clsSbj, // Optional: remove if not needed
-    //     ];
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $pld,
-    //     ]);
-    // }
-
-
-    // public function getOldStudentsAndSubject($schid, $ssn, $trm, $clsm, $clsa, $stf)
-    // {
-    //     $ostd = [];
-
-    //     // Get old students based on class arm condition
-    //     if ($clsa == '-1') {
-    //         $ostd = old_student::where("schid", $schid)
-    //             ->where("status", "active")
-    //             ->where("ssn", $ssn)
-    //             ->where("clsm", $clsm)
-    //             ->get();
-    //     } else {
-    //         $ostd = old_student::where("schid", $schid)
-    //             ->where("status", "active")
-    //             ->where("ssn", $ssn)
-    //             ->where("clsm", $clsm)
-    //             ->where("clsa", $clsa)
-    //             ->get();
-    //     }
-
-    //     // Get subjects based on staff
-    //     if ($stf == "-1" || $stf == "-2") {
-    //         $relevantSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
-    //             ->where('class_subj.schid', $schid)
-    //             ->where('class_subj.clsid', $clsm)
-    //             ->pluck('sbj');
-    //     } else {
-    //         $relevantSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
-    //             ->where('class_subj.schid', $schid)
-    //             ->where('class_subj.clsid', $clsm)
-    //             ->where('staff_subj.stid', $stf)
-    //             ->pluck('sbj');
-    //     }
-
-    //     $stdPld = [];
-
-    //     foreach ($ostd as $std) {
-    //         $user_id = $std->sid;
-
-    //         $studentSubjects = student_subj::where('stid', $user_id)
-    //             ->whereIn('sbj', $relevantSubjects)
-    //             ->get();
-
-    //         $mySbjs = [];
-    //         $scores = [];
-    //         $validSubjectsForCount = [];
-
-    //         foreach ($studentSubjects as $sbj) {
-    //             $sbid = $sbj->sbj;
-
-    //             // Always include subject in response
-    //             $mySbjs[] = $sbid;
-
-    //             $subjectScores = std_score::where('stid', $user_id)
-    //                 ->where('sbj', $sbid)
-    //                 ->where("schid", $schid)
-    //                 ->where("ssn", $ssn)
-    //                 ->where("trm", $trm)
-    //                 ->where("clsid", $clsm)
-    //                 ->get();
-
-    //             // Check if any of the scores are not null or zero
-    //             $hasValidScore = $subjectScores->contains(function ($score) {
-    //                 return !is_null($score->scr) && $score->scr > 0;
-    //             });
-
-    //             if ($hasValidScore) {
-    //                 $validSubjectsForCount[] = $sbid;
-    //             }
-
-    //             $scores[] = [
-    //                 'sbid' => $sbid,
-    //                 'scores' => $subjectScores
-    //             ];
-    //         }
-
-    //         $psy = false;
-    //         $res = "0";
-    //         $rinfo = [];
-
-    //         if ($stf == "-2") {
-    //             $psy = student_psy::where("schid", $schid)
-    //                 ->where("ssn", $ssn)
-    //                 ->where("trm", $trm)
-    //                 ->where("clsm", $clsm)
-    //                 ->where("stid", $user_id)
-    //                 ->exists();
-
-    //             $rinfo = student_res::where("schid", $schid)
-    //                 ->where("ssn", $ssn)
-    //                 ->where("trm", $trm)
-    //                 ->where("clsm", $clsm)
-    //                 ->where("stid", $user_id)
-    //                 ->first();
-
-    //             if ($rinfo) {
-    //                 $res = $rinfo->stat;
-    //             }
-    //         }
-
-    //         $stdPld[] = [
-    //             'std' => $std,
-    //             'sbj' => $mySbjs, // all subjects (for response)
-    //             'scr' => $scores, // scores per subject
-    //             'valid_sbj' => $validSubjectsForCount, // subjects with valid scores for calculations
-    //             'psy' => $psy,
-    //             'res' => $res,
-    //             'rinfo' => $rinfo,
-    //         ];
-    //     }
-
-    //     // Get unique class subjects
-    //     $clsSbj = [];
-    //     $temKeep = [];
-
-    //     foreach ($relevantSubjects as $sbid) {
-    //         if (!in_array($sbid, $temKeep)) {
-    //             $temKeep[] = $sbid;
-    //             $schSbj = subj::where('id', $sbid)->first();
-    //             if ($schSbj) {
-    //                 $clsSbj[] = $schSbj;
-    //             }
-    //         }
-    //     }
-
-    //     $pld = [
-    //         'std-pld' => $stdPld,
-    //         'cls-sbj' => $clsSbj,
-    //     ];
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $pld,
-    //     ]);
-    // }
-
-
-
-    // public function getOldStudentsAndSubject($schid, $ssn, $trm, $clsm, $clsa, $stf)
-    // {
-    //     $ostd = [];
-    //     if ($clsa == '-1') {
-    //         $ostd = old_student::where("schid", $schid)
-    //             ->where("status", "active")
-    //             ->where("ssn", $ssn)
-    //             ->where("clsm", $clsm)
-    //             ->get();
-    //     } else {
-    //         $ostd = old_student::where("schid", $schid)
-    //             ->where("status", "active")
-    //             ->where("ssn", $ssn)
-    //             ->where("clsm", $clsm)
-    //             ->where("clsa", $clsa)
-    //             ->get();
-    //     }
-
-    //     $relevantSubjects = [];
-    //     if ($stf == "-1" || $stf == "-2") {
-    //         $relevantSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
-    //             ->where('class_subj.schid', $schid)
-    //             ->where('class_subj.clsid', $clsm)
-    //             ->pluck('sbj');
-    //     } else {
-    //         $relevantSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
-    //             ->where('class_subj.schid', $schid)
-    //             ->where('class_subj.clsid', $clsm)
-    //             ->where('staff_subj.stid', $stf)
-    //             ->pluck('sbj');
-    //     }
-
-    //     $stdPld = [];
-    //     foreach ($ostd as $std) {
-    //         $user_id = $std->sid;
-    //         $studentSubjects = student_subj::where('stid', $user_id)->whereIn('sbj', $relevantSubjects)->get();
-    //         $mySbjs = [];
-    //         $validScores = []; // Store valid (non-zero and non-empty) scores for calculations
-    //         $zeroScoreSubjects = []; // To store subjects with zero or empty scores for display purposes
-
-    //         foreach ($studentSubjects as $sbj) {
-    //             $sbid = $sbj->sbj;
-    //             $mySbjs[] = $sbid;
-
-    //             // Fetch the subject scores
-    //             $subjectScores = std_score::where('stid', $user_id)
-    //                 ->where('sbj', $sbid)
-    //                 ->where("schid", $schid)
-    //                 ->where("ssn", $ssn)
-    //                 ->where("trm", $trm)
-    //                 ->where("clsid", $clsm)
-    //                 ->get();
-
-    //             // Filter out subjects with zero or empty scores
-    //             $nonZeroScores = $subjectScores->filter(function ($score) {
-    //                 return !empty($score->scr) && $score->scr > 0; // Only valid scores greater than 0 and not empty
-    //             });
-
-    //             // If there are valid scores, add them to validScores for computation
-    //             if ($nonZeroScores->isNotEmpty()) {
-    //                 $validScores[] = [
-    //                     'sbid' => $sbid,
-    //                     'scores' => $nonZeroScores
-    //                 ];
-    //             } else {
-    //                 // Add zero or empty-score subjects to the list for display purposes
-    //                 $zeroScoreSubjects[] = [
-    //                     'sbid' => $sbid,
-    //                     'scores' => $subjectScores
-    //                 ];
-    //             }
-    //         }
-
-    //         $psy = false;
-    //         $res = "0";
-    //         $rinfo = [];
-    //         if ($stf == "-2") {
-    //             $psy = student_psy::where("schid", $schid)
-    //                 ->where("ssn", $ssn)
-    //                 ->where("trm", $trm)
-    //                 ->where("clsm", $clsm)
-    //                 ->where("stid", $user_id)
-    //                 ->exists();
-    //             $rinfo = student_res::where("schid", $schid)
-    //                 ->where("ssn", $ssn)
-    //                 ->where("trm", $trm)
-    //                 ->where("clsm", $clsm)
-    //                 ->where("stid", $user_id)
-    //                 ->first();
-    //             if ($rinfo) {
-    //                 $res = $rinfo->stat;
-    //             }
-    //         }
-
-    //         // Add the student data with valid (non-zero and non-empty) subjects and scores
-    //         $stdPld[] = [
-    //             'std' => $std,
-    //             'sbj' => $mySbjs,
-    //             'scr' => array_merge($validScores, $zeroScoreSubjects), // Merging valid scores and zero/empty-score subjects for display
-    //             'psy' => $psy,
-    //             'res' => $res,
-    //             'rinfo' => $rinfo,
-    //         ];
-    //     }
-
-    //     $clsSbj = [];
-    //     $temKeep = [];
-    //     foreach ($relevantSubjects as $sbid) {
-    //         if (!in_array($sbid, $temKeep)) {
-    //             $temKeep[] = $sbid;
-    //             $schSbj = subj::where('id', $sbid)->first();
-    //             $clsSbj[] = $schSbj;
-    //         }
-    //     }
-
-    //     // Get the number of fails (nof) from the result_meta table
-    //     $nof = result_meta::where([
-    //         ['schid', $schid],
-    //         ['ssn', $ssn],
-    //         ['trm', $trm],
-    //     ])->value('num_of_days') ?? 0;
-
-    //     // Structure the final response
-    //     $pld = [
-    //         'std-pld' => $stdPld,
-    //         'num_of_days' => $nof,
-    //         'cls-sbj' => $clsSbj // Keeping this may not be necessary, can remove later if not used
-    //     ];
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $pld,
-    //     ]);
-    // }
-
-
-
-
-    ////////////////////////////////////////
 
 
 
@@ -9329,97 +7294,25 @@ class ApiController extends Controller
      * )
      */
 
-    // public function getOldStudentsAndSubjectHistory($schid, $ssn,$trm, $clsm, $clsa,$stf){
-    // $ostd = [];
-    // if($clsa=='-1'){
-    //     $ostd = old_student::where("schid", $schid)->where("ssn", $ssn)->where('status', 'active')->where("clsm", $clsm)->get();
-    // }else{
-    //     $ostd = old_student::where("schid", $schid)->where("ssn", $ssn)->where('status', 'active')->where("clsm", $clsm)->where("clsa", $clsa)->get();
-    // }
-    // $stdPld = [];
-    // $relevantSubjects = [];
-    // $clsSbj = [];
-    // foreach ($ostd as $std) {
-    //     $user_id = $std->sid;
-    //     $mySbjs = [];
-    //     $allScores = std_score::where('stid',$user_id)
-    //     ->where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where("clsid", $clsm)->get();
-    //     foreach($allScores as $scr){
-    //         $sbid = $scr->sbj;
-    //         if (!in_array($scr->sbj, $mySbjs)) {
-    //             $mySbjs[] = $scr->sbj;
-    //         }
-    //         if (!in_array($scr->sbj, $relevantSubjects)) {
-    //             $schSbj = subj::where('id',$scr->sbj)->first();
-    //             $clsSbj[] = $schSbj;
-    //             $relevantSubjects[] = $scr->sbj;
-    //         }
-    //     }
-    //     $subjectScores = [];
-    //     foreach($mySbjs as $sbid){
-    //         $subjectScores[$sbid] = [];
-    //     }
-    //     $scores = [];
-    //     foreach($allScores as $scr){
-    //         $sbid = $scr->sbj;
-    //         $subjectScores[$sbid][] = $scr;
-    //     }
-    //     foreach($mySbjs as $sbid){
-    //         $scores[] = [
-    //             'sbid' => $sbid,
-    //             'scores' => $subjectScores[$sbid]
-    //         ];
-    //     }
-    //     $psy = false;
-    //     $res = "0";
-    //     $rinfo = [];
-    //     if($stf=="-2"){
-    //         $psy = student_psy::where("schid", $schid)
-    //         ->where("ssn", $ssn)
-    //         ->where("trm", $trm)
-    //         ->where("clsm", $clsm)
-    //         ->where("stid", $user_id)
-    //         ->exists();
-    //         $rinfo = student_res::where("schid", $schid)
-    //         ->where("ssn", $ssn)
-    //         ->where("trm", $trm)
-    //         ->where("clsm", $clsm)
-    //         ->where("stid", $user_id)
-    //         ->first();
-    //         if($rinfo){
-    //             $res = $rinfo->stat;
-    //         }
-    //     }
-    //     $stdPld[] = [
-    //         'std'=> $std,
-    //         'sbj'=>$mySbjs,
-    //         'scr'=> $scores,
-    //         'psy'=> $psy,
-    //         'res'=> $res,
-    //         'rinfo'=> $rinfo,
-    //     ];
-    // }
-    // $pld = [
-    //     'std-pld'=>$stdPld,
-    //     'cls-sbj' => $clsSbj
-    // ];
-    // return response()->json([
-    //     "status"=> true,
-    //     "message"=> "Success",
-    //     "pld"=> $pld,
-    // ]);
-    // }
-
 
     // public function getOldStudentsAndSubjectHistory($schid, $ssn, $trm, $clsm, $clsa, $stf)
     // {
     //     $ostd = [];
     //     if ($clsa == '-1') {
-    //         $ostd = old_student::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where('status', 'active')->where("clsm", $clsm)->get();
+    //         $ostd = old_student::where("schid", $schid)
+    //             ->where("ssn", $ssn)
+    //             ->where("trm", $trm)
+    //             ->where('status', 'active')
+    //             ->where("clsm", $clsm)
+    //             ->get();
     //     } else {
-
-
-    //         $ostd = old_student::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where('status', 'active')->where("clsm", $clsm)->where("clsa", $clsa)->get();
+    //         $ostd = old_student::where("schid", $schid)
+    //             ->where("ssn", $ssn)
+    //             ->where("trm", $trm)
+    //             ->where('status', 'active')
+    //             ->where("clsm", $clsm)
+    //             ->where("clsa", $clsa)
+    //             ->get();
     //     }
 
     //     $stdPld = [];
@@ -9430,26 +7323,30 @@ class ApiController extends Controller
     //         $user_id = $std->sid;
     //         $mySbjs = [];
 
-    //         // Get all scores where score is greater than 0
+    //         // Get all scores where score > 0
     //         $allScores = std_score::where('stid', $user_id)
     //             ->where("schid", $schid)
     //             ->where("ssn", $ssn)
     //             ->where("trm", $trm)
     //             ->where("clsid", $clsm)
-    //             ->whereNotNull('scr') // Exclude null scores
-    //             ->where('scr', '>', 0) // Exclude zero scores
+    //             ->whereNotNull('scr')
+    //             ->where('scr', '>', 0)
     //             ->get();
 
-    //         // Collect subjects and their corresponding scores
+
+
     //         foreach ($allScores as $scr) {
-    //             $sbid = $scr->sbj;
     //             if (!in_array($scr->sbj, $mySbjs)) {
     //                 $mySbjs[] = $scr->sbj;
     //             }
     //             if (!in_array($scr->sbj, $relevantSubjects)) {
-    //                 $schSbj = subj::where('id', $scr->sbj)->first();
-    //                 $clsSbj[] = $schSbj;
-    //                 $relevantSubjects[] = $scr->sbj;
+    //                 $schSbj = subj::select('id', 'name', 'created_at', 'updated_at')
+    //                     ->where('id', $scr->sbj)
+    //                     ->first();
+    //                 if ($schSbj) {
+    //                     $clsSbj[] = $schSbj;
+    //                     $relevantSubjects[] = $scr->sbj;
+    //                 }
     //             }
     //         }
 
@@ -9459,13 +7356,11 @@ class ApiController extends Controller
     //             $subjectScores[$sbid] = [];
     //         }
 
-    //         $scores = [];
     //         foreach ($allScores as $scr) {
-    //             $sbid = $scr->sbj;
-    //             $subjectScores[$sbid][] = $scr;
+    //             $subjectScores[$scr->sbj][] = $scr;
     //         }
 
-    //         // Collect the scores for each subject
+    //         $scores = [];
     //         foreach ($mySbjs as $sbid) {
     //             $scores[] = [
     //                 'sbid' => $sbid,
@@ -9507,6 +7402,9 @@ class ApiController extends Controller
     //         ];
     //     }
 
+    //     // Remove duplicate subjects
+    //     $clsSbj = collect($clsSbj)->unique('id')->values();
+
     //     $pld = [
     //         'std-pld' => $stdPld,
     //         'cls-sbj' => $clsSbj
@@ -9518,7 +7416,6 @@ class ApiController extends Controller
     //         "pld" => $pld,
     //     ]);
     // }
-
 
 
     public function getOldStudentsAndSubjectHistory($schid, $ssn, $trm, $clsm, $clsa, $stf)
@@ -9728,120 +7625,6 @@ class ApiController extends Controller
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    // public function getOldStudentsAndSubjectWithoutScore($schid, $ssn, $trm, $clsm, $clsa, $stf)
-    // {
-    //     $ostd = [];
-    //     if ($clsa == '-1') {
-    //         $ostd = old_student::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where("clsm", $clsm)->get();
-    //     } else {
-    //         $ostd = old_student::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where("clsm", $clsm)->where("clsa", $clsa)->get();
-    //     }
-    //     $stdPld = [];
-    //     $relevantSubjects = [];
-    //     $clsSbj = [];
-    //     foreach ($ostd as $std) {
-    //         $user_id = $std->sid;
-    //         $mySbjs = [];
-    //         $allScores = std_score::where('stid', $user_id)
-    //             ->where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where("clsid", $clsm)->get();
-    //         foreach ($allScores as $scr) {
-    //             $sbid = $scr->sbj;
-    //             if (!in_array($scr->sbj, $mySbjs)) {
-    //                 $mySbjs[] = $scr->sbj;
-    //             }
-    //             if (!in_array($scr->sbj, $relevantSubjects)) {
-    //                 $schSbj = subj::where('id', $scr->sbj)->first();
-    //                 $clsSbj[] = $schSbj;
-    //                 $relevantSubjects[] = $scr->sbj;
-    //             }
-    //         }
-    //         $stdPld[] = [
-    //             'std' => $std,
-    //             'sbj' => $mySbjs,
-    //         ];
-    //     }
-    //     $pld = [
-    //         'std-pld' => $stdPld,
-    //         'cls-sbj' => $clsSbj
-    //     ];
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $pld,
-    //     ]);
-    // }
-
-    // public function getOldStudentsAndSubjectWithoutScore($schid, $ssn, $trm, $clsm, $clsa, $stf)
-    // {
-    //     // Get old students
-    //     if ($clsa == '-1') {
-    //         $ostd = old_student::where("schid", $schid)
-    //             ->where("ssn", $ssn)
-    //             ->where("trm", $trm)
-    //             ->where("clsm", $clsm)
-    //             ->get();
-    //     } else {
-    //         $ostd = old_student::where("schid", $schid)
-    //             ->where("ssn", $ssn)
-    //             ->where("trm", $trm)
-    //             ->where("clsm", $clsm)
-    //             ->where("clsa", $clsa)
-    //             ->get();
-    //     }
-
-    //     $stdPld = [];
-
-    //     // Get all subjects for this class (for cls-sbj)
-    //     $clsSbj = class_subj::where("schid", $schid)
-    //         ->where("clsid", $clsm)
-    //         ->where("sesn", $ssn)
-    //         ->where("trm", $trm)
-    //         ->get();
-
-    //     foreach ($ostd as $std) {
-    //         $user_id = $std->sid;
-    //         $mySbjs = [];
-
-    //         // Get all scores for student
-    //         $allScores = std_score::where('stid', $user_id)
-    //             ->where("schid", $schid)
-    //             ->where("ssn", $ssn)
-    //             ->where("trm", $trm)
-    //             ->where("clsid", $clsm)
-    //             ->pluck('sbj');
-
-    //         if ($allScores->isNotEmpty()) {
-    //             // If student already has scores, use those subjects
-    //             $mySbjs = $allScores->toArray();
-    //         } else {
-    //             // Otherwise, use subjects assigned in student_subj
-    //             $studentSubjects = student_subj::where('stid', $user_id)
-    //                 ->where("schid", $schid)
-    //                 ->where("ssn", $ssn)
-    //                 ->where("trm", $trm)
-    //                 ->where("clsid", $clsm)
-    //                 ->pluck('sbj');
-
-    //             $mySbjs = $studentSubjects->toArray();
-    //         }
-
-    //         $stdPld[] = [
-    //             'std' => $std,
-    //             'sbj' => $mySbjs,
-    //         ];
-    //     }
-
-    //     $pld = [
-    //         'std-pld' => $stdPld,
-    //         'cls-sbj' => $clsSbj,
-    //     ];
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $pld,
-    //     ]);
-    // }
 
 
     public function getOldStudentsAndSubjectWithoutScore($schid, $ssn, $trm, $clsm, $clsa, $stf)
@@ -9984,105 +7767,47 @@ class ApiController extends Controller
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    // public function getStudentResult($schid, $ssn,$trm, $clsm, $clsa,$stid){
-    //     $totalStd = student::join('old_student', 'student.sid', '=', 'old_student.sid')
-    //     ->where('student.schid', $schid)
-    //     ->where('student.stat', "1")
-    //     ->where('old_student.ssn', $ssn)
-    //     ->where('old_student.clsm', $clsm)
-    //     ->where('old_student.clsa', $clsa)
-    //     ->count();
-    //     $std = old_student::where("schid", $schid)->where("ssn", $ssn)->where("clsm", $clsm)->where("clsa", $clsa)->where("sid", $stid)->first();
-    //     $pld = [];
-    //     $user_id = $std->sid;
-    //     $scores = [];
-    //     $mySbjs = [];
-    //     $allScores = std_score::where('stid',$user_id)
-    //         ->where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where("clsid", $clsm)->get();
-    //     foreach($allScores as $scr){
-    //         $sbid = $scr->sbj;
-    //         if (!in_array($sbid, $mySbjs)) {
-    //             $mySbjs[] = $sbid;
-    //         }
-    //     }
-    //     $subjectScores = [];
-    //     foreach($mySbjs as $sbid){
-    //         $subjectScores[$sbid] = [];
-    //     }
-    //     $scores = [];
-    //     foreach($allScores as $scr){
-    //         $sbid = $scr->sbj;
-    //         $subjectScores[$sbid][] = $scr;
-    //     }
-    //     $positions = [];
-    //     foreach($mySbjs as $sbid){
-    //         $scores[] = [
-    //             'sbid' => $sbid,
-    //             'scores' => $subjectScores[$sbid]
-    //         ];
-    //         $subjectPosition = student_sub_res::where('stid',$user_id)->where('sbj', $sbid)
-    //         ->where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where("clsm", $clsm)
-    //         ->where("clsa", $clsa)->first();
-    //         if($subjectPosition){
-    //             $positions[] = [
-    //                 'sbid' => $sbid,
-    //                 'pos' => $subjectPosition->pos,
-    //             ];
-    //         }
-    //     }
-    //     $psy = student_psy::where([
-    //         ['schid', $schid],
-    //         ['ssn', $ssn],
-    //         ['trm', $trm],
-    //         ['clsm', $clsm],
-    //         ['stid', $user_id]
-    //     ])->exists();
-
-    //     $rinfo = student_res::where("schid", $schid)
-    //     ->where("ssn", $ssn)
-    //     ->where("trm", $trm)
-    //     ->where("clsm", $clsm)
-    //     ->where("stid", $user_id)
-    //     ->first();
-
-    //     $res = student_res::where([
-    //         ['schid', $schid],
-    //         ['ssn', $ssn],
-    //         ['trm', $trm],
-    //         ['clsm', $clsm],
-    //         ['stid', $user_id]
-    //     ])->value('stat') ?? "0";
-    //     $pld = [
-    //         'std'=> $std,
-    //         'sbj'=> $mySbjs,
-    //         'scr'=> $scores,
-    //         'psy'=> $psy,
-    //         'res'=> $res,
-    //         'rinfo'=> $rinfo,
-    //         'cnt'=> $totalStd,
-    //         'spos'=> $positions
-    //     ];
-    //     return response()->json([
-    //         "status"=> true,
-    //         "message"=> "Success",
-    //         "pld"=> $pld,
-    //     ]);
-    // }
 
 
     // public function getStudentResult($schid, $ssn, $trm, $clsm, $clsa, $stid)
     // {
+
+    //             $user = auth()->user();
+
+    //     // Check if results are published for this class/arm/term
+    //     $isPublished = student_res::where([
+    //         ['schid', $schid],
+    //         ['ssn', $ssn],
+    //         ['trm', $trm],
+    //         ['clsm', $clsm],
+    //         ['clsa', $clsa],
+    //         ['stat', 1], // PUBLISHED
+    //     ])->exists();
+
+    //     /**
+    //      * IF NOT PUBLISHED:
+    //      * - Only School Admin (a, s) can view (Bulk Result)
+    //      * - Everyone else is blocked
+    //      */
+    //     if (!$isPublished) {
+    //         if (!$user || !in_array($user->typ, ['a', 's'])) {
+    //             return response()->json([
+    //                 'status' => false,
+    //                 'message' => 'Results have not been published yet.'
+    //             ], 403);
+    //         }
+    //     }
+
     //     $totalStd = student::join('old_student', 'student.sid', '=', 'old_student.sid')
     //         ->where('student.schid', $schid)
     //         ->where('student.stat', "1")
-    //         ->where('student.status', "active")
     //         ->where('old_student.ssn', $ssn)
     //         ->where('old_student.clsm', $clsm)
     //         ->where('old_student.clsa', $clsa)
     //         ->count();
 
     //     $std = old_student::where("schid", $schid)->where("ssn", $ssn)
-    //         ->where("clsm", $clsm)->where("status", "active")
+    //         ->where("clsm", $clsm)
     //         ->where("clsa", $clsa)->where("sid", $stid)->first();
 
     //     if (!$std) {
@@ -10103,6 +7828,7 @@ class ApiController extends Controller
     //         ->where('class_subj.clsid', $clsm)
     //         ->pluck('sbj');
 
+    //     // Get subjects the student is registered for
     //     $studentSubjects = student_subj::where('stid', $user_id)
     //         ->whereIn('sbj', $relevantSubjects)
     //         ->pluck('sbj');
@@ -10114,11 +7840,11 @@ class ApiController extends Controller
     //         ->where("trm", $trm)
     //         ->where("clsid", $clsm)
     //         ->whereIn("sbj", $studentSubjects)
-    //         ->whereNotNull('scr')  // Exclude NULL scores
-    //         ->where('scr', '>', 0) // Exclude zero scores
+    //         ->whereNotNull('scr')
+    //         ->where('scr', '>', 0) // Ensure only subjects with scores > 0 are considered
     //         ->get();
 
-
+    //     // Populate subjects that have scores
     //     foreach ($allScores as $scr) {
     //         $sbid = $scr->sbj;
     //         if (!in_array($sbid, $mySbjs)) {
@@ -10131,6 +7857,7 @@ class ApiController extends Controller
     //         $subjectScores[$sbid] = [];
     //     }
 
+    //     // Assign scores to subjects
     //     foreach ($allScores as $scr) {
     //         $sbid = $scr->sbj;
     //         $subjectScores[$sbid][] = $scr;
@@ -10142,6 +7869,8 @@ class ApiController extends Controller
     //             'sbid' => $sbid,
     //             'scores' => $subjectScores[$sbid]
     //         ];
+
+    //         // Get subject position, excluding zero/null score subjects
     //         $subjectPosition = student_sub_res::where('stid', $user_id)
     //             ->where('sbj', $sbid)
     //             ->where("schid", $schid)
@@ -10159,6 +7888,7 @@ class ApiController extends Controller
     //         }
     //     }
 
+    //     // Check for student psychological result
     //     $psy = student_psy::where([
     //         ['schid', $schid],
     //         ['ssn', $ssn],
@@ -10167,6 +7897,7 @@ class ApiController extends Controller
     //         ['stid', $user_id]
     //     ])->exists();
 
+    //     // Get student result info
     //     $rinfo = student_res::where("schid", $schid)
     //         ->where("ssn", $ssn)
     //         ->where("trm", $trm)
@@ -10182,15 +7913,48 @@ class ApiController extends Controller
     //         ['stid', $user_id]
     //     ])->value('stat') ?? "0";
 
+
+    //     // Get the number of fails (nof) from the result_meta table
+    //     $nof = result_meta::where([
+    //         ['schid', $schid],
+    //         ['ssn', $ssn],
+    //         ['trm', $trm],
+    //     ])->value('num_of_days') ?? 0;
+
+    //     $presentCountQuery = \DB::table('attendances')
+    //         ->where('schid', $schid)
+    //         ->where('ssn', $ssn)
+    //         ->where('trm', $trm)
+    //         ->where('sid', $std->sid);
+
+
+
+    //     // Check if any attendance exists for this student
+    //     $attendanceExists = $presentCountQuery->exists();
+
+    //     if ($attendanceExists) {
+    //         Log::info('Success:' . $attendanceExists . 'yes it is');
+    //         $presentCount = $presentCountQuery->where('status', 1)->count();
+    //         $absentCount = max(0, $nof - $presentCount);
+    //     } else {
+    //         Log::info('Error' . 'no attendance');
+    //         $presentCount = null;
+    //         $absentCount = null;
+    //     }
+
+
     //     $pld = [
     //         'std' => $std,
-    //         'sbj' => $mySbjs,
-    //         'scr' => $scores,
+    //         'sbj' => $mySbjs,  // List of subjects with valid scores
+    //         'scr' => $scores,  // List of scores
     //         'psy' => $psy,
     //         'res' => $res,
     //         'rinfo' => $rinfo,
     //         'cnt' => $totalStd,
-    //         'spos' => $positions
+    //         'num_of_days' => $nof,
+    //         'present_days' => $presentCount,
+    //         'absent_days' => $absentCount,
+    //         'spos' => $positions, // Subject positions
     //     ];
 
     //     return response()->json([
@@ -10400,7 +8164,6 @@ class ApiController extends Controller
             ], 500);
         }
     }
-
     /////////////////////////////////////
 
 
@@ -10597,61 +8360,8 @@ class ApiController extends Controller
      * )
      */
 
-    // public function setStaffClass(Request $request)
-    // {
-    //     //Data validation
-    //     $request->validate([
-    //         "uid" => "required",
-    //         "stid" => "required",
-    //         "cls" => "required",
-    //         "schid" => "required",
-    //         "ssn" => "required",
-    //          "trm" => "required",
-    //         "fname" => "required",
-    //         "lname" => "required",
-    //         "mname" => "nullable",
-    //         "suid" => "required",
-    //         "role" => "required",
-    //         "role2" => "required",
-    //     ]);
-    //     staff_class::updateOrCreate(
-    //         ["uid" => $request->uid,],
-    //         [
-    //             "stid" => $request->stid,
-    //             "cls" => $request->cls,
-    //             "schid" => $request->schid,
-    //              "ssn" => $request->ssn,
-    //               "trm" => $request->trm,
-    //         ]
-    //     );
-    //     $uid = $request->ssn . $request->cls . $request->stid;
-    //     old_staff::updateOrCreate(
-    //         ["uid" => $uid,],
-    //         [
-    //             'sid' => $request->stid,
-    //             'schid' => $request->schid,
-    //             'fname' => $request->fname,
-    //             'mname' => $request->mname,
-    //             'lname' => $request->lname,
-    //             'suid' => $request->suid,
-    //             'ssn' => $request->ssn,
-    //             'trm' => $request->trm,
-    //             'clsm' => $request->cls,
-    //             'role' => $request->role,
-    //             'role2' => $request->role2,
-    //             'more' => "",
-    //         ]
-    //     );
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //     ]);
-    // }
-
-
     public function setStaffClass(Request $request)
     {
-        // Data validation
         $request->validate([
             "stid" => "required",
             "cls" => "required",
@@ -10666,10 +8376,10 @@ class ApiController extends Controller
             "role2" => "required",
         ]);
 
-        // Generate deterministic UID without random numbers
+        // Deterministic UID
         $uid = $request->ssn . $request->trm . $request->stid . $request->cls;
 
-        // Save to staff_class
+        // Save staff_class
         $pld = staff_class::updateOrCreate(
             ["uid" => $uid],
             [
@@ -10681,10 +8391,19 @@ class ApiController extends Controller
             ]
         );
 
-        // Save also to old_staff with the same UID style
-        $old = old_staff::updateOrCreate(
-            ["uid" => $uid],
-            [
+        // 🔥 CHECK FOR DUPLICATES IN old_staff
+        $exists = old_staff::where([
+            "sid" => $request->stid,
+            "ssn" => $request->ssn,
+            "trm" => $request->trm,
+            "clsm" => $request->cls,
+        ])->exists();
+
+        if (!$exists) {
+
+            // INSERT ONLY IF NOT EXISTS
+            $old = old_staff::create([
+                'uid' => $uid,
                 'sid' => $request->stid,
                 'schid' => $request->schid,
                 'fname' => $request->fname,
@@ -10697,10 +8416,13 @@ class ApiController extends Controller
                 'role' => $request->role,
                 'role2' => $request->role2,
                 'more' => "",
-            ]
-        );
+            ]);
 
-        // Return JSON response
+        } else {
+            // Do NOT insert
+            $old = "Old staff exists already — no insert!";
+        }
+
         return response()->json([
             "status" => true,
             "message" => "Success",
@@ -10710,6 +8432,7 @@ class ApiController extends Controller
             ]
         ]);
     }
+
 
 
 
@@ -10787,96 +8510,6 @@ class ApiController extends Controller
      * )
      */
 
-    // public function getStaffClasses($stid)
-    // {
-    //     $start = 0;
-    //     $count = 20;
-    //     if (request()->has('start') && request()->has('count')) {
-    //         $start = request()->input('start');
-    //         $count = request()->input('count');
-    //     }
-    //     $pld = staff_class::where("stid", $stid)->skip($start)->take($count)->get();
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $pld,
-    //     ]);
-    // }
-
-    // public function getStaffClasses($stid)
-    // {
-    //     $start = request()->input('start', 0);   // default 0
-    //     $count = request()->input('count', 20);  // default 20
-
-    //     $query = staff_class::where("staff_class.stid", $stid)
-    //         ->join("old_staff", "staff_class.stid", "=", "old_staff.sid") // join staff table
-    //         ->select(
-    //             "staff_class.*",
-    //             "old_staff.fname",
-    //             "old_staff.mname",
-    //             "old_staff.lname"
-    //         );
-
-    //     // Filter by session if provided
-    //     if (request()->has('ssn')) {
-    //         $query->where("staff_class.ssn", request()->input('ssn'));
-    //     }
-
-    //     // Filter by term if provided
-    //     if (request()->has('trm')) {
-    //         $query->where("staff_class.trm", request()->input('trm'));
-    //     }
-
-    //     $pld = $query->skip($start)->take($count)->get();
-
-    //     return response()->json([
-    //         "status"  => true,
-    //         "message" => "Success",
-    //         "pld"     => $pld,
-    //     ]);
-    // }
-
-
-    // public function getStaffClasses($stid)
-    // {
-    //     $start = request()->input('start', 0);   // default 0
-    //     $count = request()->input('count', 20);  // default 20
-
-    //     $query = staff_class::where("staff_class.stid", $stid)
-    //         ->join("old_staff", "staff_class.stid", "=", "old_staff.sid")
-    //         ->selectRaw("
-    //         MIN(staff_class.uid) as uid,
-    //         staff_class.stid,
-    //         staff_class.cls,
-    //         staff_class.schid,
-    //         MIN(staff_class.ssn) as ssn,
-    //         MIN(staff_class.trm) as trm,
-    //         old_staff.fname,
-    //         old_staff.mname,
-    //         old_staff.lname
-    //     ")
-    //         ->groupBy("staff_class.stid", "staff_class.cls", "staff_class.schid", "old_staff.fname", "old_staff.mname", "old_staff.lname") // group by staff + class
-    //         ->orderBy("ssn", "desc")
-    //         ->orderBy("trm", "asc");
-
-    //     // Filter by session if provided
-    //     if (request()->has('ssn')) {
-    //         $query->where("staff_class.ssn", request()->input('ssn'));
-    //     }
-
-    //     // Filter by term if provided
-    //     if (request()->has('trm')) {
-    //         $query->where("staff_class.trm", request()->input('trm'));
-    //     }
-
-    //     $pld = $query->skip($start)->take($count)->get();
-
-    //     return response()->json([
-    //         "status"  => true,
-    //         "message" => "Success",
-    //         "pld"     => $pld,
-    //     ]);
-    // }
 
     public function getStaffClasses($stid)
     {
@@ -11460,29 +9093,6 @@ class ApiController extends Controller
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    // public function getOldStaff($schid, $ssn, $trm, $clsm, $role)
-    // {
-    //     $pld = [];
-    //     if ($role == '-1') {
-    //         $pld = old_staff::where("schid", $schid)->where("ssn", $ssn)->where("trm", $trm)->where("status", "active")->where("clsm", $clsm)->get();
-    //     } else {
-    //         $pld = old_staff::where("schid", $schid)
-    //             ->where("ssn", $ssn)
-    //             ->where("trm", $trm)
-    //             ->where("status", "active")
-    //             ->where("clsm", $clsm)
-    //             ->where(function ($query) use ($role) {
-    //                 $query->where("role", $role)
-    //                     ->orWhere("role2", $role);
-    //             })
-    //             ->get();
-    //     }
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $pld,
-    //     ]);
-    // }
 
 
     public function getOldStaff($schid, $ssn, $trm, $clsm, $role)
@@ -12018,39 +9628,6 @@ class ApiController extends Controller
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    // public function uploadFile(Request $request){
-    //     $request->validate([
-    //         'file' => 'required', //|mimes:jpeg,png,jpg,gif,svg|max:2048
-    //         'filename' => 'required',
-    //         'folder' => 'required',
-    //         'user_id'=> 'required',
-    //     ]);
-    //     if ($request->hasFile('file')) {
-    //         $file = $request->file('file');
-    //         $filename = $request->filename;
-    //         $folder = $request->folder;
-    //         if (!Storage::disk('public')->exists($folder)) {
-    //             // If it doesn't exist, create the directory
-    //             Storage::disk('public')->makeDirectory($folder);
-    //         }
-    //         Storage::disk('public')->put($folder.'/'. $filename, file_get_contents($file));
-    //         // Log It
-    //         files::create([
-    //             'user_id' => $request->user_id,
-    //             'file'=> $filename,
-    //             'folder'=> $folder,
-    //         ]);
-    //         return response()->json([
-    //             "status"=> true,
-    //             "message"=> "Success"
-    //         ]);
-    //     } else {
-    //         return response()->json([
-    //             "status"=> false,
-    //             "message"=> "No file provided"
-    //         ]);
-    //     }
-    // }
 
 
 
@@ -12616,115 +10193,6 @@ class ApiController extends Controller
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    // public function getPayments($schid, $clsid, $ssnid, $trmid){
-    //     $start = 0;
-    //     $count = 20;
-
-    //     if(request()->has('start') && request()->has('count')) {
-    //         $start = request()->input('start');
-    //         $count = request()->input('count');
-    //     }
-
-    //     $query = payments::query();
-
-    //     if ($schid !== "-1") {
-    //         $query->where('schid', $schid);
-    //     }
-
-    //     if ($clsid !== "-1") {
-    //         $query->where('clsid', $clsid);
-    //     }
-
-    //     if ($ssnid !== "-1") {
-    //         $query->where('ssnid', $ssnid);
-    //     }
-
-    //     if ($trmid !== "-1") {
-    //         $query->where('trmid', $trmid);
-    //     }
-
-    //     $pld = $query->skip($start)->take($count)->get();
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $pld,
-    //     ]);
-    // }
-
-
-    // public function getPayments($schid, $clsid, $ssnid, $trmid)
-    // {
-    //     $start = 0;
-    //     $count = 20;
-
-    //     if (request()->has('start') && request()->has('count')) {
-    //         $start = request()->input('start');
-    //         $count = request()->input('count');
-    //     }
-
-    //     $query = payments::query();
-
-    //     if ($schid !== "-1") {
-    //         $query->where('schid', $schid);
-    //     }
-
-    //     if ($clsid !== "-1") {
-    //         $query->where('clsid', $clsid);
-    //     }
-
-    //     if ($ssnid !== "-1") {
-    //         $query->where('ssnid', $ssnid);
-    //     }
-
-    //     if ($trmid !== "-1") {
-    //         $query->where('trmid', $trmid);
-    //     }
-
-    //     // Get total amount
-    //     $totalAmount = (clone $query)->sum('amt');
-
-    //     // Get paginated payment data
-    //     $pld = $query->skip($start)->take($count)->get();
-
-    //     // Get all payments stid
-    //     $paidStudentIds = (clone $query)->distinct()->pluck('stid')->toArray();
-
-    //     if (empty($paidStudentIds)) {
-    //         // No payment records found
-    //         $paidStudentsCount = 0;
-    //         $notPaidStudentsCount = 0;
-    //     } else {
-    //         // Count paid students
-    //         $paidStudentsCount = count($paidStudentIds);
-
-    //         // Get all old_student.sids for this schid and clsid
-    //         $oldStudentQuery = old_student::query();
-
-    //         if ($schid !== "-1") {
-    //             $oldStudentQuery->where('schid', $schid);
-    //         }
-
-    //         if ($clsid !== "-1") {
-    //             $oldStudentQuery->where('clsm', $clsid);
-    //         }
-
-    //         $allStudentIds = $oldStudentQuery->distinct()->pluck('sid')->toArray();
-
-    //         // Determine not paid students by diff
-    //         $notPaidStudentIds = array_diff($allStudentIds, $paidStudentIds);
-    //         $notPaidStudentsCount = count($notPaidStudentIds);
-    //     }
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "total_revenue_amount" => $totalAmount,
-    //         "paid_students_count" => $paidStudentsCount,
-    //         "not_paid_students_count" => $notPaidStudentsCount,
-    //         "pld" => $pld,
-    //     ]);
-    // }
 
 
     public function getPayments($schid, $clsid, $ssnid, $trmid)
@@ -12835,22 +10303,6 @@ class ApiController extends Controller
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    // public function getStudentPayments($stid)
-    // {
-    //     $start = 0;
-    //     $count = 20;
-    //     if (request()->has('start') && request()->has('count')) {
-    //         $start = request()->input('start');
-    //         $count = request()->input('count');
-    //     }
-    //     $pld = payments::where('stid', $stid)->skip($start)->take($count)->get();
-    //     // Respond
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $pld,
-    //     ]);
-    // }
 
 
     public function getStudentPayments($stid)
@@ -12973,15 +10425,7 @@ class ApiController extends Controller
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    // public function confirmPayment($schid,$clsid,$ssnid,$trmid,$stid){
-    //     $pld = payments::where('schid', $schid)->where('clsid', $clsid)->where('ssnid', $ssnid)->where('trmid', $trmid)->where('stid', $stid)->first();
-    //     // Respond
-    //     return response()->json([
-    //         "status"=> true,
-    //         "message"=> "Success",
-    //         "pld"=> $pld,
-    //     ]);
-    // }
+
 
     public function confirmPayment($schid, $clsid, $ssnid, $trmid, $stid)
     {
@@ -12999,57 +10443,6 @@ class ApiController extends Controller
             "pld" => $pld,
         ]);
     }
-
-
-    //     public function confirmPayment($schid, $clsid, $ssnid, $trmid, $stid)
-    // {
-    //     // Get all payments for the student in that term
-    //     $allPayments = payments::where('schid', $schid)
-    //         ->where('clsid', $clsid)
-    //         ->where('ssnid', $ssnid)
-    //         ->where('trmid', $trmid)
-    //         ->where('stid', $stid)
-    //         ->orderBy('id', 'desc')
-    //         ->get();
-
-    //     // Calculate total amount paid
-    //     $totalPaid = $allPayments->sum('amt');
-
-    //     // Get latest payment record
-    //     $latestPayment = $allPayments->first();
-
-    //     // Attach total_paid to the latest payment record
-    //     if ($latestPayment) {
-    //         $latestPayment->amt = $totalPaid;
-    //     }
-
-    //     // Respond
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $latestPayment,
-    //     ]);
-    // }
-
-
-
-    // public function confirmPayment($schid, $clsid, $ssnid, $trmid, $stid)
-    //   {
-    //     $pld = payments::where('schid', $schid)
-    //         ->where('clsid', $clsid)
-    //         ->where('ssnid', $ssnid)
-    //         ->where('trmid', $trmid)
-    //         ->where('stid', $stid)
-    //         ->with('payhead:id,schid,name,comp') // Join payhead table
-    //         ->first();
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $pld,
-    //         "phid" => $pld?->payhead?->id // Extract payhead ID (phid)
-    //     ]);
-    //   }
 
 
     /**
@@ -13107,7 +10500,9 @@ class ApiController extends Controller
      *             type="object",
      *             @OA\Property(property="stid", type="string", example="123"),
      *             @OA\Property(property="schid", type="string", example="456"),
-     *             @OA\Property(property="clsid", type="string", example="John Doe"),
+     *             @OA\Property(property="clsid", type="string", example="11"),
+     *             @OA\Property(property="ssn", type="string", example="2025"),
+     *             @OA\Property(property="trm", type="string", example="1"),
      *             @OA\Property(property="amt", type="integer", example="1500"),
      *         )
      *     ),
@@ -13169,31 +10564,82 @@ class ApiController extends Controller
      * @OA\Get(
      *     path="/api/getAcceptancePaymentStat/{schid}/{clsid}",
      *     tags={"Api"},
-     *     summary="Get how many acceptance fee payments are available",
-     *     description="Use this endpoint to get how many aFee payments are available",
+     *     security={{"bearerAuth": {}}},
+     *     summary="Get Acceptance Fee Payment Statistics",
+     *     description="Retrieve total count and total amount of acceptance fee payments with optional session and term filters.",
      *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
      *         required=true,
      *         description="School ID",
-     *         @OA\Schema(type="string")
+     *         @OA\Schema(type="integer")
      *     ),
      *     @OA\Parameter(
      *         name="clsid",
      *         in="path",
      *         required=true,
      *         description="Class ID",
-     *         @OA\Schema(type="string")
+     *         @OA\Schema(type="integer")
      *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
+     *
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="query",
+     *         required=false,
+     *         description="Session (e.g., 2025)",
+     *         @OA\Schema(type="string", example="2025")
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="query",
+     *         required=false,
+     *         description="Term (1, 2, or 3)",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 @OA\Property(property="total", type="integer", example=150),
+     *                 @OA\Property(property="totalAmt", type="number", example=450000)
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(response=401, description="Unauthorized")
      * )
      */
-    public function getAcceptancePaymentStat($schid, $clsid)
+
+    public function getAcceptancePaymentStat(Request $request, $schid, $clsid)
     {
-        $total = afeerec::where('schid', $schid)->where('clsid', $clsid)->count();
-        $totalAmt = afeerec::where('schid', $schid)->where('clsid', $clsid)->sum('amt');
+        // Optional filters
+        $ssn = $request->input('ssn', null);
+        $trm = $request->input('trm', null);
+
+        // Base query
+        $query = afeerec::where('schid', $schid)->where('clsid', $clsid);
+
+        // Apply optional filters
+        if (!is_null($ssn)) {
+            $query->where('ssn', $ssn); // same pattern as getAcctAccept()
+        }
+
+        if (!is_null($trm)) {
+            $query->where('trm', $trm); // same pattern as getAcctAccept()
+        }
+
+        // Count & Sum
+        $total = $query->count();
+        $totalAmt = $query->sum('amt');
+
         return response()->json([
             "status" => true,
             "message" => "Success",
@@ -13204,55 +10650,106 @@ class ApiController extends Controller
         ]);
     }
 
+
     /**
      * @OA\Get(
      *     path="/api/getAcceptancePayments/{schid}/{clsid}",
      *     tags={"Payments"},
-     *     summary="Get Acceptance Fee Payments by School",
-     *     description="Use this endpoint to get Payments by School",
+     *    security={{"bearerAuth": {}}},
+     *     summary="Get Acceptance Fee Payments by School and Class",
+     *     description="Retrieve acceptance fee payment records filtered by school, class, session, and term.",
      *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
      *         required=true,
      *         description="School ID",
-     *         @OA\Schema(type="string")
+     *         @OA\Schema(type="integer")
      *     ),
      *     @OA\Parameter(
      *         name="clsid",
      *         in="path",
      *         required=true,
      *         description="Class ID",
-     *         @OA\Schema(type="string")
+     *         @OA\Schema(type="integer")
      *     ),
      *     @OA\Parameter(
      *         name="start",
      *         in="query",
      *         required=false,
-     *         description="Index to start at",
-     *         @OA\Schema(type="integer")
+     *         description="Index to start retrieving records (pagination)",
+     *         @OA\Schema(type="integer", default=0)
      *     ),
      *     @OA\Parameter(
      *         name="count",
      *         in="query",
      *         required=false,
-     *         description="No of records to retrieve",
-     *         @OA\Schema(type="integer")
+     *         description="Number of records to retrieve (pagination)",
+     *         @OA\Schema(type="integer", default=20)
      *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="query",
+     *         required=false,
+     *         description="Session filter (e.g. 2024, 2025)",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="query",
+     *         required=false,
+     *         description="Term filter (e.g. 1, 2, 3)",
+     *         @OA\Schema(type="string")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(type="object")
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized"
+     *     )
      * )
      */
-    public function getAcceptancePayments($schid, $clsid)
+
+
+    public function getAcceptancePayments(Request $request, $schid, $clsid)
     {
-        $start = 0;
-        $count = 20;
-        if (request()->has('start') && request()->has('count')) {
-            $start = request()->input('start');
-            $count = request()->input('count');
+        // Pagination
+        $start = $request->input('start', 0);
+        $count = $request->input('count', 20);
+
+        // Optional filters
+        $ssn = $request->input('ssn', null);
+        $trm = $request->input('trm', null);
+
+        // Base query
+        $query = afeerec::where('schid', $schid)->where('clsid', $clsid);
+
+        // Apply optional filters
+        if (!is_null($ssn)) {
+            $query->where('ssn', $ssn);
         }
-        $pld = afeerec::where('schid', $schid)->where('clsid', $clsid)->skip($start)->take($count)->get();
-        // Respond
+
+        if (!is_null($trm)) {
+            $query->where('trm', $trm);
+        }
+
+        // Pagination
+        $pld = $query->skip($start)->take($count)->get();
+
+        // Response
         return response()->json([
             "status" => true,
             "message" => "Success",
@@ -13260,34 +10757,83 @@ class ApiController extends Controller
         ]);
     }
 
+
     /**
      * @OA\Get(
      *     path="/api/getRegFeePaymentStat/{schid}/{rfee}",
-     *     tags={"Api"},
-     *     summary="Get how many reg fee payments are available",
-     *     description="Use this endpoint to get how many rFee payments are available",
+     *     tags={"Payments"},
+     *     summary="Get Registration Fee Payment Statistics by School",
+     *     description="Retrieve the total numbers of registration fee payments for a school, with optional session (ssn) and term (trm) filters.",
+     *     security={{"bearerAuth": {}}},
      *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
      *         required=true,
      *         description="School ID",
-     *         @OA\Schema(type="string")
+     *         @OA\Schema(type="integer")
      *     ),
      *     @OA\Parameter(
      *         name="rfee",
      *         in="path",
      *         required=true,
-     *         description="Reg Fee ID (0/1)",
-     *         @OA\Schema(type="string")
+     *         description="Registration Fee status (0 = Not Paid, 1 = Paid)",
+     *         @OA\Schema(type="integer")
      *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="query",
+     *         required=false,
+     *         description="Session/Academic Year (e.g., 2025)",
+     *         @OA\Schema(type="string", example="2025")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="query",
+     *         required=false,
+     *         description="Term (1, 2, or 3)",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 @OA\Property(property="total", type="integer", example=120)
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthorized")
      * )
      */
-    public function getRegFeePaymentStat($schid, $rfee)
+
+
+    public function getRegFeePaymentStat(Request $request, $schid, $rfee)
     {
-        $total = student::where('schid', $schid)->where('rfee', $rfee)->count();
+        // Optional filters
+        $ssn = $request->input('ssn', null);
+        $trm = $request->input('trm', null);
+
+        // Base query
+        $query = student::where('schid', $schid)->where('rfee', $rfee);
+
+        // Apply optional filters
+        if (!is_null($ssn)) {
+            $query->where('year', $ssn); // assuming 'year' column holds session
+        }
+
+        if (!is_null($trm)) {
+            $query->where('term', $trm); // assuming 'term' column
+        }
+
+        // Count the records
+        $total = $query->count();
+
         return response()->json([
             "status" => true,
             "message" => "Success",
@@ -13297,60 +10843,126 @@ class ApiController extends Controller
         ]);
     }
 
+
     /**
      * @OA\Get(
      *     path="/api/getRegFeePayments/{schid}/{rfee}",
      *     tags={"Payments"},
-     *     summary="Get Reg Fee Payments by School",
-     *     description="Use this endpoint to get Payments by School",
+     *     security={{"bearerAuth": {}}},
+     *     summary="Get Registration Fee Payments by School",
+     *     description="Retrieve registration fee payment records for a school with optional session (year) and term filters.",
+     *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
      *         required=true,
      *         description="School ID",
-     *         @OA\Schema(type="string")
+     *         @OA\Schema(type="integer")
      *     ),
+     *
      *     @OA\Parameter(
      *         name="rfee",
      *         in="path",
      *         required=true,
-     *         description="Reg Fee ID (0/1)",
-     *         @OA\Schema(type="string")
+     *         description="Registration Fee Status (0 = Not Paid, 1 = Paid)",
+     *         @OA\Schema(type="integer")
      *     ),
+     *
      *     @OA\Parameter(
      *         name="start",
      *         in="query",
      *         required=false,
-     *         description="Index to start at",
-     *         @OA\Schema(type="integer")
+     *         description="Start index for pagination",
+     *         @OA\Schema(type="integer", example=0)
      *     ),
+     *
      *     @OA\Parameter(
      *         name="count",
      *         in="query",
      *         required=false,
-     *         description="No of records to retrieve",
-     *         @OA\Schema(type="integer")
+     *         description="Number of records to retrieve",
+     *         @OA\Schema(type="integer", example=20)
      *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
+     *
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="query",
+     *         required=false,
+     *         description="Session (stored as `year` in database). Example: 2025",
+     *         @OA\Schema(type="string", example="2025")
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="query",
+     *         required=false,
+     *         description="Term (stored as `term` in database). Example: 1",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     example={
+     *                         "sid": 100,
+     *                         "fname": "John",
+     *                         "lname": "Doe",
+     *                         "year": 2025,
+     *                         "term": 1,
+     *                         "rfee": 1
+     *                     }
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized"
+     *     )
      * )
      */
-    public function getRegFeePayments($schid, $rfee)
+
+    public function getRegFeePayments(Request $request, $schid, $rfee)
     {
-        $start = 0;
-        $count = 20;
-        if (request()->has('start') && request()->has('count')) {
-            $start = request()->input('start');
-            $count = request()->input('count');
+        // Pagination
+        $start = $request->input('start', 0);
+        $count = $request->input('count', 20);
+
+        // Optional filters
+        $ssn = $request->input('ssn', null);
+        $trm = $request->input('trm', null);
+
+        // Base query
+        $query = student::where('schid', $schid)->where('rfee', $rfee);
+
+        // Apply optional filters
+        if (!is_null($ssn)) {
+            $query->where('year', $ssn); // FIXED
         }
-        $pld = student::where('schid', $schid)->where('rfee', $rfee)->get();
-        // Respond
+
+        if (!is_null($trm)) {
+            $query->where('term', $trm); // FIXED
+        }
+
+        // Pagination
+        $pld = $query->skip($start)->take($count)->get();
+
         return response()->json([
             "status" => true,
             "message" => "Success",
             "pld" => $pld,
         ]);
     }
+
 
     /**
      * @OA\Post(
@@ -13364,6 +10976,8 @@ class ApiController extends Controller
      *             type="object",
      *             @OA\Property(property="sid", type="string", example="123"),
      *             @OA\Property(property="pref", type="string", example="456"),
+     *             @OA\Property(property="ssn", type="string", example="2025"),
+     *             @OA\Property(property="trm", type="integer", example="1"),
      *         )
      *     ),
      *     @OA\Response(
@@ -13391,13 +11005,21 @@ class ApiController extends Controller
         $request->validate([
             'sid' => 'required',
             'pref' => 'required',
+            'ssn' => 'required',
+            'trm' => 'required',
         ]);
+
         acct_pref::updateOrCreate(
-            ["sid" => $request->sid,],
             [
-                "pref" => $request->pref,
+                "sid" => $request->sid,
+                "ssn" => $request->ssn,
+                "trm" => $request->trm,
+            ],
+            [
+                "pref" => $request->pref
             ]
         );
+
         return response()->json([
             "status" => true,
             "message" => "Preference Recorded"
@@ -13406,25 +11028,53 @@ class ApiController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/getAcctPref/{schid}",
+     *     path="/api/getAcctPref/{schid}/{ssn}/{trm}",
      *     tags={"Api"},
-     *     summary="Get preference for acct number",
-     *     description="Use this endpoint to get pref",
+     * security={{"bearerAuth": {}}},
+     *     summary="Get preference for account number",
+     *     description="Use this endpoint to get preference settings for account numbers.",
      *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
      *         required=true,
      *         description="School ID",
-     *         @OA\Schema(type="string")
+     *         @OA\Schema(type="string", example="12")
      *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="path",
+     *         required=true,
+     *         description="Session ID",
+     *         @OA\Schema(type="string", example="2025")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Term ID",
+     *         @OA\Schema(type="string", example="1")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success",
+     *         @OA\JsonContent()
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized"
+     *     )
      * )
      */
-    public function getAcctPref($schid)
+    public function getAcctPref($schid, $ssn, $trm)
     {
-        $pld = acct_pref::where('sid', $schid)->first();
+        $pld = acct_pref::where('sid', $schid)
+            ->where('ssn', $ssn)
+            ->where('trm', $trm)
+            ->first();
+
         return response()->json([
             "status" => true,
             "message" => "Success",
@@ -13515,16 +11165,17 @@ class ApiController extends Controller
      */
 
 
-
     // public function setAcct(Request $request)
     // {
     //     $request->validate([
     //         'schid' => 'required',
     //         'clsid' => 'required',
     //         'anum' => 'required',
-    //         'bnk'  => 'required',
+    //         'bnk' => 'required',
     //         'aname' => 'required',
-    //         'pay_head_id'  => 'nullable',
+    //         'ssn' => 'required',
+    //         'trm' => 'required',
+    //         'pay_head_id' => 'nullable',
     //     ]);
 
     //     $data = [
@@ -13533,9 +11184,12 @@ class ApiController extends Controller
     //         'anum' => $request->anum,
     //         'bnk' => $request->bnk,
     //         'aname' => $request->aname,
+    //         'ssn' => $request->ssn,
+    //         'trm' => $request->trm,
     //         'pay_head_id' => $request->pay_head_id ?? null,
     //     ];
 
+    //     // If updating existing account
     //     if ($request->has('id')) {
     //         $acct = accts::find($request->id);
     //         if ($acct) {
@@ -13550,57 +11204,74 @@ class ApiController extends Controller
     //                 "message" => "Account Not Found",
     //             ], 404);
     //         }
-    //     } else {
-    //         $acct = accts::create($data);
+    //     }
 
-    //         // Automatically generate Paystack-required fields
-    //         $business_name = "Business_" . uniqid(); // Generate a unique business name
-    //         $percentage_charge = 0; // Default percentage charge
-    //         $settlement_bank = $request->bnk; // Use the bank user provided
+    //     // Check if this schid & clsid already has a subaccount
+    //     $existingSubAcct = sub_account::where('schid', $request->schid)
+    //         ->where('clsid', $request->clsid)
+    //         ->where('ssn', $request->ssn)
+    //         ->where('trm', $request->trm)
+    //         ->where('pay_head_id', $request->pay_head_id)
+    //         ->first();
 
-    //         // Step 1: Create Paystack subaccount
-    //         $response = Http::withHeaders([
-    //             'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
-    //             'Content-Type' => 'application/json',
-    //         ])->post('https://api.paystack.co/subaccount', [
-    //             'business_name' => $business_name,
-    //             'account_number' => $request->anum,
-    //             'bank_code' => $request->bnk,
+    //     if ($existingSubAcct) {
+    //         return response()->json([
+    //             "status" => false,
+    //             "message" => "A subaccount already exists for this school and class.",
+    //         ], 409);
+    //     }
+
+    //     // Create main account
+    //     $acct = accts::create($data);
+
+    //     // Generate Paystack-required fields
+    //     $business_name = "Business_" . uniqid();
+    //     $percentage_charge = 0;
+    //     $settlement_bank = $request->bnk;
+
+    //     // Step 1: Create Paystack subaccount
+    //     $response = Http::withHeaders([
+    //         'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
+    //         'Content-Type' => 'application/json',
+    //     ])->post('https://api.paystack.co/subaccount', [
+    //                 'business_name' => $business_name,
+    //                 'account_number' => $request->anum,
+    //                 'bank_code' => $request->bnk,
+    //                 'percentage_charge' => $percentage_charge,
+    //                 'settlement_bank' => $settlement_bank,
+    //             ]);
+
+    //     if ($response->successful()) {
+    //         $data = $response->json();
+
+    //         // Step 2: Store subaccount details
+    //         sub_account::create([
+    //             'acct_id' => $acct->id,
+    //             'schid' => $request->schid,
+    //             'clsid' => $request->clsid,
+    //             'ssn' => $request->ssn,
+    //             'trm' => $request->trm,
+    //             'pay_head_id' => $request->pay_head_id ?? null,
+    //             'subaccount_code' => $data['data']['subaccount_code'],
     //             'percentage_charge' => $percentage_charge,
-    //             'settlement_bank' => $settlement_bank,
     //         ]);
 
-    //         if ($response->successful()) {
-    //             $data = $response->json();
+    //         return response()->json([
+    //             "status" => true,
+    //             "message" => "Account and Paystack Subaccount Created Successfully",
+    //             "paystack_data" => $data,
+    //         ]);
+    //     } else {
+    //         // Rollback main account creation if Paystack fails
+    //         $acct->delete();
 
-    //             // Step 2: Store subaccount details in the database
-    //             sub_account::create([
-    //                 'acct_id' => $acct->id,
-    //                 'schid' => $request->schid,
-    //                 'clsid' => $request->clsid,
-    //                 'pay_head_id' => $request->pay_head_id ?? null,
-    //                 'subaccount_code' => $data['data']['subaccount_code'],
-    //                 'percentage_charge' => $percentage_charge,
-    //             ]);
-
-    //             return response()->json([
-    //                 "status" => true,
-    //                 "message" => "Account and Paystack Subaccount Created Successfully",
-    //                 "paystack_data" => $data,
-    //             ]);
-    //         } else {
-    //             // Delete the main account if Paystack subaccount creation fails
-    //             $acct->delete();
-
-    //             return response()->json([
-    //                 "status" => false,
-    //                 "message" => "Failed to Create Paystack Subaccount",
-    //                 "error" => $response->body(),
-    //             ], 400);
-    //         }
+    //         return response()->json([
+    //             "status" => false,
+    //             "message" => "Failed to Create Paystack Subaccount",
+    //             "error" => $response->body(),
+    //         ], 400);
     //     }
     // }
-
 
 
     public function setAcct(Request $request)
@@ -13611,6 +11282,8 @@ class ApiController extends Controller
             'anum' => 'required',
             'bnk' => 'required',
             'aname' => 'required',
+            'ssn' => 'required',
+            'trm' => 'required',
             'pay_head_id' => 'nullable',
         ]);
 
@@ -13620,14 +11293,16 @@ class ApiController extends Controller
             'anum' => $request->anum,
             'bnk' => $request->bnk,
             'aname' => $request->aname,
+            'ssn' => $request->ssn,
+            'trm' => $request->trm,
             'pay_head_id' => $request->pay_head_id ?? null,
         ];
 
         /*
-|--------------------------------------------------------------------------
-| DUPLICATE CHECK (clsid + pay_head_id)
-|--------------------------------------------------------------------------
-*/
+        |--------------------------------------------------------------------------
+        | DUPLICATE CHECK (clsid + pay_head_id)
+        |--------------------------------------------------------------------------
+        */
         $dupQuery = accts::where('clsid', $request->clsid)
             ->where('pay_head_id', $request->pay_head_id);
 
@@ -13648,84 +11323,75 @@ class ApiController extends Controller
         | UPDATE MODE
         |--------------------------------------------------------------------------
         */
-
-        // If updating existing account
         if ($request->has('id')) {
             $acct = accts::find($request->id);
-            if ($acct) {
-                $acct->update($data);
+
+            if (!$acct) {
                 return response()->json([
-                    "status" => true,
-                    "message" => "Account Updated",
-                ]);
-            } else {
-                return response()->json([
-                    "status" => false,
-                    "message" => "Account Not Found",
+                    'status' => false,
+                    'message' => 'Account Not Found'
                 ], 404);
             }
-        }
 
-        // Check if this schid & clsid already has a subaccount
-        $existingSubAcct = sub_account::where('schid', $request->schid)
-            ->where('clsid', $request->clsid)
-            ->first();
+            $acct->update($data);
 
-        if ($existingSubAcct) {
             return response()->json([
-                "status" => false,
-                "message" => "A subaccount already exists for this school and class.",
-            ], 409);
+                'status' => true,
+                'message' => 'Account Updated Successfully'
+            ]);
         }
 
-        // Create main account
+        /*
+        |--------------------------------------------------------------------------
+        | CREATE MAIN ACCOUNT
+        |--------------------------------------------------------------------------
+        */
         $acct = accts::create($data);
 
-        // Generate Paystack-required fields
-        $business_name = "Business_" . uniqid();
-        $percentage_charge = 0;
-        $settlement_bank = $request->bnk;
-
-        // Step 1: Create Paystack subaccount
+        /*
+        |--------------------------------------------------------------------------
+        | CREATE PAYSTACK SUBACCOUNT
+        |--------------------------------------------------------------------------
+        */
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
             'Content-Type' => 'application/json',
         ])->post('https://api.paystack.co/subaccount', [
-                    'business_name' => $business_name,
+                    'business_name' => 'Business_' . uniqid(),
                     'account_number' => $request->anum,
                     'bank_code' => $request->bnk,
-                    'percentage_charge' => $percentage_charge,
-                    'settlement_bank' => $settlement_bank,
+                    'percentage_charge' => 0,
+                    'settlement_bank' => $request->bnk,
                 ]);
 
-        if ($response->successful()) {
-            $data = $response->json();
-
-            // Step 2: Store subaccount details
-            sub_account::create([
-                'acct_id' => $acct->id,
-                'schid' => $request->schid,
-                'clsid' => $request->clsid,
-                'pay_head_id' => $request->pay_head_id ?? null,
-                'subaccount_code' => $data['data']['subaccount_code'],
-                'percentage_charge' => $percentage_charge,
-            ]);
-
-            return response()->json([
-                "status" => true,
-                "message" => "Account and Paystack Subaccount Created Successfully",
-                "paystack_data" => $data,
-            ]);
-        } else {
-            // Rollback main account creation if Paystack fails
+        if (!$response->successful()) {
             $acct->delete();
 
             return response()->json([
-                "status" => false,
-                "message" => "Failed to Create Paystack Subaccount",
-                "error" => $response->body(),
+                'status' => false,
+                'message' => 'Failed to Create Paystack Subaccount',
+                'error' => $response->body(),
             ], 400);
         }
+
+        $paystack = $response->json();
+
+        sub_account::create([
+            'acct_id' => $acct->id,
+            'schid' => $request->schid,
+            'clsid' => $request->clsid,
+            'ssn' => $request->ssn,
+            'trm' => $request->trm,
+            'pay_head_id' => $request->pay_head_id ?? null,
+            'subaccount_code' => $paystack['data']['subaccount_code'],
+            'percentage_charge' => 0,
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Account and Paystack Subaccount Created Successfully',
+            'paystack_data' => $paystack,
+        ]);
     }
 
 
@@ -13785,67 +11451,6 @@ class ApiController extends Controller
      *     )
      * )
      */
-    // public function getSubAccount($acctid)
-    // {
-    //     // Fetch the existing subaccount linked to the account
-    //     $subaccount = sub_account::where('acct_id', $acctid)->first();
-
-    //     if (!$subaccount) {
-    //         // Step 1: Check if the account exists
-    //         $account = accts::where('id', $acctid)->first();
-
-    //         if (!$account) {
-    //             return response()->json([
-    //                 "status" => false,
-    //                 "message" => "Account not found",
-    //             ], 404);
-    //         }
-
-    //         // Step 2: Generate unique business name
-    //         $business_name = "Business_" . uniqid();
-
-    //         // Step 3: Prepare subaccount data for Paystack
-    //         $percentage_charge = 0;
-    //         $subaccountData = [
-    //             'business_name' => $business_name,
-    //             'account_number' => $request->anum ?? $account->anum,
-    //             'bank_code' => $request->bnk ?? $account->bnk,
-    //             'percentage_charge' => $percentage_charge,
-    //             'settlement_bank' => $request->settlement_bank ?? $account->bnk,
-    //         ];
-
-    //         // Step 4: Create Paystack subaccount
-    //         $response = Http::withHeaders([
-    //             'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
-    //             'Content-Type' => 'application/json',
-    //         ])->post('https://api.paystack.co/subaccount', $subaccountData);
-
-    //         if ($response->successful()) {
-    //             $data = $response->json();
-
-    //             // Step 5: Store subaccount details in the database
-    //             $subaccount = sub_account::create([
-    //                 'acct_id' => $account->id,
-    //                 'schid' => $account->schid ?? null,
-    //                 'clsid' => $account->clsid ?? null,
-    //                 'subaccount_code' => $data['data']['subaccount_code'],
-    //                 'percentage_charge' => $percentage_charge,
-    //             ]);
-    //         } else {
-    //             return response()->json([
-    //                 "status" => false,
-    //                 "message" => "Failed to create subaccount",
-    //                 "error" => $response->json()['message'] ?? 'Unknown error',
-    //             ], 400);
-    //         }
-    //     }
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Subaccount retrieved successfully",
-    //         "subaccount" => $subaccount,
-    //     ]);
-    // }
 
 
     public function getSubAccount($acctid)
@@ -13891,6 +11496,9 @@ class ApiController extends Controller
                     'acct_id' => $account->id,
                     'schid' => $account->schid,
                     'clsid' => $account->clsid,
+                    'ssn' => $account->ssn,
+                    'trm' => $account->trm,
+                    'pay_head_id' => $account->pay_head_id,
                     'subaccount_code' => $data['data']['subaccount_code'],
                     'percentage_charge' => $percentage_charge,
                 ]);
@@ -13932,200 +11540,195 @@ class ApiController extends Controller
         ]);
     }
 
-
-
-    // public function createOrGetSplit(int $schid, int $clsid, array $subaccounts, string $splitType = 'percentage'): string
-    // {
-    //     // Check if a split already exists for this school/class
-    //     $existing = subaccount_split::where('schid', $schid)
-    //         ->where('clsid', $clsid)
-    //         ->first();
-
-    //     if ($existing && !empty($existing->split_code)) {
-    //         return $existing->split_code;
-    //     }
-
-    //     // Normalize subaccount shares based on split type
-    //     foreach ($subaccounts as &$acc) {
-    //         if ($splitType === 'flat') {
-    //             $acc['share'] = intval($acc['share']) * 100; // Convert Naira → Kobo
-    //         } else {
-    //             $acc['share'] = floatval($acc['share']); // Percentage
-    //         }
-    //     }
-
-    //     // Prepare payload for Paystack
-    //     $payload = [
-    //         'name'        => "Split-{$schid}-{$clsid}-" . uniqid(),
-    //         'type'        => $splitType,
-    //         'currency'    => 'NGN',
-    //         'subaccounts' => $subaccounts,
-    //         'bearer_type' => 'account', // Main account bears Paystack fees
-    //     ];
-
-    //     try {
-    //         $response = Http::withToken(env('PAYSTACK_SECRET'))
-    //             ->post('https://api.paystack.co/split', $payload);
-
-    //         $respData = $response->json();
-
-    //         if ($response->successful() && isset($respData['data']['split_code'])) {
-    //             $splitCode = $respData['data']['split_code'];
-
-    //             // Save split to DB
-    //             subaccount_split::create([
-    //                 'schid'      => $schid,
-    //                 'clsid'      => $clsid,
-    //                 'split_code' => $splitCode,
-    //             ]);
-
-    //             return $splitCode;
-    //         }
-
-    //         Log::error('Paystack Split Error: ' . $response->body());
-    //         throw new \Exception('Error creating split: ' . $response->body());
-    //     } catch (\Exception $e) {
-    //         Log::error('Paystack Split Exception: ' . $e->getMessage());
-    //         throw new \Exception('Failed to create Paystack split: ' . $e->getMessage());
-    //     }
-    // }
-
-
-    //     public function createOrGetSplit(int $schid, int $clsid, array $subaccounts, string $splitType = 'percentage'): array
-    // {
-    //     // Check if a split already exists for this school/class
-    //     $existing = subaccount_split::where('schid', $schid)
-    //         ->where('clsid', $clsid)
-    //         ->first();
-
-    //     if ($existing && !empty($existing->split_code)) {
-    //         return [
-    //             'split_code' => $existing->split_code,
-    //             'total_amount' => null, // Let Paystack handle the actual total during transaction
-    //            // 'total_amount' => array_sum(array_column($subaccounts, 'share')), // sum of shares
-    //             'subaccounts' => $subaccounts
-    //         ];
-    //     }
-
-    //     // Normalize subaccount shares based on split type
-    //     foreach ($subaccounts as &$acc) {
-    //         if ($splitType === 'flat') {
-    //             $acc['share'] = intval($acc['share']) * 100; // Naira → Kobo
-    //         } else {
-    //             $acc['share'] = floatval($acc['share']); // Percentage
-    //         }
-    //     }
-
-    //     // Prepare payload for Paystack
-    //     $payload = [
-    //         'name'        => "Split-{$schid}-{$clsid}-" . uniqid(),
-    //         'type'        => $splitType,
-    //         'currency'    => 'NGN',
-    //         'subaccounts' => $subaccounts,
-    //         'bearer_type' => 'account',
-    //     ];
-
-    //     try {
-    //         $response = Http::withToken(env('PAYSTACK_SECRET'))
-    //             ->post('https://api.paystack.co/split', $payload);
-
-    //         $respData = $response->json();
-
-    //         if ($response->successful() && isset($respData['data']['split_code'])) {
-    //             $splitCode = $respData['data']['split_code'];
-
-    //             // Save split to DB
-    //             subaccount_split::create([
-    //                 'schid'      => $schid,
-    //                 'clsid'      => $clsid,
-    //                 'split_code' => $splitCode,
-    //             ]);
-
-    //             return [
-    //                 'split_code' => $splitCode,
-    //                 'total_amount' => array_sum(array_column($subaccounts, 'share')), // sum of all shares
-    //                 'subaccounts' => $subaccounts
-    //             ];
-    //         }
-
-    //         Log::error('Paystack Split Error: ' . $response->body());
-    //         throw new \Exception('Error creating split: ' . $response->body());
-    //     } catch (\Exception $e) {
-    //         Log::error('Paystack Split Exception: ' . $e->getMessage());
-    //         throw new \Exception('Failed to create Paystack split: ' . $e->getMessage());
-    //     }
-    // }
-
-
-
-    public function createOrGetSplit(int $schid, int $clsid, array $subaccounts, string $splitType = 'percentage'): array
+    /**
+     * @OA\Post(
+     *     path="/api/getSplitCode",
+     *     summary="Get or create a split code for subaccounts",
+     *     description="Creates a new split code or retrieves an existing one for the specified school, class, and subaccount codes.",
+     *     operationId="getSplitCode",
+     *     tags={"Payments"},
+     *      security={{"bearerAuth": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             required={"schid","clsid","subaccount_code"},
+     *             @OA\Property(
+     *                 property="schid",
+     *                 type="integer",
+     *                 example=12,
+     *                 description="School ID"
+     *             ),
+     *             @OA\Property(
+     *                 property="clsid",
+     *                 type="integer",
+     *                 example=11,
+     *                 description="Class ID"
+     *             ),
+     *             @OA\Property(
+     *                 property="subaccount_code",
+     *                 type="array",
+     *                 @OA\Items(type="string"),
+     *                 description="Array of subaccount codes"
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Split code retrieved successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="split_code", type="string", example="SPLIT12345"),
+     *             @OA\Property(
+     *                 property="subaccounts",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="code", type="string", example="SUB001"),
+     *                     @OA\Property(property="name", type="string", example="Sub Account Name")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation Error",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="The schid field is required."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     )
+     * )
+     */
+    public function getSplitCode(Request $request)
     {
-        // Check if a split already exists for this school/class
+        $request->validate([
+            'schid' => 'required|integer',
+            'clsid' => 'required|integer',
+            'subaccount_code' => 'required|array|min:1'
+        ]);
+
+        $splitData = $this->createOrGetSplit($request->schid, $request->clsid, $request->subaccount_code);
+
+        return response()->json([
+            'status' => true,
+            'split_code' => $splitData['split_code'],
+            'subaccounts' => $splitData['subaccounts']
+        ]);
+    }
+
+
+
+    public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): array
+    {
+        $MAX_SUBACCOUNT_SHARE = 99.0; // merchant keeps 1%
+
+        /* ===============================
+           CHECK EXISTING SPLIT
+        =============================== */
         $existing = subaccount_split::where('schid', $schid)
             ->where('clsid', $clsid)
             ->first();
 
-        if ($existing && !empty($existing->split_code)) {
-            return [
-                'split_code' => $existing->split_code,
-                'total_amount' => null, // Let Paystack handle the actual total during transaction
-                'subaccounts' => $subaccounts
-            ];
+        if ($existing && $existing->split_code) {
+            $check = Http::withToken(env('PAYSTACK_SECRET'))
+                ->get("https://api.paystack.co/split/{$existing->split_code}");
+
+            if ($check->successful()) {
+                $sum = collect($check->json('data.subaccounts') ?? [])
+                    ->sum('share');
+
+                if ($sum > 0 && $sum <= $MAX_SUBACCOUNT_SHARE) {
+                    return [
+                        'split_code' => $existing->split_code,
+                        'subaccounts' => $check->json('data.subaccounts'),
+                    ];
+                }
+            }
+
+            // delete broken split
+            $existing->delete();
         }
 
-        // Normalize subaccount shares based on split type
-        foreach ($subaccounts as &$acc) {
-            if ($splitType === 'flat') {
-                // Convert Naira to Kobo if using flat split
-                $acc['share'] = intval($acc['share']) * 100;
+        /* ===============================
+           MERGE & VALIDATE
+        =============================== */
+        $merged = [];
+        foreach ($subaccounts as $acc) {
+            if (empty($acc['subaccount']) || $acc['share'] <= 0) {
+                throw new \Exception('Invalid subaccount payload');
+            }
+            $merged[$acc['subaccount']] =
+                ($merged[$acc['subaccount']] ?? 0) + floatval($acc['share']);
+        }
+
+        $total = array_sum($merged);
+        if ($total <= 0) {
+            throw new \Exception('Invalid split total');
+        }
+
+        /* ===============================
+           NORMALIZE TO 99%
+        =============================== */
+        $normalized = [];
+        $running = 0;
+        $last = count($merged) - 1;
+        $i = 0;
+
+        foreach ($merged as $code => $share) {
+            if ($i === $last) {
+                $pct = round($MAX_SUBACCOUNT_SHARE - $running, 2);
             } else {
-                // Keep as percentage if split type is 'percentage'
-                $acc['share'] = floatval($acc['share']);
+                $pct = round(($share / $total) * $MAX_SUBACCOUNT_SHARE, 2);
+                $running += $pct;
             }
+
+            $normalized[] = [
+                'subaccount' => $code,
+                'share' => $pct,
+            ];
+
+            $i++;
         }
 
-        // Prepare payload for Paystack
-        $payload = [
-            'name' => "Split-{$schid}-{$clsid}-" . uniqid(),
-            'type' => $splitType,
-            'currency' => 'NGN',
-            'subaccounts' => $subaccounts,
-            'bearer_type' => 'account',
+        /* ===============================
+           CREATE SPLIT
+        =============================== */
+        $response = Http::withToken(env('PAYSTACK_SECRET'))
+            ->post('https://api.paystack.co/split', [
+                'name' => "Split-{$schid}-{$clsid}",
+                'type' => 'percentage',
+                'currency' => 'NGN',
+                'subaccounts' => $normalized,
+
+                // 🔑 THIS IS THE FIX
+                'bearer_type' => 'subaccount',
+                'bearer_subaccount' => $normalized[0]['subaccount'], // one of them
+            ]);
+
+
+
+        if (!$response->successful()) {
+            throw new \Exception($response->body());
+        }
+
+        $splitCode = $response->json('data.split_code');
+
+        subaccount_split::create([
+            'schid' => $schid,
+            'clsid' => $clsid,
+            'split_code' => $splitCode,
+            'subaccounts' => json_encode($normalized),
+        ]);
+
+        return [
+            'split_code' => $splitCode,
+            'subaccounts' => $normalized,
         ];
-
-        try {
-            $response = Http::withToken(env('PAYSTACK_SECRET'))
-                ->post('https://api.paystack.co/split', $payload);
-
-            $respData = $response->json();
-
-            if ($response->successful() && isset($respData['data']['split_code'])) {
-                $splitCode = $respData['data']['split_code'];
-
-                // Save split to DB
-                subaccount_split::create([
-                    'schid' => $schid,
-                    'clsid' => $clsid,
-                    'split_code' => $splitCode,
-                ]);
-
-                return [
-                    'split_code' => $splitCode,
-                    'total_amount' => null, // Paystack will compute this dynamically
-                    'subaccounts' => $subaccounts
-                ];
-            }
-
-            // Log Paystack response for debugging
-            Log::error('Paystack Split Error: ' . $response->body());
-            throw new \Exception('Error creating split: ' . $response->body());
-        } catch (\Exception $e) {
-            Log::error('Paystack Split Exception: ' . $e->getMessage());
-            throw new \Exception('Failed to create Paystack split: ' . $e->getMessage());
-        }
     }
-
-
 
     public function handleCallback(Request $request)
     {
@@ -14181,7 +11784,7 @@ class ApiController extends Controller
             'clsid' => 'required|integer',
             'subaccount_code' => 'required|array|min:1',
             'metadata' => 'required|array',
-            'type' => 'nullable|string', // 'flat' or 'percentage'
+            'payhead_ids' => 'required|array|min:1', // <-- new validation
         ]);
 
         $email = $request->email;
@@ -14190,13 +11793,8 @@ class ApiController extends Controller
         $clsid = $request->clsid;
         $subaccounts = $request->subaccount_code;
         $metadata = $request->metadata;
+        $payheadIds = $request->payhead_ids; // <-- capture payhead IDs
         $splitType = $request->type ?? 'percentage';
-
-        // OPTION 2: Prevent transaction_charge when split type is flat
-        if ($splitType === 'flat' && $request->has('transaction_charge')) {
-            unset($request['transaction_charge']);
-        }
-
 
         try {
             $totalAmountKobo = $amount * 100;
@@ -14218,7 +11816,7 @@ class ApiController extends Controller
             }
 
             // Get or create split data (handles total_split_amount & subaccounts)
-            $splitData = $this->createOrGetSplit($schid, $clsid, $subaccounts, $splitType);
+            $splitData = $this->createOrGetSplit($schid, $clsid, $subaccounts);
 
             $splitCode = $splitData['split_code'] ?? null;   // Paystack split code
             $totalSplitAmount = $splitData['total_amount'] ?? null; // Total split amount (₦)
@@ -14245,6 +11843,7 @@ class ApiController extends Controller
                 'exp' => $metadata['exp'] ?? '',
                 'eml' => $email,
                 'lid' => $metadata['lid'] ?? '',
+                'payhead_ids' => $payheadIds, // <-- include payhead IDs here
                 'time' => now()->timestamp,
             ]);
 
@@ -14262,10 +11861,6 @@ class ApiController extends Controller
             // Only attach split_code if it exists
             if (!empty($splitCode)) {
                 $payload['split_code'] = $splitCode;
-            }
-
-            if ($request->has('transaction_charge')) {
-                $payload['transaction_charge'] = intval($request->transaction_charge) * 100;
             }
 
             // Initialize payment on Paystack
@@ -14336,29 +11931,60 @@ class ApiController extends Controller
 
 
 
-
-
     /**
      * @OA\Get(
-     *     path="/api/getAccountStat/{schid}",
+     *     path="/api/getAccountStat/{schid}/{ssn}/{trm}",
      *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
      *     summary="Get how many accounts are available",
-     *     description="Use this endpoint to get how many accounts are available",
+     *     description="Use this endpoint to get the total number of available accounts for a school, session, and term.",
      *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
      *         required=true,
      *         description="School ID",
-     *         @OA\Schema(type="string")
+     *         @OA\Schema(type="string", example="12")
      *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="path",
+     *         required=true,
+     *         description="Session ID",
+     *         @OA\Schema(type="string", example="2025")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Term ID",
+     *         @OA\Schema(type="string", example="1")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 @OA\Property(property="total", type="integer", example=128)
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(response=401, description="Unauthorized")
      * )
      */
-    public function getAccountStat($schid)
+    public function getAccountStat($schid, $ssn, $trm)
     {
-        $total = accts::where('schid', $schid)->count();
+        $total = accts::where('schid', $schid)
+            ->where('ssn', $ssn)
+            ->where('trm', $trm)
+            ->count();
+
         return response()->json([
             "status" => true,
             "message" => "Success",
@@ -14371,46 +11997,94 @@ class ApiController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/getAccountsBySchool/{schid}",
+     *     path="/api/getAccountsBySchool/{schid}/{ssn}/{trm}",
      *     tags={"Payments"},
      *     security={{"bearerAuth": {}}},
      *     summary="Get all Accounts by School",
-     *     description="Use this endpoint to get all Accounts by School",
+     *     description="Retrieve all accounts for a school, session, and term, including sub-account details.",
      *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
      *         required=true,
      *         description="School ID",
-     *         @OA\Schema(type="string")
+     *         @OA\Schema(type="string", example="12")
+     *     ),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="path",
+     *         required=true,
+     *         description="Session ID",
+     *         @OA\Schema(type="string", example="2025")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Term ID",
+     *         @OA\Schema(type="string", example="1")
      *     ),
      *     @OA\Parameter(
      *         name="start",
      *         in="query",
      *         required=false,
      *         description="Index to start at",
-     *         @OA\Schema(type="integer")
+     *         @OA\Schema(type="integer", example=0)
      *     ),
      *     @OA\Parameter(
      *         name="count",
      *         in="query",
      *         required=false,
-     *         description="No of records to retrieve",
-     *         @OA\Schema(type="integer")
+     *         description="Number of records to retrieve",
+     *         @OA\Schema(type="integer", example=20)
      *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="id", type="integer", example=10),
+     *                     @OA\Property(property="name", type="string", example="School Fees"),
+     *                     @OA\Property(property="amount", type="number", format="float", example=15000),
+     *                     @OA\Property(property="schid", type="integer", example=12),
+     *                     @OA\Property(property="ssn", type="string", example="2025"),
+     *                     @OA\Property(property="trm", type="string", example="1"),
+     *                     @OA\Property(
+     *                         property="subAccounts",
+     *                         type="array",
+     *                         description="Related sub-account breakdown",
+     *                         @OA\Items(
+     *                             @OA\Property(property="id", type="integer", example=1),
+     *                             @OA\Property(property="accts_id", type="integer", example=10),
+     *                             @OA\Property(property="name", type="string", example="Development Levy"),
+     *                             @OA\Property(property="amount", type="number", example=2000)
+     *                         )
+     *                     )
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(response=401, description="Unauthorized")
      * )
      */
 
-
-    public function getAccountsBySchool($schid)
+    public function getAccountsBySchool($schid, $ssn, $trm)
     {
         $start = request()->input('start', 0);
         $count = request()->input('count', 20);
 
         // Retrieve accounts with subaccount details
         $pld = accts::where('schid', $schid)
+            ->where('ssn', $ssn)
+            ->where('trm', $trm)
             ->with('subAccounts') // Load subAccounts relationship
             ->skip($start)
             ->take($count)
@@ -14523,6 +12197,7 @@ class ApiController extends Controller
      * @OA\Post(
      *     path="/api/setAFee",
      *     tags={"Payments"},
+     *       security={{"bearerAuth": {}}},
      *     summary="Create/Update acceptance Fee",
      *
      *     @OA\RequestBody(
@@ -14531,6 +12206,8 @@ class ApiController extends Controller
      *             type="object",
      *             @OA\Property(property="schid", type="string"),
      *             @OA\Property(property="clsid", type="string"),
+     *             @OA\Property(property="ssn", type="string"),
+     *             @OA\Property(property="trm", type="string"),
      *             @OA\Property(property="amt", type="string"),
      *         )
      *     ),
@@ -14554,6 +12231,8 @@ class ApiController extends Controller
      *     )
      * )
      */
+
+
     public function setAFee(Request $request)
     {
         $request->validate([
@@ -14582,12 +12261,15 @@ class ApiController extends Controller
         ]);
     }
 
+
+
     /**
      * @OA\Get(
      *     path="/api/getAFeeStat/{schid}",
-     *     tags={"Api"},
-     *     summary="Get how many accpt. Fee are available",
-     *     description="Use this endpoint to get how many accpt. fee are available",
+     *     tags={"Payments"},
+     *    security={{"bearerAuth": {}}},
+     *     summary="Get the number of acceptance fees available",
+     *     description="Retrieve the total count of acceptance fees for a specific school with optional filters for session (ssn) and term (trm).",
      *
      *     @OA\Parameter(
      *         name="schid",
@@ -14596,13 +12278,71 @@ class ApiController extends Controller
      *         description="School ID",
      *         @OA\Schema(type="string")
      *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="query",
+     *         required=false,
+     *         description="Session filter (e.g., 2025)",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="query",
+     *         required=false,
+     *         description="Term filter (e.g., 1, 2, or 3)",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 @OA\Property(property="total", type="integer", example=25)
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthorized"),
      * )
      */
-    public function getAFeeStat($schid)
+
+    // public function getAFeeStat($schid)
+    // {
+    //     $total = afee::where('schid', $schid)->count();
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => [
+    //             "total" => $total,
+    //         ],
+    //     ]);
+    // }
+
+    public function getAFeeStat(Request $request, $schid)
     {
-        $total = afee::where('schid', $schid)->count();
+        // Optional filters
+        $ssn = $request->input('ssn', null);
+        $trm = $request->input('trm', null);
+
+        // Base query
+        $query = afee::where('schid', $schid);
+
+        // Apply optional filters
+        if (!is_null($ssn)) {
+            $query->where('ssn', $ssn);
+        }
+
+        if (!is_null($trm)) {
+            $query->where('trm', $trm);
+        }
+
+        // Count the records
+        $total = $query->count();
+
         return response()->json([
             "status" => true,
             "message" => "Success",
@@ -14612,12 +12352,14 @@ class ApiController extends Controller
         ]);
     }
 
+
     /**
      * @OA\Get(
      *     path="/api/getAFeeBySchool/{schid}",
      *     tags={"Payments"},
-     *     summary="Get all accpt. Fee by School",
-     *     description="Use this endpoint to get all accpt. Fee by School",
+     *    security={{"bearerAuth": {}}},
+     *     summary="Get all acceptance fee by School",
+     *     description="Retrieve acceptance fee records for a specific school with optional filters for session (ssn) and term (trm).",
      *
      *     @OA\Parameter(
      *         name="schid",
@@ -14631,29 +12373,78 @@ class ApiController extends Controller
      *         in="query",
      *         required=false,
      *         description="Index to start at",
-     *         @OA\Schema(type="integer")
+     *         @OA\Schema(type="integer", default=0)
      *     ),
      *     @OA\Parameter(
      *         name="count",
      *         in="query",
      *         required=false,
-     *         description="No of records to retrieve",
+     *         description="Number of records to retrieve",
+     *         @OA\Schema(type="integer", default=20)
+     *     ),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="query",
+     *         required=false,
+     *         description="Session filter (e.g., 2025)",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="query",
+     *         required=false,
+     *         description="Term filter (e.g., 1, 2, or 3)",
      *         @OA\Schema(type="integer")
      *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success",
+     *         @OA\JsonContent(
+     *              @OA\Property(property="status", type="boolean", example=true),
+     *              @OA\Property(property="message", type="string", example="Success"),
+     *              @OA\Property(property="pld", type="array", @OA\Items())
+     *         )
+     *     ),
+     *     @OA\Response(response=404, description="No records found"),
+     *     @OA\Response(response=401, description="Unauthorized"),
      * )
      */
-    public function getAFeeBySchool($schid)
+
+
+    public function getAFeeBySchool(Request $request, $schid)
     {
-        $start = 0;
-        $count = 20;
-        if (request()->has('start') && request()->has('count')) {
-            $start = request()->input('start');
-            $count = request()->input('count');
+        // Pagination
+        $start = $request->input('start', 0);
+        $count = $request->input('count', 20);
+
+        // Optional filters
+        $ssn = $request->input('ssn', null);
+        $trm = $request->input('trm', null);
+
+        // Base query
+        $query = afee::where('schid', $schid);
+
+        // Apply optional filters
+        if (!is_null($ssn)) {
+            $query->where('ssn', $ssn);
         }
-        $pld = afee::where('schid', $schid)->skip($start)->take($count)->get();
-        // Respond
+
+        if (!is_null($trm)) {
+            $query->where('trm', $trm);
+        }
+
+        // Pagination
+        $pld = $query->skip($start)->take($count)->get();
+
+        if ($pld->isEmpty()) {
+            return response()->json([
+                "status" => false,
+                "message" => "No records found",
+                "pld" => $pld,
+            ], 404);
+        }
+
         return response()->json([
             "status" => true,
             "message" => "Success",
@@ -14661,41 +12452,99 @@ class ApiController extends Controller
         ]);
     }
 
+
     /**
      * @OA\Get(
      *     path="/api/getAFee/{schid}/{clsid}",
      *     tags={"Payments"},
-     *     summary="Get all accpt. Fee for a class",
-     *     description="Use this endpoint to get accpt. Fee",
+     *   security={{"bearerAuth": {}}},
+     *     summary="Get acceptance fee for a specific class",
+     *     description="Retrieve acceptance fee record filtered by school, class, and optional session (ssn) and term (trm).",
      *
      *     @OA\Parameter(
      *         name="schid",
      *         in="path",
      *         required=true,
      *         description="School ID",
-     *         @OA\Schema(type="string")
+     *         @OA\Schema(type="integer")
      *     ),
+     *
      *     @OA\Parameter(
      *         name="clsid",
      *         in="path",
      *         required=true,
      *         description="Class ID",
-     *         @OA\Schema(type="string")
+     *         @OA\Schema(type="integer")
      *     ),
-     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
-     *     @OA\Response(response="401", description="Unauthorized"),
+     *
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="query",
+     *         required=false,
+     *         description="Session / Academic year (e.g. 2025)",
+     *         @OA\Schema(type="string", example="2025")
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="query",
+     *         required=false,
+     *         description="Term (1, 2, or 3)",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success",
+     *         @OA\JsonContent()
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized"
+     *     )
      * )
      */
-    public function getAFee($schid, $clsid)
+
+    // public function getAFee($schid, $clsid)
+    // {
+    //     $pld = afee::where('schid', $schid)->where('clsid', $clsid)->first();
+    //     // Respond
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => $pld,
+    //     ]);
+    // }
+
+    public function getAFee(Request $request, $schid, $clsid)
     {
-        $pld = afee::where('schid', $schid)->where('clsid', $clsid)->first();
-        // Respond
+        // Optional filters
+        $ssn = $request->input('ssn', null);
+        $trm = $request->input('trm', null);
+
+        // Base query
+        $query = afee::where('schid', $schid)->where('clsid', $clsid);
+
+        // Apply optional filters
+        if (!is_null($ssn)) {
+            $query->where('ssn', $ssn);
+        }
+
+        if (!is_null($trm)) {
+            $query->where('trm', $trm);
+        }
+
+        // Fetch first record
+        $pld = $query->first();
+
         return response()->json([
             "status" => true,
             "message" => "Success",
             "pld" => $pld,
         ]);
     }
+
 
     /**
      * @OA\Get(
@@ -14837,6 +12686,7 @@ class ApiController extends Controller
      *     tags={"Payments"},
      *     summary="Get all pay heads by School",
      *     description="Use this endpoint to get all pay heads by School",
+     *      security={{"bearerAuth":{}}},
      *
      *     @OA\Parameter(
      *         name="schid",
@@ -14990,6 +12840,7 @@ class ApiController extends Controller
      *     path="/api/getClassPays/{schid}/{clsid}/{sesid}/{trmid}",
      *     tags={"Payments"},
      *     summary="Get payments by School And Class",
+     *     security={{"bearerAuth": {}}},
      *     description="Use this endpoint to get payments heads by School And Class",
      *
      *     @OA\Parameter(
@@ -15038,23 +12889,57 @@ class ApiController extends Controller
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
+    // public function getClassPays($schid, $clsid, $sesid, $trmid)
+    // {
+    //     $start = 0;
+    //     $count = 20;
+    //     if (request()->has('start') && request()->has('count')) {
+    //         $start = request()->input('start');
+    //         $count = request()->input('count');
+    //     }
+    //     $pld = clspay::where('schid', $schid)->where('clsid', $clsid)
+    //         ->where('sesid', $sesid)->where('trmid', $trmid)->skip($start)->take($count)->get();
+    //     // Respond
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => $pld,
+    //     ]);
+    // }
+
     public function getClassPays($schid, $clsid, $sesid, $trmid)
     {
-        $start = 0;
-        $count = 20;
-        if (request()->has('start') && request()->has('count')) {
-            $start = request()->input('start');
-            $count = request()->input('count');
-        }
-        $pld = clspay::where('schid', $schid)->where('clsid', $clsid)
-            ->where('sesid', $sesid)->where('trmid', $trmid)->skip($start)->take($count)->get();
-        // Respond
+        $start = request()->input('start', 0);
+        $count = request()->input('count', 20);
+
+        $pld = clspay::join('payhead', 'clspay.phid', '=', 'payhead.id')
+            ->where('clspay.schid', $schid)
+            ->where('clspay.clsid', $clsid)
+            ->where('clspay.sesid', $sesid)
+            ->where('clspay.trmid', $trmid)
+            ->select(
+                'clspay.id',
+                'clspay.schid',
+                'clspay.clsid',
+                'clspay.amt',
+                'clspay.phid',
+                'clspay.sesid',
+                'clspay.trmid',
+                'clspay.created_at',
+                'clspay.updated_at',
+                'payhead.name' // 👈 THIS IS THE ONLY ADDITION
+            )
+            ->skip($start)
+            ->take($count)
+            ->get();
+
         return response()->json([
             "status" => true,
             "message" => "Success",
             "pld" => $pld,
         ]);
     }
+
 
     /**
      * @OA\Get(
@@ -15425,14 +13310,202 @@ class ApiController extends Controller
 
 
 
+    //     public function paystackConf(Request $request)
+//     {
+//         Log::info('------------ PAYSTACK CALLBACK ARRIVED -----------');
+
+    //         //   $payload = json_decode($request->getContent(), true);
+//         $payload = json_decode($request->input('payload'), true);
+
+    //         // Verify Paystack event type
+//         if (!isset($payload['event']) || $payload['event'] !== "charge.success") {
+//             Log::warning('Invalid Paystack event received.');
+//             return response()->json(['status' => 'ignored'], 200);
+//         }
+
+    //         //  Extract reference
+//         $ref = $payload['data']['reference'] ?? null;
+//         if (!$ref) {
+//             Log::error('Missing payment reference.');
+//             return response()->json(['status' => 'error', 'message' => 'Missing reference'], 400);
+//         }
+
+    //         //  Prevent duplicate webhook saves
+//         if (payments::where('main_ref', $ref)->exists()) {
+//             Log::info("Duplicate webhook ignored for ref {$ref}");
+//             return response()->json(['status' => 'duplicate'], 200);
+//         }
+
+    //         //  Parse identifiers from reference
+//         $payinfo = explode('-', $ref);
+//         [$host, $schid, $amt, $typ, $stid, $ssnid, $trmid, $clsid] = $payinfo;
+//         $totalAmountPaid = ($payload['data']['amount'] ?? ($amt * 100)) / 100;
+
+    //         $what = '';
+
+    //         if ($typ == '0') {
+//             $what = 'School Fees';
+
+    //         } elseif ($typ == '1') {
+//             $what = 'Application Fee';
+
+    //             // Mark registration fee as paid
+//             student::where('sid', $stid)->update([
+//                 'rfee' => '1'
+//             ]);
+
+    //         } elseif ($typ == '2') {
+//             $what = 'Acceptance Fee';
+
+    //             // Unique acceptance fee record
+//             $uid = $stid . $schid . $clsid;
+
+    //             afeerec::updateOrCreate(
+//                 ['uid' => $uid],
+//                 [
+//                     'stid' => $stid,
+//                     'schid' => $schid,
+//                     'clsid' => $clsid,
+//                     'ssn' => $ssnid,
+//                     'trm' => $trmid,
+//                     'amt' => intval($totalAmountPaid),
+//                 ]
+//             );
+
+    //         }
+
+    //         //  Extract metadata
+//         $metadata = $payload['data']['metadata'] ?? [];
+//         $payheads = $metadata['payheads'] ?? [];
+//         $nm = $metadata['name'] ?? '';
+//         $exp = $metadata['exp'] ?? '';
+//         $lid = $metadata['lid'] ?? '';
+//         $eml = $metadata['eml'] ?? '';
+//         $tm = $metadata['time'] ?? now()->timestamp;
+
+    //         // $totalAmountPaid = ($payload['data']['amount'] ?? ($amt * 100)) / 100;
+
+    //         //  Get split data (from webhook or stored reference)
+//         $splitData = $payload['data']['split']['subaccounts'] ?? [];
+
+    //         if (!$splitData || !is_array($splitData)) {
+//             $stored = payment_refs::where('ref', $ref)->first();
+//             if ($stored && $stored->subaccounts) {
+//                 $splitData = json_decode($stored->subaccounts, true);
+//             }
+//         }
+
+    //         //  Record payments (split or non-split)
+//         if ($splitData && is_array($splitData) && count($splitData) > 0) {
+//             Log::info('Split Data detected:', $splitData);
+
+    //             $totalSplitAmount = $totalAmountPaid;
+//             $hasRealShares = false;
+
+    //             // Check if there are valid share values
+//             foreach ($splitData as $sub) {
+//                 if (isset($sub['share']) && floatval($sub['share']) > 0) {
+//                     $hasRealShares = true;
+//                     break;
+//                 }
+//             }
+
+    //             // Insert payments
+// foreach ($payheads as $ph) {
+//     foreach ($splitData as $sub) {
+
+    //         $subCode = $sub['subaccount'] ?? null;
+//         $subShare = 0;
+
+    //         if ($hasRealShares) {
+//             $shareValue = floatval($sub['share'] ?? 0);
+//             $subShare = ($shareValue <= 100)
+//                 ? ($totalSplitAmount * $shareValue) / 100
+//                 : $shareValue;
+//         } else {
+//             $subShare = $totalSplitAmount / count($splitData);
+//         }
+
+    //         payments::create([
+//             'schid' => $schid,
+//             'stid' => $stid,
+//             'ssnid' => $ssnid,
+//             'trmid' => $trmid,
+//             'clsid' => $clsid,
+//             'name' => $nm,
+//             'exp' => $exp,
+//             'amt' => $ph['amount'],        // ✅ amount per payhead
+//             'share' => $subShare,
+//             'pay_head' => $ph['id'],       // ✅ PAYHEAD ID
+//             'lid' => $lid,
+//             'subaccount_code' => $subCode,
+//             'main_ref' => $ref,
+//             'total_split_amount' => $totalAmountPaid,
+//         ]);
+//     }
+// }
+
+
+    //             Log::info("Split payment recorded successfully for ref {$ref}");
+//         } else {
+//             // Non-split transaction
+// foreach ($payheads as $ph) {
+//     payments::create([
+//         'schid' => $schid,
+//         'stid' => $stid,
+//         'ssnid' => $ssnid,
+//         'trmid' => $trmid,
+//         'clsid' => $clsid,
+//         'name' => $nm,
+//         'exp' => $exp,
+//         'pay_head' => $ph['id'],     // ✅ PAYHEAD ID
+//         'amt' => $ph['amount'],     // ✅ PAYHEAD AMOUNT
+//         'lid' => $lid,
+//         'main_ref' => $ref
+//     ]);
+// }
+
+    //             Log::info("Non-split payment recorded for ref {$ref}");
+//         }
+
+    //         //  Update payment_refs
+//         payment_refs::updateOrCreate(
+//             ['ref' => $ref],
+//             [
+//                 'amt' => $totalAmountPaid,
+//                 'time' => $tm,
+//                 'metadata' => json_encode($metadata),
+//                 'subaccounts' => json_encode($splitData), // store the actual subaccounts array
+//                 'confirmed_at' => now(),
+//             ]
+//         );
+
+    //         //  Send confirmation email
+//         try {
+//             $data = [
+//                 'name' => $nm,
+//                 'subject' => 'Payment Received',
+//                 'body' => "Your {$what} payment of ₦{$totalAmountPaid} was received successfully.",
+//                 'link' => env('PORTAL_URL') . '/studentLogin/' . $schid,
+//             ];
+//             Mail::to($eml)->send(new SSSMails($data));
+//         } catch (\Exception $e) {
+//             Log::error('Failed to send email: ' . $e->getMessage());
+//         }
+
+    //         return response()->json(['status' => 'success'], 200);
+//     }
+
+
     public function paystackConf(Request $request)
     {
         Log::info('------------ PAYSTACK CALLBACK ARRIVED -----------');
 
+        // Decode webhook payload
         // $payload = json_decode($request->getContent(), true);
         $payload = json_decode($request->input('payload'), true);
 
-        // Verify Paystack event type
+        // Verify event type
         if (!isset($payload['event']) || $payload['event'] !== "charge.success") {
             Log::warning('Invalid Paystack event received.');
             return response()->json(['status' => 'ignored'], 200);
@@ -15445,19 +13518,14 @@ class ApiController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Missing reference'], 400);
         }
 
-        // Prevent duplicate webhook processing (MAIN LOCK)
-        if (payment_refs::where('ref', $ref)->whereNotNull('confirmed_at')->exists()) {
+        // Prevent duplicate processing
+        if (payments::where('main_ref', $ref)->exists()) {
             Log::info("Duplicate webhook ignored for ref {$ref}");
             return response()->json(['status' => 'duplicate'], 200);
         }
 
         // Parse identifiers from reference
         $payinfo = explode('-', $ref);
-        if (count($payinfo) < 8) {
-            Log::error("Invalid reference format: {$ref}");
-            return response()->json(['status' => 'error'], 400);
-        }
-
         [$host, $schid, $amt, $typ, $stid, $ssnid, $trmid, $clsid] = $payinfo;
 
         // Extract metadata
@@ -15466,117 +13534,23 @@ class ApiController extends Controller
         $exp = $metadata['exp'] ?? '';
         $lid = $metadata['lid'] ?? '';
         $eml = $metadata['eml'] ?? '';
+        $payheadIds = $metadata['payhead_ids'] ?? [];
         $tm = $metadata['time'] ?? now()->timestamp;
 
         $totalAmountPaid = ($payload['data']['amount'] ?? ($amt * 100)) / 100;
 
-        // ---------------- GET SPLIT DATA ----------------
-        $splitData = $payload['data']['split']['subaccounts'] ?? [];
-
-        if (!$splitData || !is_array($splitData)) {
-            $stored = payment_refs::where('ref', $ref)->first();
-            if ($stored && $stored->subaccounts) {
-                $splitData = json_decode($stored->subaccounts, true);
-            }
-        }
-
-        // ---------------- RECORD PAYMENTS ----------------
-        if ($splitData && is_array($splitData) && count($splitData) > 0) {
-
-            Log::info('Split Data detected:', $splitData);
-
-            $totalSplitAmount = $totalAmountPaid;
-            $hasRealShares = false;
-
-            foreach ($splitData as $sub) {
-                if (isset($sub['share']) && floatval($sub['share']) > 0) {
-                    $hasRealShares = true;
-                    break;
-                }
-            }
-
-            foreach ($splitData as $sub) {
-                $subCode = $sub['subaccount'] ?? null;
-                $subShare = 0;
-
-                if ($hasRealShares) {
-                    $shareValue = floatval($sub['share'] ?? 0);
-                    if ($shareValue <= 100) {
-                        $subShare = ($totalSplitAmount * $shareValue) / 100;
-                    } else {
-                        $subShare = $shareValue;
-                    }
-                } else {
-                    $subShare = $totalSplitAmount / count($splitData);
-                }
-
-                payments::create([
-                    'schid' => $schid,
-                    'stid' => $stid,
-                    'ssnid' => $ssnid,
-                    'trmid' => $trmid,
-                    'clsid' => $clsid,
-                    'name' => $nm,
-                    'exp' => $exp,
-                    'amt' => $totalSplitAmount,
-                    'share' => $subShare,
-                    'lid' => $lid,
-                    'subaccount_code' => $subCode,
-                    'main_ref' => $ref,
-                    'total_split_amount' => $totalSplitAmount,
-                    'email' => $eml,
-                ]);
-            }
-
-            Log::info("Split payment recorded successfully for ref {$ref}");
-
-        } else {
-
-            payments::create([
-                'schid' => $schid,
-                'stid' => $stid,
-                'ssnid' => $ssnid,
-                'trmid' => $trmid,
-                'clsid' => $clsid,
-                'name' => $nm,
-                'exp' => $exp,
-                'amt' => $totalAmountPaid,
-                'lid' => $lid,
-                'main_ref' => $ref,
-                'email' => $eml,
-            ]);
-
-            Log::info("Non-split payment recorded for ref {$ref}");
-        }
-
-        // ---------------- CONFIRM PAYMENT ----------------
-        payment_refs::updateOrCreate(
-            ['ref' => $ref],
-            [
-                'amt' => $totalAmountPaid,
-                'time' => $tm,
-                'metadata' => json_encode($metadata),
-                'subaccounts' => json_encode($splitData),
-                'confirmed_at' => now(),
-            ]
-        );
-
-        // ---------------- PAYMENT TYPE SIDE-EFFECTS ----------------
+        // Determine payment type description
         $what = '';
-
         if ($typ == '0') {
             $what = 'School Fees';
-
         } elseif ($typ == '1') {
             $what = 'Application Fee';
-
+            // Mark registration fee as paid
             student::where('sid', $stid)->update(['rfee' => '1']);
-
         } elseif ($typ == '2') {
             $what = 'Acceptance Fee';
-
+            // Unique acceptance fee record
             $uid = $stid . $schid . $clsid;
-
             afeerec::updateOrCreate(
                 ['uid' => $uid],
                 [
@@ -15590,7 +13564,78 @@ class ApiController extends Controller
             );
         }
 
-        // ---------------- SEND EMAIL ----------------
+        // Get split data from webhook or DB
+        $splitData = $payload['data']['split']['subaccounts'] ?? [];
+        if (!$splitData || !is_array($splitData)) {
+            $stored = payment_refs::where('ref', $ref)->first();
+            if ($stored && $stored->subaccounts) {
+                $splitData = json_decode($stored->subaccounts, true);
+            }
+        }
+
+        // Record payments
+        if ($splitData && count($splitData) > 0) {
+            Log::info('Split Data detected:', $splitData);
+
+            foreach ($splitData as $sub) {
+                // Calculate subaccount share
+                $subShare = isset($sub['share'])
+                    ? ($totalAmountPaid * floatval($sub['share'])) / 100
+                    : ($totalAmountPaid / count($splitData));
+
+                payments::create([
+                    'schid' => $schid,
+                    'stid' => $stid,
+                    'ssnid' => $ssnid,
+                    'trmid' => $trmid,
+                    'clsid' => $clsid,
+                    'name' => $nm,
+                    'exp' => $exp,
+                    'amt' => $totalAmountPaid,
+                    'share' => $subShare,
+                    'lid' => $lid,
+                    'subaccount_code' => $sub['subaccount'] ?? null,
+                    'main_ref' => $ref,
+                    'pay_head' => implode(',', $payheadIds),
+                    'total_split_amount' => $totalAmountPaid,
+                    'email' => $eml,
+                ]);
+            }
+
+            Log::info("Split payment recorded successfully for ref {$ref}");
+        } else {
+            // Non-split transaction
+            payments::create([
+                'schid' => $schid,
+                'stid' => $stid,
+                'ssnid' => $ssnid,
+                'trmid' => $trmid,
+                'clsid' => $clsid,
+                'name' => $nm,
+                'exp' => $exp,
+                'amt' => $totalAmountPaid,
+                'lid' => $lid,
+                'main_ref' => $ref,
+                'email' => $eml,
+                'pay_head' => implode(',', $payheadIds),
+            ]);
+
+            Log::info("Non-split payment recorded for ref {$ref}");
+        }
+
+        // Update or create reference record
+        payment_refs::updateOrCreate(
+            ['ref' => $ref],
+            [
+                'amt' => $totalAmountPaid,
+                'time' => $tm,
+                'metadata' => json_encode($metadata),
+                'subaccounts' => json_encode($splitData),
+                'confirmed_at' => now(),
+            ]
+        );
+
+        // Send confirmation email
         try {
             $data = [
                 'name' => $nm,
@@ -15598,7 +13643,6 @@ class ApiController extends Controller
                 'body' => "Your {$what} payment of ₦{$totalAmountPaid} was received successfully.",
                 'link' => env('PORTAL_URL') . '/studentLogin/' . $schid,
             ];
-
             Mail::to($eml)->send(new SSSMails($data));
         } catch (\Exception $e) {
             Log::error('Failed to send email: ' . $e->getMessage());
@@ -15606,6 +13650,7 @@ class ApiController extends Controller
 
         return response()->json(['status' => 'success'], 200);
     }
+
 
 
     //--VENDORS.
@@ -18633,188 +16678,7 @@ class ApiController extends Controller
      *     )
      * )
      */
-    // public function getStudentsBySchool(Request $request, $schid, $stat, $cls = 'zzz')
-    // {
-    //     $start = $request->query('start', 0);
-    //     $count = $request->query('count', 20);
-    //     $cls   = $request->query('cls', 'zzz');
-    //     $term  = $request->query('term', null);
-    //     $year  = $request->query('year', null);
 
-    //     if ($cls !== 'zzz') {
-    //         $query = student::join('student_academic_data', 'student.sid', '=', 'student_academic_data.user_id')
-    //             ->where('student.schid', $schid)
-    //             ->where('student.status', 'active') // keep only active
-    //             ->where('student.stat', $stat)
-    //             ->where('student_academic_data.new_class_main', $cls)
-    //             ->select('student.*');
-    //     } else {
-    //         $query = student::where('schid', $schid)
-    //             ->where('stat', $stat)
-    //             ->where('status', 'active'); // add this
-    //     }
-
-
-    //     // Apply filters
-    //     if (!empty($term)) {
-    //         $query->where('student.term', $term);
-    //     }
-
-    //     if (!empty($year)) {
-    //         $query->where('student.year', $year);
-    //     }
-
-    //     // Fetch data
-    //     $members = $query->orderBy('student.lname', 'asc')
-    //         ->skip($start)
-    //         ->take($count)
-    //         ->get();
-
-    //     // Get all user_ids
-    //     $userIds = $members->pluck('sid')->toArray();
-
-    //     // Fetch related data in bulk (avoid N+1 problem)
-    //     $academicData = student_academic_data::whereIn('user_id', $userIds)->get()->keyBy('user_id');
-    //     $basicData    = student_basic_data::whereIn('user_id', $userIds)->get()->keyBy('user_id');
-
-    //     // Build payload
-    //     $pld = $members->map(function ($member) use ($academicData, $basicData) {
-    //         return [
-    //             's' => $member,
-    //             'b' => $basicData[$member->sid] ?? null,
-    //             'a' => $academicData[$member->sid] ?? null,
-    //         ];
-    //     })->values();
-
-    //     // Final response
-    //     return response()->json([
-    //         "status"  => true,
-    //         "message" => "Success",
-    //         "count"   => $pld->count(),
-    //         "pld"     => $pld,
-    //     ]);
-    // }
-
-    // public function getStudentsBySchool($schid, $stat)
-    // {
-    //     $start = request()->input('start', 0);
-    //     $count = request()->input('count', 20);
-    //     $year  = request()->input('year');   // optional
-    //     $cls   = request()->input('cls', 'zzz'); // 👈 read class from query string
-
-    //     $query = student::query()
-    //         ->join('student_academic_data as sad', function ($join) {
-    //             $join->on('student.sid', '=', 'sad.user_id')
-    //                 ->whereRaw('sad.created_at = (
-    //                  SELECT MAX(created_at)
-    //                  FROM student_academic_data
-    //                  WHERE user_id = student.sid
-    //              )');
-    //         })
-    //         ->where('student.schid', $schid)
-    //         ->where('student.stat', $stat);
-
-    //     // filter by class if provided
-    //     if ($cls !== 'zzz') {
-    //         $query->where('sad.new_class_main', $cls);
-    //     }
-
-    //     // filter by year if provided
-    //     if ($year) {
-    //         $query->where('student.year', $year);
-    //     }
-
-    //     $members = $query->select('student.*', 'sad.new_class_main')
-    //         ->distinct()
-    //         ->orderBy('student.lname', 'asc')
-    //         ->skip($start)
-    //         ->take($count)
-    //         ->get();
-
-    //     $pld = [];
-    //     foreach ($members as $member) {
-    //         $user_id = $member->sid;
-    //         $academicData = student_academic_data::where('user_id', $user_id)
-    //             ->orderBy('created_at', 'desc')
-    //             ->first();
-    //         $basicData = student_basic_data::where('user_id', $user_id)->first();
-
-    //         $pld[] = [
-    //             's' => $member,
-    //             'b' => $basicData,
-    //             'a' => $academicData,
-    //         ];
-    //     }
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $pld,
-    //     ]);
-    // }
-
-
-    // public function getStudentsBySchool($schid, $stat)
-    // {
-    //     $start = request()->input('start', 0);
-    //     $count = request()->input('count', 20);
-    //     $year = request()->input('year');   // optional
-    //     $cls = request()->input('cls', 'zzz'); // 👈 read class from query string
-
-    //     $query = student::query()
-    //         ->leftJoin('student_academic_data as sad', function ($join) {
-    //             $join->on('student.sid', '=', 'sad.user_id')
-    //                 ->whereRaw('sad.created_at = (
-    //                 SELECT MAX(created_at)
-    //                 FROM student_academic_data
-    //                 WHERE user_id = student.sid
-    //             )');
-    //         })
-    //         ->where('student.schid', $schid)
-    //         ->where('student.stat', $stat);
-
-    //     // filter by class if provided
-    //     if ($cls !== 'zzz') {
-    //         $query->where('sad.new_class_main', $cls);
-    //     }
-
-    //     // filter by year if provided
-    //     if ($year) {
-    //         $query->where('student.year', $year);
-    //     }
-
-    //     $members = $query->select('student.*', 'sad.new_class_main')
-    //         ->distinct()
-    //         ->orderBy('student.lname', 'asc')
-    //         ->skip($start)
-    //         ->take($count)
-    //         ->get();
-
-    //     $pld = [];
-    //     foreach ($members as $member) {
-    //         $user_id = $member->sid;
-
-    //         // academic data (may not exist)
-    //         $academicData = student_academic_data::where('user_id', $user_id)
-    //             ->orderBy('created_at', 'desc')
-    //             ->first();
-
-    //         // basic data (may not exist)
-    //         $basicData = student_basic_data::where('user_id', $user_id)->first();
-
-    //         $pld[] = [
-    //             's' => $member,          // student record (always there)
-    //             'b' => $basicData ?: [], // return [] if no basic data
-    //             'a' => $academicData ?: [] // return [] if no academic data
-    //         ];
-    //     }
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $pld,
-    //     ]);
-    // }
     public function getStudentsBySchool(Request $request, $schid, $stat)
     {
         $start = $request->input('start', 0);
@@ -19272,26 +17136,32 @@ class ApiController extends Controller
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
+
     public function getStaff()
     {
         $combined = false;
         if (request()->has('combined')) {
             $combined = request()->input('combined');
         }
+
         $uid = '';
         if (request()->has('uid')) {
             $uid = request()->input('uid');
         }
+
         if ($uid == '') {
             return response()->json([
                 "status" => false,
                 "message" => "No UID provided",
             ], 400);
         }
+
         $pld = [];
+
         if ($combined) {
             $members = [];
             $compo = explode("/", $uid);
+
             if (count($compo) == 4) {
                 $sch3 = $compo[0];
                 $count = $compo[2];
@@ -19299,10 +17169,18 @@ class ApiController extends Controller
             } else {
                 $members = staff::where("cuid", $uid)->get();
             }
+
             foreach ($members as $member) {
+
+                // ⭐ Remove asterisk from role
+                if (!empty($member->role)) {
+                    $member->role = ltrim($member->role, '*');
+                }
+
                 $user_id = $member->sid;
                 $profData = staff_prof_data::where('user_id', $user_id)->first();
                 $basicData = staff_basic_data::where('user_id', $user_id)->first();
+
                 $pld[] = [
                     's' => $member,
                     'b' => $basicData,
@@ -19311,91 +17189,19 @@ class ApiController extends Controller
             }
         } else {
             $pld = staff::where("sid", $uid)->first();
+
+            // ⭐ Remove asterisk from role
+            if ($pld && !empty($pld->role)) {
+                $pld->role = ltrim($pld->role, '*');
+            }
         }
+
         return response()->json([
             "status" => true,
             "message" => "Success",
             "pld" => $pld,
         ]);
     }
-
-    // public function getStaff() {
-    //     $combined = false;
-    //     if (request()->has('combined')) {
-    //         $combined = request()->input('combined');
-    //     }
-
-    //     $uid = '';
-    //     if (request()->has('uid')) {
-    //         $uid = request()->input('uid');
-    //     }
-
-    //     if ($uid == '') {
-    //         return response()->json([
-    //             "status" => false,
-    //             "message" => "No UID provided",
-    //         ], 400);
-    //     }
-
-    //     $pld = [];
-
-    //     if ($combined) {
-    //         $members = [];
-    //         $compo = explode("/", $uid);
-
-    //         if (count($compo) == 4) {
-    //             $sch3 = $compo[0];
-    //             $count = $compo[2];
-    //             $members = staff::where("sch3", $sch3)->where("count", $count)->get();
-    //         } else {
-    //             $members = staff::where("cuid", $uid)->get();
-    //         }
-
-    //         foreach ($members as $member) {
-    //             $user_id = $member->sid;
-
-    //             $profData = staff_prof_data::where('user_id', $user_id)->first();
-    //             $basicData = staff_basic_data::where('user_id', $user_id)->first();
-
-    //             // Get role names from staff_role table
-    //             $roleName = optional(staff_role::find($member->role))->name;
-    //             $role2Name = optional(staff_role::find($member->role2))->name;
-
-    //             $pld[] = [
-    //                 's' => $member,
-    //                 'b' => $basicData,
-    //                 'p' => $profData,
-    //                 'role_name' => $roleName,
-    //                 'role2_name' => $role2Name,
-    //             ];
-    //         }
-    //     } else {
-    //         $staff = staff::where("sid", $uid)->first();
-
-    //         if ($staff) {
-    //             $profData = staff_prof_data::where('user_id', $staff->sid)->first();
-    //             $basicData = staff_basic_data::where('user_id', $staff->sid)->first();
-
-    //             // Get role names from staff_role table
-    //             $roleName = optional(staff_role::find($staff->role))->name;
-    //             $role2Name = optional(staff_role::find($staff->role2))->name;
-
-    //             $pld = [
-    //                 's' => $staff,
-    //                 'b' => $basicData,
-    //                 'p' => $profData,
-    //                 'role_name' => $roleName,
-    //                 'role2_name' => $role2Name,
-    //             ];
-    //         }
-    //     }
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $pld,
-    //     ]);
-    // }
 
 
     /**
@@ -19629,24 +17435,6 @@ class ApiController extends Controller
      */
 
 
-
-    // public function getStaffStatBySchool($schid, $stat, $cls = 'zzz')
-    // {
-    //     $total = 0;
-    //     if ($cls !== 'zzz') {
-    //         $total = []; //TODO join...
-    //     } else {
-    //         $total = staff::where('schid', $schid)->where('stat', $stat)->count();
-    //     }
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => [
-    //             "total" => $total
-    //         ],
-    //     ]);
-    // }
-
     public function getStaffStatBySchool(Request $request, $schid, $stat, $cls = 'zzz')
     {
         $term = $request->query('term', null);
@@ -19859,64 +17647,48 @@ class ApiController extends Controller
     /**
      * @OA\Post(
      *     path="/api/setAcceptanceAcct",
-     *     summary="Create or update an acceptance account with Paystack subaccount integration",
+     *     summary="Create or update an acceptance account and integrate with Paystack subaccount",
      *     tags={"Accounts"},
+     *
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"schid", "anum", "bnk", "aname"},
-     *             @OA\Property(property="schid", type="string", example="12345", description="School ID"),
+     *             required={"schid", "clsid", "ssn", "trm", "anum", "bnk", "aname"},
      *
-     *             @OA\Property(property="anum", type="string", example="0123456789", description="Account Number"),
-     *             @OA\Property(property="bnk", type="string", example="044", description="Bank Code"),
-     *             @OA\Property(property="aname", type="string", example="John Doe", description="Account Name"),
-     *             @OA\Property(property="id", type="integer", example=1, description="Optional ID for updating an existing account")
+     *             @OA\Property(property="schid", type="string", example="6822"),
+     *             @OA\Property(property="clsid", type="string", example="JSS1"),
+     *             @OA\Property(property="ssn", type="string", example="2024"),
+     *             @OA\Property(property="trm", type="string", example="1"),
+     *
+     *             @OA\Property(property="anum", type="string", example="0123456789"),
+     *             @OA\Property(property="bnk", type="string", example="044"),
+     *             @OA\Property(property="aname", type="string", example="John Doe")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
-     *         description="Account and Paystack subaccount created successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Account and Paystack Subaccount Created Successfully"),
-     *             @OA\Property(property="paystack_data", type="object", example={"subaccount_code": "SUB_12345", "business_name": "Business_67890"})
-     *         )
+     *         description="Account Updated Successfully"
      *     ),
+     *
+     *     @OA\Response(
+     *         response=201,
+     *         description="Account and Paystack Subaccount Created Successfully"
+     *     ),
+     *
      *     @OA\Response(
      *         response=400,
-     *         description="Failed to create Paystack subaccount",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Failed to Create Paystack Subaccount"),
-     *             @OA\Property(property="error", type="string", example="Error details from Paystack")
-     *         )
+     *         description="Failed to create Paystack subaccount"
      *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Account not found",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Account Not Found")
-     *         )
-     *     ),
+     *
      *     @OA\Response(
      *         response=422,
-     *         description="Validation error",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Validation Error"),
-     *             @OA\Property(property="errors", type="object", example={"schid": {"The schid field is required."}})
-     *         )
+     *         description="Validation error"
      *     ),
-     *     @OA\SecurityScheme(
-     *         securityScheme="bearerAuth",
-     *         type="http",
-     *         scheme="bearer"
-     *     ),
+     *
      *     security={{"bearerAuth":{}}}
      * )
      */
-
 
 
     public function setAcceptanceAcct(Request $request)
@@ -20007,66 +17779,83 @@ class ApiController extends Controller
 
 
 
-
     /**
      * @OA\Post(
      *     path="/api/setApplicationAcct",
-     *     summary="Create or update an application account with Paystack subaccount integration",
      *     tags={"Accounts"},
+     *     summary="Create or update an application account with Paystack subaccount integration",
+     *     description="This endpoint automatically creates or updates an application account based on schid, class, session, and term. If the record is newly created, the system creates a Paystack subaccount.",
+     *     security={{"bearerAuth": {}}},
+
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"schid", "anum", "bnk", "aname"},
-     *             @OA\Property(property="schid", type="string", example="12345", description="School ID"),
-     *
+     *             required={"schid", "anum", "bnk", "aname", "ssn", "trm"},
+
+     *             @OA\Property(property="schid", type="integer", example=6822, description="School ID"),
      *             @OA\Property(property="anum", type="string", example="0123456789", description="Account Number"),
-     *             @OA\Property(property="bnk", type="string", example="044", description="Bank Code"),
+     *             @OA\Property(property="bnk", type="string", example="044", description="Bank Code (e.g Access Bank = 044)"),
      *             @OA\Property(property="aname", type="string", example="John Doe", description="Account Name"),
-     *             @OA\Property(property="id", type="integer", example=1, description="Optional ID for updating an existing account")
+     *             @OA\Property(property="ssn", type="string", example="2024/2025", description="Session"),
+     *             @OA\Property(property="trm", type="string", example="1", description="Term")
      *         )
      *     ),
+
      *     @OA\Response(
      *         response=200,
-     *         description="Account and Paystack subaccount created successfully",
+     *         description="Account created or updated successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Account Updated Successfully")
+     *         )
+     *     ),
+
+     *     @OA\Response(
+     *         response=201,
+     *         description="New account and Paystack subaccount created",
      *         @OA\JsonContent(
      *             @OA\Property(property="status", type="boolean", example=true),
      *             @OA\Property(property="message", type="string", example="Account and Paystack Subaccount Created Successfully"),
-     *             @OA\Property(property="paystack_data", type="object", example={"subaccount_code": "SUB_12345", "business_name": "Business_67890"})
+     *             @OA\Property(
+     *                 property="paystack_data",
+     *                 type="object",
+     *                 example={
+     *                     "status": true,
+     *                     "message": "Subaccount created",
+     *                     "data": {
+     *                         "subaccount_code": "SUB_31920DSK",
+     *                         "business_name": "Business_67A9283"
+     *                     }
+     *                 }
+     *             )
      *         )
      *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Account not found",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Account Not Found")
-     *         )
-     *     ),
+
      *     @OA\Response(
      *         response=400,
-     *         description="Failed to create Paystack subaccount",
+     *         description="Paystack subaccount creation failed",
      *         @OA\JsonContent(
      *             @OA\Property(property="status", type="boolean", example=false),
      *             @OA\Property(property="message", type="string", example="Failed to Create Paystack Subaccount"),
-     *             @OA\Property(property="error", type="string", example="Error details from Paystack")
+     *             @OA\Property(property="error", type="string", example="Paystack error response message")
      *         )
      *     ),
+
      *     @OA\Response(
      *         response=422,
      *         description="Validation Error",
      *         @OA\JsonContent(
      *             @OA\Property(property="status", type="boolean", example=false),
      *             @OA\Property(property="message", type="string", example="Validation Error"),
-     *             @OA\Property(property="errors", type="object", example={"schid": {"The schid field is required."}})
+     *             @OA\Property(
+     *                 property="errors",
+     *                 type="object",
+     *                 example={"schid": {"The schid field is required."}}
+     *             )
      *         )
-     *     ),
-     *     @OA\SecurityScheme(
-     *         securityScheme="bearerAuth",
-     *         type="http",
-     *         scheme="bearer"
-     *     ),
-     *     security={{"bearerAuth":{}}}
+     *     )
      * )
+     *
      */
 
 
@@ -20159,8 +17948,8 @@ class ApiController extends Controller
      *     path="/api/getAcctApp/{schid}",
      *     tags={"Accounts"},
      *     security={{"bearerAuth": {}}},
-     *     summary="Get all Accounts by School",
-     *     description="Use this endpoint to get all Accounts by School",
+     *     summary="Get all Application Accounts by School",
+     *     description="Use this endpoint to get all Application Accounts by School with optional filters",
      *
      *     @OA\Parameter(
      *         name="schid",
@@ -20170,18 +17959,32 @@ class ApiController extends Controller
      *         @OA\Schema(type="string")
      *     ),
      *     @OA\Parameter(
+     *         name="ssn",
+     *         in="query",
+     *         required=false,
+     *         description="Session",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="query",
+     *         required=false,
+     *         description="Term",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
      *         name="start",
      *         in="query",
      *         required=false,
      *         description="Index to start at",
-     *         @OA\Schema(type="integer")
+     *         @OA\Schema(type="integer", default=0)
      *     ),
      *     @OA\Parameter(
      *         name="count",
      *         in="query",
      *         required=false,
      *         description="Number of records to retrieve",
-     *         @OA\Schema(type="integer")
+     *         @OA\Schema(type="integer", default=20)
      *     ),
      *
      *     @OA\Response(
@@ -20192,14 +17995,17 @@ class ApiController extends Controller
      *             @OA\Property(property="message", type="string", example="Success"),
      *             @OA\Property(property="pld", type="array",
      *                 @OA\Items(
+     *                     type="object",
      *                     @OA\Property(property="id", type="integer", example=1),
      *                     @OA\Property(property="schid", type="string", example="12345"),
-     *                     @OA\Property(property="clsid", type="string", example="67890"),
      *                     @OA\Property(property="anum", type="string", example="1234567890"),
      *                     @OA\Property(property="bnk", type="string", example="Bank XYZ"),
      *                     @OA\Property(property="aname", type="string", example="John Doe"),
+     *                     @OA\Property(property="ssn", type="string", example="2024/2025"),
+     *                     @OA\Property(property="trm", type="string", example="1st"),
      *                     @OA\Property(property="subAccounts", type="array",
      *                         @OA\Items(
+     *                             type="object",
      *                             @OA\Property(property="subaccount_code", type="string", example="SUB_98765"),
      *                             @OA\Property(property="percentage_charge", type="integer", example=0)
      *                         )
@@ -20210,35 +18016,48 @@ class ApiController extends Controller
      *     ),
      *
      *     @OA\Response(response="401", description="Unauthorized"),
+     *
      *     @OA\Response(
      *         response=404,
-     *         description="Account not found",
+     *         description="No records found",
      *         @OA\JsonContent(
      *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Account not found"),
-     *             @OA\Property(property="pld", type="array", @OA\Items())
+     *             @OA\Property(property="message", type="string", example="No records found"),
+     *             @OA\Property(property="pld", type="array", @OA\Items(type="object"))
      *         )
      *     )
      * )
      */
 
 
-    public function getAcctApp($schid)
+    public function getAcctApp(Request $request, $schid)
     {
-        $start = request()->input('start', 0);
-        $count = request()->input('count', 20);
-        // Check if the given schid exists in the database
+        $start = $request->input('start', 0);
+        $count = $request->input('count', 20);
 
-        $pld = application_acct::where('schid', $schid)
-            ->with('subAccounts') // Load subAccounts relationship
-            ->skip($start)
-            ->take($count)
-            ->get();
+        // Optional filters
+        $ssn = $request->input('ssn', null);
+        $trm = $request->input('trm', null);
 
-        if (!$pld) {
+        // Base query
+        $query = application_acct::where('schid', $schid)->with('subAccounts');
+
+        // Apply optional filters
+        if (!is_null($ssn)) {
+            $query->where('ssn', $ssn);
+        }
+
+        if (!is_null($trm)) {
+            $query->where('trm', $trm);
+        }
+
+        // Pagination
+        $pld = $query->skip($start)->take($count)->get();
+
+        if ($pld->isEmpty()) {
             return response()->json([
                 "status" => false,
-                "message" => "Account not found",
+                "message" => "No records found",
                 "pld" => $pld,
             ], 404);
         }
@@ -20260,7 +18079,7 @@ class ApiController extends Controller
      *     tags={"Accounts"},
      *     security={{"bearerAuth": {}}},
      *     summary="Get all Accounts by School",
-     *     description="Use this endpoint to get all Accounts by School",
+     *     description="Use this endpoint to get all Accounts by School with optional filters",
      *
      *     @OA\Parameter(
      *         name="schid",
@@ -20270,18 +18089,39 @@ class ApiController extends Controller
      *         @OA\Schema(type="string")
      *     ),
      *     @OA\Parameter(
+     *         name="clsid",
+     *         in="query",
+     *         required=false,
+     *         description="Class ID (-1 for all classes)",
+     *         @OA\Schema(type="integer", default=-1)
+     *     ),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="query",
+     *         required=false,
+     *         description="Session",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="query",
+     *         required=false,
+     *         description="Term",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
      *         name="start",
      *         in="query",
      *         required=false,
      *         description="Index to start at",
-     *         @OA\Schema(type="integer")
+     *         @OA\Schema(type="integer", default=0)
      *     ),
      *     @OA\Parameter(
      *         name="count",
      *         in="query",
      *         required=false,
      *         description="Number of records to retrieve",
-     *         @OA\Schema(type="integer")
+     *         @OA\Schema(type="integer", default=20)
      *     ),
      *
      *     @OA\Response(
@@ -20292,14 +18132,18 @@ class ApiController extends Controller
      *             @OA\Property(property="message", type="string", example="Success"),
      *             @OA\Property(property="pld", type="array",
      *                 @OA\Items(
+     *                     type="object",
      *                     @OA\Property(property="id", type="integer", example=1),
      *                     @OA\Property(property="schid", type="string", example="12345"),
      *                     @OA\Property(property="clsid", type="string", example="67890"),
      *                     @OA\Property(property="anum", type="string", example="1234567890"),
      *                     @OA\Property(property="bnk", type="string", example="Bank XYZ"),
      *                     @OA\Property(property="aname", type="string", example="John Doe"),
+     *                     @OA\Property(property="ssn", type="string", example="2024/2025"),
+     *                     @OA\Property(property="trm", type="string", example="1st"),
      *                     @OA\Property(property="subAccounts", type="array",
      *                         @OA\Items(
+     *                             type="object",
      *                             @OA\Property(property="subaccount_code", type="string", example="SUB_98765"),
      *                             @OA\Property(property="percentage_charge", type="integer", example=0)
      *                         )
@@ -20310,33 +18154,53 @@ class ApiController extends Controller
      *     ),
      *
      *     @OA\Response(response="401", description="Unauthorized"),
+     *
      *     @OA\Response(
      *         response=404,
-     *         description="Account not found",
+     *         description="No records found",
      *         @OA\JsonContent(
      *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Account not found"),
-     *             @OA\Property(property="pld", type="array", @OA\Items())
+     *             @OA\Property(property="message", type="string", example="No records found"),
+     *             @OA\Property(property="pld", type="array", @OA\Items(type="object"))
      *         )
      *     )
      * )
      */
-    public function getAcctAccept($schid)
+
+
+    public function getAcctAccept(Request $request, $schid)
     {
-        $start = request()->input('start', 0);
-        $count = request()->input('count', 20);
-        // Check if the given schid exists in the database
+        $start = $request->input('start', 0);
+        $count = $request->input('count', 20);
 
-        $pld = acceptance_acct::where('schid', $schid)
-            ->with('subAccounts') // Load subAccounts relationship
-            ->skip($start)
-            ->take($count)
-            ->get();
+        // Optional filters
+        $clsid = $request->input('clsid', -1); // -1 means all classes
+        $ssn = $request->input('ssn', null);
+        $trm = $request->input('trm', null);
 
-        if (!$pld) {
+        // Base query
+        $query = acceptance_acct::where('schid', $schid)->with('subAccounts');
+
+        // Apply optional filters
+        if ($clsid != -1) {
+            $query->where('clsid', $clsid);
+        }
+
+        if (!is_null($ssn)) {
+            $query->where('ssn', $ssn);
+        }
+
+        if (!is_null($trm)) {
+            $query->where('trm', $trm);
+        }
+
+        // Pagination
+        $pld = $query->skip($start)->take($count)->get();
+
+        if ($pld->isEmpty()) {
             return response()->json([
                 "status" => false,
-                "message" => "Account not found",
+                "message" => "No records found",
                 "pld" => $pld,
             ], 404);
         }
@@ -20347,8 +18211,6 @@ class ApiController extends Controller
             "pld" => $pld,
         ]);
     }
-
-
 
 
     /**
@@ -20886,31 +18748,6 @@ class ApiController extends Controller
      *     )
      * )
      */
-    // public function getExStaff($schid) {
-    //     $start = request()->input('start', 0);
-    //     $count = request()->input('count', 20);
-
-    //     // Retrieve exstaff based on school ID with pagination
-    //     $exstaff = exstaff::where('schid', $schid)
-    //         ->skip($start)
-    //         ->take($count)
-    //         ->get();
-
-    //     if ($exstaff->isEmpty()) {
-    //         return response()->json([
-    //             "status" => false,
-    //             "message" => "No ex-staff found",
-    //             "pld" => [],
-    //         ], 404);
-    //     }
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $exstaff,
-    //     ]);
-    // }
-
 
 
     /**
@@ -24259,68 +22096,6 @@ class ApiController extends Controller
      */
 
 
-    // public function getOverallBestStudents($schid, $ssn, $trm, $clsm)
-    // {
-    //     // Fetch top 10 students based on average
-    //     $results = student_res::where('schid', $schid)
-    //         ->where('ssn', $ssn)
-    //         ->where('trm', $trm)
-    //         ->where('clsm', $clsm)
-    //         ->orderByDesc('avg')
-    //         ->take(10)
-    //         ->get();
-
-    //     // Fetch student details
-    //     $students = student::whereIn('sid', $results->pluck('stid'))->get()->keyBy('sid');
-
-    //     // Fetch class info
-    //     $classArms = sch_cls::all()->keyBy('id');
-    //     $classes = cls::all()->keyBy('id');
-
-    //     // Generate positions
-    //     $position = 1;
-    //     $lastAvg = null;
-    //     $rank = 1;
-
-    //     $output = $results->map(function ($res) use ($students, $classes, $classArms, &$position, &$lastAvg, &$rank) {
-    //         $student = $students[$res->stid] ?? null;
-
-    //         // Fetch class and class arm
-    //         $classArm = $classArms[$res->clsa] ?? null;
-    //         $class = $classArm ? ($classes[$classArm->cls_id] ?? null) : null;
-
-    //         // Generate suid
-    //         $suid = $student
-    //             ? ($student->sch3 . '/' . $student->year . '/' . $student->term . '/' . strval($student->count))
-    //             : 'Unknown';
-
-    //         // Update rank if average changes
-    //         if ($lastAvg !== null && $res->avg < $lastAvg) {
-    //             $rank = $position;
-    //         }
-
-    //         $lastAvg = $res->avg;
-
-    //         return [
-    //             'student_id' => $suid,
-    //             'name' => $student ? trim("{$student->lname} {$student->fname} {$student->mname}") : 'Unknown',
-    //             'average' => $res->avg,
-    //             'class_id' => $res->clsm,
-    //             'class_name' => $class ? $class->name : 'Unknown',
-    //             'class_arm' => $classArm ? $classArm->name : 'Unknown',
-    //             'position' => $rank,
-    //         ];
-
-    //         $position++;
-    //     });
-
-    //     return response()->json([
-    //         'status' => 'success',
-    //         'pld' => $output
-    //     ]);
-    // }
-
-
     public function getOverallBestStudents($schid, $ssn, $trm, $clsm)
     {
         $results = student_res::where('schid', $schid)
@@ -24473,73 +22248,6 @@ class ApiController extends Controller
      * )
      */
 
-
-
-
-    // public function getBestStudentsInSubject($schid, $ssn, $trm, $clsm, $sbj)
-    // {
-    //     $start = request()->input('start', 0);
-    //     $count = request()->input('count', 20);
-
-    //     $subject = subj::find($sbj);
-    //     $subjectName = $subject ? $subject->name : 'Unknown Subject';
-
-    //     $class = cls::find($clsm);
-    //     $className = $class ? $class->name : 'Unknown Class';
-
-    //     $classArms = sch_cls::where('schid', $schid)->get()->keyBy('id');
-
-    //     $scores = std_score::select('stid', DB::raw('SUM(scr) as total_score'))
-    //         ->where(compact('schid', 'ssn', 'trm'))
-    //         ->where('clsid', $clsm)
-    //         ->where('sbj', $sbj)
-    //         ->groupBy('stid')
-    //         ->orderByDesc('total_score')
-    //         ->skip($start)
-    //         ->take($count)
-    //         ->get();
-
-    //     if ($scores->isEmpty()) {
-    //         return response()->json(['message' => 'No scores found for this subject'], 404);
-    //     }
-
-    //     $studentIds = $scores->pluck('stid');
-
-    //     // Fetch student info from both old_student and student tables
-    //     $oldStudents = old_student::whereIn('sid', $studentIds)->get()->keyBy('sid');
-    //     $mainStudents = student::whereIn('sid', $studentIds)->get()->keyBy('sid');
-
-    //     $ranked = $scores->values()->map(function ($item, $index) use ($oldStudents, $mainStudents, $classArms, $className, $clsm, $start, $subjectName) {
-    //         $old = $oldStudents[$item->stid] ?? null;
-    //         $main = $mainStudents[$item->stid] ?? null;
-
-    //         $armId = $old?->clsa;
-    //         $armName = $armId && isset($classArms[$armId]) ? $classArms[$armId]->name : 'Unknown Class Arm';
-
-    //         // Build suid from student table
-    //         $suid = $main
-    //             ? ($main->sch3 . '/' . $main->year . '/' . $main->term . '/' . strval($main->count))
-    //             : ($old->suid ?? 'Unknown');
-
-    //         return [
-    //             'student_id' => $suid,
-    //             'full_name' => $old ? trim("{$old->lname} {$old->fname} {$old->mname}") : 'Unknown',
-    //             'total_score' => round($item->total_score, 2),
-    //             'position' => $start + $index + 1,
-    //             'class_id' => $clsm,
-    //             'class_name' => $className,
-    //             'class_arm' => $armName,
-    //             'subject' => $subjectName,
-    //         ];
-    //     });
-
-    //     return response()->json([
-    //         'status' => 'success',
-    //         'start' => $start,
-    //         'count' => $count,
-    //         'results' => $ranked
-    //     ]);
-    // }
 
     public function getBestStudentsInSubject($schid, $ssn, $trm, $clsm, $sbj)
     {
@@ -24703,86 +22411,6 @@ class ApiController extends Controller
      * )
      */
 
-    // public function getAllSubjectsPerformance($schid, $ssn, $trm, $clsm)
-    // {
-    //     // Fetch all total scores grouped by student and subject
-    //     $scores = std_score::select('sbj', 'stid', DB::raw('SUM(scr) as total_score'))
-    //         ->where('schid', $schid)
-    //         ->where('ssn', $ssn)
-    //         ->where('trm', $trm)
-    //         ->where('clsid', $clsm)
-    //         ->groupBy('sbj', 'stid')
-    //         ->get();
-
-    //     // Get unique subject codes from the scores
-    //     $subjectCodes = $scores->pluck('sbj')->unique();
-
-    //     // Fetch subject names for these codes from subj table
-    //     $subjectNames = subj::whereIn('id', $subjectCodes)
-    //         ->pluck('name', 'id'); // key = id (sbj), value = name
-
-    //     // Grade brackets
-    //     $grades = [
-    //         'A' => [70, 100],
-    //         'B' => [60, 69],
-    //         'C' => [50, 59],
-    //         'D' => [45, 49],
-    //         'E' => [40, 44],
-    //         'F' => [0, 39]
-    //     ];
-
-    //     // Temp structure to hold counts per subject
-    //     $subjectStats = [];
-
-    //     foreach ($scores as $score) {
-    //         $subjectCode = $score->sbj;
-    //         $total = $score->total_score;
-
-    //         if (!isset($subjectStats[$subjectCode])) {
-    //             $subjectStats[$subjectCode] = [
-    //                 'grades' => ['A'=>0,'B'=>0,'C'=>0,'D'=>0,'E'=>0,'F'=>0],
-    //                 'total_students' => 0,
-    //                 'credits_and_above' => 0,
-    //                 'percentage_pass' => 0
-    //             ];
-    //         }
-
-    //         foreach ($grades as $grade => [$min, $max]) {
-    //             if ($total >= $min && $total <= $max) {
-    //                 $subjectStats[$subjectCode]['grades'][$grade]++;
-    //                 break;
-    //             }
-    //         }
-    //     }
-
-    //     // Calculate totals and percentages per subject
-    //     foreach ($subjectStats as $subjectCode => &$stats) {
-    //         $stats['total_students'] = array_sum($stats['grades']);
-    //         $stats['credits_and_above'] = $stats['grades']['A'] + $stats['grades']['B'] + $stats['grades']['C'];
-    //         $stats['percentage_pass'] = $stats['total_students'] > 0
-    //             ? round(($stats['credits_and_above'] / $stats['total_students']) * 100, 2)
-    //             : 0;
-    //     }
-    //     unset($stats); // clear reference
-
-    //     // Build the response "pld" array with subject name and class included
-    //     $pld = [];
-    //     foreach ($subjectStats as $subjectCode => $stats) {
-    //         $pld[] = [
-    //             'subject_name' => $subjectNames[$subjectCode] ?? 'Unknown',
-    //             'clsm' => $clsm,  // Add class here
-    //             'total_students' => $stats['total_students'],
-    //             'grades' => $stats['grades'],
-    //             'credits_and_above' => $stats['credits_and_above'],
-    //             'percentage_pass' => $stats['percentage_pass']
-    //         ];
-    //     }
-
-    //     return response()->json([
-    //         'status' => 'success',
-    //         'pld' => $pld
-    //     ]);
-    // }
 
     public function getAllSubjectsPerformance($schid, $ssn, $trm, $clsm)
     {
@@ -24975,304 +22603,6 @@ class ApiController extends Controller
      * )
      */
 
-    // public function getCumulativeResult(Request $request)
-    // {
-    //     $schid = $request->input('schid');
-    //     $ssn = $request->input('ssn');
-    //     $stid = $request->input('sid');
-
-    //     // Grade brackets
-    //     $grades = [
-    //         'A' => [70, 100],
-    //         'B' => [60, 69.99],
-    //         'C' => [50, 59.99],
-    //         'D' => [45, 49.99],
-    //         'E' => [40, 44.99],
-    //         'F' => [0, 39.99]
-    //     ];
-
-    //     $assignGrade = function($average) use ($grades) {
-    //         foreach ($grades as $grade => [$min, $max]) {
-    //             if ($average >= $min && $average <= $max) {
-    //                 return $grade;
-    //             }
-    //         }
-    //         return 'N/A';
-    //     };
-
-    //     // Fetch student info including clsm and clsa
-    //     $studentInfo = old_student::where('sid', $stid)
-    //         ->where('schid', $schid)
-    //         ->where('ssn', $ssn)
-    //         ->first();
-
-    //     if (!$studentInfo) {
-    //         return response()->json(['message' => 'Student not found'], 404);
-    //     }
-
-    //     $clsm = $studentInfo->clsm;
-    //     $clsa = $studentInfo->clsa;
-
-    //     // Get class and class arm names
-    //     $className = cls::where('id', $clsm)->value('name');
-    //     $classArmName = sch_cls::where('id', $clsa)->value('name');
-
-    //     // Get current student record to generate suid
-    //     $student = student::where('schid', $schid)
-    //         ->where('sid', $stid)
-    //         ->first();
-
-    //     $suid = null;
-    //     if ($student) {
-    //         $ssn_real = $student->year;
-    //         $term = $student->term;
-    //         $count = $student->count;
-    //         $suid = $student->sch3 . '/' . $ssn_real . '/' . $term . '/' . strval($count);
-    //     }
-
-    //     // Subjects and results
-    //     $subjects = std_score::where('schid', $schid)
-    //         ->where('ssn', $ssn)
-    //         ->where('clsid', $clsm)
-    //         ->groupBy('sbj')
-    //         ->pluck('sbj')
-    //         ->toArray();
-
-    //     $subjectNames = subj::whereIn('id', $subjects)->pluck('name', 'id');
-
-    //     $result = [];
-
-    //     foreach ($subjects as $subjectId) {
-    //         $subjectAverages = std_score::select(
-    //                 'stid',
-    //                 DB::raw("SUM(CASE WHEN trm = 1 THEN scr ELSE 0 END) as t1"),
-    //                 DB::raw("SUM(CASE WHEN trm = 2 THEN scr ELSE 0 END) as t2"),
-    //                 DB::raw("SUM(CASE WHEN trm = 3 THEN scr ELSE 0 END) as t3")
-    //             )
-    //             ->where('sbj', $subjectId)
-    //             ->where('schid', $schid)
-    //             ->where('ssn', $ssn)
-    //             ->where('clsid', $clsm)
-    //             ->groupBy('stid')
-    //             ->get();
-
-    //         $averagesWithTerms = $subjectAverages->map(function ($item) {
-    //             $termCount = 0;
-    //             $total = 0;
-    //             if ($item->t1 > 0) { $total += $item->t1; $termCount++; }
-    //             if ($item->t2 > 0) { $total += $item->t2; $termCount++; }
-    //             if ($item->t3 > 0) { $total += $item->t3; $termCount++; }
-
-    //             $average = $termCount > 0 ? $total / $termCount : 0;
-
-    //             return [
-    //                 'stid' => $item->stid,
-    //                 't1' => $item->t1,
-    //                 't2' => $item->t2,
-    //                 't3' => $item->t3,
-    //                 'average' => round($average, 2)
-    //             ];
-    //         })->sortByDesc('average')->values()->all();
-
-    //         $positions = [];
-    //         foreach ($averagesWithTerms as $index => $entry) {
-    //             $positions[$entry['stid']] = $index + 1;
-    //         }
-
-    //         $current = collect($averagesWithTerms)->firstWhere('stid', $stid);
-    //         if ($current) {
-    //             $grade = $assignGrade($current['average']);
-    //             $result[] = [
-    //                 'subject_id' => $subjectId,
-    //                 'subject_name' => $subjectNames[$subjectId] ?? 'Unknown',
-    //                 '1st_term_total' => $current['t1'],
-    //                 '2nd_term_total' => $current['t2'],
-    //                 '3rd_term_total' => $current['t3'],
-    //                 'yearly_average' => $current['average'],
-    //                 'grade' => $grade,
-    //                 'position' => $positions[$stid] ?? null,
-    //             ];
-    //         }
-    //     }
-
-    //         // Fetch gender from student_basic_data
-    //         $studentGender = student_basic_data::where('user_id', $stid)->value('sex');
-    //     return response()->json([
-    //         'sid' => $stid,
-    //         'student_name' => $studentInfo->lname . ' ' . $studentInfo->fname,
-    //         'student_id' => $suid,
-    //         'gender' => $studentGender ?? 'Not specified',
-    //         'class' => $className ?? 'Class ID: ' . $clsm,
-    //         'class_arm' => $classArmName ?? 'Class Arm ID: ' . $clsa,
-    //         'session' => $ssn,
-    //         'school_id' => $schid,
-    //         'pld' => $result,
-    //     ]);
-    // }
-
-
-    // public function getCumulativeResult(Request $request)
-    // {
-    //     $schid = $request->input('schid');
-    //     $ssn = $request->input('ssn');
-    //     $stid = $request->input('sid');
-
-    //     // Step 1: Get student info
-    //     $studentInfo = old_student::where('sid', $stid)
-    //         ->where('schid', $schid)
-    //         ->where('ssn', $ssn)
-    //         ->first();
-
-    //     if (!$studentInfo) {
-    //         return response()->json(['message' => 'Student not found'], 404);
-    //     }
-
-    //     $clsm = $studentInfo->clsm;
-    //     $clsa = $studentInfo->clsa;
-
-    //     // Step 2: Get dynamic grading
-    //     $grades = sch_grade::where('schid', $schid)
-    //         ->where('clsid', $clsm)
-    //         ->where('ssn', $ssn)
-    //         ->orderByDesc('g0')
-    //         ->get()
-    //         ->mapWithKeys(function ($item) {
-    //             return [$item->grd => [(float)$item->g0, (float)$item->g1]];
-    //         })
-    //         ->toArray();
-
-    //     $assignGrade = function ($average) use ($grades) {
-    //         foreach ($grades as $grade => [$min, $max]) {
-    //             if ($average >= $min && $average <= $max) {
-    //                 return $grade;
-    //             }
-    //         }
-    //         return 'N/A';
-    //     };
-
-    //     // Step 3: Additional info
-    //     $className = cls::where('id', $clsm)->value('name');
-    //     $classArmName = sch_cls::where('id', $clsa)->value('name');
-
-    //     $student = student::where('schid', $schid)
-    //         ->where('sid', $stid)
-    //         ->first();
-
-    //     $suid = null;
-    //     if ($student) {
-    //         $ssn_real = $student->year;
-    //         $term = $student->term;
-    //         $count = $student->count;
-    //         $suid = $student->sch3 . '/' . $ssn_real . '/' . $term . '/' . strval($count);
-    //     }
-
-    //     // Step 4: Subjects
-    //     $subjects = std_score::where('schid', $schid)
-    //         ->where('ssn', $ssn)
-    //         ->where('clsid', $clsm)
-    //         ->groupBy('sbj')
-    //         ->pluck('sbj')
-    //         ->toArray();
-
-    //     $subjectNames = subj::whereIn('id', $subjects)->pluck('name', 'id');
-
-    //     $result = [];
-    //     $studentSubjectAverages = [];
-    //     $classSubjectAverages = [];
-
-    //     foreach ($subjects as $subjectId) {
-    //         $subjectAverages = std_score::select(
-    //             'stid',
-    //             DB::raw("SUM(CASE WHEN trm = 1 THEN scr ELSE 0 END) as t1"),
-    //             DB::raw("SUM(CASE WHEN trm = 2 THEN scr ELSE 0 END) as t2"),
-    //             DB::raw("SUM(CASE WHEN trm = 3 THEN scr ELSE 0 END) as t3")
-    //         )
-    //             ->where('sbj', $subjectId)
-    //             ->where('schid', $schid)
-    //             ->where('ssn', $ssn)
-    //             ->where('clsid', $clsm)
-    //             ->groupBy('stid')
-    //             ->get();
-
-    //         $averagesWithTerms = $subjectAverages->map(function ($item) {
-    //             $termCount = 0;
-    //             $total = 0;
-    //             if ($item->t1 > 0) { $total += $item->t1; $termCount++; }
-    //             if ($item->t2 > 0) { $total += $item->t2; $termCount++; }
-    //             if ($item->t3 > 0) { $total += $item->t3; $termCount++; }
-    //             $average = $termCount > 0 ? $total / $termCount : 0;
-    //             return [
-    //                 'stid' => $item->stid,
-    //                 't1' => $item->t1,
-    //                 't2' => $item->t2,
-    //                 't3' => $item->t3,
-    //                 'average' => round($average, 2)
-    //             ];
-    //         })->sortByDesc('average')->values()->all();
-
-    //         // Compute class average for subject
-    //         $allAverages = array_column($averagesWithTerms, 'average');
-    //         if (count($allAverages)) {
-    //             $classSubjectAverages[] = array_sum($allAverages) / count($allAverages);
-    //         }
-
-    //         // Current student's scores
-    //         $current = collect($averagesWithTerms)->firstWhere('stid', $stid);
-
-    //         if ($current) {
-    //             $grade = $assignGrade($current['average']);
-    //             $studentSubjectAverages[] = $current['average'];
-
-    //             $positions = [];
-    //             foreach ($averagesWithTerms as $index => $entry) {
-    //                 $positions[$entry['stid']] = $index + 1;
-    //             }
-
-    //             $result[] = [
-    //                 'subject_id' => $subjectId,
-    //                 'subject_name' => $subjectNames[$subjectId] ?? 'Unknown',
-    //                 '1st_term_total' => $current['t1'],
-    //                 '2nd_term_total' => $current['t2'],
-    //                 '3rd_term_total' => $current['t3'],
-    //                 'yearly_average' => $current['average'],
-    //                 'grade' => $grade,
-    //                 'position' => $positions[$stid] ?? null,
-    //             ];
-    //         }
-    //     }
-
-    //     // Final averages
-    //     $finalAverage = count($studentSubjectAverages) > 0
-    //         ? number_format(array_sum($studentSubjectAverages) / count($studentSubjectAverages), 2, '.', '')
-    //         : number_format(0, 2, '.', '');
-
-    //     $finalGrade = $assignGrade($finalAverage);
-
-    //     $classAverage = count($classSubjectAverages) > 0
-    //         ? number_format(array_sum($classSubjectAverages) / count($classSubjectAverages), 2, '.', '')
-    //         : number_format(0, 2, '.', '');
-
-    //     $classGrade = $assignGrade($classAverage);
-
-    //     $studentGender = student_basic_data::where('user_id', $stid)->value('sex');
-
-    //     return response()->json([
-    //         'sid' => $stid,
-    //         'student_name' => $studentInfo->lname . ' ' . $studentInfo->fname,
-    //         'student_id' => $suid,
-    //         'gender' => $studentGender ?? 'Not specified',
-    //         'class' => $className ?? 'Class ID: ' . $clsm,
-    //         'class_arm' => $classArmName ?? 'Class Arm ID: ' . $clsa,
-    //         'session' => $ssn,
-    //         'school_id' => $schid,
-    //         'final_average' => $finalAverage,
-    //         'final_average_grade' => $finalGrade,
-    //         'class_average' => $classAverage,
-    //         'class_average_grade' => $classGrade,
-    //         'pld' => $result,
-    //     ]);
-    // }
-
 
     ////////////////////////////////////////////////////
 
@@ -25294,6 +22624,21 @@ class ApiController extends Controller
 
         $clsm = $studentInfo->clsm;
         $clsa = $studentInfo->clsa;
+
+        // 🔒 Check if broadsheet is locked for this class/arm
+        $control = broadsheet_control::where('schid', $schid)
+            ->where('sid', $stid)
+            ->where('ssn', $ssn)
+            ->where('clsm', $clsm)
+            ->where('clsa', $clsa)
+            ->first();
+
+        if ($control && $control->stat == 0) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Broadsheet is locked for this student.'
+            ], 403);
+        }
 
         // Step 2: Get dynamic grading
         $grades = sch_grade::where('schid', $schid)
@@ -25547,804 +22892,6 @@ class ApiController extends Controller
      * )
      */
 
-
-    // public function getAllStudentCumulativeResult(Request $request)
-    // {
-    //     $schid = $request->input('schid');
-    //     $ssn = $request->input('ssn');
-    //     $clsm = $request->input('clsm');
-    //     $clsa = $request->input('clsa');
-    //     $start = $request->input('start', 0);
-    //     $count = $request->input('count', 20);
-
-    //     // Grade brackets
-    //     $grades = [
-    //         'A' => [70, 100],
-    //         'B' => [60, 69.99],
-    //         'C' => [50, 59.99],
-    //         'D' => [45, 49.99],
-    //         'E' => [40, 44.99],
-    //         'F' => [0, 39.99]
-    //     ];
-
-    //     $assignGrade = function($average) use ($grades) {
-    //         foreach ($grades as $grade => [$min, $max]) {
-    //             if ($average >= $min && $average <= $max) {
-    //                 return $grade;
-    //             }
-    //         }
-    //         return 'N/A';
-    //     };
-
-    //     // Get class and class arm names
-    //     $className = cls::where('id', $clsm)->value('name');
-    //     $classArmName = sch_cls::where('id', $clsa)->value('name');
-
-    //     // Get students in this class (paginated)
-    //     $students = old_student::where([
-    //             ['schid', $schid],
-    //             ['ssn', $ssn],
-    //             ['clsm', $clsm],
-    //             ['clsa', $clsa]
-    //         ])
-    //         ->offset($start)
-    //         ->limit($count)
-    //         ->get();
-
-    //     if ($students->isEmpty()) {
-    //         return response()->json(['message' => 'No students found'], 404);
-    //     }
-
-    //     // Subjects in this class
-    //     $subjects = std_score::where([
-    //             ['schid', $schid],
-    //             ['ssn', $ssn],
-    //             ['clsid', $clsm],
-    //         ])
-    //         ->groupBy('sbj')
-    //         ->pluck('sbj')
-    //         ->toArray();
-
-    //     $subjectNames = subj::whereIn('id', $subjects)->pluck('name', 'id');
-
-    //     // Calculate subject positions for all students
-    //     $subjectAverages = [];
-
-    //     foreach ($subjects as $subjectId) {
-    //         $studentsScores = std_score::select(
-    //                 'stid',
-    //                 DB::raw("SUM(CASE WHEN trm = 1 THEN scr ELSE 0 END) as t1"),
-    //                 DB::raw("SUM(CASE WHEN trm = 2 THEN scr ELSE 0 END) as t2"),
-    //                 DB::raw("SUM(CASE WHEN trm = 3 THEN scr ELSE 0 END) as t3")
-    //             )
-    //             ->where([
-    //                 ['sbj', $subjectId],
-    //                 ['schid', $schid],
-    //                 ['ssn', $ssn],
-    //                 ['clsid', $clsm],
-    //             ])
-    //             ->groupBy('stid')
-    //             ->get()
-    //             ->map(function ($item) {
-    //                 $total = 0;
-    //                 $count = 0;
-    //                 if ($item->t1 > 0) { $total += $item->t1; $count++; }
-    //                 if ($item->t2 > 0) { $total += $item->t2; $count++; }
-    //                 if ($item->t3 > 0) { $total += $item->t3; $count++; }
-    //                 $average = $count > 0 ? round($total / $count, 2) : 0;
-    //                 return [
-    //                     'stid' => $item->stid,
-    //                     'average' => $average
-    //                 ];
-    //             })
-    //             ->sortByDesc('average')
-    //             ->values()
-    //             ->toArray();
-
-    //         // Assign position with ties handled
-    //         $ranked = [];
-    //         $position = 1;
-    //         $lastAvg = null;
-    //         $sameRankCount = 0;
-
-    //         foreach ($studentsScores as $index => $row) {
-    //             if ($row['average'] === $lastAvg) {
-    //                 $sameRankCount++;
-    //             } else {
-    //                 $position += $sameRankCount;
-    //                 $sameRankCount = 1;
-    //             }
-    //             $ranked[$row['stid']] = $position;
-    //             $lastAvg = $row['average'];
-    //         }
-
-    //         $subjectAverages[$subjectId] = $ranked;
-    //     }
-
-    //     $response = [];
-
-    //     foreach ($students as $student) {
-    //         $stid = $student->sid;
-    //         $result = [];
-
-    //         foreach ($subjects as $subjectId) {
-    //             $score = std_score::select(
-    //                     DB::raw("SUM(CASE WHEN trm = 1 THEN scr ELSE 0 END) as t1"),
-    //                     DB::raw("SUM(CASE WHEN trm = 2 THEN scr ELSE 0 END) as t2"),
-    //                     DB::raw("SUM(CASE WHEN trm = 3 THEN scr ELSE 0 END) as t3")
-    //                 )
-    //                 ->where([
-    //                     ['sbj', $subjectId],
-    //                     ['schid', $schid],
-    //                     ['ssn', $ssn],
-    //                     ['clsid', $clsm],
-    //                     ['stid', $stid]
-    //                 ])
-    //                 ->first();
-
-    //             // Skip subject if ALL terms are null or zero
-    //             if (
-    //                 (is_null($score->t1) || $score->t1 == 0) &&
-    //                 (is_null($score->t2) || $score->t2 == 0) &&
-    //                 (is_null($score->t3) || $score->t3 == 0)
-    //             ) {
-    //                 continue;
-    //             }
-
-    //             $total = 0;
-    //             $termCount = 0;
-
-    //             if (!is_null($score->t1) && $score->t1 > 0) { $total += $score->t1; $termCount++; }
-    //             if (!is_null($score->t2) && $score->t2 > 0) { $total += $score->t2; $termCount++; }
-    //             if (!is_null($score->t3) && $score->t3 > 0) { $total += $score->t3; $termCount++; }
-
-    //             $average = $termCount > 0 ? round($total / $termCount, 2) : 0;
-    //             $grade = $assignGrade($average);
-
-    //             $result[] = [
-    //                 'subject_id' => $subjectId,
-    //                 'subject_name' => $subjectNames[$subjectId] ?? 'Unknown',
-    //                 '1st_term_total' => $score->t1,
-    //                 '2nd_term_total' => $score->t2,
-    //                 '3rd_term_total' => $score->t3,
-    //                 'yearly_average' => $average,
-    //                 'grade' => $grade,
-    //                 'position' => $subjectAverages[$subjectId][$stid] ?? null
-    //             ];
-
-    //                 // Get student record from the `student` table to generate suid
-    //                 $stuRecord = student::where('schid', $schid)
-    //                     ->where('sid', $stid)
-    //                     ->first();
-
-    //                 $suid = null;
-    //                 if ($stuRecord) {
-    //                     $ssn_real = $stuRecord->year;
-    //                     $term = $stuRecord->term;
-    //                     $count = $stuRecord->count;
-    //                     $suid = $stuRecord->sch3 . '/' . $ssn_real . '/' . $term . '/' . strval($count);
-    //                 }
-    //                     }
-
-    //         $response[] = [
-    //             'student_id' => $suid,
-    //             'student_name' => $student->lname . ' ' . $student->fname,
-    //             'class' => $className ?? 'Class ID: ' . $clsm,
-    //             'class_arm' => $classArmName ?? 'Class Arm ID: ' . $clsa,
-    //             'session' => $ssn,
-    //             'school_id' => $schid,
-    //             'subjects' => $result
-    //         ];
-    //     }
-
-    //     return response()->json([
-    //         'start' => $start,
-    //         'count' => $count,
-    //         'pld' => $response
-    //     ]);
-    // }
-
-
-
-
-    //  public function getAllStudentCumulativeResult(Request $request)
-    // {
-    //     $schid = $request->input('schid');
-    //     $ssn = $request->input('ssn');
-    //     $clsm = $request->input('clsm');
-    //     $clsa = $request->input('clsa');
-    //     $start = $request->input('start', 0);
-    //     $count = $request->input('count', 20);
-
-    //     $grades = [
-    //         'A' => [70, 100],
-    //         'B' => [60, 69.99],
-    //         'C' => [50, 59.99],
-    //         'D' => [45, 49.99],
-    //         'E' => [40, 44.99],
-    //         'F' => [0, 39.99]
-    //     ];
-
-    //     $assignGrade = function($average) use ($grades) {
-    //         foreach ($grades as $grade => [$min, $max]) {
-    //             if ($average >= $min && $average <= $max) {
-    //                 return $grade;
-    //             }
-    //         }
-    //         return 'N/A';
-    //     };
-
-    //     $className = cls::where('id', $clsm)->value('name');
-    //     $classArmName = sch_cls::where('id', $clsa)->value('name');
-
-    //     $students = old_student::where([
-    //         ['schid', $schid],
-    //         ['ssn', $ssn],
-    //         ['clsm', $clsm],
-    //         ['clsa', $clsa]
-    //     ])->offset($start)->limit($count)->get();
-
-    //     if ($students->isEmpty()) {
-    //         return response()->json(['message' => 'No students found'], 404);
-    //     }
-
-    //     $subjects = std_score::where([
-    //         ['schid', $schid],
-    //         ['ssn', $ssn],
-    //         ['clsid', $clsm],
-    //     ])->groupBy('sbj')->pluck('sbj')->toArray();
-
-    //     $subjectNames = subj::whereIn('id', $subjects)->pluck('name', 'id');
-
-    //     $subjectAverages = [];
-
-    //     foreach ($subjects as $subjectId) {
-    //         $studentsScores = std_score::select(
-    //             'stid',
-    //             DB::raw("SUM(CASE WHEN trm = 1 THEN scr ELSE 0 END) as t1"),
-    //             DB::raw("SUM(CASE WHEN trm = 2 THEN scr ELSE 0 END) as t2"),
-    //             DB::raw("SUM(CASE WHEN trm = 3 THEN scr ELSE 0 END) as t3")
-    //         )
-    //         ->where([
-    //             ['sbj', $subjectId],
-    //             ['schid', $schid],
-    //             ['ssn', $ssn],
-    //             ['clsid', $clsm],
-    //         ])
-    //         ->groupBy('stid')
-    //         ->get()
-    //         ->map(function ($item) {
-    //             $total = 0;
-    //             $count = 0;
-    //             if ($item->t1 > 0) { $total += $item->t1; $count++; }
-    //             if ($item->t2 > 0) { $total += $item->t2; $count++; }
-    //             if ($item->t3 > 0) { $total += $item->t3; $count++; }
-    //             $average = $count > 0 ? round($total / $count, 2) : 0;
-    //             return ['stid' => $item->stid, 'average' => $average];
-    //         })->sortByDesc('average')->values()->toArray();
-
-    //         $ranked = [];
-    //         $position = 1;
-    //         $lastAvg = null;
-    //         $sameRankCount = 0;
-
-    //         foreach ($studentsScores as $index => $row) {
-    //             if ($row['average'] === $lastAvg) {
-    //                 $sameRankCount++;
-    //             } else {
-    //                 $position += $sameRankCount;
-    //                 $sameRankCount = 1;
-    //             }
-    //             $ranked[$row['stid']] = $position;
-    //             $lastAvg = $row['average'];
-    //         }
-
-    //         $subjectAverages[$subjectId] = $ranked;
-    //     }
-
-    //     $response = [];
-
-    //     foreach ($students as $student) {
-    //         $stid = $student->sid;
-    //         $result = [];
-
-    //         foreach ($subjects as $subjectId) {
-    //             $score = std_score::select(
-    //                 DB::raw("SUM(CASE WHEN trm = 1 THEN scr ELSE 0 END) as t1"),
-    //                 DB::raw("SUM(CASE WHEN trm = 2 THEN scr ELSE 0 END) as t2"),
-    //                 DB::raw("SUM(CASE WHEN trm = 3 THEN scr ELSE 0 END) as t3")
-    //             )
-    //             ->where([
-    //                 ['sbj', $subjectId],
-    //                 ['schid', $schid],
-    //                 ['ssn', $ssn],
-    //                 ['clsid', $clsm],
-    //                 ['stid', $stid]
-    //             ])
-    //             ->first();
-
-    //             if (
-    //                 (is_null($score->t1) || $score->t1 == 0) &&
-    //                 (is_null($score->t2) || $score->t2 == 0) &&
-    //                 (is_null($score->t3) || $score->t3 == 0)
-    //             ) {
-    //                 continue;
-    //             }
-
-    //             $total = 0;
-    //             $termCount = 0;
-    //             if (!is_null($score->t1) && $score->t1 > 0) { $total += $score->t1; $termCount++; }
-    //             if (!is_null($score->t2) && $score->t2 > 0) { $total += $score->t2; $termCount++; }
-    //             if (!is_null($score->t3) && $score->t3 > 0) { $total += $score->t3; $termCount++; }
-
-    //             $average = $termCount > 0 ? number_format($total / $termCount, 2, '.', '') : number_format(0, 2, '.', '');
-    //             $grade = $assignGrade($average);
-
-    //             $result[] = [
-    //                 'subject_id' => $subjectId,
-    //                 'subject_name' => $subjectNames[$subjectId] ?? 'Unknown',
-    //                 '1st_term_total' => $score->t1,
-    //                 '2nd_term_total' => $score->t2,
-    //                 '3rd_term_total' => $score->t3,
-    //                 'yearly_average' => $average,
-    //                 'grade' => $grade,
-    //                 'position' => $subjectAverages[$subjectId][$stid] ?? null
-    //             ];
-    //         }
-
-    //         $stuRecord = student::where('schid', $schid)->where('sid', $stid)->first();
-    //         $suid = null;
-    //         if ($stuRecord) {
-    //             $ssn_real = $stuRecord->year;
-    //             $term = $stuRecord->term;
-    //             $count = $stuRecord->count;
-    //             $suid = $stuRecord->sch3 . '/' . $ssn_real . '/' . $term . '/' . strval($count);
-    //         }
-
-    //         // Get gender from student_basic_data
-    //         $gender = student_basic_data::where('user_id', $stid)->value('sex');
-
-    //                 // Compute final average and grade
-    //         $totalAverage = 0;
-    //         $subjectCount = count($result);
-
-    //         foreach ($result as $subject) {
-    //             $totalAverage += $subject['yearly_average'];
-    //         }
-
-    //         $finalAverage = $subjectCount > 0 ? number_format($totalAverage / $subjectCount, 2, '.', '') : number_format(0, 2, '.', '');
-    //         $finalGrade = $assignGrade($finalAverage);
-
-    //         // Sort by final average descending (top-performing students first)
-    //         usort($response, function ($a, $b) {
-    //             return $b['final_average'] <=> $a['final_average'];
-    //         });
-
-
-    //     $response[] = [
-    //         'sid' => $stid, // Add student ID here
-    //         'student_id' => $suid,
-    //         'student_name' => $student->lname . ' ' . $student->fname,
-    //         'gender' => $gender ?? 'Unknown',
-    //         'class' => $className ?? 'Class ID: ' . $clsm,
-    //         'class_arm' => $classArmName ?? 'Class Arm ID: ' . $clsa,
-    //         'session' => $ssn,
-    //         'school_id' => $schid,
-    //         'subjects' => $result,
-    //         'final_average' => $finalAverage,
-    //         'final_average_grade' => $finalGrade
-    //     ];
-
-
-    //     }
-
-    //     return response()->json([
-    //         'start' => $start,
-    //         'count' => $count,
-    //         'pld' => $response
-    //     ]);
-    // }
-
-
-
-    // public function getAllStudentCumulativeResult(Request $request)
-    // {
-    //     $schid = $request->input('schid');
-    //     $ssn = $request->input('ssn');
-    //     $clsm = $request->input('clsm');
-    //     $clsa = $request->input('clsa');
-    //     $start = $request->input('start', 0);
-    //     $count = $request->input('count', 20);
-
-    //     // Dynamically load grades for the school/session/class
-    //     $gradeScale = \App\Models\sch_grade::where([
-    //         ['schid', $schid],
-    //         ['clsid', $clsm],
-    //         ['ssn', $ssn]
-    //     ])->orderByDesc('g1')->get()->mapWithKeys(function ($item) {
-    //         return [$item->grd => [(float)$item->g0, (float)$item->g1]];
-    //     })->toArray();
-
-    //     $assignGrade = function($average) use ($gradeScale) {
-    //         foreach ($gradeScale as $grade => [$min, $max]) {
-    //             if ($average >= $min && $average <= $max) {
-    //                 return $grade;
-    //             }
-    //         }
-    //         return 'N/A';
-    //     };
-
-    //     $className = cls::where('id', $clsm)->value('name');
-    //     $classArmName = sch_cls::where('id', $clsa)->value('name');
-
-    //     $students = old_student::where([
-    //         ['schid', $schid],
-    //         ['ssn', $ssn],
-    //         ['clsm', $clsm],
-    //         ['clsa', $clsa]
-    //     ])->offset($start)->limit($count)->get();
-
-    //     if ($students->isEmpty()) {
-    //         return response()->json(['message' => 'No students found'], 404);
-    //     }
-
-    //     $subjects = std_score::where([
-    //         ['schid', $schid],
-    //         ['ssn', $ssn],
-    //         ['clsid', $clsm],
-    //     ])->groupBy('sbj')->pluck('sbj')->toArray();
-
-    //     $subjectNames = subj::whereIn('id', $subjects)->pluck('name', 'id');
-
-    //     $subjectAverages = [];
-
-    //     foreach ($subjects as $subjectId) {
-    //         $studentsScores = std_score::select(
-    //             'stid',
-    //             DB::raw("SUM(CASE WHEN trm = 1 THEN scr ELSE 0 END) as t1"),
-    //             DB::raw("SUM(CASE WHEN trm = 2 THEN scr ELSE 0 END) as t2"),
-    //             DB::raw("SUM(CASE WHEN trm = 3 THEN scr ELSE 0 END) as t3")
-    //         )
-    //         ->where([
-    //             ['sbj', $subjectId],
-    //             ['schid', $schid],
-    //             ['ssn', $ssn],
-    //             ['clsid', $clsm],
-    //         ])
-    //         ->groupBy('stid')
-    //         ->get()
-    //         ->map(function ($item) {
-    //             $total = 0;
-    //             $count = 0;
-    //             if ($item->t1 > 0) { $total += $item->t1; $count++; }
-    //             if ($item->t2 > 0) { $total += $item->t2; $count++; }
-    //             if ($item->t3 > 0) { $total += $item->t3; $count++; }
-    //             $average = $count > 0 ? round($total / $count, 2) : 0;
-    //             return ['stid' => $item->stid, 'average' => $average];
-    //         })->sortByDesc('average')->values()->toArray();
-
-    //         $ranked = [];
-    //         $position = 1;
-    //         $lastAvg = null;
-    //         $sameRankCount = 0;
-
-    //         foreach ($studentsScores as $index => $row) {
-    //             if ($row['average'] === $lastAvg) {
-    //                 $sameRankCount++;
-    //             } else {
-    //                 $position += $sameRankCount;
-    //                 $sameRankCount = 1;
-    //             }
-    //             $ranked[$row['stid']] = $position;
-    //             $lastAvg = $row['average'];
-    //         }
-
-    //         $subjectAverages[$subjectId] = $ranked;
-    //     }
-
-    //     $response = [];
-
-    //     foreach ($students as $student) {
-    //         $stid = $student->sid;
-    //         $result = [];
-
-    //         foreach ($subjects as $subjectId) {
-    //             $score = std_score::select(
-    //                 DB::raw("SUM(CASE WHEN trm = 1 THEN scr ELSE 0 END) as t1"),
-    //                 DB::raw("SUM(CASE WHEN trm = 2 THEN scr ELSE 0 END) as t2"),
-    //                 DB::raw("SUM(CASE WHEN trm = 3 THEN scr ELSE 0 END) as t3")
-    //             )
-    //             ->where([
-    //                 ['sbj', $subjectId],
-    //                 ['schid', $schid],
-    //                 ['ssn', $ssn],
-    //                 ['clsid', $clsm],
-    //                 ['stid', $stid]
-    //             ])
-    //             ->first();
-
-    //             if (
-    //                 (is_null($score->t1) || $score->t1 == 0) &&
-    //                 (is_null($score->t2) || $score->t2 == 0) &&
-    //                 (is_null($score->t3) || $score->t3 == 0)
-    //             ) {
-    //                 continue;
-    //             }
-
-    //             $total = 0;
-    //             $termCount = 0;
-    //             if (!is_null($score->t1) && $score->t1 > 0) { $total += $score->t1; $termCount++; }
-    //             if (!is_null($score->t2) && $score->t2 > 0) { $total += $score->t2; $termCount++; }
-    //             if (!is_null($score->t3) && $score->t3 > 0) { $total += $score->t3; $termCount++; }
-
-    //             $average = $termCount > 0 ? number_format($total / $termCount, 2, '.', '') : number_format(0, 2, '.', '');
-    //             $grade = $assignGrade($average);
-
-    //             $result[] = [
-    //                 'subject_id' => $subjectId,
-    //                 'subject_name' => $subjectNames[$subjectId] ?? 'Unknown',
-    //                 '1st_term_total' => $score->t1,
-    //                 '2nd_term_total' => $score->t2,
-    //                 '3rd_term_total' => $score->t3,
-    //                 'yearly_average' => $average,
-    //                 'grade' => $grade,
-    //                 'position' => $subjectAverages[$subjectId][$stid] ?? null
-    //             ];
-    //         }
-
-    //         $stuRecord = student::where('schid', $schid)->where('sid', $stid)->first();
-    //         $suid = null;
-    //         if ($stuRecord) {
-    //             $ssn_real = $stuRecord->year;
-    //             $term = $stuRecord->term;
-    //             $count = $stuRecord->count;
-    //             $suid = $stuRecord->sch3 . '/' . $ssn_real . '/' . $term . '/' . strval($count);
-    //         }
-
-    //         $gender = student_basic_data::where('user_id', $stid)->value('sex');
-
-    //         $totalAverage = 0;
-    //         $subjectCount = count($result);
-
-    //         foreach ($result as $subject) {
-    //             $totalAverage += $subject['yearly_average'];
-    //         }
-
-    //         $finalAverage = $subjectCount > 0 ? number_format($totalAverage / $subjectCount, 2, '.', '') : number_format(0, 2, '.', '');
-    //         $finalGrade = $assignGrade($finalAverage);
-
-    //         $response[] = [
-    //             'sid' => $stid,
-    //             'student_id' => $suid,
-    //             'student_name' => $student->lname . ' ' . $student->fname,
-    //             'gender' => $gender ?? 'Unknown',
-    //             'class' => $className ?? 'Class ID: ' . $clsm,
-    //             'class_arm' => $classArmName ?? 'Class Arm ID: ' . $clsa,
-    //             'session' => $ssn,
-    //             'school_id' => $schid,
-    //             'subjects' => $result,
-    //             'final_average' => $finalAverage,
-    //             'final_average_grade' => $finalGrade
-    //         ];
-    //     }
-
-    //     // Final sorting by final average
-    //     usort($response, function ($a, $b) {
-    //         return $b['final_average'] <=> $a['final_average'];
-    //     });
-
-    //     return response()->json([
-    //         'start' => $start,
-    //         'count' => $count,
-    //         'pld' => $response
-    //     ]);
-    // }
-
-
-    // public function getAllStudentCumulativeResult(Request $request)
-    // {
-    //     $schid = $request->input('schid');
-    //     $ssn = $request->input('ssn');
-    //     $clsm = $request->input('clsm');
-    //     $clsa = $request->input('clsa');
-    //     $start = $request->input('start', 0);
-    //     $count = $request->input('count', 20);
-
-    //     // Load grades defined by school for class and session
-    //     $grades = \App\Models\sch_grade::where([
-    //         ['schid', $schid],
-    //         ['clsid', $clsm],
-    //         ['ssn', $ssn]
-    //     ])->orderByDesc('g1')->get()->mapWithKeys(function ($item) {
-    //         return [$item->grd => [(float) $item->g0, (float) $item->g1]];
-    //     })->toArray();
-
-    //     $assignGrade = function($average) use ($grades) {
-    //         foreach ($grades as $grade => [$min, $max]) {
-    //             if ($average >= $min && $average <= $max) {
-    //                 return $grade;
-    //             }
-    //         }
-    //         return 'N/A';
-    //     };
-
-    //     $className = cls::where('id', $clsm)->value('name');
-    //     $classArmName = sch_cls::where('id', $clsa)->value('name');
-
-    //     $students = old_student::where([
-    //         ['schid', $schid],
-    //         ['ssn', $ssn],
-    //         ['clsm', $clsm],
-    //         ['clsa', $clsa]
-    //     ])->offset($start)->limit($count)->get();
-
-    //     if ($students->isEmpty()) {
-    //         return response()->json(['message' => 'No students found'], 404);
-    //     }
-
-    //     $subjects = std_score::where([
-    //         ['schid', $schid],
-    //         ['ssn', $ssn],
-    //         ['clsid', $clsm],
-    //     ])->groupBy('sbj')->pluck('sbj')->toArray();
-
-    //     $subjectNames = subj::whereIn('id', $subjects)->pluck('name', 'id');
-
-    //     $subjectAverages = [];
-
-    //     foreach ($subjects as $subjectId) {
-    //         $studentsScores = std_score::select(
-    //             'stid',
-    //             DB::raw("SUM(CASE WHEN trm = 1 THEN scr ELSE 0 END) as t1"),
-    //             DB::raw("SUM(CASE WHEN trm = 2 THEN scr ELSE 0 END) as t2"),
-    //             DB::raw("SUM(CASE WHEN trm = 3 THEN scr ELSE 0 END) as t3")
-    //         )
-    //         ->where([
-    //             ['sbj', $subjectId],
-    //             ['schid', $schid],
-    //             ['ssn', $ssn],
-    //             ['clsid', $clsm],
-    //         ])
-    //         ->groupBy('stid')
-    //         ->get()
-    //         ->map(function ($item) {
-    //             $total = 0;
-    //             $count = 0;
-    //             if ($item->t1 > 0) { $total += $item->t1; $count++; }
-    //             if ($item->t2 > 0) { $total += $item->t2; $count++; }
-    //             if ($item->t3 > 0) { $total += $item->t3; $count++; }
-    //             $average = $count > 0 ? round($total / $count, 2) : 0;
-    //             return ['stid' => $item->stid, 'average' => $average];
-    //         })->sortByDesc('average')->values()->toArray();
-
-    //         $ranked = [];
-    //         $position = 1;
-    //         $lastAvg = null;
-    //         $sameRankCount = 0;
-
-    //         foreach ($studentsScores as $index => $row) {
-    //             if ($row['average'] === $lastAvg) {
-    //                 $sameRankCount++;
-    //             } else {
-    //                 $position += $sameRankCount;
-    //                 $sameRankCount = 1;
-    //             }
-    //             $ranked[$row['stid']] = $position;
-    //             $lastAvg = $row['average'];
-    //         }
-
-    //         $subjectAverages[$subjectId] = $ranked;
-    //     }
-
-    //     $response = [];
-
-    //     foreach ($students as $student) {
-    //         $stid = $student->sid;
-    //         $result = [];
-
-    //         foreach ($subjects as $subjectId) {
-    //             $score = std_score::select(
-    //                 DB::raw("SUM(CASE WHEN trm = 1 THEN scr ELSE 0 END) as t1"),
-    //                 DB::raw("SUM(CASE WHEN trm = 2 THEN scr ELSE 0 END) as t2"),
-    //                 DB::raw("SUM(CASE WHEN trm = 3 THEN scr ELSE 0 END) as t3")
-    //             )
-    //             ->where([
-    //                 ['sbj', $subjectId],
-    //                 ['schid', $schid],
-    //                 ['ssn', $ssn],
-    //                 ['clsid', $clsm],
-    //                 ['stid', $stid]
-    //             ])
-    //             ->first();
-
-    //             if (
-    //                 (is_null($score->t1) || $score->t1 == 0) &&
-    //                 (is_null($score->t2) || $score->t2 == 0) &&
-    //                 (is_null($score->t3) || $score->t3 == 0)
-    //             ) {
-    //                 continue;
-    //             }
-
-    //             $total = 0;
-    //             $termCount = 0;
-    //             if (!is_null($score->t1) && $score->t1 > 0) { $total += $score->t1; $termCount++; }
-    //             if (!is_null($score->t2) && $score->t2 > 0) { $total += $score->t2; $termCount++; }
-    //             if (!is_null($score->t3) && $score->t3 > 0) { $total += $score->t3; $termCount++; }
-
-    //             $average = $termCount > 0 ? number_format($total / $termCount, 2, '.', '') : number_format(0, 2, '.', '');
-    //             $grade = $assignGrade($average);
-
-    //             $result[] = [
-    //                 'subject_id' => $subjectId,
-    //                 'subject_name' => $subjectNames[$subjectId] ?? 'Unknown',
-    //                 '1st_term_total' => $score->t1,
-    //                 '2nd_term_total' => $score->t2,
-    //                 '3rd_term_total' => $score->t3,
-    //                 'yearly_average' => $average,
-    //                 'grade' => $grade,
-    //                 'position' => $subjectAverages[$subjectId][$stid] ?? null
-    //             ];
-    //         }
-
-    //         $stuRecord = student::where('schid', $schid)->where('sid', $stid)->first();
-    //         $suid = null;
-    //         if ($stuRecord) {
-    //             $ssn_real = $stuRecord->year;
-    //             $term = $stuRecord->term;
-    //             $count = $stuRecord->count;
-    //             $suid = $stuRecord->sch3 . '/' . $ssn_real . '/' . $term . '/' . strval($count);
-    //         }
-
-    //         $gender = student_basic_data::where('user_id', $stid)->value('sex');
-
-    //         $totalAverage = 0;
-    //         $subjectCount = count($result);
-
-    //         foreach ($result as $subject) {
-    //             $totalAverage += $subject['yearly_average'];
-    //         }
-
-    //         $finalAverage = $subjectCount > 0 ? number_format($totalAverage / $subjectCount, 2, '.', '') : number_format(0, 2, '.', '');
-    //         $finalGrade = $assignGrade($finalAverage);
-
-    //         $response[] = [
-    //             'sid' => $stid,
-    //             'student_id' => $suid,
-    //             'student_name' => $student->lname . ' ' . $student->fname,
-    //             'gender' => $gender ?? 'Unknown',
-    //             'class' => $className ?? 'Class ID: ' . $clsm,
-    //             'class_arm' => $classArmName ?? 'Class Arm ID: ' . $clsa,
-    //             'session' => $ssn,
-    //             'school_id' => $schid,
-    //             'subjects' => $result,
-    //             'final_average' => $finalAverage,
-    //             'final_average_grade' => $finalGrade
-    //         ];
-    //     }
-
-    //     // Sort by final average descending
-    //     usort($response, function ($a, $b) {
-    //         return $b['final_average'] <=> $a['final_average'];
-    //     });
-
-    //     // Class average
-    //     $totalFinal = 0;
-    //     foreach ($response as $item) {
-    //         $totalFinal += $item['final_average'];
-    //     }
-    //     $classAverage = count($response) > 0 ? number_format($totalFinal / count($response), 2, '.', '') : '0.00';
-
-    //     // Attach class average to each student
-    //     foreach ($response as &$item) {
-    //         $item['class_average'] = $classAverage;
-    //     }
-
-    //     return response()->json([
-    //         'start' => $start,
-    //         'count' => $count,
-    //         'pld' => $response
-    //     ]);
-    // }
 
 
     public function getAllStudentCumulativeResult(Request $request)
@@ -26645,88 +23192,6 @@ class ApiController extends Controller
      * )
      */
 
-
-    // public function getYearlyAssessmentAverage(Request $request)
-    // {
-    //     $validated = $request->validate([
-    //         'schid' => 'required',
-    //         'stid'  => 'required',
-    //         'ssn'   => 'required',
-    //         'clsm'  => 'required', // class main id (from cls)
-    //         'clsa'  => 'required'  // class arm id (from sch_cls)
-    //     ]);
-
-    //     $psyRecords = student_psy::where('schid', $validated['schid'])
-    //         ->where('stid', $validated['stid'])
-    //         ->where('ssn', $validated['ssn'])
-    //         ->where('clsm', $validated['clsm'])
-    //         ->where('clsa', $validated['clsa'])
-    //         ->get();
-
-    //     if ($psyRecords->isEmpty()) {
-    //         return response()->json(['message' => 'No records found for this student.'], 404);
-    //     }
-
-    //     $fields = ['punc', 'hon', 'pol', 'neat', 'pers', 'rel', 'dil', 'cre', 'pat', 'verb', 'gam', 'musc', 'drw', 'wrt'];
-    //     $totals = array_fill_keys($fields, 0);
-    //     $counts = array_fill_keys($fields, 0);
-    //     $termWise = [];
-
-    //     foreach ([1, 2, 3] as $term) {
-    //         $termRecord = $psyRecords->firstWhere('trm', $term);
-    //         if ($termRecord) {
-    //             $termWise["term_$term"] = [];
-    //             foreach ($fields as $field) {
-    //                 $value = $termRecord->$field ?? null;
-    //                 $termWise["term_$term"][$field] = $value;
-
-    //                 if (!is_null($value)) {
-    //                     $totals[$field] += $value;
-    //                     $counts[$field]++;
-    //                 }
-    //             }
-    //         }
-    //     }
-
-    //     // Round to nearest whole number
-    //     $averages = [];
-    //     foreach ($fields as $field) {
-    //         $averages[$field] = $counts[$field] > 0
-    //             ? round($totals[$field] / $counts[$field])
-    //             : null;
-    //     }
-
-    //     $student = student::where('sid', $validated['stid'])
-    //         ->where('schid', $validated['schid'])
-    //         ->first();
-
-    //     // Generate SUID
-    //     $suid = null;
-    //     if ($student) {
-    //         $ssn_real = $student->year;
-    //         $term = $student->term;
-    //         $count = $student->count;
-    //         $suid = $student->sch3 . '/' . $ssn_real . '/' . $term . '/' . strval($count);
-    //     }
-
-    //     // Get class name from cls model
-    //     $className = cls::where('id', $validated['clsm'])->value('name');
-
-    //     // Get class arm name from sch_cls model
-    //     $classArmName = sch_cls::where('schid', $validated['schid'])
-    //         ->where('cls_id', $validated['clsa'])
-    //         ->value('name');
-
-    //     return response()->json([
-    //         'student_id' => $suid,
-    //         'student_name' => $student ? $student->fname . ' ' . $student->lname : null,
-    //         'session' => $validated['ssn'],
-    //         'class' => $className,
-    //         'class_arm' => $classArmName,
-    //         'psychomotor_term_scores' => $termWise,
-    //         'psychomotor_averages' => $averages,
-    //     ]);
-    // }
 
     public function getYearlyAssessmentAverage(Request $request)
     {
@@ -27228,118 +23693,6 @@ class ApiController extends Controller
      * )
      */
 
-    // public function getLoggedInUserDetails()
-    // {
-    //     $user = JWTAuth::parseToken()->authenticate();
-
-    //     if (!$user) {
-    //         return response()->json(['message' => 'User not found'], 404);
-    //     }
-
-    //     $staff = $user->oldStaff()->first();
-
-    //     if (!$staff) {
-    //         $staff = $user->oldStaff()->first();
-    //     }
-
-    //     if ($staff) {
-    //         $role = ltrim($staff->role, '*-');
-    //         $role2 = ltrim($staff->role2, '*-');
-
-    //         $roleName = sch_staff_role::where('role', $role)
-    //             ->where('schid', $staff->schid)
-    //             ->value('name');
-
-    //         $role2Name = sch_staff_role::where('role', $role2)
-    //             ->where('schid', $staff->schid)
-    //             ->value('name');
-
-    //         $profile = [
-    //             ...$staff->toArray(),
-    //             'role_name' => $roleName,
-    //             'role2_name' => $role2Name,
-    //         ];
-    //     } else {
-    //         $profile = null;
-    //     }
-
-    //     return response()->json([
-    //         'user' => $user,
-    //         'profile' => $profile,
-    //     ]);
-    // }
-
-
-    // public function getLoggedInUserDetails(Request $request)
-    // {
-    //     try {
-    //         $user = JWTAuth::parseToken()->authenticate();
-
-    //         if (!$user) {
-    //             return response()->json(['message' => 'User not found'], 404);
-    //         }
-
-    //         // Get ssn & trm from query
-    //         $ssn = $request->input('ssn');
-    //         $trm = $request->input('trm');
-
-    //         // Fetch staff record for this user, respecting ssn/trm if provided
-    //         $staffQuery = $user->oldStaff();
-
-    //         if (!empty($ssn)) {
-    //             $staffQuery->where('ssn', $ssn);
-    //         }
-
-    //         if (!empty($trm)) {
-    //             $staffQuery->where('trm', $trm);
-    //         }
-
-    //         $staff = $staffQuery->first();
-
-    //         // If no match for ssn/trm, fallback to latest session
-    //         if (!$staff) {
-    //             $staff = $user->oldStaff()->latest('ssn')->latest('trm')->first();
-    //         }
-
-    //         if ($staff) {
-    //             $role = ltrim($staff->role, '*-');
-    //             $role2 = ltrim($staff->role2, '*-');
-
-    //             $roleName = \App\Models\sch_staff_role::where('role', $role)
-    //                 ->where('schid', $staff->schid)
-    //                 ->value('name');
-
-    //             $role2Name = \App\Models\sch_staff_role::where('role', $role2)
-    //                 ->where('schid', $staff->schid)
-    //                 ->value('name');
-
-    //             $profile = [
-    //                 ...$staff->toArray(),
-    //                 'role_name' => $roleName,
-    //                 'role2_name' => $role2Name,
-    //             ];
-    //         } else {
-    //             $profile = null;
-    //         }
-
-    //         return response()->json([
-    //             'user' => $user,
-    //             'profile' => $profile,
-    //             'ssn' => $ssn,
-    //             'trm' => $trm,
-    //         ]);
-
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             'message' => 'Server Error',
-    //             'error' => $e->getMessage(),
-    //             'line' => $e->getLine(),
-    //             'file' => $e->getFile(),
-    //         ], 500);
-    //     }
-    // }
-
-
     public function getLoggedInUserDetails(Request $request)
     {
         try {
@@ -27603,6 +23956,16 @@ class ApiController extends Controller
         $subjectPositions = [];
         $subjectAverages = [];
 
+        // $control = broadsheet_control::where('schid', $schid)
+        //     ->where('ssn', $ssn)
+        //      ->where('sid', $stid) // 👈 VERY IMPORTANT
+        //     ->where('clsm', $clsm)
+        //     ->where('clsa', $clsa)
+        //     ->first();
+
+        // $broadsheetStat = $control->stat ?? 1;  // default = unlocked
+
+
         // Process each subject
         foreach ($subjects as $sbj) {
             $subjectScores = std_score::select(
@@ -27708,6 +24071,17 @@ class ApiController extends Controller
         foreach ($students as $std) {
             $stid = $std->sid;
 
+            $control = broadsheet_control::where('schid', $schid)
+                ->where('ssn', $ssn)
+                ->where('sid', $stid)
+                ->where('clsm', $clsm)
+                ->where('clsa', $clsa)
+                ->first();
+
+            $broadsheetStat = $control->stat ?? 1;
+
+
+
             // skip students with no average
             if (!isset($finalAverages[$stid]))
                 continue;
@@ -27774,7 +24148,9 @@ class ApiController extends Controller
                 'overall_position' => $overallPosition[$stid] ?? null,
                 'no_of_subjects' => $count,
                 'subjects' => $subjectsInfo,
-                'psychomotor' => $psychomotor
+                'psychomotor' => $psychomotor,
+                'broadsheet_status' => $broadsheetStat,
+
             ];
         }
 
@@ -28158,134 +24534,6 @@ class ApiController extends Controller
      * )
      */
 
-    // public function getStudentScoreSummary(Request $request)
-    // {
-    //     $schid = $request->schid;
-    //     $ssn = $request->ssn;
-    //     $trm = $request->trm;
-    //     $clsm = $request->clsm;
-    //     $clsa = $request->clsa;
-
-    //     // Get class name and class arm name
-    //     $className = cls::where('id', $clsm)->value('name') ?? "CLS-$clsm";
-
-    //     $classArmName = $clsa !== '-1'
-    //         ? sch_cls::where('schid', $schid)->where('cls_id', $clsm)->where('id', $clsa)->value('name') ?? 'N/A'
-    //         : 'All Arms';
-
-    //     // Get all active students
-    //     $students = old_student::where("schid", $schid)
-    //         ->where("status", "active")
-    //         ->where("ssn", $ssn)
-    //         ->where("clsm", $clsm)
-    //         ->when($clsa !== '-1', fn($q) => $q->where("clsa", $clsa))
-    //         ->get();
-
-    //     $scoreSheet = [];
-
-    //     foreach ($students as $student) {
-    //         $stid = $student->sid;
-
-    //         // Get the student's subjects
-    //         $subjects = student_subj::where("stid", $stid)->pluck("sbj")->toArray();
-
-    //         $grouped = [];
-    //         $totalScore = 0;
-    //         $subjectCount = 0;
-
-    //         foreach ($subjects as $sbjId) {
-    //             // Get all scores with assessment info
-    //             $scores = std_score::where("stid", $stid)
-    //                 ->where("sbj", $sbjId)
-    //                 ->where("schid", $schid)
-    //                 ->where("ssn", $ssn)
-    //                 ->where("trm", $trm)
-    //                 ->where("clsid", $clsm)
-    //                 ->get();
-
-    //             if ($scores->isNotEmpty()) {
-    //                 $grouped[$sbjId] = [];
-
-    //                 foreach ($scores as $score) {
-    //                     $markName = sch_mark::where('id', $score->aid)
-    //                         ->where('schid', $schid)
-    //                         ->where('clsid', $clsm)
-    //                         ->where('ssn', $ssn)
-    //                         ->where('trm', $trm)
-    //                         ->value('name') ?? 'Unknown';
-
-    //                     $grouped[$sbjId][] = [
-    //                         'assessment' => $markName,
-    //                         'score' => $score->scr,
-    //                     ];
-
-    //                     $totalScore += $score->scr;
-    //                 }
-
-    //                 $subjectCount++;
-    //             }
-    //         }
-
-    //         // Average is based on number of subjects with scores
-    //         $avg = $subjectCount ? round($totalScore / $subjectCount, 2) : 0;
-
-    //         // Format scores with subject names
-    //         $formattedScores = [];
-    //         foreach ($grouped as $sbjid => $scrArray) {
-    //             $subjectName = subj::find($sbjid)?->name ?? "Subject-$sbjid";
-    //             $formattedScores[] = [
-    //                 'subject_id' => $sbjid,
-    //                 'subject_name' => $subjectName,
-    //                 'scores' => $scrArray // array of [assessment, score]
-    //             ];
-    //         }
-
-    //         $scoreSheet[] = [
-    //             'uid' => $student->uid,
-    //             'schid' => $student->schid,
-    //             'sid' => $stid,
-    //             'learner_id' => $student->suid ?? $stid,
-    //             'name' => trim($student->fname . ' ' . $student->lname),
-    //             'avg_score' => $avg,
-    //             'class' => $clsm,
-    //             'class_name' => $className,
-    //             'class_arm_name' => $classArmName,
-    //             'no_of_subjects' => $subjectCount,
-    //             'scores' => $formattedScores,
-    //             'clsid' => $clsm,
-    //             'clsa' => $student->clsa,
-    //             'ssn' => $ssn,
-    //             'trm' => $trm,
-    //             'position' => 0 // placeholder, assigned below
-    //         ];
-    //     }
-
-    //     // Assign position based on avg_score
-    //     usort($scoreSheet, fn($a, $b) => $b['avg_score'] <=> $a['avg_score']);
-
-    //     $rank = 1;
-    //     $lastAvg = null;
-    //     $tieCount = 0;
-
-    //     foreach ($scoreSheet as $index => &$std) {
-    //         if ($std['avg_score'] === $lastAvg) {
-    //             $tieCount++;
-    //         } else {
-    //             $rank += $tieCount;
-    //             $tieCount = 1;
-    //         }
-    //         $std['position'] = $rank;
-    //         $lastAvg = $std['avg_score'];
-    //     }
-
-    //     return response()->json([
-    //         'status' => true,
-    //         'message' => 'Student Score Summary',
-    //         'data' => $scoreSheet
-    //     ]);
-    // }
-
-
 
     public function getStudentScoreSummary(Request $request)
     {
@@ -28499,7 +24747,6 @@ class ApiController extends Controller
      */
 
 
-
     public function autoCommentTemplate(Request $request)
     {
         $validated = $request->validate([
@@ -28514,22 +24761,6 @@ class ApiController extends Controller
             'comment.*.comment' => 'nullable|string|max:500',
 
         ]);
-
-        // Save each comment by role name
-        // foreach ($validated['comment'] as $entry) {
-        //     auto_comment_template::updateOrCreate(
-        //         [
-        //             'schid' => $validated['schid'],
-        //             'ssn' => $validated['ssn'],
-        //             'trm' => $validated['trm'],
-        //             'clsm' => $validated['clsm'],
-        //             'clsa' => $validated['clsa'],
-        //             'role' => $validated['role'],  // using role name directly
-        //             'grade' => $entry['grade'],
-        //         ],
-        //         ['comment' => $entry['comment']]
-        //     );
-        // }
 
         foreach ($validated['comment'] as $entry) {
             auto_comment_template::updateOrCreate(
@@ -28547,7 +24778,6 @@ class ApiController extends Controller
                 ]
             );
         }
-
 
         // Build response for all 6 grades
         $grades = ['A', 'B', 'C', 'D', 'E', 'F'];
@@ -28573,6 +24803,138 @@ class ApiController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'Auto comments saved.',
+            'role' => $validated['role'],
+            'pld' => $response
+        ]);
+    }
+
+
+
+    /**
+     * @OA\Get(
+     *     path="/api/autoCommentTemplate",
+     *     summary="Fetch auto comment templates for all grades (A–F) for a specific role",
+     *     tags={"Api"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="query",
+     *         required=true,
+     *         description="School ID",
+     *         @OA\Schema(type="string", example="12")
+     *     ),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="query",
+     *         required=true,
+     *         description="Session",
+     *         @OA\Schema(type="string", example="2024")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="query",
+     *         required=true,
+     *         description="Term",
+     *         @OA\Schema(type="string", example="1")
+     *     ),
+     *     @OA\Parameter(
+     *         name="clsm",
+     *         in="query",
+     *         required=true,
+     *         description="Class main",
+     *         @OA\Schema(type="string", example="11")
+     *     ),
+     *     @OA\Parameter(
+     *         name="clsa",
+     *         in="query",
+     *         required=true,
+     *         description="Class arm",
+     *         @OA\Schema(type="string", example="2")
+     *     ),
+     *     @OA\Parameter(
+     *         name="role",
+     *         in="query",
+     *         required=true,
+     *         description="Role type",
+     *         @OA\Schema(
+     *             type="string",
+     *             enum={"Principal", "Head Teacher", "School Admin"},
+     *             example="Principal"
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Auto comments fetched successfully.",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Auto comments fetched successfully."),
+     *             @OA\Property(property="role", type="string", example="Principal"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="grade", type="string", example="A"),
+     *                     @OA\Property(property="comment", type="string", example="Excellent performance")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+     *             @OA\Property(
+     *                 property="errors",
+     *                 type="object",
+     *                 example={
+     *                     "role": {"The selected role is invalid."},
+     *                     "schid": {"The schid field is required."}
+     *                 }
+     *             )
+     *         )
+     *     )
+     * )
+     */
+
+    public function getAutoCommentTemplate(Request $request)
+    {
+        // Validate GET inputs
+        $validated = $request->validate([
+            'schid' => 'required|string',
+            'ssn' => 'required|string',
+            'trm' => 'required|string',
+            'clsm' => 'required|string',
+            'clsa' => 'required|string',
+            'role' => 'required|string|in:Principal,Head Teacher,School Admin',
+        ]);
+
+        $grades = ['A', 'B', 'C', 'D', 'E', 'F'];
+        $response = [];
+
+        foreach ($grades as $grade) {
+            $comment = auto_comment_template::where([
+                'schid' => $validated['schid'],
+                'ssn' => $validated['ssn'],
+                'trm' => $validated['trm'],
+                'clsm' => $validated['clsm'],
+                'clsa' => $validated['clsa'],
+                'role' => $validated['role'],
+                'grade' => $grade,
+            ])->value('comment') ?? '';
+
+            $response[] = [
+                'grade' => $grade,
+                'comment' => $comment
+            ];
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Auto comments fetched successfully.',
             'role' => $validated['role'],
             'pld' => $response
         ]);
@@ -28913,77 +25275,6 @@ class ApiController extends Controller
      * )
      */
 
-    // public function promoteStudent(Request $request)
-    // {
-    //     $request->validate([
-    //         'sid'   => 'required',
-    //         'schid' => 'required',
-    //         'sesn'  => 'required',  // session
-    //         'trm'   => 'required',  // term
-    //         'clsm'  => 'required',  // new main class
-    //         'clsa'  => 'required',  // requested new class arm (sch_cls.id)
-    //         'suid'  => 'required',  // student unique id
-    //     ]);
-
-    //     // 1. Find the student
-    //     $student = student::where('sid', $request->sid)->firstOrFail();
-
-    //     // 2. Make sure this arm belongs to the new class
-    //     $validArm = DB::table('sch_cls')
-    //         ->where('id', $request->clsa)
-    //         ->where('cls_id', $request->clsm)   // ensure arm belongs to this class
-    //         ->where('schid', $request->schid)
-    //         ->first();
-
-    //     if (!$validArm) {
-    //         return response()->json([
-    //             'status'  => false,
-    //             'message' => 'Invalid class arm for the selected class',
-    //         ], 422);
-    //     }
-
-    //     // 3. Generate a unique promotion ID
-    //     $uid = $request->sesn . $request->trm . $request->sid . rand(10000, 99999);
-
-    //     // 4. Create promotion record
-    //     $promotion = old_student::create([
-    //         'uid'    => $uid,
-    //         'sid'    => $request->sid,
-    //         'schid'  => $request->schid,
-    //         'fname'  => $student->fname,
-    //         'mname'  => $student->mname,
-    //         'lname'  => $student->lname,
-    //         'status' => 'active',
-    //         'suid'   => $request->suid,
-    //         'ssn'    => $request->sesn,
-    //         'trm'    => $request->trm,
-    //         'clsm'   => $request->clsm,      // new class
-    //         'clsa'   => $validArm->id,       // new arm from sch_cls
-    //         'more'   => '',
-    //     ]);
-
-    //     // 5. Update student_academic_data table
-    //     student_academic_data::where('user_id', $request->sid)
-    //         ->update([
-    //             'new_class_main' => $request->clsm,
-    //             'new_class'      => $validArm->id, // optional if you want to also track the arm
-    //         ]);
-
-    //     return response()->json([
-    //         'status'    => true,
-    //         'message'   => 'Student promoted successfully for this term',
-    //         'data'      => [
-    //             'sid'       => $promotion->sid,
-    //             'suid'      => $promotion->suid,
-    //             'ssn'       => $promotion->ssn,
-    //             'trm'       => $promotion->trm,
-    //             'clsm'      => $promotion->clsm,
-    //             'clsa'      => $promotion->clsa,
-    //             'clsa_name' => $validArm->name,   // arm name
-    //         ],
-    //     ]);
-    // }
-
 
 
     public function promoteStudent(Request $request)
@@ -29287,46 +25578,6 @@ class ApiController extends Controller
      * )
      */
 
-    // public function repeatStudent(Request $request)
-    // {
-    //     $request->validate([
-    //         'sid'   => 'required',
-    //         'schid' => 'required',
-    //         'sesn'  => 'required',
-    //         'trm'   => 'required',
-    //         'clsm'  => 'required', // main class
-    //         'clsa'  => 'required', // class arm
-    //         'suid'  => 'required|string'
-    //     ]);
-
-    //     // Find the student
-    //     $student = student::where('sid', $request->sid)->firstOrFail();
-
-    //     // Generate a unique ID for the repeat record
-    //     $uid = $request->sesn . $request->trm . $request->sid;
-
-    //     // Create a new old_student record for repeating
-    //     old_student::create([
-    //         'uid'    => $uid,
-    //         'sid'    => $request->sid,
-    //         'schid'  => $request->schid,
-    //         'fname'  => $student->fname,
-    //         'mname'  => $student->mname,
-    //         'lname'  => $student->lname,
-    //         'status' => 'active',
-    //         'suid'   => $request->suid,
-    //         'ssn'    => $request->sesn,
-    //         'trm'    => $request->trm,
-    //         'clsm'   => $request->clsm, // same class
-    //         'clsa'   => $request->clsa, // same arm
-    //         'more'   => '',       // mark as repeat
-    //     ]);
-
-    //     return response()->json([
-    //         'status'  => true,
-    //         'message' => 'Student marked to repeat successfully',
-    //     ]);
-    // }
 
     public function repeatStudent(Request $request)
     {
@@ -29858,6 +26109,99 @@ class ApiController extends Controller
      * )
      */
 
+    // public function rePromoteStudent(Request $request)
+    // {
+    //     $request->validate([
+    //         'sid' => 'required',
+    //         'schid' => 'required',
+    //         'sesn' => 'required',  // session
+    //         'trm' => 'required',  // term
+    //         'clsm' => 'required',  // new main class
+    //         'clsa' => 'required',  // requested new class arm (sch_cls.id)
+    //         'suid' => 'required',  // student unique id
+    //     ]);
+
+    //     $student = student::where('sid', $request->sid)->firstOrFail();
+
+    //     $validArm = DB::table('sch_cls')
+    //         ->where('id', $request->clsa)
+    //         ->where('cls_id', $request->clsm)
+    //         ->where('schid', $request->schid)
+    //         ->first();
+
+    //     if (!$validArm) {
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'Invalid class arm for the selected class',
+    //         ], 422);
+    //     }
+
+    //     $hasScores = std_score::where('stid', $request->sid)
+    //         ->where('ssn', $request->sesn)
+    //         ->where('trm', $request->trm)
+    //         ->where('clsid', $request->clsm)
+    //         ->exists();
+
+    //     if ($hasScores) {
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'Cannot re-promote student: scores/results already exist for this class, session, and term.',
+    //         ], 422);
+    //     }
+
+    //     // Deterministic UID (no random numbers)
+    //     $uid = $request->sesn . $request->trm . $request->sid . $request->clsm;
+
+    //     old_student::where('sid', $request->sid)
+    //         ->where('ssn', $request->sesn)
+    //         ->where('trm', $request->trm)
+    //         ->where(function ($q) use ($request) {
+    //             $q->where('clsm', '!=', $request->clsm)
+    //                 ->orWhere('clsa', '!=', $request->clsa);
+    //         })
+    //         ->delete();
+
+    //     $promotion = old_student::updateOrCreate(
+    //         [
+    //             'sid' => $request->sid,
+    //             'ssn' => $request->sesn,
+    //             'trm' => $request->trm,
+    //         ],
+    //         [
+    //             'uid' => $uid,
+    //             'schid' => $request->schid,
+    //             'fname' => $student->fname,
+    //             'mname' => $student->mname,
+    //             'lname' => $student->lname,
+    //             'status' => 'active',
+    //             'suid' => $request->suid,
+    //             'clsm' => $request->clsm,
+    //             'clsa' => $validArm->id,
+    //             'more' => '',
+    //         ]
+    //     );
+
+    //     student_academic_data::where('user_id', $request->sid)
+    //         ->update([
+    //             'new_class_main' => $request->clsm,
+    //             'new_class' => $validArm->id,
+    //         ]);
+
+    //     return response()->json([
+    //         'status' => true,
+    //         'message' => 'Student re-promoted successfully for this term',
+    //         'data' => [
+    //             'sid' => $promotion->sid,
+    //             'suid' => $promotion->suid,
+    //             'ssn' => $promotion->ssn,
+    //             'trm' => $promotion->trm,
+    //             'clsm' => $promotion->clsm,
+    //             'clsa' => $promotion->clsa,
+    //             'clsa_name' => $validArm->name,
+    //         ],
+    //     ]);
+    // }
+
     public function rePromoteStudent(Request $request)
     {
         $request->validate([
@@ -30218,27 +26562,6 @@ class ApiController extends Controller
      *     )
      * )
      */
-    // public function getActiveLearnersByGender()
-    // {
-    //     $query = DB::table('old_student as os')
-    //         ->join('student_basic_data as sb', 'os.sid', '=', 'sb.user_id')
-    //         ->where('os.status', 'active')
-    //         ->select(
-    //             DB::raw("COUNT(*) as total_active"),
-    //             DB::raw("SUM(CASE WHEN sb.sex = 'M' THEN 1 ELSE 0 END) as male"),
-    //             DB::raw("SUM(CASE WHEN sb.sex = 'F' THEN 1 ELSE 0 END) as female")
-    //         )
-    //         ->first();
-
-    //     return response()->json([
-    //         'status' => true,
-    //         'pld' => [
-    //             'total_active' => (int) $query->total_active,
-    //             'male'         => (int) $query->male,
-    //             'female'       => (int) $query->female,
-    //         ]
-    //     ]);
-    // }
 
     public function getActiveLearnersByGender()
     {
@@ -30333,25 +26656,7 @@ class ApiController extends Controller
      *     )
      * )
      */
-    // public function getActiveStaffByGender()
-    // {
-    //     $query = DB::table('old_staff as os')
-    //         ->join('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
-    //         ->where('os.status', 'active')
-    //         ->selectRaw('COUNT(*) as total_active_staff')
-    //         ->selectRaw("SUM(CASE WHEN sb.sex = 'M' THEN 1 ELSE 0 END) as male")
-    //         ->selectRaw("SUM(CASE WHEN sb.sex = 'F' THEN 1 ELSE 0 END) as female")
-    //         ->first();
 
-    //     return response()->json([
-    //         'status' => true,
-    //         'pld' => [
-    //             'total_active_staff' => (int) $query->total_active_staff,
-    //             'male'               => (int) $query->male,
-    //             'female'             => (int) $query->female,
-    //         ]
-    //     ]);
-    // }
 
     public function getActiveStaffByGender()
     {
@@ -30476,141 +26781,6 @@ class ApiController extends Controller
      *     )
      * )
      */
-
-
-
-    // public function getAllSchoolsInfo(Request $request)
-    // {
-    //     $start = $request->input('start', 0);
-    //     $count = $request->input('count', 20);
-    //     $state = $request->input('state');
-    //     $lga = $request->input('lga');
-
-    //     // 🔹 Join with school_web_data to filter and count
-    //     $query = DB::table('school as s')
-    //         ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id')
-    //         ->select('s.*', 'sw.state as web_state', 'sw.lga as web_lga', 'sw.country as web_country');
-
-    //     if (!empty($state)) {
-    //         $query->where('sw.state', $state);
-    //     }
-
-    //     if (!empty($lga)) {
-    //         $query->where('sw.lga', $lga);
-    //     }
-
-    //     // 🔹 Get total count before pagination
-    //     $totalRecords = $query->count();
-
-    //     // 🔹 Apply pagination
-    //     $schools = $query->orderBy('s.name', 'asc')
-    //         ->skip($start)
-    //         ->take($count)
-    //         ->get();
-
-    //     $pld = [];
-
-    //     foreach ($schools as $school) {
-    //         $user_id = $school->sid;
-
-    //         // Count active learners
-    //         $activeLearners = DB::table('old_student')
-    //             ->where('schid', $user_id)
-    //             ->where('status', 'active')
-    //             ->distinct('sid')
-    //             ->count('sid');
-
-    //         // Count alumni
-    //         $alumniCount = DB::table('alumnis')
-    //             ->where('schid', $user_id)
-    //             ->count();
-
-    //         // Count active staff
-    //         $activeStaff = DB::table('old_staff')
-    //             ->where('schid', $user_id)
-    //             ->where('status', 'active')
-    //             ->distinct('sid')
-    //             ->count('sid');
-
-    //         // Fetch class arms grouped by cls_id
-    //         $classArms = DB::table('sch_cls')
-    //             ->where('schid', $user_id)
-    //             ->get(['cls_id', 'name'])
-    //             ->groupBy('cls_id')
-    //             ->map(fn($items) => $items->pluck('name')->toArray())
-    //             ->toArray();
-
-    //         // Total class count
-    //         $totalClasses = DB::table('sch_cls')
-    //             ->where('schid', $user_id)
-    //             ->count();
-
-    //         // Proper school code
-    //         $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
-
-    //         // 🔹 Fetch web data (including country)
-    //         $webData = DB::table('school_web_data')->where('user_id', $user_id)->first();
-
-    //         $pld[] = [
-    //             's' => [
-    //                 'sid' => $school->sid,
-    //                 'school_id' => $schoolCode,
-    //                 'name' => $school->name,
-    //                 'count' => $school->count,
-    //                 's_web' => $school->s_web,
-    //                 's_info' => $school->s_info,
-    //                 'sbd' => $school->sbd,
-    //                 'sch3' => $school->sch3,
-    //                 'cssn' => $school->cssn,
-    //                 'ctrm' => $school->ctrm,
-    //                 'ctrmn' => $school->ctrmn,
-    //                 'lattitude' => $school->latt,
-    //                 'longitude' => $school->longi,
-    //                 'country' => $school->web_country ?? 'N/A',
-    //                 'state' => $school->web_state ?? 'N/A',
-    //                 'lga' => $school->web_lga ?? 'N/A',
-    //                 'created_at' => $school->created_at,
-    //                 'updated_at' => $school->updated_at,
-    //                 'active_learners' => $activeLearners,
-    //                 'alumni' => $alumniCount,
-    //                 'active_staff' => $activeStaff,
-    //                 'classes' => $classArms,
-    //                 'total_classes' => $totalClasses,
-    //             ],
-    //             'w' => $webData ? [
-    //                 'user_id' => $webData->user_id,
-    //                 'school_name' => $webData->sname ?? 'N/A',
-    //                 'color' => $webData->color ?? 'N/A',
-    //                 'address' => $webData->addr ?? 'N/A',
-    //                 'country' => $webData->country ?? 'N/A',
-    //                 'state' => $webData->state ?? 'N/A',
-    //                 'lga' => $webData->lga ?? 'N/A',
-    //                 'phone' => $webData->phn ?? 'N/A',
-    //                 'email' => $webData->eml ?? 'N/A',
-    //                 'vision' => $webData->vision ?? 'N/A',
-    //                 'values' => $webData->values ?? 'N/A',
-    //                 'year' => $webData->year ?? 'N/A',
-    //                 'about' => $webData->about ?? 'N/A',
-    //                 'motto' => $webData->motto ?? 'N/A',
-    //                 'facebook' => $webData->fb ?? 'N/A',
-    //                 'instagram' => $webData->isg ?? 'N/A',
-    //                 'youtube' => $webData->yt ?? 'N/A',
-    //                 'whatsapp' => $webData->wh ?? 'N/A',
-    //                 'linkedin' => $webData->lkd ?? 'N/A',
-    //                 'twitter' => $webData->tw ?? 'N/A',
-    //                 'created_at' => $webData->created_at,
-    //                 'updated_at' => $webData->updated_at,
-    //             ] : null
-    //         ];
-    //     }
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "total_records" => $totalRecords,
-    //         "pld" => $pld,
-    //     ]);
-    // }
 
 
     public function getAllSchoolsInfo(Request $request)
@@ -31043,65 +27213,6 @@ class ApiController extends Controller
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    // public function getInternalExpendituresByAdmin($ssn, $trm)
-    // {
-    //     $baseQuery = in_expenditure::query()
-    //         ->join('school', 'in_expenditure.schid', '=', 'school.sid');
-
-    //     // Apply filters
-    //     if ($ssn !== '0') {
-    //         $baseQuery->where('in_expenditure.ssn', $ssn);
-    //     }
-
-    //     if ($trm !== '0') {
-    //         $baseQuery->where('in_expenditure.trm', $trm);
-    //     }
-
-    //     // 1. Get total expenditure per school (including sch3)
-    //     $schools = (clone $baseQuery)
-    //         ->select(
-    //             'in_expenditure.schid',
-    //             'school.sid',
-    //             'school.name as school_name',
-    //             'school.sch3',
-    //             \DB::raw('SUM(in_expenditure.amt) as total_expenditure')
-    //         )
-    //         ->groupBy('in_expenditure.schid', 'school.sid', 'school.name', 'school.sch3')
-    //         ->orderBy('school.name', 'asc')
-    //         ->get();
-
-    //     // 2. Get breakdown (expenditure name + amount per school)
-    //     $expenditures = (clone $baseQuery)
-    //         ->select(
-    //             'in_expenditure.schid',
-    //             'in_expenditure.purp as expenditure_name',
-    //             \DB::raw('SUM(in_expenditure.amt) as amount')
-    //         )
-    //         ->groupBy('in_expenditure.schid', 'in_expenditure.purp')
-    //         ->get();
-
-    //     // 3. Attach breakdown + generate school_id
-    //     $serial = 1; // global counter
-    //     $result = $schools->map(function ($school) use ($expenditures, &$serial) {
-    //         $schoolExpenditures = $expenditures->where('schid', $school->schid)->values();
-
-    //         return [
-    //             // e.g. AMS/0001 instead of AMB0001
-    //             'school_id' => $school->sch3 . '/' . str_pad($serial++, 4, '0', STR_PAD_LEFT),
-    //             'schid' => $school->schid,
-    //             'school_name' => $school->school_name,
-    //             'sch3' => $school->sch3,
-    //             'total_expenditure' => $school->total_expenditure,
-    //             'expenditures' => $schoolExpenditures,
-    //         ];
-    //     });
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "pld" => $result,
-    //     ]);
-    // }
 
 
     public function getInternalExpendituresByAdmin($ssn, $trm)
@@ -33373,166 +29484,6 @@ class ApiController extends Controller
      */
 
 
-    // public function getStaffsEnrollmentInfo(Request $request)
-    // {
-    //     $start = $request->input('start', 0);
-    //     $count = $request->input('count', 20);
-    //     $state = $request->input('state');
-    //     $lga = $request->input('lga');
-
-    //     // 🔹 Join school with school_web_data for filtering
-    //     $query = DB::table('school as s')
-    //         ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id')
-    //         ->select('s.*', 'sw.state as web_state', 'sw.lga as web_lga', 'sw.country as web_country');
-
-    //     if (!empty($state)) {
-    //         $query->where('sw.state', $state);
-    //     }
-
-    //     if (!empty($lga)) {
-    //         $query->where('sw.lga', $lga);
-    //     }
-
-    //     // 🔹 Count total before pagination
-    //     $totalRecords = $query->count();
-
-    //     // 🔹 Apply pagination
-    //     $schools = $query->orderBy('s.name', 'asc')
-    //         ->skip($start)
-    //         ->take($count)
-    //         ->get();
-
-    //     $pld = [];
-
-    //     foreach ($schools as $school) {
-    //         $user_id = $school->sid;
-
-    //         /**
-    //          * STAFF COUNTS
-    //          */
-    //         $activeStaffCount = DB::table('old_staff')
-    //             ->where('schid', $user_id)
-    //             ->where('status', 'active')
-    //             ->distinct('sid')
-    //             ->count('sid');
-
-    //         $inactiveStaffCount = DB::table('old_staff')
-    //             ->where('schid', $user_id)
-    //             ->where('status', 'inactive')
-    //             ->distinct('sid')
-    //             ->count('sid');
-
-    //         $totalStaff = $activeStaffCount + $inactiveStaffCount;
-
-    //         /**
-    //          * GENDER SUMMARY (by status)
-    //          */
-    //         $genderSummary = [
-    //             'active' => [
-    //                 'male' => DB::table('old_staff')
-    //                     ->join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
-    //                     ->where('old_staff.schid', $user_id)
-    //                     ->where('old_staff.status', 'active')
-    //                     ->where('staff_basic_data.sex', 'M')
-    //                     ->distinct('old_staff.sid')
-    //                     ->count('old_staff.sid'),
-
-    //                 'female' => DB::table('old_staff')
-    //                     ->join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
-    //                     ->where('old_staff.schid', $user_id)
-    //                     ->where('old_staff.status', 'active')
-    //                     ->where('staff_basic_data.sex', 'F')
-    //                     ->distinct('old_staff.sid')
-    //                     ->count('old_staff.sid'),
-    //             ],
-    //             'inactive' => [
-    //                 'male' => DB::table('old_staff')
-    //                     ->join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
-    //                     ->where('old_staff.schid', $user_id)
-    //                     ->where('old_staff.status', 'inactive')
-    //                     ->where('staff_basic_data.sex', 'M')
-    //                     ->distinct('old_staff.sid')
-    //                     ->count('old_staff.sid'),
-
-    //                 'female' => DB::table('old_staff')
-    //                     ->join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
-    //                     ->where('old_staff.schid', $user_id)
-    //                     ->where('old_staff.status', 'inactive')
-    //                     ->where('staff_basic_data.sex', 'F')
-    //                     ->distinct('old_staff.sid')
-    //                     ->count('old_staff.sid'),
-    //             ],
-    //         ];
-
-    //         // Add totals for each status
-    //         $genderSummary['active']['total'] = $genderSummary['active']['male'] + $genderSummary['active']['female'];
-    //         $genderSummary['inactive']['total'] = $genderSummary['inactive']['male'] + $genderSummary['inactive']['female'];
-
-    //         /**
-    //          * JOB ROLE SUMMARY (e.g., teacher, principal, admin, etc.)
-    //          */
-    //         $roleSummary = DB::table('old_staff')
-    //             ->where('schid', $user_id)
-    //             ->select('role', DB::raw('count(distinct sid) as total'))
-    //             ->groupBy('role')
-    //             ->pluck('total', 'role')
-    //             ->toArray();
-
-    //         /**
-    //          * SCHOOL CODE + WEB DATA
-    //          */
-    //         $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
-    //         $webData = DB::table('school_web_data')->where('user_id', $user_id)->first();
-
-    //         // Build Payload
-    //         $pld[] = [
-    //             's' => [
-    //                 'sid' => $school->sid,
-    //                 'school_id' => $schoolCode,
-    //                 'name' => $school->name,
-    //                 's_info' => $school->s_info,
-    //                 'sch3' => $school->sch3,
-    //                 'created_at' => $school->created_at,
-    //                 'updated_at' => $school->updated_at,
-    //                 'country' => $school->web_country ?? 'N/A',
-    //                 'state' => $school->web_state ?? 'N/A',
-    //                 'lga' => $school->web_lga ?? 'N/A',
-
-    //                 // Staff data
-    //                 'total_staff' => $totalStaff,
-    //                 'active_staff' => $activeStaffCount,
-    //                 'inactive_staff' => $inactiveStaffCount,
-
-    //                 // Gender summary
-    //                 'gender_summary' => $genderSummary,
-
-    //                 // Job role summary
-    //                 'role_summary' => $roleSummary,
-    //             ],
-    //             'w' => $webData ? [
-    //                 'user_id' => $webData->user_id,
-    //                 'school_name' => $webData->sname ?? 'N/A',
-    //                 'address' => $webData->addr ?? 'N/A',
-    //                 'state' => $webData->state ?? 'N/A',
-    //                 'lga' => $webData->lga ?? 'N/A',
-    //                 'email' => $webData->eml ?? 'N/A',
-    //                 'phone' => $webData->phn ?? 'N/A',
-    //                 'website' => $webData->website ?? 'N/A',
-    //                 'created_at' => $webData->created_at,
-    //                 'updated_at' => $webData->updated_at,
-    //             ] : null,
-    //         ];
-    //     }
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "total_records" => $totalRecords,
-    //         "pld" => $pld,
-    //     ]);
-    // }
-
-
     public function getStaffsEnrollmentInfo(Request $request)
     {
         $start = $request->input('start', 0);
@@ -34075,209 +30026,6 @@ class ApiController extends Controller
      * )
      */
 
-    // public function getLearnersStaffRatioInfo(Request $request)
-    // {
-    //     $start = $request->input('start', 0);
-    //     $count = $request->input('count', 20);
-    //     $state = $request->input('state');
-    //     $lga = $request->input('lga');
-    //     $ssn = $request->input('ssn'); // academic session (required)
-
-    //     $query = DB::table('school as s')
-    //         ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id')
-    //         ->select('s.*', 'sw.state as web_state', 'sw.lga as web_lga', 'sw.country as web_country');
-
-    //     if (!empty($state))
-    //         $query->where('sw.state', $state);
-    //     if (!empty($lga))
-    //         $query->where('sw.lga', $lga);
-
-    //     $totalRecords = $query->count();
-
-    //     $schools = $query->orderBy('s.name', 'asc')
-    //         ->skip($start)
-    //         ->take($count)
-    //         ->get();
-
-    //     $pld = [];
-
-    //     foreach ($schools as $school) {
-    //         $schoolId = $school->sid;
-
-    //         /** ============================
-    //          *  STUDENT SECTION
-    //          * ============================ */
-    //         $activeLearners = DB::table('old_student')
-    //             ->where('schid', $schoolId)
-    //             ->where('status', 'active')
-    //             ->where('ssn', $ssn)
-    //             ->distinct('sid')
-    //             ->count('sid');
-
-    //         $alumniCount = DB::table('alumnis')
-    //             ->where('schid', $schoolId)
-    //             ->count();
-
-    //         $activeStudentIds = DB::table('old_student')
-    //             ->where('schid', $schoolId)
-    //             ->where('status', 'active')
-    //             ->where('ssn', $ssn)
-    //             ->pluck('sid')
-    //             ->toArray();
-
-    //         $activeGender = DB::table('student_basic_data')
-    //             ->whereIn('user_id', $activeStudentIds)
-    //             ->select('sex', DB::raw('count(*) as total'))
-    //             ->groupBy('sex')
-    //             ->pluck('total', 'sex')
-    //             ->toArray();
-
-    //         $activeMale = $activeGender['M'] ?? 0;
-    //         $activeFemale = $activeGender['F'] ?? 0;
-
-    //         $alumniStudentIds = DB::table('alumnis')
-    //             ->where('schid', $schoolId)
-    //             ->pluck('stid')
-    //             ->toArray();
-
-    //         $alumniGender = DB::table('student_basic_data')
-    //             ->whereIn('user_id', $alumniStudentIds)
-    //             ->select('sex', DB::raw('count(*) as total'))
-    //             ->groupBy('sex')
-    //             ->pluck('total', 'sex')
-    //             ->toArray();
-
-    //         $alumniMale = $alumniGender['M'] ?? 0;
-    //         $alumniFemale = $alumniGender['F'] ?? 0;
-
-    //         /** ============================
-    //          *  STAFF SECTION
-    //          * ============================ */
-    //         $activeStaffIds = DB::table('old_staff')
-    //             ->where('schid', $schoolId)
-    //             ->where('status', 'active')
-    //             ->where('ssn', $ssn)
-    //             ->distinct()
-    //             ->pluck('sid')
-    //             ->toArray();
-
-    //         $activeStaffCount = count($activeStaffIds);
-
-    //         // Gender summary for active staff
-    //         $activeStaffGender = DB::table('staff_basic_data')
-    //             ->whereIn('user_id', $activeStaffIds)
-    //             ->whereNotNull('sex')
-    //             ->select('sex', DB::raw('count(*) as total'))
-    //             ->groupBy('sex')
-    //             ->pluck('total', 'sex')
-    //             ->toArray();
-
-    //         $activeStaffMale = $activeStaffGender['M'] ?? 0;
-    //         $activeStaffFemale = $activeStaffGender['F'] ?? 0;
-
-
-    //         /** ============================
-    //          *  CLASS SECTION
-    //          * ============================ */
-    //         $classArms = DB::table('sch_cls')
-    //             ->where('schid', $schoolId)
-    //             ->get(['cls_id', 'name'])
-    //             ->groupBy('cls_id')
-    //             ->map(fn($items) => $items->pluck('name')->toArray())
-    //             ->toArray();
-
-    //         $totalClasses = DB::table('sch_cls')
-    //             ->where('schid', $schoolId)
-    //             ->count();
-
-    //         $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
-
-    //         /** ============================
-    //          *  WEB DATA SECTION
-    //          * ============================ */
-    //         $webData = DB::table('school_web_data')->where('user_id', $schoolId)->first();
-
-    //         /** ============================
-    //          *  BUILD RESPONSE
-    //          * ============================ */
-    //         $pld[] = [
-    //             "s" => [
-    //                 "sid" => (string) $school->sid,
-    //                 "school_id" => $schoolCode,
-    //                 "name" => $school->name,
-    //                 "count" => $school->count,
-    //                 "s_web" => $school->s_web,
-    //                 "s_info" => $school->s_info,
-    //                 "sbd" => $school->sbd,
-    //                 "sch3" => $school->sch3,
-    //                 "cssn" => $school->cssn,
-    //                 "ctrm" => $school->ctrm,
-    //                 "ctrmn" => $school->ctrmn,
-    //                 "lattitude" => $school->latt,
-    //                 "longitude" => $school->longi,
-    //                 "country" => $school->web_country ?? "NG",
-    //                 "state" => $school->web_state ?? "N/A",
-    //                 "lga" => $school->web_lga ?? "N/A",
-    //                 "created_at" => $school->created_at,
-    //                 "updated_at" => $school->updated_at,
-    //                 "active_learners" => $activeLearners,
-    //                 "alumni" => $alumniCount,
-    //                 "active_staff" => $activeStaffCount,
-    //                 "classes" => $classArms,
-    //                 "total_classes" => $totalClasses,
-    //                 "gender_summary" => [
-    //                     "active_students" => [
-    //                         "male" => $activeMale,
-    //                         "female" => $activeFemale,
-    //                         "total" => $activeMale + $activeFemale,
-    //                     ],
-    //                     "alumni" => [
-    //                         "male" => $alumniMale,
-    //                         "female" => $alumniFemale,
-    //                         "total" => $alumniMale + $alumniFemale,
-    //                     ],
-    //                     "active_staff" => [
-    //                         "male" => $activeStaffMale,
-    //                         "female" => $activeStaffFemale,
-    //                         "total" => $activeStaffMale + $activeStaffFemale,
-    //                     ],
-    //                 ],
-
-    //             ],
-    //             "w" => $webData ? [
-    //                 "user_id" => (string) $webData->user_id,
-    //                 "school_name" => $webData->sname,
-    //                 "color" => $webData->color,
-    //                 "address" => $webData->addr,
-    //                 "country" => $webData->country,
-    //                 "state" => $webData->state,
-    //                 "lga" => $webData->lga,
-    //                 "phone" => $webData->phn,
-    //                 "email" => $webData->eml,
-    //                 "vision" => $webData->vision,
-    //                 "values" => $webData->values,
-    //                 "year" => $webData->year,
-    //                 "about" => $webData->about,
-    //                 "motto" => $webData->motto,
-    //                 "facebook" => $webData->fb,
-    //                 "instagram" => $webData->isg,
-    //                 "youtube" => $webData->yt,
-    //                 "whatsapp" => $webData->wh,
-    //                 "linkedin" => $webData->lkd,
-    //                 "twitter" => $webData->tw,
-    //                 "created_at" => $webData->created_at,
-    //                 "updated_at" => $webData->updated_at,
-    //             ] : null
-    //         ];
-    //     }
-
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "total_records" => $totalRecords,
-    //         "pld" => $pld,
-    //     ], 200, [], JSON_PRETTY_PRINT);
-    // }
     public function getLearnersStaffRatioInfo(Request $request)
     {
         $start = $request->input('start', 0);
@@ -34958,109 +30706,6 @@ class ApiController extends Controller
      */
 
 
-    // public function rePostStaff(Request $request)
-    // {
-    //     $request->validate([
-    //         'stid' => 'required', // staff id
-    //         'schid' => 'required', // school id
-    //         'sesn' => 'required', // session
-    //         'trm' => 'required', // term
-    //         'clsm' => 'required', // new main class
-    //         'suid' => 'required', // staff unique id
-    //         'role' => 'nullable',
-    //         'role2' => 'nullable',
-    //     ]);
-
-    //     // 1️⃣ Find the staff record
-    //     $staff = DB::table('staff')->where('sid', $request->stid)->first();
-    //     if (!$staff) {
-    //         return response()->json([
-    //             'status' => false,
-    //             'message' => 'Staff not found',
-    //         ], 404);
-    //     }
-
-    //     // Check if already assigned
-    //     $exists = DB::table('staff_class')->where([
-    //         'stid' => $request->stid,
-    //         'cls' => $request->clsm,
-    //         'ssn' => $request->sesn,
-    //         'trm' => $request->trm,
-    //     ])->exists();
-
-    // //     $exists = DB::table('staff_class')
-    // // ->join('old_staff', 'old_staff.sid', '=', 'staff_class.stid')
-    // // ->where('staff_class.stid', $request->stid)
-    // // ->where('staff_class.cls', $request->clsm)
-    // // ->where('staff_class.ssn', $request->sesn)
-    // // ->where('staff_class.trm', $request->trm)
-    // // ->where(function ($q) use ($request) {
-    // //     $q->where('old_staff.role', $request->role)
-    // //       ->orWhere('old_staff.role2', $request->role2);
-    // // })
-    // // ->exists();
-
-
-    //     if ($exists) {
-    //         return response()->json([
-    //             'status' => false,
-    //             'message' => 'This staff has already been assigned to this class for the selected session and term.',
-    //         ]);
-    //     }
-
-    //     //  Generate deterministic UID (no random numbers)
-    //     $uid = $request->sesn . $request->trm . $request->stid . $request->clsm;
-    //     $uid2 = $request->sesn . $request->trm . $request->stid . $request->clsm;
-
-    //     //  Insert a new record in old_staff (no update)
-    //     DB::table('old_staff')->insert([
-    //         'uid' => $uid2,
-    //         'sid' => $request->stid,
-    //         'schid' => $request->schid,
-    //         'fname' => $staff->fname,
-    //         'mname' => $staff->mname,
-    //         'lname' => $staff->lname,
-    //         'status' => 'active',
-    //         'suid' => $request->suid,
-    //         'ssn' => $request->sesn,
-    //         'trm' => $request->trm,
-    //         'clsm' => $request->clsm,
-    //         'role' => $request->role ?? $staff->role,
-    //         'role2' => $request->role2 ?? $staff->role2,
-    //         'more' => '',
-    //         'created_at' => now(),
-    //         'updated_at' => now(),
-    //     ]);
-
-    //     // 5️⃣ Insert a new record in staff_class (no update)
-    //     DB::table('staff_class')->insert([
-    //         'uid' => $uid,
-    //         'stid' => $request->stid,
-    //         'cls' => $request->clsm,
-    //         'schid' => $request->schid,
-    //         'ssn' => $request->sesn,
-    //         'trm' => $request->trm,
-    //         'created_at' => now(),
-    //         'updated_at' => now(),
-    //     ]);
-
-    //     return response()->json([
-    //         'status' => true,
-    //         'message' => 'Staff re-posted successfully and class assigned.',
-    //         'pld' => [
-    //             'stid' => $request->stid,
-    //             'suid' => $request->suid,
-    //             'ssn' => $request->sesn,
-    //             'trm' => $request->trm,
-    //             'clsm' => $request->clsm,
-    //             'role' => $request->role,
-    //             'role2' => $request->role2,
-    //         ],
-    //     ]);
-    // }
-
-
-
     public function rePostStaff(Request $request)
     {
         $request->validate([
@@ -35313,176 +30958,6 @@ class ApiController extends Controller
      *     )
      * )
      */
-
-
-    // public function getAllSchoolsInfoRecord(Request $request)
-    // {
-    //     try {
-    //         // 🔹 Filters
-    //         $start = $request->input('start', 0);
-    //         $count = $request->input('count', 20);
-    //         $state = $request->input('state');
-    //         $lga = $request->input('lga');
-    //         $ssnYear = $request->input('ssn'); // academic year
-    //         $trmNo = $request->input('trm'); // term number
-
-    //         // 🔹 Resolve session name (e.g., "2024" → "2024/2025")
-    //         $sessionName = null;
-    //         if (!empty($ssnYear)) {
-    //             $sessionRecord = DB::table('sesn')->where('year', $ssnYear)->first();
-    //             $sessionName = $sessionRecord ? $sessionRecord->name : null;
-    //         }
-
-    //         // 🔹 Resolve term name (e.g., "1" → "First Term")
-    //         $termName = null;
-    //         if (!empty($trmNo)) {
-    //             $termRecord = DB::table('trm')->where('no', $trmNo)->first();
-    //             $termName = $termRecord ? $termRecord->name : null;
-    //         }
-
-    //         // 🔹 Base query with join
-    //         $query = DB::table('school as s')
-    //             ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id')
-    //             ->select('s.*', 'sw.state as web_state', 'sw.lga as web_lga', 'sw.country as web_country');
-
-    //         // Optional filters
-    //         if (!empty($state))
-    //             $query->where('sw.state', $state);
-    //         if (!empty($lga))
-    //             $query->where('sw.lga', $lga);
-
-    //         // 🔹 Get total before pagination
-    //         $totalRecords = $query->count();
-
-    //         // 🔹 Apply pagination
-    //         $schools = $query->orderBy('s.name', 'asc')
-    //             ->skip($start)
-    //             ->take($count)
-    //             ->get();
-
-    //         $pld = [];
-
-    //         foreach ($schools as $school) {
-    //             $user_id = $school->sid;
-
-    //             // Count active learners
-    //             $learnersQuery = DB::table('old_student')
-    //                 ->where('schid', $user_id)
-    //                 ->where('status', 'active');
-
-    //             if (!empty($sessionName))
-    //                 $learnersQuery->where('ssn', $sessionName);
-    //             if (!empty($termName))
-    //                 $learnersQuery->where('trm', $termName);
-
-    //             $activeLearners = $learnersQuery->distinct('sid')->count('sid');
-
-    //             // Count alumni
-    //             $alumniCount = DB::table('alumnis')
-    //                 ->where('schid', $user_id)
-    //                 ->count();
-
-    //             // Count active staff
-    //             $staffQuery = DB::table('old_staff')
-    //                 ->where('schid', $user_id)
-    //                 ->where('status', 'active');
-
-    //             if (!empty($sessionName))
-    //                 $staffQuery->where('ssn', $sessionName);
-    //             if (!empty($termName))
-    //                 $staffQuery->where('trm', $termName);
-
-    //             $activeStaff = $staffQuery->distinct('sid')->count('sid');
-
-    //             // Class arms and total
-    //             $classArms = DB::table('sch_cls')
-    //                 ->where('schid', $user_id)
-    //                 ->get(['cls_id', 'name'])
-    //                 ->groupBy('cls_id')
-    //                 ->map(fn($items) => $items->pluck('name')->toArray())
-    //                 ->toArray();
-
-    //             $totalClasses = DB::table('sch_cls')
-    //                 ->where('schid', $user_id)
-    //                 ->count();
-
-    //             // Generate school code
-    //             $schoolCode = strtoupper($school->sch3) . '/' . str_pad($school->sid, 4, '0', STR_PAD_LEFT);
-
-    //             // Web data
-    //             $webData = DB::table('school_web_data')->where('user_id', $user_id)->first();
-
-    //             // Structured format
-    //             $pld[] = [
-    //                 's' => [
-    //                     'sid' => (string) $school->sid,
-    //                     'school_id' => $schoolCode,
-    //                     'name' => $school->name,
-    //                     'count' => (string) $school->count,
-    //                     's_web' => $school->s_web,
-    //                     's_info' => $school->s_info,
-    //                     'sbd' => $school->sbd,
-    //                     'sch3' => $school->sch3,
-    //                     'cssn' => $school->cssn,
-    //                     'ctrm' => $school->ctrm,
-    //                     'ctrmn' => $school->ctrmn,
-    //                     'lattitude' => $school->latt,
-    //                     'longitude' => $school->longi,
-    //                     'country' => $school->web_country ?? 'N/A',
-    //                     'state' => $school->web_state ?? 'N/A',
-    //                     'lga' => $school->web_lga ?? 'N/A',
-    //                     'created_at' => $school->created_at,
-    //                     'updated_at' => $school->updated_at,
-    //                     'active_learners' => $activeLearners,
-    //                     'alumni' => $alumniCount,
-    //                     'active_staff' => $activeStaff,
-    //                     'classes' => $classArms,
-    //                     'total_classes' => $totalClasses,
-    //                 ],
-    //                 'w' => $webData ? [
-    //                     'user_id' => $webData->user_id,
-    //                     'school_name' => $webData->sname ?? 'N/A',
-    //                     'color' => $webData->color ?? 'N/A',
-    //                     'address' => $webData->addr ?? 'N/A',
-    //                     'country' => $webData->country ?? 'N/A',
-    //                     'state' => $webData->state ?? 'N/A',
-    //                     'lga' => $webData->lga ?? 'N/A',
-    //                     'phone' => $webData->phn ?? 'N/A',
-    //                     'email' => $webData->eml ?? 'N/A',
-    //                     'vision' => $webData->vision ?? 'N/A',
-    //                     'values' => $webData->values ?? 'N/A',
-    //                     'year' => $webData->year ?? 'N/A',
-    //                     'about' => $webData->about ?? 'N/A',
-    //                     'motto' => $webData->motto ?? 'N/A',
-    //                     'facebook' => $webData->fb ?? 'N/A',
-    //                     'instagram' => $webData->isg ?? 'N/A',
-    //                     'youtube' => $webData->yt ?? 'N/A',
-    //                     'whatsapp' => $webData->wh ?? 'N/A',
-    //                     'linkedin' => $webData->lkd ?? 'N/A',
-    //                     'twitter' => $webData->tw ?? 'N/A',
-    //                     'created_at' => $webData->created_at,
-    //                     'updated_at' => $webData->updated_at,
-    //                 ] : null,
-    //             ];
-    //         }
-
-    //         // Response
-    //         return response()->json([
-    //             "status" => true,
-    //             "message" => "Success",
-    //             "total_records" => $totalRecords,
-    //             "session_used" => $sessionName ?? 'All Sessions',
-    //             "term_used" => $termName ?? 'All Terms',
-    //             "pld" => $pld,
-    //         ]);
-
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             "status" => false,
-    //             "message" => "Error: " . $e->getMessage(),
-    //         ], 500);
-    //     }
-    // }
 
 
     public function getAllSchoolsInfoRecord(Request $request)
@@ -36447,6 +31922,7 @@ class ApiController extends Controller
         ]);
     }
 
+
     /**
      * @OA\Post(
      *     path="/api/toggleResultStatus",
@@ -36570,3 +32046,4 @@ class ApiController extends Controller
 
 
 }
+
