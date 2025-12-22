@@ -11610,79 +11610,91 @@ class ApiController extends Controller
 
     public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): array
     {
-        $MAX_SUBACCOUNT_SHARE = 99.0; // merchant keeps 1%
+        $MAX_SUBACCOUNT_SHARE = 99.0; // Paystack rule
 
-        /* ===============================
-           CHECK EXISTING SPLIT
-        =============================== */
+        /* =====================================================
+           1. CHECK IF A VALID SPLIT ALREADY EXISTS
+        ===================================================== */
         $existing = subaccount_split::where('schid', $schid)
             ->where('clsid', $clsid)
             ->first();
 
         if ($existing && $existing->split_code) {
+
             $check = Http::withToken(env('PAYSTACK_SECRET'))
                 ->get("https://api.paystack.co/split/{$existing->split_code}");
 
             if ($check->successful()) {
-                $sum = collect($check->json('data.subaccounts') ?? [])
-                    ->sum('share');
+
+                $storedSubs = json_decode($existing->subaccounts, true) ?? [];
+                $sum = collect($storedSubs)->sum('share');
 
                 if ($sum > 0 && $sum <= $MAX_SUBACCOUNT_SHARE) {
                     return [
                         'split_code' => $existing->split_code,
-                        'subaccounts' => $check->json('data.subaccounts'),
+                        'subaccounts' => $storedSubs,
                     ];
                 }
             }
 
-            // delete broken split
+            // Broken / invalid split → remove
             $existing->delete();
         }
 
-        /* ===============================
-           MERGE & VALIDATE
-        =============================== */
+        /* =====================================================
+           2. MERGE & VALIDATE FRONTEND SUBACCOUNTS
+        ===================================================== */
         $merged = [];
+
         foreach ($subaccounts as $acc) {
-            if (empty($acc['subaccount']) || $acc['share'] <= 0) {
+
+            if (
+                empty($acc['subaccount']) ||
+                !isset($acc['share']) ||
+                floatval($acc['share']) <= 0
+            ) {
                 throw new \Exception('Invalid subaccount payload');
             }
+
             $merged[$acc['subaccount']] =
                 ($merged[$acc['subaccount']] ?? 0) + floatval($acc['share']);
         }
 
-        $total = array_sum($merged);
-        if ($total <= 0) {
-            throw new \Exception('Invalid split total');
+        if (empty($merged)) {
+            throw new \Exception('No valid subaccounts supplied');
         }
 
-        /* ===============================
-           NORMALIZE TO 99%
-        =============================== */
+        /* =====================================================
+           3. VALIDATE TOTAL PERCENTAGE (≤ 99%)
+        ===================================================== */
+        $total = array_sum($merged);
+
+        if ($total <= 0 || $total > $MAX_SUBACCOUNT_SHARE) {
+            throw new \Exception(
+                "Invalid split percentage. Total must be ≤ {$MAX_SUBACCOUNT_SHARE}%"
+            );
+        }
+
+        /* =====================================================
+           4. NORMALIZE FOR PAYSTACK
+        ===================================================== */
         $normalized = [];
-        $running = 0;
-        $last = count($merged) - 1;
-        $i = 0;
+
 
         foreach ($merged as $code => $share) {
-            if ($i === $last) {
-                $pct = round($MAX_SUBACCOUNT_SHARE - $running, 2);
-            } else {
-                $pct = round(($share / $total) * $MAX_SUBACCOUNT_SHARE, 2);
-                $running += $pct;
-            }
-
             $normalized[] = [
                 'subaccount' => $code,
-                'share' => $pct,
+                'share' => round($share, 2),
             ];
-
-            $i++;
         }
 
-        /* ===============================
-           CREATE SPLIT
-        =============================== */
+        if (empty($normalized)) {
+            throw new \Exception('No valid subaccounts after normalization');
+        }
+
+        /* =====================================================
+           5. CREATE PAYSTACK SPLIT
+        ===================================================== */
         $response = Http::withToken(env('PAYSTACK_SECRET'))
             ->post('https://api.paystack.co/split', [
                 'name' => "Split-{$schid}-{$clsid}",
@@ -11690,19 +11702,23 @@ class ApiController extends Controller
                 'currency' => 'NGN',
                 'subaccounts' => $normalized,
 
-                // 🔑 THIS IS THE FIX
+                // 🔑 REQUIRED OR PAYSTACK WILL IGNORE SPLIT
                 'bearer_type' => 'subaccount',
-                'bearer_subaccount' => $normalized[0]['subaccount'], // one of them
+                'bearer_subaccount' => $normalized[0]['subaccount'],
             ]);
 
-
-
         if (!$response->successful()) {
-            throw new \Exception($response->body());
+            Log::error('Paystack split creation failed', [
+                'body' => $response->body(),
+            ]);
+            throw new \Exception('Unable to create Paystack split');
         }
 
         $splitCode = $response->json('data.split_code');
 
+        /* =====================================================
+           6. STORE SPLIT LOCALLY
+        ===================================================== */
         subaccount_split::create([
             'schid' => $schid,
             'clsid' => $clsid,
@@ -11782,6 +11798,16 @@ class ApiController extends Controller
         $payheadIds = $request->payhead_ids; // <-- capture payhead IDs
         $splitType = $request->type ?? 'percentage';
 
+        $total = collect($subaccounts)->sum('share');
+
+        if ($total > 99) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Total split percentage cannot exceed 99%',
+            ], 422);
+        }
+
+
         try {
             $totalAmountKobo = $amount * 100;
 
@@ -11805,7 +11831,6 @@ class ApiController extends Controller
             $splitData = $this->createOrGetSplit($schid, $clsid, $subaccounts);
 
             $splitCode = $splitData['split_code'] ?? null;   // Paystack split code
-            $totalSplitAmount = $splitData['total_amount'] ?? null; // Total split amount (₦)
             $subaccountsData = $splitData['subaccounts'] ?? [];    // Subaccount info
 
             // Build reference
@@ -11875,7 +11900,6 @@ class ApiController extends Controller
                     'data' => $paystackData,
                     'ref' => $ref,
                     'split_code' => $splitCode,
-                    'total_split_amount' => $totalSplitAmount,
                     'subaccounts' => $subaccountsData,
                 ]);
             }
@@ -13487,96 +13511,59 @@ class ApiController extends Controller
     {
         Log::info('------------ PAYSTACK CALLBACK ARRIVED -----------');
 
-        // Decode webhook payload (Paystack sends raw JSON)
         $payload = json_decode($request->getContent(), true);
 
-        // Verify event type
-        if (!isset($payload['event']) || $payload['event'] !== "charge.success") {
-            Log::warning('Invalid Paystack event received.');
+        // 1️⃣ Validate event
+        if (($payload['event'] ?? '') !== 'charge.success') {
             return response()->json(['status' => 'ignored'], 200);
         }
 
-        // Extract reference
-        $ref = $payload['data']['reference'] ?? null;
+        $data = $payload['data'] ?? [];
+
+        // 2️⃣ Extract reference
+        $ref = $data['reference'] ?? null;
         if (!$ref) {
-            Log::error('Missing payment reference.');
-            return response()->json(['status' => 'error', 'message' => 'Missing reference'], 400);
+            Log::error('Missing reference');
+            return response()->json(['status' => 'error'], 400);
         }
 
-        // Prevent duplicate processing (idempotency)
-        if (
-            payment_refs::where('ref', $ref)
-                ->whereNotNull('confirmed_at')
-                ->exists()
-        ) {
-            Log::info("Duplicate webhook ignored for ref {$ref}");
+        // 3️⃣ Idempotency
+        if (payment_refs::where('ref', $ref)->whereNotNull('confirmed_at')->exists()) {
+            Log::info("Duplicate webhook {$ref}");
             return response()->json(['status' => 'duplicate'], 200);
         }
 
-        // Parse identifiers from reference
+        // 4️⃣ Parse ref
         $payinfo = explode('-', $ref);
         [$host, $schid, $amt, $typ, $stid, $ssnid, $trmid, $clsid] = $payinfo;
 
-        // Extract metadata
-        $metadata = $payload['data']['metadata'] ?? [];
+        // 5️⃣ Metadata (ONLY what Paystack sends back)
+        $metadata = $data['metadata'] ?? [];
+
         $nm = $metadata['name'] ?? '';
         $exp = $metadata['exp'] ?? '';
         $lid = $metadata['lid'] ?? '';
         $eml = $metadata['eml'] ?? '';
         $payheadIds = $metadata['payhead_ids'] ?? [];
-        $tm = $metadata['time'] ?? now()->timestamp;
 
-        $totalAmountPaid = ($payload['data']['amount'] ?? ($amt * 100)) / 100;
+        // 6️⃣ Amount (Paystack sends kobo)
+        $totalAmountPaid = ($data['amount'] ?? 0) / 100;
 
-        // Determine payment type
-        $what = '';
-        if ($typ == '0') {
-            $what = 'School Fees';
-        } elseif ($typ == '1') {
-            $what = 'Application Fee';
-            student::where('sid', $stid)->update(['rfee' => '1']);
-        } elseif ($typ == '2') {
-            $what = 'Acceptance Fee';
-            $uid = $stid . $schid . $clsid;
-            afeerec::updateOrCreate(
-                ['uid' => $uid],
-                [
-                    'stid' => $stid,
-                    'schid' => $schid,
-                    'clsid' => $clsid,
-                    'ssn' => $ssnid,
-                    'trm' => $trmid,
-                    'amt' => intval($totalAmountPaid),
-                ]
-            );
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | IMPORTANT FIX: LOAD SPLIT FROM DB (NOT WEBHOOK)
-        |--------------------------------------------------------------------------
-        */
+        // 7️⃣ Load split FROM DB (THIS IS THE KEY)
         $refRow = payment_refs::where('ref', $ref)->first();
-        $splitData = [];
+        $splitData = $refRow && $refRow->subaccounts
+            ? json_decode($refRow->subaccounts, true)
+            : [];
 
-        if ($refRow && $refRow->subaccounts) {
-            $splitData = json_decode($refRow->subaccounts, true);
-        }
+        /* =====================================================
+           RECORD PAYMENT
+        ===================================================== */
 
-        /*
-        |--------------------------------------------------------------------------
-        | Record payments
-        |--------------------------------------------------------------------------
-        */
-        if (is_array($splitData) && count($splitData) > 0) {
-
-            Log::info('Split Data loaded from DB:', $splitData);
+        if (!empty($splitData)) {
 
             foreach ($splitData as $sub) {
 
-                $subShare = isset($sub['share'])
-                    ? ($totalAmountPaid * floatval($sub['share'])) / 100
-                    : ($totalAmountPaid / count($splitData));
+                $subAmount = ($totalAmountPaid * $sub['share']) / 100;
 
                 payments::create([
                     'schid' => $schid,
@@ -13587,21 +13574,21 @@ class ApiController extends Controller
                     'name' => $nm,
                     'exp' => $exp,
                     'amt' => $totalAmountPaid,
-                    'share' => $subShare,
-                    'lid' => $lid,
-                    'subaccount_code' => $sub['subaccount'] ?? null,
+                    'share' => $subAmount,
+                    'subaccount_code' => $sub['subaccount'],
                     'main_ref' => $ref,
                     'pay_head' => implode(',', $payheadIds),
                     'total_split_amount' => $totalAmountPaid,
                     'email' => $eml,
+                    'lid' => $lid,
                 ]);
             }
 
-            Log::info("Split payment recorded successfully for ref {$ref}");
+            Log::info("Split recorded for {$ref}");
 
         } else {
 
-            // Non-split transaction
+            // Non-split fallback
             payments::create([
                 'schid' => $schid,
                 'stid' => $stid,
@@ -13611,43 +13598,20 @@ class ApiController extends Controller
                 'name' => $nm,
                 'exp' => $exp,
                 'amt' => $totalAmountPaid,
-                'lid' => $lid,
                 'main_ref' => $ref,
                 'email' => $eml,
                 'pay_head' => implode(',', $payheadIds),
             ]);
-
-            Log::info("Non-split payment recorded for ref {$ref}");
         }
 
-        // Update reference record (mark confirmed)
-        payment_refs::updateOrCreate(
-            ['ref' => $ref],
-            [
-                'amt' => $totalAmountPaid,
-                'time' => $tm,
-                'metadata' => json_encode($metadata),
-                'subaccounts' => json_encode($splitData),
-                'confirmed_at' => now(),
-            ]
-        );
-
-        // Send confirmation email
-        try {
-            $data = [
-                'name' => $nm,
-                'subject' => 'Payment Received',
-                'body' => "Your {$what} payment of ₦{$totalAmountPaid} was received successfully.",
-                'link' => env('PORTAL_URL') . '/studentLogin/' . $schid,
-            ];
-            Mail::to($eml)->send(new SSSMails($data));
-        } catch (\Exception $e) {
-            Log::error('Failed to send email: ' . $e->getMessage());
-        }
+        // 8️⃣ Mark confirmed
+        $refRow->update([
+            'amt' => $totalAmountPaid,
+            'confirmed_at' => now(),
+        ]);
 
         return response()->json(['status' => 'success'], 200);
     }
-
 
 
     //--VENDORS.
