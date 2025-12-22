@@ -4127,7 +4127,7 @@ class ApiController extends Controller
     //     ]);
     // }
 
-     public function getStudentResultsByArm($schid, $clsid, $ssn, $trm, $arm)
+    public function getStudentResultsByArm($schid, $clsid, $ssn, $trm, $arm)
     {
         // Ensure we only fetch students for the selected session + class + arm + term
         $members = student::join('old_student', 'student.sid', '=', 'old_student.sid')
@@ -13487,9 +13487,8 @@ class ApiController extends Controller
     {
         Log::info('------------ PAYSTACK CALLBACK ARRIVED -----------');
 
-        // Decode webhook payload
-        // $payload = json_decode($request->getContent(), true);
-        $payload = json_decode($request->input('payload'), true);
+        // Decode webhook payload (Paystack sends raw JSON)
+        $payload = json_decode($request->getContent(), true);
 
         // Verify event type
         if (!isset($payload['event']) || $payload['event'] !== "charge.success") {
@@ -13504,8 +13503,12 @@ class ApiController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Missing reference'], 400);
         }
 
-        // Prevent duplicate processing
-        if (payments::where('main_ref', $ref)->exists()) {
+        // Prevent duplicate processing (idempotency)
+        if (
+            payment_refs::where('ref', $ref)
+                ->whereNotNull('confirmed_at')
+                ->exists()
+        ) {
             Log::info("Duplicate webhook ignored for ref {$ref}");
             return response()->json(['status' => 'duplicate'], 200);
         }
@@ -13525,17 +13528,15 @@ class ApiController extends Controller
 
         $totalAmountPaid = ($payload['data']['amount'] ?? ($amt * 100)) / 100;
 
-        // Determine payment type description
+        // Determine payment type
         $what = '';
         if ($typ == '0') {
             $what = 'School Fees';
         } elseif ($typ == '1') {
             $what = 'Application Fee';
-            // Mark registration fee as paid
             student::where('sid', $stid)->update(['rfee' => '1']);
         } elseif ($typ == '2') {
             $what = 'Acceptance Fee';
-            // Unique acceptance fee record
             $uid = $stid . $schid . $clsid;
             afeerec::updateOrCreate(
                 ['uid' => $uid],
@@ -13550,21 +13551,29 @@ class ApiController extends Controller
             );
         }
 
-        // Get split data from webhook or DB
-        $splitData = $payload['data']['split']['subaccounts'] ?? [];
-        if (!$splitData || !is_array($splitData)) {
-            $stored = payment_refs::where('ref', $ref)->first();
-            if ($stored && $stored->subaccounts) {
-                $splitData = json_decode($stored->subaccounts, true);
-            }
+        /*
+        |--------------------------------------------------------------------------
+        | IMPORTANT FIX: LOAD SPLIT FROM DB (NOT WEBHOOK)
+        |--------------------------------------------------------------------------
+        */
+        $refRow = payment_refs::where('ref', $ref)->first();
+        $splitData = [];
+
+        if ($refRow && $refRow->subaccounts) {
+            $splitData = json_decode($refRow->subaccounts, true);
         }
 
-        // Record payments
-        if ($splitData && count($splitData) > 0) {
-            Log::info('Split Data detected:', $splitData);
+        /*
+        |--------------------------------------------------------------------------
+        | Record payments
+        |--------------------------------------------------------------------------
+        */
+        if (is_array($splitData) && count($splitData) > 0) {
+
+            Log::info('Split Data loaded from DB:', $splitData);
 
             foreach ($splitData as $sub) {
-                // Calculate subaccount share
+
                 $subShare = isset($sub['share'])
                     ? ($totalAmountPaid * floatval($sub['share'])) / 100
                     : ($totalAmountPaid / count($splitData));
@@ -13589,7 +13598,9 @@ class ApiController extends Controller
             }
 
             Log::info("Split payment recorded successfully for ref {$ref}");
+
         } else {
+
             // Non-split transaction
             payments::create([
                 'schid' => $schid,
@@ -13609,7 +13620,7 @@ class ApiController extends Controller
             Log::info("Non-split payment recorded for ref {$ref}");
         }
 
-        // Update or create reference record
+        // Update reference record (mark confirmed)
         payment_refs::updateOrCreate(
             ['ref' => $ref],
             [
