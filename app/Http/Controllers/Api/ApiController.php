@@ -11737,44 +11737,42 @@ class ApiController extends Controller
         $reference = $request->query('reference');
 
         if (!$reference) {
-            return $this->redirectToError();
+            return redirect()->to(url('/studentPortal?status=error'));
         }
 
-        // Verify payment
-        $response = Http::withToken(env('PAYSTACK_SECRET'))
-            ->get("https://api.paystack.co/transaction/verify/{$reference}");
+        // Get school subdomain
+        $refParts = explode('-', $reference);
+        $schid = $refParts[1] ?? null;
 
-        $data = $response->json();
-
-        if (!$response->ok() || !isset($data['data']['status']) || $data['data']['status'] !== 'success') {
-            return $this->redirectToError();
-        }
-
-        // Get school ID from metadata
-        $schid = $data['data']['metadata']['schid'] ?? null;
-        if (!$schid) {
-            return $this->redirectToError();
-        }
-
-        // Lookup school subdomain
         $school = \DB::table('school')->where('sid', $schid)->first();
-        $subdomain = $school->sbd ?? null;
+        $subdomain = $school->sbd ?? 'www';
 
-        if (!$subdomain) {
-            return $this->redirectToError();
-        }
-
-        // Redirect to the school's subdomain + /studentPortall
-        $url = request()->getScheme() . "://{$subdomain}.schoolsilomerge.top/studentPortal";
-
+        // Redirect user with reference to frontend
+        $url = request()->getScheme() . "://{$subdomain}.schoolsilomerge.top/studentPortal?status=processing&ref={$reference}";
         return redirect()->to($url);
     }
+
 
     private function redirectToError(): \Illuminate\Http\RedirectResponse
     {
         return redirect()->to(url('/studentPortal?status=error'));
     }
 
+    public function checkPaymentStatus(Request $request)
+    {
+        $request->validate(['ref' => 'required|string']);
+
+        $refRow = payment_refs::where('ref', $request->ref)->first();
+
+        if (!$refRow) {
+            return response()->json(['confirmed' => false, 'message' => 'Reference not found']);
+        }
+
+        return response()->json([
+            'confirmed' => !is_null($refRow->confirmed_at),
+            'confirmed_at' => $refRow->confirmed_at,
+        ]);
+    }
 
 
     public function initializePayment(Request $request)

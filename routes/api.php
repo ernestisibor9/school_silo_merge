@@ -36,6 +36,8 @@ Route::post('setAdminStaffRole', [ApiController::class, 'setAdminStaffRole']);
 Route::post('setSchoolStaffRole', [ApiController::class, 'setSchoolStaffRole']);
 
 Route::post('getSplitCode', [ApiController::class, 'getSplitCode']);
+Route::get('/api/payment/status', [ApiController::class, 'checkPaymentStatus']);
+
 
 // Route::post('promoteStudent', [ApiController::class, 'promoteStudent']);
 // Route::post('repeatStudent', [ApiController::class, 'repeatStudent']);
