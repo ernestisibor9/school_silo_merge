@@ -7078,9 +7078,7 @@ class ApiController extends Controller
 
     public function getOldStudentsAndSubjectScoreSheet($schid, $ssn, $trm, $clsm, $clsa, $stf)
     {
-        /* ----------------------------------------------------------
-         | 2. Fetch Students (EXACT session, term, class, arm)
-         ---------------------------------------------------------- */
+        // 1. Fetch only students that match EXACTLY the session, term, class, and arm
         $ostd = old_student::where("schid", $schid)
             ->where("status", "active")
             ->where("ssn", $ssn)
@@ -7089,21 +7087,23 @@ class ApiController extends Controller
             ->when($clsa != "-1", function ($q) use ($clsa) {
                 $q->where("clsa", $clsa);
             })
-            ->distinct("sid")
+            ->distinct("sid") // prevent duplicate rows for same student
             ->get();
 
-        /* ----------------------------------------------------------
-         | 3. Relevant Subjects
-         ---------------------------------------------------------- */
+        // 2. Fetch relevant subjects
         if ($stf == "-1" || $stf == "-2") {
+            // No staff filter
             $relevantSubjects = class_subj::where('class_subj.schid', $schid)
                 ->where('class_subj.clsid', $clsm)
+                ->where('sesn', $ssn)
                 ->distinct()
                 ->pluck('subj_id');
         } else {
+            // Staff-specific subjects
             $relevantSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
                 ->where('class_subj.schid', $schid)
                 ->where('class_subj.clsid', $clsm)
+                ->where('class_subj.sesn', $ssn)
                 ->where('staff_subj.stid', $stf)
                 ->distinct()
                 ->pluck('sbj');
@@ -7111,27 +7111,37 @@ class ApiController extends Controller
 
         $stdPld = [];
 
-        /* ----------------------------------------------------------
-         | 4. Loop Through Students
-         ---------------------------------------------------------- */
         foreach ($ostd as $std) {
             $user_id = $std->sid;
 
-            // Student subjects
+            // 3. Fetch unique subjects for the student
             $studentSubjects = student_subj::where('stid', $user_id)
                 ->whereIn('sbj', $relevantSubjects)
+                ->where('ssn', $ssn) // filter by session
                 ->distinct('sbj')
                 ->get();
 
             $mySbjs = [];
             $scores = [];
-            $totalScore = 0;
 
             foreach ($studentSubjects as $sbj) {
                 $sbid = (string) $sbj->sbj;
                 $mySbjs[] = $sbid;
 
-                // Fetch scores
+                // 4. Fetch scores (filtered by session, term, class)
+                // $subjectScores = std_score::where('stid', $user_id)
+                //     ->where('sbj', $sbid)
+                //     ->where("schid", $schid)
+                //     ->where("ssn", $ssn)
+                //     ->where("trm", $trm)
+                //     ->where("clsid", $clsm)
+                //     ->get();
+
+                // $scores[] = [
+                //     'sbid' => $sbid,
+                //     'scores' => $subjectScores
+                // ];
+
                 $subjectScores = std_score::where('stid', $user_id)
                     ->where('sbj', $sbid)
                     ->where("schid", $schid)
@@ -7140,7 +7150,7 @@ class ApiController extends Controller
                     ->where("clsid", $clsm)
                     ->get();
 
-                // If no score, assign default scr = 0
+                // If no score record exists, assign scr = 0
                 if ($subjectScores->isEmpty()) {
                     $subjectScores = collect([
                         [
@@ -7155,28 +7165,14 @@ class ApiController extends Controller
                     ]);
                 }
 
-                /* ----------------------------------------------
-                 | NEW: SUBJECT-LEVEL TOTAL (INTERNAL ONLY)
-                 | (Response structure is UNCHANGED)
-                 ---------------------------------------------- */
-                $subjectTotal = $subjectScores->sum('scr');
-
-                // Add to score array (structure remains EXACTLY SAME)
                 $scores[] = [
                     'sbid' => $sbid,
-                    'scores' => $subjectScores,
-                    'total' => $subjectTotal   // ✔ added WITHOUT changing response structure
+                    'scores' => $subjectScores
                 ];
 
-                // Add to student overall total
-                foreach ($subjectScores as $sc) {
-                    $totalScore += (int) $sc["scr"];
-                }
             }
 
-            /* ----------------------------------------------------------
-             | 5. Extra info for staff = -2
-             ---------------------------------------------------------- */
+            // 5. Extra info for staff = -2
             $psy = false;
             $res = "0";
             $rinfo = [];
@@ -7201,28 +7197,20 @@ class ApiController extends Controller
                 }
             }
 
-            /* ----------------------------------------------------------
-             | 6. Final payload for this student
-             ---------------------------------------------------------- */
+            // 6. Push result (no duplicate sbj/scr)
             $stdPld[] = [
                 'std' => $std,
                 'sbj' => array_values(array_unique($mySbjs)),
                 'scr' => collect($scores)->unique('sbid')->values(),
-                'total_score' => $totalScore,
                 'psy' => $psy,
                 'res' => $res,
                 'rinfo' => $rinfo ?: []
             ];
         }
 
-        /* ----------------------------------------------------------
-         | 7. Unique class subjects
-         ---------------------------------------------------------- */
+        // 7. Build unique class subjects using subj model
         $clsSbj = subj::whereIn('id', $relevantSubjects)->get();
 
-        /* ----------------------------------------------------------
-         | 8. FINAL RESPONSE (structure unchanged)
-         ---------------------------------------------------------- */
         return response()->json([
             "status" => true,
             "message" => "Success",
@@ -10349,6 +10337,7 @@ class ApiController extends Controller
      * @OA\Get(
      *     path="/api/getStudentPaymentStat/{stid}",
      *     tags={"Payments"},
+     *      security={{"bearerAuth": {}}},
      *     summary="get stats for student payments",
      *     description="Use this endpoint to get stats for payments by a student",
      *     @OA\Parameter(

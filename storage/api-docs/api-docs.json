@@ -8735,7 +8735,12 @@
                     "401": {
                         "description": "Unauthorized"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/confirmPayment/{schid}/{clsid}/{ssnid}/{trmid}/{stid}": {
