@@ -9946,14 +9946,14 @@
                 ]
             }
         },
-        "/api/payment/status": {
+        "/api/checkPaymentStatus": {
             "get": {
                 "tags": [
                     "Payments"
                 ],
                 "summary": "Check payment status by reference",
                 "description": "Returns whether the payment associated with the given reference has been confirmed.",
-                "operationId": "452b29efc9a853e98f5917abf8879fee",
+                "operationId": "faa11658d6ca8a828369b4b094e1f485",
                 "parameters": [
                     {
                         "name": "ref",
