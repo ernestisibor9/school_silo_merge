@@ -13573,104 +13573,142 @@ class ApiController extends Controller
     //         return response()->json(['status' => 'success'], 200);
 //     }
 
+    public function paystackConf(Request $request)
+    {
+        Log::info('------------ PAYSTACK CALLBACK ARRIVED -----------');
 
-public function paystackConf(Request $request)
-{
-    Log::info('------------ PAYSTACK CALLBACK ARRIVED -----------');
+        try {
+            // Log raw payload for debugging
+            $rawPayload = $request->getContent();
+            Log::info('Raw Paystack payload', ['payload' => $rawPayload]);
 
-    try {
-        // Log raw payload for debugging
-        $rawPayload = $request->getContent();
-        Log::info('Raw Paystack payload', ['payload' => $rawPayload]);
+            // Decode first layer
+            $payload = json_decode($rawPayload, true);
+            if (!$payload) {
+                Log::error('Failed to decode JSON payload', ['raw' => $rawPayload]);
+                return response()->json(['status' => 'error', 'message' => 'Invalid JSON payload'], 400);
+            }
 
-        $payload = json_decode($rawPayload, true);
-        if (!$payload) {
-            Log::error('Failed to decode JSON payload', ['raw' => $rawPayload]);
-            return response()->json(['status' => 'error', 'message' => 'Invalid JSON payload'], 400);
-        }
+            // If payload is nested like {"payload": "..."} → decode again
+            if (isset($payload['payload'])) {
+                $nested = json_decode($payload['payload'], true);
+                if ($nested) {
+                    $payload = $nested;
+                } else {
+                    Log::warning('Failed to decode nested payload, using original');
+                }
+            }
 
-        // 1️⃣ Validate event
-        $event = $payload['event'] ?? '';
-        if (!in_array($event, ['charge.success', 'payment.success'])) {
-            Log::warning("Ignored Paystack event: {$event}");
-            return response()->json(['status' => 'ignored'], 200);
-        }
+            // 1️⃣ Validate event
+            $event = $payload['event'] ?? '';
+            if (!in_array($event, ['charge.success', 'payment.success'])) {
+                Log::warning("Ignored Paystack event: {$event}");
+                return response()->json(['status' => 'ignored'], 200);
+            }
 
-        $data = $payload['data'] ?? [];
-        $ref = $data['reference'] ?? null;
+            $data = $payload['data'] ?? [];
+            $ref = $data['reference'] ?? null;
 
-        if (!$ref) {
-            Log::error('Missing reference in payload', ['payload' => $payload]);
-            return response()->json(['status' => 'error', 'message' => 'Missing reference'], 400);
-        }
+            if (!$ref) {
+                Log::error('Missing reference in payload', ['payload' => $payload]);
+                return response()->json(['status' => 'error', 'message' => 'Missing reference'], 400);
+            }
 
-        Log::info('Processing reference', ['ref' => $ref]);
+            Log::info('Processing reference', ['ref' => $ref]);
 
-        // 2️⃣ Idempotency
-        if (payment_refs::where('ref', $ref)->whereNotNull('confirmed_at')->exists()) {
-            Log::info("Duplicate webhook detected for {$ref}");
-            return response()->json(['status' => 'duplicate'], 200);
-        }
+            // 2️⃣ Idempotency
+            if (payment_refs::where('ref', $ref)->whereNotNull('confirmed_at')->exists()) {
+                Log::info("Duplicate webhook detected for {$ref}");
+                return response()->json(['status' => 'duplicate'], 200);
+            }
 
-        // 3️⃣ Parse reference safely
-        $payinfo = explode('-', $ref);
-        if (count($payinfo) < 8) {
-            Log::error('Reference format invalid', ['ref' => $ref]);
-            return response()->json(['status' => 'error', 'message' => 'Invalid reference format'], 400);
-        }
-        [$host, $schid, $amt, $typ, $stid, $ssnid, $trmid, $clsid] = $payinfo;
+            // 3️⃣ Parse reference safely
+            $payinfo = explode('-', $ref);
+            if (count($payinfo) < 8) {
+                Log::error('Reference format invalid', ['ref' => $ref]);
+                return response()->json(['status' => 'error', 'message' => 'Invalid reference format'], 400);
+            }
+            [$host, $schid, $amt, $typ, $stid, $ssnid, $trmid, $clsid] = $payinfo;
 
-        // 4️⃣ Metadata
-        $metadata = $data['metadata'] ?? [];
-        $nm = $metadata['name'] ?? '';
-        $exp = $metadata['exp'] ?? '';
-        $lid = $metadata['lid'] ?? '';
-        $eml = $metadata['eml'] ?? '';
-        $payheadIds = $metadata['payhead_ids'] ?? [];
-        $tm = $metadata['time'] ?? now()->timestamp;
+            // 4️⃣ Metadata
+            $metadata = $data['metadata'] ?? [];
+            $nm = $metadata['name'] ?? '';
+            $exp = $metadata['exp'] ?? '';
+            $lid = $metadata['lid'] ?? '';
+            $eml = $metadata['eml'] ?? '';
+            $payheadIds = $metadata['payhead_ids'] ?? [];
+            $tm = $metadata['time'] ?? now()->timestamp;
 
-        // 5️⃣ Amount
-        $totalAmountPaid = ($data['amount'] ?? 0) / 100;
+            // 5️⃣ Amount
+            $totalAmountPaid = ($data['amount'] ?? 0) / 100;
 
-        // 6️⃣ Payment type
-        $what = '';
-        if ($typ == '0') {
-            $what = 'School Fees';
-        } elseif ($typ == '1') {
-            $what = 'Application Fee';
-            student::where('sid', $stid)->update(['rfee' => '1']);
-        } elseif ($typ == '2') {
-            $what = 'Acceptance Fee';
-            $uid = $stid . $schid . $clsid;
-            afeerec::updateOrCreate(
-                ['uid' => $uid],
-                [
-                    'stid' => $stid,
-                    'schid' => $schid,
-                    'clsid' => $clsid,
-                    'ssn' => $ssnid,
-                    'trm' => $trmid,
-                    'amt' => intval($totalAmountPaid),
-                ]
-            );
-        }
+            // 6️⃣ Payment type
+            $what = '';
+            if ($typ == '0') {
+                $what = 'School Fees';
+            } elseif ($typ == '1') {
+                $what = 'Application Fee';
+                student::where('sid', $stid)->update(['rfee' => '1']);
+            } elseif ($typ == '2') {
+                $what = 'Acceptance Fee';
+                $uid = $stid . $schid . $clsid;
+                afeerec::updateOrCreate(
+                    ['uid' => $uid],
+                    [
+                        'stid' => $stid,
+                        'schid' => $schid,
+                        'clsid' => $clsid,
+                        'ssn' => $ssnid,
+                        'trm' => $trmid,
+                        'amt' => intval($totalAmountPaid),
+                    ]
+                );
+            }
 
-        // 7️⃣ Split data
-        $refRow = payment_refs::where('ref', $ref)->first();
-        $splitData = [];
-        if ($refRow && $refRow->subaccounts) {
-            $splitData = json_decode($refRow->subaccounts, true);
-        } elseif (isset($data['split']['subaccounts'])) {
-            $splitData = $data['split']['subaccounts'];
-        }
+            // 7️⃣ Split data
+            $refRow = payment_refs::where('ref', $ref)->first();
+            $splitData = [];
+            if ($refRow && $refRow->subaccounts) {
+                $splitData = json_decode($refRow->subaccounts, true);
+            } elseif (isset($data['split']['subaccounts'])) {
+                $splitData = $data['split']['subaccounts'];
+            }
 
-        Log::info('Split data', ['split' => $splitData]);
+            Log::info('Split data', ['split' => $splitData]);
 
-        // 8️⃣ Record payments
-        if (!empty($splitData)) {
-            foreach ($splitData as $sub) {
+            // 8️⃣ Record payments
+            if (!empty($splitData)) {
+                foreach ($splitData as $sub) {
+                    try {
+                        $subAmount = ($totalAmountPaid * $sub['share']) / 100;
+                        payments::create([
+                            'schid' => $schid,
+                            'stid' => $stid,
+                            'ssnid' => $ssnid,
+                            'trmid' => $trmid,
+                            'clsid' => $clsid,
+                            'name' => $nm,
+                            'exp' => $exp,
+                            'amt' => $totalAmountPaid,
+                            'share' => $subAmount,
+                            'subaccount_code' => $sub['subaccount'],
+                            'main_ref' => $ref,
+                            'pay_head' => implode(',', $payheadIds),
+                            'total_split_amount' => $totalAmountPaid,
+                            'email' => $eml,
+                            'lid' => $lid,
+                        ]);
+                    } catch (\Exception $e) {
+                        Log::error('Failed to create split payment', [
+                            'ref' => $ref,
+                            'sub' => $sub,
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                }
+                Log::info("Split payments recorded for {$ref}");
+            } else {
                 try {
-                    $subAmount = ($totalAmountPaid * $sub['share']) / 100;
                     payments::create([
                         'schid' => $schid,
                         'stid' => $stid,
@@ -13680,82 +13718,55 @@ public function paystackConf(Request $request)
                         'name' => $nm,
                         'exp' => $exp,
                         'amt' => $totalAmountPaid,
-                        'share' => $subAmount,
-                        'subaccount_code' => $sub['subaccount'],
                         'main_ref' => $ref,
-                        'pay_head' => implode(',', $payheadIds),
-                        'total_split_amount' => $totalAmountPaid,
                         'email' => $eml,
-                        'lid' => $lid,
+                        'pay_head' => implode(',', $payheadIds),
                     ]);
+                    Log::info("Non-split payment recorded for {$ref}");
                 } catch (\Exception $e) {
-                    Log::error('Failed to create split payment', [
+                    Log::error('Failed to create non-split payment', [
                         'ref' => $ref,
-                        'sub' => $sub,
                         'error' => $e->getMessage()
                     ]);
                 }
             }
-            Log::info("Split payments recorded for {$ref}");
-        } else {
+
+            // 9️⃣ Update payment_refs
             try {
-                payments::create([
-                    'schid' => $schid,
-                    'stid' => $stid,
-                    'ssnid' => $ssnid,
-                    'trmid' => $trmid,
-                    'clsid' => $clsid,
-                    'name' => $nm,
-                    'exp' => $exp,
-                    'amt' => $totalAmountPaid,
-                    'main_ref' => $ref,
-                    'email' => $eml,
-                    'pay_head' => implode(',', $payheadIds),
-                ]);
-                Log::info("Non-split payment recorded for {$ref}");
+                payment_refs::updateOrCreate(
+                    ['ref' => $ref],
+                    [
+                        'amt' => $totalAmountPaid,
+                        'time' => $tm,
+                        'metadata' => json_encode($metadata),
+                        'subaccounts' => json_encode($splitData),
+                        'confirmed_at' => now(),
+                    ]
+                );
             } catch (\Exception $e) {
-                Log::error('Failed to create non-split payment', [
-                    'ref' => $ref,
-                    'error' => $e->getMessage()
-                ]);
+                Log::error('Failed to update payment_refs', ['ref' => $ref, 'error' => $e->getMessage()]);
             }
-        }
 
-        // 9️⃣ Update payment_refs
-        try {
-            payment_refs::updateOrCreate(
-                ['ref' => $ref],
-                [
-                    'amt' => $totalAmountPaid,
-                    'time' => $tm,
-                    'metadata' => json_encode($metadata),
-                    'subaccounts' => json_encode($splitData),
-                    'confirmed_at' => now(),
-                ]
-            );
+            // 10️⃣ Send email
+            try {
+                $emailData = [
+                    'name' => $nm,
+                    'subject' => 'Payment Received',
+                    'body' => "Your {$what} payment of ₦{$totalAmountPaid} was received successfully.",
+                    'link' => env('PORTAL_URL') . '/studentLogin/' . $schid,
+                ];
+                Mail::to($eml)->send(new SSSMails($emailData));
+            } catch (\Exception $e) {
+                Log::error('Failed to send email', ['error' => $e->getMessage()]);
+            }
+
+            return response()->json(['status' => 'success'], 200);
         } catch (\Exception $e) {
-            Log::error('Failed to update payment_refs', ['ref' => $ref, 'error' => $e->getMessage()]);
+            Log::error('paystackConf unexpected error', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
-
-        // 10️⃣ Send email
-        try {
-            $emailData = [
-                'name' => $nm,
-                'subject' => 'Payment Received',
-                'body' => "Your {$what} payment of ₦{$totalAmountPaid} was received successfully.",
-                'link' => env('PORTAL_URL') . '/studentLogin/' . $schid,
-            ];
-            Mail::to($eml)->send(new SSSMails($emailData));
-        } catch (\Exception $e) {
-            Log::error('Failed to send email', ['error' => $e->getMessage()]);
-        }
-
-        return response()->json(['status' => 'success'], 200);
-    } catch (\Exception $e) {
-        Log::error('paystackConf unexpected error', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
     }
-}
+
 
 
 
