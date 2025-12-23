@@ -13578,7 +13578,7 @@ class ApiController extends Controller
         Log::info('------------ PAYSTACK CALLBACK ARRIVED -----------');
 
         try {
-            // Log raw payload for debugging
+            // Log raw payload for debugging.
             $rawPayload = $request->getContent();
             Log::info('Raw Paystack payload', ['payload' => $rawPayload]);
 
