@@ -11732,6 +11732,7 @@ class ApiController extends Controller
         ];
     }
 
+
     public function handleCallback(Request $request)
     {
         $reference = $request->query('reference');
@@ -11756,22 +11757,6 @@ class ApiController extends Controller
     private function redirectToError(): \Illuminate\Http\RedirectResponse
     {
         return redirect()->to(url('/studentPortal?status=error'));
-    }
-
-    public function checkPaymentStatus(Request $request)
-    {
-        $request->validate(['ref' => 'required|string']);
-
-        $refRow = payment_refs::where('ref', $request->ref)->first();
-
-        if (!$refRow) {
-            return response()->json(['confirmed' => false, 'message' => 'Reference not found']);
-        }
-
-        return response()->json([
-            'confirmed' => !is_null($refRow->confirmed_at),
-            'confirmed_at' => $refRow->confirmed_at,
-        ]);
     }
 
 
@@ -11935,6 +11920,90 @@ class ApiController extends Controller
 
         // Return full URL
         return "{$scheme}://{$host}{$path}";
+    }
+
+
+    /**
+     * @OA\Get(
+     *     path="/api/payment/status",
+     *     summary="Check payment status by reference",
+     *     description="Returns whether the payment associated with the given reference has been confirmed.",
+     *     tags={"Payments"},
+     *     @OA\Parameter(
+     *         name="ref",
+     *         in="query",
+     *         description="Payment reference to check",
+     *         required=true,
+     *         @OA\Schema(
+     *             type="string",
+     *             example="schoolsilomerge.top-2436-1478-0-2455-2025-1-13-69493ab65f3aa"
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Payment status retrieved successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(
+     *                 property="confirmed",
+     *                 type="boolean",
+     *                 description="Whether the payment has been confirmed",
+     *                 example=true
+     *             ),
+     *             @OA\Property(
+     *                 property="confirmed_at",
+     *                 type="string",
+     *                 format="date-time",
+     *                 description="Timestamp when payment was confirmed",
+     *                 example="2025-12-23T09:00:00Z"
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(
+     *                 property="message",
+     *                 type="string",
+     *                 example="The ref field is required."
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Reference not found",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(
+     *                 property="confirmed",
+     *                 type="boolean",
+     *                 example=false
+     *             ),
+     *             @OA\Property(
+     *                 property="message",
+     *                 type="string",
+     *                 example="Reference not found"
+     *             )
+     *         )
+     *     )
+     * )
+     */
+    public function checkPaymentStatus(Request $request)
+    {
+        $request->validate(['ref' => 'required|string']);
+
+        $refRow = payment_refs::where('ref', $request->ref)->first();
+
+        if (!$refRow) {
+            return response()->json(['confirmed' => false, 'message' => 'Reference not found']);
+        }
+
+        return response()->json([
+            'confirmed' => !is_null($refRow->confirmed_at),
+            'confirmed_at' => $refRow->confirmed_at,
+        ]);
     }
 
 

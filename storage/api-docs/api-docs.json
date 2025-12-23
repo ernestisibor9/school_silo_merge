@@ -9946,6 +9946,89 @@
                 ]
             }
         },
+        "/api/payment/status": {
+            "get": {
+                "tags": [
+                    "Payments"
+                ],
+                "summary": "Check payment status by reference",
+                "description": "Returns whether the payment associated with the given reference has been confirmed.",
+                "operationId": "452b29efc9a853e98f5917abf8879fee",
+                "parameters": [
+                    {
+                        "name": "ref",
+                        "in": "query",
+                        "description": "Payment reference to check",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "schoolsilomerge.top-2436-1478-0-2455-2025-1-13-69493ab65f3aa"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Payment status retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "confirmed": {
+                                            "description": "Whether the payment has been confirmed",
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "confirmed_at": {
+                                            "description": "Timestamp when payment was confirmed",
+                                            "type": "string",
+                                            "format": "date-time",
+                                            "example": "2025-12-23T09:00:00Z"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The ref field is required."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Reference not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "confirmed": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Reference not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/getAccountStat/{schid}/{ssn}/{trm}": {
             "get": {
                 "tags": [
