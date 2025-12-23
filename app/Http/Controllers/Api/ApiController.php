@@ -11925,7 +11925,7 @@ class ApiController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/checkPaymentStatus",
+     *     path="/api/payment/status",
      *     summary="Check payment status by reference",
      *     description="Returns whether the payment associated with the given reference has been confirmed.",
      *     tags={"Payments"},
