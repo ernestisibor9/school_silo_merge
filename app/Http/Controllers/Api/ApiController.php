@@ -11856,6 +11856,7 @@ class ApiController extends Controller
                 'reference' => $ref,
                 'callback_url' => $this->getFrontendUrl($schid, '/studentPortal'),
                 'metadata' => $metadata,
+                'channels' => ['card', 'bank', 'ussd'],
             ];
 
             if (!empty($splitCode)) {
