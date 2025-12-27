@@ -11610,7 +11610,7 @@ class ApiController extends Controller
 
 public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): array
 {
-    $MAX_SUBACCOUNT_SHARE = 99.0; // Max allowed for subaccounts, leaving 1% for merchant
+    $MAX_SUBACCOUNT_SHARE = 98.0; // leave at least 2% for merchant
 
     // 1. Check if valid split exists
     $existing = subaccount_split::where('schid', $schid)
@@ -11621,14 +11621,11 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): ar
         $verify = Http::withToken(env('PAYSTACK_SECRET'))
             ->get("https://api.paystack.co/split/{$existing->split_code}");
 
-        if ($verify->successful()) {
-            $psSubs = $verify->json('data.subaccounts') ?? [];
-            if (!empty($psSubs)) {
-                return [
-                    'split_code' => $existing->split_code,
-                    'subaccounts' => json_decode($existing->subaccounts, true),
-                ];
-            }
+        if ($verify->successful() && !empty($verify->json('data.subaccounts'))) {
+            return [
+                'split_code' => $existing->split_code,
+                'subaccounts' => json_decode($existing->subaccounts, true),
+            ];
         }
         $existing->delete(); // broken split
     }
@@ -11646,11 +11643,11 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): ar
         throw new \Exception('No valid subaccounts supplied');
     }
 
-    // 3. Ensure total ≤ MAX_SUBACCOUNT_SHARE (99%)
+    // 3. Ensure total ≤ MAX_SUBACCOUNT_SHARE (leaving at least 2% for merchant)
     $total = array_sum($merged);
     if ($total > $MAX_SUBACCOUNT_SHARE) {
         $last = array_key_last($merged);
-        $merged[$last] = $merged[$last] - ($total - $MAX_SUBACCOUNT_SHARE);
+        $merged[$last] = round($merged[$last] - ($total - $MAX_SUBACCOUNT_SHARE), 2);
     }
 
     // 4. Normalize and round
@@ -11669,7 +11666,7 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): ar
             'type' => 'percentage',
             'currency' => 'NGN',
             'subaccounts' => $normalized,
-            'bearer_type' => 'account', // merchant keeps the remainder
+            'bearer_type' => 'account', // merchant keeps remainder
         ]);
 
     if (!$response->successful()) {
@@ -11699,6 +11696,7 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): ar
         'subaccounts' => $normalized,
     ];
 }
+
 
     public function handleCallback(Request $request)
     {
