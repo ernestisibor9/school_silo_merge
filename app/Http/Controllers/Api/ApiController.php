@@ -11652,14 +11652,13 @@ class ApiController extends Controller
             throw new \Exception('Total split must be greater than 0');
         }
 
-        // Adjust last subaccount if total >= 100%
+        // Adjust last subaccount if total > MAX_SUBACCOUNT_SHARE
         if ($total > $MAX_SUBACCOUNT_SHARE) {
             $last = array_key_last($merged);
             $merged[$last] = $merged[$last] - ($total - $MAX_SUBACCOUNT_SHARE);
-            $total = array_sum($merged);
         }
 
-        // 4. Normalize
+        // 4. Normalize and round
         $normalized = [];
         foreach ($merged as $code => $share) {
             $normalized[] = [
@@ -11675,13 +11674,11 @@ class ApiController extends Controller
                 'type' => 'percentage',
                 'currency' => 'NGN',
                 'subaccounts' => $normalized,
-                'bearer_type' => 'account',
+                'bearer_type' => 'account', // merchant bears the remaining
             ]);
 
         if (!$response->successful()) {
-            Log::error('Paystack split creation failed', [
-                'body' => $response->body(),
-            ]);
+            Log::error('Paystack split creation failed', ['body' => $response->body()]);
             throw new \Exception('Unable to create Paystack split');
         }
 
@@ -11707,7 +11704,6 @@ class ApiController extends Controller
             'subaccounts' => $normalized,
         ];
     }
-
 
     public function handleCallback(Request $request)
     {
