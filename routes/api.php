@@ -181,6 +181,7 @@ Route::group([
     Route::post('setStaffClassArm', [ApiController::class, 'setStaffClassArm']);
     Route::post('setOldStaffInfo', [ApiController::class, 'setOldStaffInfo']);
     Route::post('setClassGrade', [ApiController::class, 'setClassGrade']);
+    Route::post('setClassGradeAdmin', [ApiController::class, 'setClassGradeAdmin']);
     Route::post('setClassMark', [ApiController::class, 'setClassMark']);
     Route::post('setStudentScore', [ApiController::class, 'setStudentScore']);
     Route::post('setArmResultConf', [ApiController::class, 'setArmResultConf']);

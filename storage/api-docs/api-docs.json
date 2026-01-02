@@ -29429,6 +29429,101 @@
                     }
                 ]
             }
+        },
+        "/api/setClassGradeAdmin": {
+            "post": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Set grading system for a class",
+                "description": "Allows domain admin or schools to set/update the grading system, number of CAs, and exam marks per term for a class. Schools can override state-defined defaults.",
+                "operationId": "setClassGradeAdmin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "grd",
+                                    "g0",
+                                    "g1",
+                                    "schid",
+                                    "clsid",
+                                    "ssn",
+                                    "trm"
+                                ],
+                                "properties": {
+                                    "grd": {
+                                        "type": "string",
+                                        "example": "A-F"
+                                    },
+                                    "g0": {
+                                        "type": "number",
+                                        "example": 0
+                                    },
+                                    "g1": {
+                                        "type": "number",
+                                        "example": 100
+                                    },
+                                    "schid": {
+                                        "type": "integer",
+                                        "example": 13
+                                    },
+                                    "clsid": {
+                                        "type": "integer",
+                                        "example": 12
+                                    },
+                                    "ssn": {
+                                        "type": "integer",
+                                        "example": 2025
+                                    },
+                                    "trm": {
+                                        "type": "integer",
+                                        "example": 2
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Grading system successfully set",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Grading system set successfully"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {

@@ -32362,5 +32362,91 @@ public function assignClassSubject(Request $request)
         ]);
     }
 
+
+
+    /**
+ * @OA\Post(
+ *     path="/api/setClassGradeAdmin",
+ *     operationId="setClassGradeAdmin",
+ *     summary="Set grading system for a class",
+ *     description="Allows domain admin or schools to set/update the grading system, number of CAs, and exam marks per term for a class. Schools can override state-defined defaults.",
+ *     tags={"Admin"},
+ *     security={{"bearerAuth":{}}},
+ *
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             required={"grd","g0","g1","schid","clsid","ssn","trm"},
+ *
+ *             @OA\Property(property="grd", type="string", example="A-F"),
+ *             @OA\Property(property="g0", type="number", example=0),
+ *             @OA\Property(property="g1", type="number", example=100),
+ *             @OA\Property(property="schid", type="integer", example=13),
+ *             @OA\Property(property="clsid", type="integer", example=12),
+ *             @OA\Property(property="ssn", type="integer", example=2025),
+ *             @OA\Property(property="trm", type="integer", example=2)
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Grading system successfully set",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Grading system set successfully"),
+ *             @OA\Property(property="data", type="object")
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation error"
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=500,
+ *         description="Server error"
+ *     )
+ * )
+ */
+
+    public function setClassGradeAdmin(Request $request)
+{
+    // Data validation
+    $request->validate([
+        "grd"   => "required|string", // grading system name/code
+        "g0"    => "required|numeric", // min CA/Exam marks? adjust type if needed
+        "g1"    => "required|numeric", // max CA/Exam marks? adjust type if needed
+        "schid" => "required|integer",
+        "clsid" => "required|integer",
+        "ssn"   => "required|integer",
+        "trm"   => "required|integer",
+    ]);
+
+    // Generate deterministic UID
+    $uid = $request->schid . $request->clsid . $request->ssn . $request->trm . $request->grd;
+
+    // Insert or update grading system
+    $grade = sch_grade::updateOrCreate(
+        ["uid" => $uid],
+        [
+            "grd"   => $request->grd,
+            "g0"    => $request->g0,
+            "g1"    => $request->g1,
+            "schid" => $request->schid,
+            "clsid" => $request->clsid,
+            "ssn"   => $request->ssn,
+            "trm"   => $request->trm,
+        ]
+    );
+
+    return response()->json([
+        "status"  => true,
+        "message" => "Grading system set successfully",
+        "data"    => $grade
+    ]);
+}
+
+
 }
 
