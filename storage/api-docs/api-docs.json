@@ -29266,7 +29266,7 @@
                 ]
             }
         },
-        "/api/v1/class-subjects/assign": {
+        "/api/assignClassSubject": {
             "post": {
                 "tags": [
                     "Api"

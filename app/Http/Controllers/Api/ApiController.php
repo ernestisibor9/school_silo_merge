@@ -32170,7 +32170,7 @@ class ApiController extends Controller
 
 /**
  * @OA\Post(
- *     path="/api/v1/class-subjects/assign",
+ *     path="/api/assignClassSubject",
  *     operationId="assignClassSubjects",
  *     tags={"Api"},
  *     summary="Assign multiple subjects to a class",
