@@ -29272,7 +29272,7 @@
                     "Api"
                 ],
                 "summary": "Assign multiple subjects to a class",
-                "description": "Assigns multiple subjects to a class for a specific session and term. Existing subject assignments are ignored.",
+                "description": "Assigns multiple subjects to a class for a session and term. Existing assignments are ignored.",
                 "operationId": "assignClassSubjects",
                 "requestBody": {
                     "required": true,
@@ -29289,7 +29289,7 @@
                                 "properties": {
                                     "schid": {
                                         "type": "string",
-                                        "example": "1"
+                                        "example": "13"
                                     },
                                     "clsid": {
                                         "type": "string",
@@ -29308,7 +29308,6 @@
                                         "items": {
                                             "required": [
                                                 "subj_id",
-                                                "name",
                                                 "comp"
                                             ],
                                             "properties": {
@@ -29316,13 +29315,9 @@
                                                     "type": "string",
                                                     "example": "100"
                                                 },
-                                                "name": {
-                                                    "type": "string",
-                                                    "example": "Mathematics"
-                                                },
                                                 "comp": {
                                                     "type": "string",
-                                                    "example": "Core"
+                                                    "example": "1"
                                                 }
                                             },
                                             "type": "object"
@@ -29369,23 +29364,7 @@
                         }
                     },
                     "422": {
-                        "description": "Validation error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "The given data was invalid."
-                                        },
-                                        "errors": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Validation error"
                     }
                 },
                 "security": [
