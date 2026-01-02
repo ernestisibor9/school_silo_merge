@@ -214,7 +214,7 @@ Route::group([
     Route::get('/autoCommentTemplate', [ApiController::class, 'getAutoCommentTemplate']);
 
     Route::post('/allStudentResultsComment', [ApiController::class, 'allStudentResultsComment']);
-
+    Route::get('getAllSubjects', [ApiController::class, 'getAllSubjects']);
 
     Route::post('promoteStudent', [ApiController::class, 'promoteStudent']);
     Route::post('repeatStudent', [ApiController::class, 'repeatStudent']);

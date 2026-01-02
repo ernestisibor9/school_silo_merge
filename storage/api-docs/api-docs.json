@@ -29269,7 +29269,7 @@
         "/api/assignClassSubject": {
             "post": {
                 "tags": [
-                    "Api"
+                    "Admin"
                 ],
                 "summary": "Assign multiple subjects to a class",
                 "description": "Assign multiple subjects (selected via checkboxes) to a class for a specific school, session, and term. Duplicate assignments are skipped.",
@@ -29373,6 +29373,54 @@
                     },
                     "500": {
                         "description": "Server error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/getAllSubjects": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get Subjects",
+                "description": "Use this endpoint to get a list of Subjects",
+                "operationId": "d65b01eaecc463b72e33c4a6320d96d9",
+                "parameters": [
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Index to start at",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "No of records to retrieve. Default is 5",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
                     }
                 },
                 "security": [

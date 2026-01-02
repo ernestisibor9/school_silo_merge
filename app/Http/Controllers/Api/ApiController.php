@@ -32174,7 +32174,7 @@ class ApiController extends Controller
  *     operationId="assignClassSubject",
  *     summary="Assign multiple subjects to a class",
  *     description="Assign multiple subjects (selected via checkboxes) to a class for a specific school, session, and term. Duplicate assignments are skipped.",
- *     tags={"Api"},
+ *     tags={"Admin"},
  *     security={{"bearerAuth":{}}},
  *
  *     @OA\RequestBody(
@@ -32321,7 +32321,46 @@ public function assignClassSubject(Request $request)
 }
 
 
-
+    /**
+     * @OA\Get(
+     *     path="/api/getAllSubjects",
+     *     tags={"Admin"},
+     *     summary="Get Subjects",
+     *     description="Use this endpoint to get a list of Subjects",
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         required=false,
+     *         description="Index to start at",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         required=false,
+     *         description="No of records to retrieve. Default is 5",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
+     *     @OA\Response(response="401", description="Unauthorized"),
+     * )
+     */
+    public function getAllSubjects()
+    {
+        $start = 0;
+        $count = 20;
+        if (request()->has('start') && request()->has('count')) {
+            $start = request()->input('start');
+            $count = request()->input('count');
+        }
+        $subj = subj::skip($start)->take($count)->get();
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $subj,
+        ]);
+    }
 
 }
 
