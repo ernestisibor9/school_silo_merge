@@ -11608,120 +11608,120 @@ class ApiController extends Controller
 
 
 
-public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): array
-{
-    $MAX_SUBACCOUNT_SHARE = 99.0;
+    public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): array
+    {
+        $MAX_SUBACCOUNT_SHARE = 99.0;
 
-    /* =====================================================
-     * 1. CHECK IF VALID SPLIT EXISTS (VERIFY AT PAYSTACK)
-     * ===================================================== */
-    $existing = subaccount_split::where('schid', $schid)
-        ->where('clsid', $clsid)
-        ->first();
+        /* =====================================================
+         * 1. CHECK IF VALID SPLIT EXISTS (VERIFY AT PAYSTACK)
+         * ===================================================== */
+        $existing = subaccount_split::where('schid', $schid)
+            ->where('clsid', $clsid)
+            ->first();
 
-    if ($existing && $existing->split_code) {
-        $verify = Http::withToken(env('PAYSTACK_SECRET'))
-            ->get("https://api.paystack.co/split/{$existing->split_code}");
+        if ($existing && $existing->split_code) {
+            $verify = Http::withToken(env('PAYSTACK_SECRET'))
+                ->get("https://api.paystack.co/split/{$existing->split_code}");
 
-        if ($verify->successful()) {
-            $psSubs = $verify->json('data.subaccounts') ?? [];
-            if (!empty($psSubs)) {
-                return [
-                    'split_code' => $existing->split_code,
-                    'subaccounts' => json_decode($existing->subaccounts, true),
-                ];
+            if ($verify->successful()) {
+                $psSubs = $verify->json('data.subaccounts') ?? [];
+                if (!empty($psSubs)) {
+                    return [
+                        'split_code' => $existing->split_code,
+                        'subaccounts' => json_decode($existing->subaccounts, true),
+                    ];
+                }
             }
+
+            // ❌ Broken split → delete
+            $existing->delete();
         }
 
-        // ❌ Broken split → delete
-        $existing->delete();
-    }
+        /* =====================================================
+         * 2. MERGE & VALIDATE SUBACCOUNTS
+         * ===================================================== */
+        $merged = [];
+        foreach ($subaccounts as $acc) {
+            if (
+                empty($acc['subaccount']) ||
+                !isset($acc['share']) ||
+                floatval($acc['share']) <= 0
+            ) {
+                throw new \Exception('Invalid subaccount payload');
+            }
 
-    /* =====================================================
-     * 2. MERGE & VALIDATE SUBACCOUNTS
-     * ===================================================== */
-    $merged = [];
-    foreach ($subaccounts as $acc) {
-        if (
-            empty($acc['subaccount']) ||
-            !isset($acc['share']) ||
-            floatval($acc['share']) <= 0
-        ) {
-            throw new \Exception('Invalid subaccount payload');
+            $merged[$acc['subaccount']] = ($merged[$acc['subaccount']] ?? 0) + floatval($acc['share']);
         }
 
-        $merged[$acc['subaccount']] = ($merged[$acc['subaccount']] ?? 0) + floatval($acc['share']);
-    }
+        if (empty($merged)) {
+            throw new \Exception('No valid subaccounts supplied');
+        }
 
-    if (empty($merged)) {
-        throw new \Exception('No valid subaccounts supplied');
-    }
+        /* =====================================================
+         * 3. VALIDATE TOTAL ≤ 99%
+         * ===================================================== */
+        $total = array_sum($merged);
+        if ($total <= 0 || $total > $MAX_SUBACCOUNT_SHARE) {
+            throw new \Exception("Invalid split percentage (max 99%)");
+        }
 
-    /* =====================================================
-     * 3. VALIDATE TOTAL ≤ 99%
-     * ===================================================== */
-    $total = array_sum($merged);
-    if ($total <= 0 || $total > $MAX_SUBACCOUNT_SHARE) {
-        throw new \Exception("Invalid split percentage (max 99%)");
-    }
+        /* =====================================================
+         * 4. NORMALIZE
+         * ===================================================== */
+        $normalized = [];
+        foreach ($merged as $code => $share) {
+            $normalized[] = [
+                'subaccount' => $code,
+                'share' => round($share, 2),
+            ];
+        }
 
-    /* =====================================================
-     * 4. NORMALIZE
-     * ===================================================== */
-    $normalized = [];
-    foreach ($merged as $code => $share) {
-        $normalized[] = [
-            'subaccount' => $code,
-            'share' => round($share, 2),
+        /* =====================================================
+         * 5. CREATE SPLIT AT PAYSTACK
+         * ===================================================== */
+        $response = Http::withToken(env('PAYSTACK_SECRET'))
+            ->post('https://api.paystack.co/split', [
+                'name' => "Split-{$schid}-{$clsid}",
+                'type' => 'percentage',
+                'currency' => 'NGN',
+                'subaccounts' => $normalized,
+                'bearer_type' => 'account', // ✅ CORRECT
+            ]);
+
+        if (!$response->successful()) {
+            Log::error('Paystack split creation failed', [
+                'body' => $response->body(),
+            ]);
+            throw new \Exception('Unable to create Paystack split');
+        }
+
+        $splitCode = $response->json('data.split_code');
+
+        /* =====================================================
+         * 6. VERIFY SPLIT EXISTS AT PAYSTACK (CRITICAL)
+         * ===================================================== */
+        $verify = Http::withToken(env('PAYSTACK_SECRET'))
+            ->get("https://api.paystack.co/split/{$splitCode}");
+
+        if (!$verify->successful() || empty($verify->json('data.subaccounts'))) {
+            throw new \Exception('Split verification failed at Paystack');
+        }
+
+        /* =====================================================
+         * 7. STORE LOCALLY
+         * ===================================================== */
+        subaccount_split::create([
+            'schid' => $schid,
+            'clsid' => $clsid,
+            'split_code' => $splitCode,
+            'subaccounts' => json_encode($normalized),
+        ]);
+
+        return [
+            'split_code' => $splitCode,
+            'subaccounts' => $normalized,
         ];
     }
-
-    /* =====================================================
-     * 5. CREATE SPLIT AT PAYSTACK
-     * ===================================================== */
-    $response = Http::withToken(env('PAYSTACK_SECRET'))
-        ->post('https://api.paystack.co/split', [
-            'name' => "Split-{$schid}-{$clsid}",
-            'type' => 'percentage',
-            'currency' => 'NGN',
-            'subaccounts' => $normalized,
-            'bearer_type' => 'account', // ✅ CORRECT
-        ]);
-
-    if (!$response->successful()) {
-        Log::error('Paystack split creation failed', [
-            'body' => $response->body(),
-        ]);
-        throw new \Exception('Unable to create Paystack split');
-    }
-
-    $splitCode = $response->json('data.split_code');
-
-    /* =====================================================
-     * 6. VERIFY SPLIT EXISTS AT PAYSTACK (CRITICAL)
-     * ===================================================== */
-    $verify = Http::withToken(env('PAYSTACK_SECRET'))
-        ->get("https://api.paystack.co/split/{$splitCode}");
-
-    if (!$verify->successful() || empty($verify->json('data.subaccounts'))) {
-        throw new \Exception('Split verification failed at Paystack');
-    }
-
-    /* =====================================================
-     * 7. STORE LOCALLY
-     * ===================================================== */
-    subaccount_split::create([
-        'schid' => $schid,
-        'clsid' => $clsid,
-        'split_code' => $splitCode,
-        'subaccounts' => json_encode($normalized),
-    ]);
-
-    return [
-        'split_code' => $splitCode,
-        'subaccounts' => $normalized,
-    ];
-}
 
 
 
@@ -11752,161 +11752,161 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): ar
     }
 
 
-public function initializePayment(Request $request)
-{
-    $request->validate([
-        'email' => 'required|email',
-        'amount' => 'required|numeric|min:100',
-        'schid' => 'required|integer',
-        'clsid' => 'required|integer',
-        'subaccount_code' => 'required|array|min:1',
-        'subaccount_code.*.subaccount' => 'required|string',
-        'subaccount_code.*.share' => 'required|numeric|min:0.01',
-        'metadata' => 'required|array',
-        'payhead_ids' => 'required|array|min:1',
-    ]);
-
-    $email = $request->email;
-    $amount = (float) $request->amount;
-    $schid = (int) $request->schid;
-    $clsid = (int) $request->clsid;
-    $subaccounts = $request->subaccount_code;
-    $metadata = $request->metadata;
-    $payheadIds = $request->payhead_ids;
-
-    $totalShare = collect($subaccounts)->sum('share');
-
-    if ($totalShare <= 0 || $totalShare > 99) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Total split percentage must be between 0.01% and 99%',
-        ], 422);
-    }
-
-    try {
-        $totalAmountKobo = (int) round($amount * 100);
-
-        /** -------------------------------------------------
-         * Validate subaccounts exist for this school/class
-         * ------------------------------------------------*/
-        foreach ($subaccounts as $acc) {
-            $exists = \DB::table('sub_accounts')
-                ->where('schid', $schid)
-                ->where('clsid', $clsid)
-                ->where('subaccount_code', $acc['subaccount'])
-                ->exists();
-
-            if (!$exists) {
-                return response()->json([
-                    'status' => false,
-                    'message' => "Invalid subaccount: {$acc['subaccount']}",
-                ], 400);
-            }
-        }
-
-        /** -------------------------------------------------
-         * Create or reuse Paystack split
-         * ------------------------------------------------*/
-        $splitData = $this->createOrGetSplit($schid, $clsid, $subaccounts);
-        $splitCode = $splitData['split_code'] ?? null;
-        $subaccountsData = $splitData['subaccounts'] ?? [];
-
-        /** -------------------------------------------------
-         * Build reference
-         * ------------------------------------------------*/
-        $host = preg_replace('/^api\./', '', $request->getHost());
-        $typ = (int) ($request->typ ?? 0);
-        $stid = (int) ($request->stid ?? 0);
-        $ssnid = (int) ($request->ssnid ?? 0);
-        $trmid = (int) ($request->trmid ?? 0);
-
-        $ref = "{$host}-{$schid}-{$amount}-{$typ}-{$stid}-{$ssnid}-{$trmid}-{$clsid}-" . uniqid('', true);
-
-        /** -------------------------------------------------
-         * Merge metadata safely
-         * ------------------------------------------------*/
-        $metadata = array_merge($metadata, [
-            'stid' => $stid,
-            'ssnid' => $ssnid,
-            'trmid' => $trmid,
-            'clsid' => $clsid,
-            'schid' => $schid,
-            'typ' => $typ,
-            'name' => $metadata['name'] ?? '',
-            'exp' => $metadata['exp'] ?? '',
-            'eml' => $email,
-            'lid' => $metadata['lid'] ?? '',
-            'payhead_ids' => $payheadIds,
-            'time' => now()->timestamp,
+    public function initializePayment(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'amount' => 'required|numeric|min:100',
+            'schid' => 'required|integer',
+            'clsid' => 'required|integer',
+            'subaccount_code' => 'required|array|min:1',
+            'subaccount_code.*.subaccount' => 'required|string',
+            'subaccount_code.*.share' => 'required|numeric|min:0.01',
+            'metadata' => 'required|array',
+            'payhead_ids' => 'required|array|min:1',
         ]);
 
-        /** -------------------------------------------------
-         * Paystack initialize payload
-         * ------------------------------------------------*/
-        $payload = [
-            'email' => $email,
-            'amount' => $totalAmountKobo,
-            'currency' => 'NGN',
-            'reference' => $ref,
-            'callback_url' => $this->getFrontendUrl($schid, '/studentPortal'),
-            'metadata' => $metadata,
-            'channels' => ['card', 'bank', 'ussd'],
-        ];
+        $email = $request->email;
+        $amount = (float) $request->amount;
+        $schid = (int) $request->schid;
+        $clsid = (int) $request->clsid;
+        $subaccounts = $request->subaccount_code;
+        $metadata = $request->metadata;
+        $payheadIds = $request->payhead_ids;
 
-        if (!empty($splitCode)) {
-            $payload['split_code'] = $splitCode;
+        $totalShare = collect($subaccounts)->sum('share');
+
+        if ($totalShare <= 0 || $totalShare > 99) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Total split percentage must be between 0.01% and 99%',
+            ], 422);
         }
 
-        $response = Http::withToken(env('PAYSTACK_SECRET'))
-            ->post('https://api.paystack.co/transaction/initialize', $payload);
+        try {
+            $totalAmountKobo = (int) round($amount * 100);
 
-        if (!$response->successful()) {
-            Log::error('Paystack Init Failed', [
-                'payload' => $payload,
-                'response' => $response->body(),
+            /** -------------------------------------------------
+             * Validate subaccounts exist for this school/class
+             * ------------------------------------------------*/
+            foreach ($subaccounts as $acc) {
+                $exists = \DB::table('sub_accounts')
+                    ->where('schid', $schid)
+                    ->where('clsid', $clsid)
+                    ->where('subaccount_code', $acc['subaccount'])
+                    ->exists();
+
+                if (!$exists) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => "Invalid subaccount: {$acc['subaccount']}",
+                    ], 400);
+                }
+            }
+
+            /** -------------------------------------------------
+             * Create or reuse Paystack split
+             * ------------------------------------------------*/
+            $splitData = $this->createOrGetSplit($schid, $clsid, $subaccounts);
+            $splitCode = $splitData['split_code'] ?? null;
+            $subaccountsData = $splitData['subaccounts'] ?? [];
+
+            /** -------------------------------------------------
+             * Build reference
+             * ------------------------------------------------*/
+            $host = preg_replace('/^api\./', '', $request->getHost());
+            $typ = (int) ($request->typ ?? 0);
+            $stid = (int) ($request->stid ?? 0);
+            $ssnid = (int) ($request->ssnid ?? 0);
+            $trmid = (int) ($request->trmid ?? 0);
+
+            $ref = "{$host}-{$schid}-{$amount}-{$typ}-{$stid}-{$ssnid}-{$trmid}-{$clsid}-" . uniqid('', true);
+
+            /** -------------------------------------------------
+             * Merge metadata safely
+             * ------------------------------------------------*/
+            $metadata = array_merge($metadata, [
+                'stid' => $stid,
+                'ssnid' => $ssnid,
+                'trmid' => $trmid,
+                'clsid' => $clsid,
+                'schid' => $schid,
+                'typ' => $typ,
+                'name' => $metadata['name'] ?? '',
+                'exp' => $metadata['exp'] ?? '',
+                'eml' => $email,
+                'lid' => $metadata['lid'] ?? '',
+                'payhead_ids' => $payheadIds,
+                'time' => now()->timestamp,
+            ]);
+
+            /** -------------------------------------------------
+             * Paystack initialize payload
+             * ------------------------------------------------*/
+            $payload = [
+                'email' => $email,
+                'amount' => $totalAmountKobo,
+                'currency' => 'NGN',
+                'reference' => $ref,
+                'callback_url' => $this->getFrontendUrl($schid, '/studentPortal'),
+                'metadata' => $metadata,
+                'channels' => ['card', 'bank', 'ussd'],
+            ];
+
+            if (!empty($splitCode)) {
+                $payload['split_code'] = $splitCode;
+            }
+
+            $response = Http::withToken(env('PAYSTACK_SECRET'))
+                ->post('https://api.paystack.co/transaction/initialize', $payload);
+
+            if (!$response->successful()) {
+                Log::error('Paystack Init Failed', [
+                    'payload' => $payload,
+                    'response' => $response->body(),
+                ]);
+
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Payment Initialization Failed',
+                ], 400);
+            }
+
+            $paystackData = $response->json();
+
+            /** -------------------------------------------------
+             * Store reference for callback/webhook
+             * ------------------------------------------------*/
+            payment_refs::updateOrCreate(
+                ['ref' => $ref],
+                [
+                    'split_code' => $splitCode,
+                    'subaccounts' => json_encode($subaccountsData),
+                    'amt' => $amount,
+                    'time' => now(),
+                ]
+            );
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Payment Initialized Successfully',
+                'data' => $paystackData,
+                'ref' => $ref,
+                'split_code' => $splitCode,
+                'subaccounts' => $subaccountsData,
+            ]);
+
+        } catch (\Throwable $e) {
+            Log::error('Initialize Payment Exception', [
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'status' => false,
-                'message' => 'Payment Initialization Failed',
-            ], 400);
+                'message' => 'Server Error: Unable to initialize payment',
+            ], 500);
         }
-
-        $paystackData = $response->json();
-
-        /** -------------------------------------------------
-         * Store reference for callback/webhook
-         * ------------------------------------------------*/
-        payment_refs::updateOrCreate(
-            ['ref' => $ref],
-            [
-                'split_code' => $splitCode,
-                'subaccounts' => json_encode($subaccountsData),
-                'amt' => $amount,
-                'time' => now(),
-            ]
-        );
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Payment Initialized Successfully',
-            'data' => $paystackData,
-            'ref' => $ref,
-            'split_code' => $splitCode,
-            'subaccounts' => $subaccountsData,
-        ]);
-
-    } catch (\Throwable $e) {
-        Log::error('Initialize Payment Exception', [
-            'error' => $e->getMessage(),
-        ]);
-
-        return response()->json([
-            'status' => false,
-            'message' => 'Server Error: Unable to initialize payment',
-        ], 500);
     }
-}
 
 
 
@@ -32163,6 +32163,126 @@ public function initializePayment(Request $request)
                     'new_stat' => $result->stat,
                 ]
             ]
+        ]);
+    }
+
+
+
+    /**
+     * @OA\Post(
+     *     path="/api/assignClassSubject",
+     *     operationId="assignClassSubject",
+     *     tags={"Api"},
+     *     summary="Assign a subject to a class",
+     *     description="Assigns a subject to a class for a specific session and term. If the subject already exists for the class in the same session and term, it will be ignored.",
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"schid","subj_id","name","comp","clsid","sesn","trm"},
+     *             @OA\Property(property="schid", type="string", example="1", description="School ID"),
+     *             @OA\Property(property="subj_id", type="string", example="100", description="Subject ID"),
+     *             @OA\Property(property="name", type="string", example="Mathematics", description="Subject name"),
+     *             @OA\Property(property="comp", type="string", example="Core", description="Subject component/type"),
+     *             @OA\Property(property="clsid", type="string", example="A", description="Class ID"),
+     *             @OA\Property(property="sesn", type="string", example="2024", description="Academic session"),
+     *             @OA\Property(property="trm", type="string", example="1", description="Term"),
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Subject assigned successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Subject assigned successfully"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 @OA\Property(property="uid", type="string", example="1-A-100-2024-1"),
+     *                 @OA\Property(property="schid", type="string", example="1"),
+     *                 @OA\Property(property="subj_id", type="string", example="100"),
+     *                 @OA\Property(property="name", type="string", example="Mathematics"),
+     *                 @OA\Property(property="comp", type="string", example="Core"),
+     *                 @OA\Property(property="clsid", type="string", example="A"),
+     *                 @OA\Property(property="sesn", type="string", example="2024"),
+     *                 @OA\Property(property="trm", type="string", example="1"),
+     *                 @OA\Property(property="created_at", type="string", example="2026-01-02T03:00:00Z"),
+     *                 @OA\Property(property="updated_at", type="string", example="2026-01-02T03:00:00Z")
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=409,
+     *         description="Subject already exists for this class/session/term",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Subject already assigned to this class for the selected session and term"),
+     *             @OA\Property(property="pld", type="object")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     )
+     * )
+     */
+
+    public function assignClassSubject(Request $request)
+    {
+        // Data validation
+        $request->validate([
+            "schid" => "required",
+            "subj_id" => "required",
+            "name" => "required",
+            "comp" => "required",
+            "clsid" => "required",
+            "sesn" => "required",
+            "trm" => "required",
+        ]);
+
+        // Check if the subject already exists for this class/session/term
+        $existing = class_subj::where('subj_id', $request->subj_id)
+            ->where('clsid', $request->clsid)
+            ->where('schid', $request->schid)
+            ->where('sesn', $request->sesn)
+            ->where('trm', $request->trm)
+            ->first();
+
+        if ($existing) {
+            return response()->json([
+                "status" => false,
+                "message" => "Subject already assigned to this class for the selected session and term",
+                "pld" => $existing
+            ]);
+        }
+
+        // Generate UID for the new record
+        $uid = $request->schid . '-' . $request->clsid . '-' . $request->subj_id . '-' . $request->sesn . '-' . $request->trm;
+
+        // Create new record
+        $pld = class_subj::create([
+            "uid" => $uid,
+            "schid" => $request->schid,
+            "subj_id" => $request->subj_id,
+            "name" => $request->name,
+            "comp" => $request->comp,
+            "clsid" => $request->clsid,
+            "sesn" => $request->sesn,
+            "trm" => $request->trm,
+        ]);
+
+        return response()->json([
+            "status" => true,
+            "message" => "Subject assigned successfully",
+            "pld" => $pld
         ]);
     }
 

@@ -176,6 +176,7 @@ Route::group([
     Route::post('updateLocation/{schid}', [ApiController::class, 'updateLocation']);
 
     Route::post('toggleResultStatus', [ApiController::class, 'toggleResultStatus']);
+    Route::post('assignClassSubject', [ApiController::class, 'assignClassSubject']);
 
     Route::post('setStaffClassArm', [ApiController::class, 'setStaffClassArm']);
     Route::post('setOldStaffInfo', [ApiController::class, 'setOldStaffInfo']);
