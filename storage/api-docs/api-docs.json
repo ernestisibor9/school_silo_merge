@@ -29266,14 +29266,14 @@
                 ]
             }
         },
-        "/api/assignClassSubject": {
+        "/api/v1/class-subjects/assign": {
             "post": {
                 "tags": [
                     "Api"
                 ],
-                "summary": "Assign a subject to a class",
-                "description": "Assigns a subject to a class for a specific session and term. If the subject already exists for the class in the same session and term, it will be ignored.",
-                "operationId": "assignClassSubject",
+                "summary": "Assign multiple subjects to a class",
+                "description": "Assigns multiple subjects to a class for a specific session and term. Existing subject assignments are ignored.",
+                "operationId": "assignClassSubjects",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -29281,80 +29281,37 @@
                             "schema": {
                                 "required": [
                                     "schid",
-                                    "subj_id",
-                                    "name",
-                                    "comp",
                                     "clsid",
                                     "sesn",
-                                    "trm"
+                                    "trm",
+                                    "subjects"
                                 ],
                                 "properties": {
                                     "schid": {
-                                        "description": "School ID",
                                         "type": "string",
                                         "example": "1"
                                     },
-                                    "subj_id": {
-                                        "description": "Subject ID",
-                                        "type": "string",
-                                        "example": "100"
-                                    },
-                                    "name": {
-                                        "description": "Subject name",
-                                        "type": "string",
-                                        "example": "Mathematics"
-                                    },
-                                    "comp": {
-                                        "description": "Subject component/type",
-                                        "type": "string",
-                                        "example": "Core"
-                                    },
                                     "clsid": {
-                                        "description": "Class ID",
                                         "type": "string",
                                         "example": "A"
                                     },
                                     "sesn": {
-                                        "description": "Academic session",
                                         "type": "string",
                                         "example": "2024"
                                     },
                                     "trm": {
-                                        "description": "Term",
                                         "type": "string",
                                         "example": "1"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Subject assigned successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Subject assigned successfully"
-                                        },
-                                        "pld": {
+                                    },
+                                    "subjects": {
+                                        "type": "array",
+                                        "items": {
+                                            "required": [
+                                                "subj_id",
+                                                "name",
+                                                "comp"
+                                            ],
                                             "properties": {
-                                                "uid": {
-                                                    "type": "string",
-                                                    "example": "1-A-100-2024-1"
-                                                },
-                                                "schid": {
-                                                    "type": "string",
-                                                    "example": "1"
-                                                },
                                                 "subj_id": {
                                                     "type": "string",
                                                     "example": "100"
@@ -29366,52 +29323,44 @@
                                                 "comp": {
                                                     "type": "string",
                                                     "example": "Core"
-                                                },
-                                                "clsid": {
-                                                    "type": "string",
-                                                    "example": "A"
-                                                },
-                                                "sesn": {
-                                                    "type": "string",
-                                                    "example": "2024"
-                                                },
-                                                "trm": {
-                                                    "type": "string",
-                                                    "example": "1"
-                                                },
-                                                "created_at": {
-                                                    "type": "string",
-                                                    "example": "2026-01-02T03:00:00Z"
-                                                },
-                                                "updated_at": {
-                                                    "type": "string",
-                                                    "example": "2026-01-02T03:00:00Z"
                                                 }
                                             },
                                             "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
+                                        },
+                                        "minItems": 1
+                                    }
+                                },
+                                "type": "object"
                             }
                         }
-                    },
-                    "409": {
-                        "description": "Subject already exists for this class/session/term",
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Subjects assignment completed",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
                                         "status": {
                                             "type": "boolean",
-                                            "example": false
+                                            "example": true
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "Subject already assigned to this class for the selected session and term"
+                                            "example": "Subjects assignment completed"
                                         },
-                                        "pld": {
-                                            "type": "object"
+                                        "assigned": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        },
+                                        "skipped": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
                                         }
                                     },
                                     "type": "object"
