@@ -32171,29 +32171,60 @@ class ApiController extends Controller
 /**
  * @OA\Post(
  *     path="/api/assignClassSubject",
- *     operationId="assignClassSubjects",
- *     tags={"Api"},
+ *     operationId="assignClassSubject",
  *     summary="Assign multiple subjects to a class",
- *     description="Assigns multiple subjects to a class for a session and term. Existing assignments are ignored.",
+ *     description="Assign multiple subjects (selected via checkboxes) to a class for a specific school, session, and term. Duplicate assignments are skipped.",
+ *     tags={"Api"},
  *     security={{"bearerAuth":{}}},
  *
  *     @OA\RequestBody(
  *         required=true,
  *         @OA\JsonContent(
  *             required={"schid","clsid","sesn","trm","subjects"},
- *             @OA\Property(property="schid", type="string", example="13"),
- *             @OA\Property(property="clsid", type="string", example="A"),
- *             @OA\Property(property="sesn", type="string", example="2024"),
- *             @OA\Property(property="trm", type="string", example="1"),
+ *
+ *             @OA\Property(
+ *                 property="schid",
+ *                 type="integer",
+ *                 example=13
+ *             ),
+ *             @OA\Property(
+ *                 property="clsid",
+ *                 type="integer",
+ *                 example=12
+ *             ),
+ *             @OA\Property(
+ *                 property="sesn",
+ *                 type="integer",
+ *                 example=2025
+ *             ),
+ *             @OA\Property(
+ *                 property="trm",
+ *                 type="integer",
+ *                 example=2
+ *             ),
+ *
  *             @OA\Property(
  *                 property="subjects",
  *                 type="array",
  *                 minItems=1,
  *                 @OA\Items(
  *                     type="object",
- *                     required={"subj_id","comp"},
- *                     @OA\Property(property="subj_id", type="string", example="100"),
- *                     @OA\Property(property="comp", type="string", example="1")
+ *                     required={"subj_id","name","comp"},
+ *                     @OA\Property(
+ *                         property="subj_id",
+ *                         type="integer",
+ *                         example=100
+ *                     ),
+ *                     @OA\Property(
+ *                         property="name",
+ *                         type="string",
+ *                         example="FRENCH"
+ *                     ),
+ *                     @OA\Property(
+ *                         property="comp",
+ *                         type="integer",
+ *                         example=1
+ *                     )
  *                 )
  *             )
  *         )
@@ -32205,38 +32236,52 @@ class ApiController extends Controller
  *         @OA\JsonContent(
  *             @OA\Property(property="status", type="boolean", example=true),
  *             @OA\Property(property="message", type="string", example="Subjects assignment completed"),
- *             @OA\Property(property="assigned", type="array", @OA\Items(type="object")),
- *             @OA\Property(property="skipped", type="array", @OA\Items(type="object"))
+ *
+ *             @OA\Property(
+ *                 property="assigned",
+ *                 type="array",
+ *                 @OA\Items(type="object")
+ *             ),
+ *             @OA\Property(
+ *                 property="skipped",
+ *                 type="array",
+ *                 @OA\Items(type="object")
+ *             )
  *         )
  *     ),
  *
  *     @OA\Response(
  *         response=422,
  *         description="Validation error"
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=500,
+ *         description="Server error"
  *     )
  * )
  */
 
 
+
 public function assignClassSubject(Request $request)
 {
-    // Validation (FIXED)
     $request->validate([
         "schid" => "required",
         "clsid" => "required",
-        "sesn" => "required",
-        "trm" => "required",
+        "sesn"  => "required",
+        "trm"   => "required",
         "subjects" => "required|array|min:1",
         "subjects.*.subj_id" => "required",
-        "subjects.*.comp" => "required",
+        "subjects.*.name"    => "required|string",
+        "subjects.*.comp"    => "required",
     ]);
 
     $inserted = [];
-    $skipped = [];
+    $skipped  = [];
 
     foreach ($request->subjects as $subject) {
 
-        // Check duplicate
         $exists = class_subj::where('schid', $request->schid)
             ->where('clsid', $request->clsid)
             ->where('subj_id', $subject['subj_id'])
@@ -32249,7 +32294,6 @@ public function assignClassSubject(Request $request)
             continue;
         }
 
-        // Generate UID
         $uid = $request->schid . '-' .
                $request->clsid . '-' .
                $subject['subj_id'] . '-' .
@@ -32257,21 +32301,22 @@ public function assignClassSubject(Request $request)
                $request->trm;
 
         $inserted[] = class_subj::create([
-            "uid" => $uid,
-            "schid" => $request->schid,
-            "clsid" => $request->clsid,
+            "uid"     => $uid,
+            "schid"   => $request->schid,
+            "clsid"   => $request->clsid,
             "subj_id" => $subject['subj_id'],
-            "comp" => $subject['comp'],
-            "sesn" => $request->sesn,
-            "trm" => $request->trm,
+            "name"    => $subject['name'],
+            "comp"    => $subject['comp'],
+            "sesn"    => $request->sesn,
+            "trm"     => $request->trm,
         ]);
     }
 
     return response()->json([
-        "status" => true,
-        "message" => "Subjects assignment completed",
+        "status"   => true,
+        "message"  => "Subjects assignment completed",
         "assigned" => $inserted,
-        "skipped" => $skipped
+        "skipped"  => $skipped
     ]);
 }
 

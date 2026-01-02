@@ -29272,8 +29272,8 @@
                     "Api"
                 ],
                 "summary": "Assign multiple subjects to a class",
-                "description": "Assigns multiple subjects to a class for a session and term. Existing assignments are ignored.",
-                "operationId": "assignClassSubjects",
+                "description": "Assign multiple subjects (selected via checkboxes) to a class for a specific school, session, and term. Duplicate assignments are skipped.",
+                "operationId": "assignClassSubject",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -29288,36 +29288,41 @@
                                 ],
                                 "properties": {
                                     "schid": {
-                                        "type": "string",
-                                        "example": "13"
+                                        "type": "integer",
+                                        "example": 13
                                     },
                                     "clsid": {
-                                        "type": "string",
-                                        "example": "A"
+                                        "type": "integer",
+                                        "example": 12
                                     },
                                     "sesn": {
-                                        "type": "string",
-                                        "example": "2024"
+                                        "type": "integer",
+                                        "example": 2025
                                     },
                                     "trm": {
-                                        "type": "string",
-                                        "example": "1"
+                                        "type": "integer",
+                                        "example": 2
                                     },
                                     "subjects": {
                                         "type": "array",
                                         "items": {
                                             "required": [
                                                 "subj_id",
+                                                "name",
                                                 "comp"
                                             ],
                                             "properties": {
                                                 "subj_id": {
+                                                    "type": "integer",
+                                                    "example": 100
+                                                },
+                                                "name": {
                                                     "type": "string",
-                                                    "example": "100"
+                                                    "example": "FRENCH"
                                                 },
                                                 "comp": {
-                                                    "type": "string",
-                                                    "example": "1"
+                                                    "type": "integer",
+                                                    "example": 1
                                                 }
                                             },
                                             "type": "object"
@@ -29365,6 +29370,9 @@
                     },
                     "422": {
                         "description": "Validation error"
+                    },
+                    "500": {
+                        "description": "Server error"
                     }
                 },
                 "security": [
