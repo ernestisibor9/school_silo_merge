@@ -32294,10 +32294,10 @@ public function assignClassSubject(Request $request)
             continue;
         }
 
-        $uid = $request->schid . '-' .
-               $request->clsid . '-' .
-               $subject['subj_id'] . '-' .
-               $request->sesn . '-' .
+        $uid = $request->schid .
+               $request->clsid .
+               $subject['subj_id'] .
+               $request->sesn .
                $request->trm;
 
         $inserted[] = class_subj::create([
