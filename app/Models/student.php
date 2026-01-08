@@ -24,6 +24,7 @@ class student extends Model
         's_parent',
         's_academic',
         'stat',
+        'cls_sbj_students',
         'cuid',
         'status',
         'exit_status',

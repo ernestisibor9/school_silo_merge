@@ -16801,70 +16801,168 @@ class ApiController extends Controller
      * )
      */
 
-    public function getStudentsBySchool(Request $request, $schid, $stat)
-    {
-        $start = $request->input('start', 0);
-        $count = $request->input('count', 20);
-        $year = $request->input('year');   // optional
-        $cls = $request->input('cls', 'zzz'); // "zzz" = ALL classes
-        $term = $request->input('term');   // optional
+    // public function getStudentsBySchool(Request $request, $schid, $stat)
+    // {
+    //     $start = $request->input('start', 0);
+    //     $count = $request->input('count', 20);
+    //     $year = $request->input('year');   // optional
+    //     $cls = $request->input('cls', 'zzz'); // "zzz" = ALL classes
+    //     $term = $request->input('term');   // optional
 
-        // Base query: join latest student_academic_data
-        $query = student::query()
-            ->leftJoin('student_academic_data as sad', function ($join) {
-                $join->on('student.sid', '=', 'sad.user_id')
-                    ->whereRaw('sad.created_at = (
-                     SELECT MAX(created_at)
-                     FROM student_academic_data
-                     WHERE user_id = student.sid
-                 )');
-            })
-            ->where('student.schid', $schid)
-            ->where('student.stat', $stat);
+    //     // Base query: join latest student_academic_data
+    //     $query = student::query()
+    //         ->leftJoin('student_academic_data as sad', function ($join) {
+    //             $join->on('student.sid', '=', 'sad.user_id')
+    //                 ->whereRaw('sad.created_at = (
+    //                  SELECT MAX(created_at)
+    //                  FROM student_academic_data
+    //                  WHERE user_id = student.sid
+    //              )');
+    //         })
+    //         ->where('student.schid', $schid)
+    //         ->where('student.stat', $stat);
 
-        // Filter by class if not "ALL"
-        if ($cls !== 'zzz') {
-            $query->where('sad.new_class_main', $cls);
-        }
+    //     // Filter by class if not "ALL"
+    //     if ($cls !== 'zzz') {
+    //         $query->where('sad.new_class_main', $cls);
+    //     }
 
-        // Optional filters
-        if ($year) {
-            $query->where('student.year', $year);
-        }
-        if ($term) {
-            $query->where('student.term', $term);
-        }
+    //     // Optional filters
+    //     if ($year) {
+    //         $query->where('student.year', $year);
+    //     }
+    //     if ($term) {
+    //         $query->where('student.term', $term);
+    //     }
 
-        // Clone query for total count
-        $total = (clone $query)->distinct('student.sid')->count('student.sid');
+    //     // Clone query for total count
+    //     $total = (clone $query)->distinct('student.sid')->count('student.sid');
 
-        // Fetch paginated results
-        $students = $query->select('student.*', 'sad.new_class_main')
-            ->distinct('student.sid')
-            ->orderBy('student.lname', 'asc')
-            ->skip($start)
-            ->take($count)
-            ->get();
+    //     // Fetch paginated results
+    //     $students = $query->select('student.*', 'sad.new_class_main')
+    //         ->distinct('student.sid')
+    //         ->orderBy('student.lname', 'asc')
+    //         ->skip($start)
+    //         ->take($count)
+    //         ->get();
 
-        // Format payload
-        $pld = $students->map(function ($student) {
-            return [
-                's' => $student,
-                'b' => student_basic_data::where('user_id', $student->sid)->first(),
-                'a' => student_academic_data::where('user_id', $student->sid)
-                    ->orderBy('created_at', 'desc')
-                    ->first(),
-            ];
-        });
+    //     // Format payload
+    //     $pld = $students->map(function ($student) {
+    //         return [
+    //             's' => $student,
+    //             'b' => student_basic_data::where('user_id', $student->sid)->first(),
+    //             'a' => student_academic_data::where('user_id', $student->sid)
+    //                 ->orderBy('created_at', 'desc')
+    //                 ->first(),
+    //         ];
+    //     });
 
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "total" => $total,
-            "pld" => $pld,
-        ]);
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "total" => $total,
+    //         "pld" => $pld,
+    //     ]);
+    // }
+
+public function getStudentsBySchool(Request $request, $schid, $stat)
+{
+    $start = $request->input('start', 0);
+    $count = $request->input('count', 20);
+    $year = $request->input('year');   // optional
+    $cls = $request->input('cls', 'zzz'); // "zzz" = ALL classes
+    $term = $request->input('term');   // optional
+
+    // Base query: join latest student_academic_data
+    $query = student::query()
+        ->leftJoin('student_academic_data as sad', function ($join) {
+            $join->on('student.sid', '=', 'sad.user_id')
+                ->whereRaw('sad.created_at = (
+                    SELECT MAX(created_at)
+                    FROM student_academic_data
+                    WHERE user_id = student.sid
+                )');
+        })
+        ->where('student.schid', $schid)
+        ->where('student.stat', $stat);
+
+    // Filter by class if not "ALL"
+    if ($cls !== 'zzz') {
+        $query->where('sad.new_class_main', $cls);
     }
 
+    // Optional filters
+    if ($year) {
+        $query->where('student.year', $year);
+    }
+    if ($term) {
+        $query->where('student.term', $term);
+    }
+
+    // Clone query for total count
+    $total = (clone $query)->distinct('student.sid')->count('student.sid');
+
+    // Fetch paginated results
+    $students = $query->select('student.*', 'sad.new_class_main')
+        ->distinct('student.sid')
+        ->orderBy('student.lname', 'asc')
+        ->skip($start)
+        ->take($count)
+        ->get();
+
+    // Format payload and calculate cls_sbj_students based on session/year (ssn)
+    $pld = $students->map(function ($student) use ($schid, $year) {
+
+        // 🔹 Latest academic data
+        $latestAcademic = student_academic_data::where('user_id', $student->sid)
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        // 🔹 Determine session/year to check subjects (fall back to student.year if $year not provided)
+        $ssn = $year ?? $student->year;
+
+        // 🔹 Check if student has subjects in student_subj for this session/year
+        $hasSubjects = \DB::table('student_subj')
+            ->where('stid', $student->sid)
+            ->where('schid', $schid)
+            ->where('ssn', $ssn)
+            ->exists();
+
+        // 🔹 Check if student has class and class arm in old_student table for this session/year
+        $oldStudent = \DB::table('old_student')
+            ->where('sid', $student->sid)
+            ->where('schid', $schid)
+            ->where('ssn', $ssn)
+            ->first();
+
+        $hasClassAndArm = $oldStudent && !empty($oldStudent->clsm) && !empty($oldStudent->clsa);
+
+        // 🔹 Determine cls_sbj_students value
+        $clsSbjValue = ($hasSubjects && $hasClassAndArm) ? 1 : 0;
+
+        // 🔹 Update students table if value changed
+        if ($student->cls_sbj_students != $clsSbjValue) {
+            \DB::table('student')
+                ->where('sid', $student->sid)
+                ->update(['cls_sbj_students' => $clsSbjValue]);
+            $student->cls_sbj_students = $clsSbjValue; // update object for response
+        }
+
+        // 🔹 Build response exactly like your example
+        return [
+            's' => $student,
+            'b' => student_basic_data::where('user_id', $student->sid)->first(),
+            'a' => $latestAcademic,
+        ];
+    });
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "total" => $total,
+        "pld" => $pld,
+    ]);
+}
 
 
 
