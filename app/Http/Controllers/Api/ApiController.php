@@ -32589,6 +32589,7 @@ class ApiController extends Controller
      *     path="/api/setStudentAcademicInfoBulk",
      *     operationId="setStudentAcademicInfoBulk",
      *     tags={"Api"},
+     *    security={{"bearerAuth":{}}},
      *     summary="Bulk upload student academic info",
      *     description="Upload or update academic information for multiple students at once. Clears subjects if class changed.",
      *     @OA\RequestBody(
