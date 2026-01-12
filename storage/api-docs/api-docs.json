@@ -3313,14 +3313,14 @@
                 }
             }
         },
-        "/api/setClassMark": {
+        "/api/\n     *\n     *\n     \\\n    * \\Mark": {
             "post": {
                 "tags": [
                     "Api"
                 ],
                 "summary": "Set a Class Mark. If new, no need for id param. Otherwise, specify",
                 "description": "This endpoint is used to set information about a class mark.",
-                "operationId": "c3839dbe3394fcfeed16243a899f9f54",
+                "operationId": "89b5e8df3cd9576d2636b50e6f685492",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -29523,6 +29523,146 @@
                         "bearerAuth": []
                     }
                 ]
+            }
+        },
+        "/api/setStudentAcademicInfoBulk": {
+            "post": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Bulk upload student academic info",
+                "description": "Upload or update academic information for multiple students at once. Clears subjects if class changed.",
+                "operationId": "setStudentAcademicInfoBulk",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "students": {
+                                        "description": "Array of student academic records",
+                                        "type": "array",
+                                        "items": {
+                                            "required": [
+                                                "user_id",
+                                                "schid",
+                                                "last_school",
+                                                "ssn",
+                                                "suid"
+                                            ],
+                                            "properties": {
+                                                "user_id": {
+                                                    "description": "Student ID",
+                                                    "type": "integer",
+                                                    "example": 1000
+                                                },
+                                                "schid": {
+                                                    "description": "School ID",
+                                                    "type": "integer",
+                                                    "example": 80
+                                                },
+                                                "last_school": {
+                                                    "description": "Previous school",
+                                                    "type": "string",
+                                                    "example": "NIL"
+                                                },
+                                                "last_class": {
+                                                    "description": "Previous class (optional)",
+                                                    "type": "string",
+                                                    "example": "12"
+                                                },
+                                                "new_class": {
+                                                    "description": "New class/arm assigned (optional)",
+                                                    "type": "string",
+                                                    "example": "13"
+                                                },
+                                                "new_class_main": {
+                                                    "description": "New main class (optional)",
+                                                    "type": "string",
+                                                    "example": "11"
+                                                },
+                                                "ssn": {
+                                                    "description": "Session/Year",
+                                                    "type": "string",
+                                                    "example": "2024"
+                                                },
+                                                "suid": {
+                                                    "description": "Student unique ID",
+                                                    "type": "string",
+                                                    "example": "SJC/2024/1/470"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Bulk upload successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Bulk upload successful"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The students field is required."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Something went wrong"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     },
