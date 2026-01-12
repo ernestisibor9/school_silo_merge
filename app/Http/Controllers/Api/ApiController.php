@@ -8362,19 +8362,34 @@ class ApiController extends Controller
         ]);
 
         // Deterministic UID
-        $uid = $request->ssn . $request->trm . $request->stid . $request->cls;
+      //  $uid = $request->ssn . $request->trm . $request->stid . $request->cls;
+
+          // ✅ SAFE UID (NO COLLISION)
+    $uid = implode('-', [
+        $request->ssn,
+        $request->trm,
+        $request->stid,
+        $request->cls
+    ]);
 
         // Save staff_class
-        $pld = staff_class::updateOrCreate(
-            ["uid" => $uid],
-            [
-                "stid" => $request->stid,
-                "cls" => $request->cls,
-                "schid" => $request->schid,
-                "ssn" => $request->ssn,
-                "trm" => $request->trm,
-            ]
-        );
+    $staffClass = staff_class::where([
+        "stid" => $request->stid,
+        "cls"  => $request->cls,
+        "ssn"  => $request->ssn,
+        "trm"  => $request->trm,
+    ])->first();
+
+    if (!$staffClass) {
+        $staffClass = new staff_class();
+        $staffClass->uid   = $uid;
+        $staffClass->stid  = $request->stid;
+        $staffClass->cls   = $request->cls;
+        $staffClass->schid = $request->schid;
+        $staffClass->ssn   = $request->ssn; // ✅ WILL SAVE
+        $staffClass->trm   = $request->trm;
+        $staffClass->save();
+    }
 
         // 🔥 CHECK FOR DUPLICATES IN old_staff
         $exists = old_staff::where([
@@ -8412,7 +8427,7 @@ class ApiController extends Controller
             "status" => true,
             "message" => "Success",
             "pld" => [
-                "staff_class" => $pld,
+                "staff_class" => $staffClass,
                 "old_staff" => $old,
             ]
         ]);
