@@ -16963,18 +16963,17 @@ class ApiController extends Controller
             $hasArm = $oldStudent && !empty($oldStudent->clsa);
 
             // 🔹 Determine cls_sbj_students value
-            if ($hasClass && !$hasArm) {
-                // Class only
-                $clsSbjValue = 0;
-            } elseif ($hasClass && $hasArm && !$hasSubjects) {
+            if ($hasSubjects) {
+                // Class + Subject OR Class + Arm + Subject
+                $clsSbjValue = 2;
+            } elseif ($hasClass && $hasArm) {
                 // Class + Arm only
                 $clsSbjValue = 1;
-            } elseif ($hasClass && $hasArm && $hasSubjects) {
-                // Class + Arm + Subject
-                $clsSbjValue = 2;
             } else {
+                // Class only
                 $clsSbjValue = 0;
             }
+
 
 
             // 🔹 Update students table if value changed
