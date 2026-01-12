@@ -148,6 +148,7 @@ Route::group([
     Route::post('setStudentMedicalInfo', [ApiController::class, 'setStudentMedicalInfo']);
     Route::post('setStudentParentInfo', [ApiController::class, 'setStudentParentInfo']);
     Route::post('setStudentAcademicInfo', [ApiController::class, 'setStudentAcademicInfo']);
+    Route::post('setStudentAcademicInfoBulk', [ApiController::class, 'setStudentAcademicInfoBulk']);
     Route::post('setStaffBasicInfo', [ApiController::class, 'setStaffBasicInfo']);
     Route::post('setStaffProfInfo', [ApiController::class, 'setStaffProfInfo']);
     Route::post('setSchoolGradeInfo', [ApiController::class, 'setSchoolGradeInfo']);
