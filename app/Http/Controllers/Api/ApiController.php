@@ -3610,7 +3610,11 @@ class ApiController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/api/setClassMark",
+     *     path="/api/
+     *
+     *
+     \
+    * \Mark",
      *     tags={"Api"},
      *     summary="Set a Class Mark. If new, no need for id param. Otherwise, specify",
      *     description="This endpoint is used to set information about a class mark.",
@@ -4938,13 +4942,13 @@ class ApiController extends Controller
                     'schid' => $request->schid,
                     'ssn' => $request->ssn,
                     'clsm' => $request->new_class_main,
-                    'clsa' => $request->new_class,
                 ],
                 [
                     'uid' => $request->ssn . $request->user_id . $request->new_class_main,
                     'fname' => $std->fname,
                     'mname' => $std->mname,
                     'lname' => $std->lname,
+                    'clsa' => $request->new_class,
                     'status' => 'active',
                     'suid' => $request->suid,
                     'more' => '',
@@ -8362,34 +8366,34 @@ class ApiController extends Controller
         ]);
 
         // Deterministic UID
-      //  $uid = $request->ssn . $request->trm . $request->stid . $request->cls;
+        //  $uid = $request->ssn . $request->trm . $request->stid . $request->cls;
 
-          // ✅ SAFE UID (NO COLLISION)
-    $uid = implode('-', [
-        $request->ssn,
-        $request->trm,
-        $request->stid,
-        $request->cls
-    ]);
+        // ✅ SAFE UID (NO COLLISION)
+        $uid = implode('-', [
+            $request->ssn,
+            $request->trm,
+            $request->stid,
+            $request->cls
+        ]);
 
         // Save staff_class
-    $staffClass = staff_class::where([
-        "stid" => $request->stid,
-        "cls"  => $request->cls,
-        "ssn"  => $request->ssn,
-        "trm"  => $request->trm,
-    ])->first();
+        $staffClass = staff_class::where([
+            "stid" => $request->stid,
+            "cls" => $request->cls,
+            "ssn" => $request->ssn,
+            "trm" => $request->trm,
+        ])->first();
 
-    if (!$staffClass) {
-        $staffClass = new staff_class();
-        $staffClass->uid   = $uid;
-        $staffClass->stid  = $request->stid;
-        $staffClass->cls   = $request->cls;
-        $staffClass->schid = $request->schid;
-        $staffClass->ssn   = $request->ssn; // ✅ WILL SAVE
-        $staffClass->trm   = $request->trm;
-        $staffClass->save();
-    }
+        if (!$staffClass) {
+            $staffClass = new staff_class();
+            $staffClass->uid = $uid;
+            $staffClass->stid = $request->stid;
+            $staffClass->cls = $request->cls;
+            $staffClass->schid = $request->schid;
+            $staffClass->ssn = $request->ssn; // ✅ WILL SAVE
+            $staffClass->trm = $request->trm;
+            $staffClass->save();
+        }
 
         // 🔥 CHECK FOR DUPLICATES IN old_staff
         $exists = old_staff::where([
@@ -16880,104 +16884,122 @@ class ApiController extends Controller
     //     ]);
     // }
 
-public function getStudentsBySchool(Request $request, $schid, $stat)
-{
-    $start = $request->input('start', 0);
-    $count = $request->input('count', 20);
-    $year = $request->input('year');   // optional
-    $cls = $request->input('cls', 'zzz'); // "zzz" = ALL classes
-    $term = $request->input('term');   // optional
+    public function getStudentsBySchool(Request $request, $schid, $stat)
+    {
+        $start = $request->input('start', 0);
+        $count = $request->input('count', 20);
+        $year = $request->input('year');   // optional
+        $cls = $request->input('cls', 'zzz'); // "zzz" = ALL classes
+        $term = $request->input('term');   // optional
 
-    // Base query: join latest student_academic_data
-    $query = student::query()
-        ->leftJoin('student_academic_data as sad', function ($join) {
-            $join->on('student.sid', '=', 'sad.user_id')
-                ->whereRaw('sad.created_at = (
+        // Base query: join latest student_academic_data
+        $query = student::query()
+            ->leftJoin('student_academic_data as sad', function ($join) {
+                $join->on('student.sid', '=', 'sad.user_id')
+                    ->whereRaw('sad.created_at = (
                     SELECT MAX(created_at)
                     FROM student_academic_data
                     WHERE user_id = student.sid
                 )');
-        })
-        ->where('student.schid', $schid)
-        ->where('student.stat', $stat);
+            })
+            ->where('student.schid', $schid)
+            ->where('student.stat', $stat);
 
-    // Filter by class if not "ALL"
-    if ($cls !== 'zzz') {
-        $query->where('sad.new_class_main', $cls);
-    }
-
-    // Optional filters
-    if ($year) {
-        $query->where('student.year', $year);
-    }
-    if ($term) {
-        $query->where('student.term', $term);
-    }
-
-    // Clone query for total count
-    $total = (clone $query)->distinct('student.sid')->count('student.sid');
-
-    // Fetch paginated results
-    $students = $query->select('student.*', 'sad.new_class_main')
-        ->distinct('student.sid')
-        ->orderBy('student.lname', 'asc')
-        ->skip($start)
-        ->take($count)
-        ->get();
-
-    // Format payload and calculate cls_sbj_students based on session/year (ssn)
-    $pld = $students->map(function ($student) use ($schid, $year) {
-
-        // 🔹 Latest academic data
-        $latestAcademic = student_academic_data::where('user_id', $student->sid)
-            ->orderBy('created_at', 'desc')
-            ->first();
-
-        // 🔹 Determine session/year to check subjects (fall back to student.year if $year not provided)
-        $ssn = $year ?? $student->year;
-
-        // 🔹 Check if student has subjects in student_subj for this session/year
-        $hasSubjects = \DB::table('student_subj')
-            ->where('stid', $student->sid)
-            ->where('schid', $schid)
-            ->where('ssn', $ssn)
-            ->exists();
-
-        // 🔹 Check if student has class and class arm in old_student table for this session/year
-        $oldStudent = \DB::table('old_student')
-            ->where('sid', $student->sid)
-            ->where('schid', $schid)
-            ->where('ssn', $ssn)
-            ->first();
-
-        $hasClassAndArm = $oldStudent && !empty($oldStudent->clsm) && !empty($oldStudent->clsa);
-
-        // 🔹 Determine cls_sbj_students value
-        $clsSbjValue = ($hasSubjects && $hasClassAndArm) ? 1 : 0;
-
-        // 🔹 Update students table if value changed
-        if ($student->cls_sbj_students != $clsSbjValue) {
-            \DB::table('student')
-                ->where('sid', $student->sid)
-                ->update(['cls_sbj_students' => $clsSbjValue]);
-            $student->cls_sbj_students = $clsSbjValue; // update object for response
+        // Filter by class if not "ALL"
+        if ($cls !== 'zzz') {
+            $query->where('sad.new_class_main', $cls);
         }
 
-        // 🔹 Build response exactly like your example
-        return [
-            's' => $student,
-            'b' => student_basic_data::where('user_id', $student->sid)->first(),
-            'a' => $latestAcademic,
-        ];
-    });
+        // Optional filters
+        if ($year) {
+            $query->where('student.year', $year);
+        }
+        if ($term) {
+            $query->where('student.term', $term);
+        }
 
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "total" => $total,
-        "pld" => $pld,
-    ]);
-}
+        // Clone query for total count
+        $total = (clone $query)->distinct('student.sid')->count('student.sid');
+
+        // Fetch paginated results
+        $students = $query->select('student.*', 'sad.new_class_main')
+            ->distinct('student.sid')
+            ->orderBy('student.lname', 'asc')
+            ->skip($start)
+            ->take($count)
+            ->get();
+
+        // Format payload and calculate cls_sbj_students based on session/year (ssn)
+        $pld = $students->map(function ($student) use ($schid, $year) {
+
+            // 🔹 Latest academic data
+            $latestAcademic = student_academic_data::where('user_id', $student->sid)
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            // 🔹 Determine session/year to check subjects (fall back to student.year if $year not provided)
+            $ssn = $year ?? $student->year;
+
+            // 🔹 Check if student has subjects in student_subj for this session/year
+            $hasSubjects = \DB::table('student_subj')
+                ->where('stid', $student->sid)
+                ->where('schid', $schid)
+                ->where('ssn', $ssn)
+                ->exists();
+
+            // 🔹 Check if student has class and class arm in old_student table for this session/year
+            $oldStudent = \DB::table('old_student')
+                ->where('sid', $student->sid)
+                ->where('schid', $schid)
+                ->where('ssn', $ssn)
+                ->first();
+
+            // $hasClassAndArm = $oldStudent && !empty($oldStudent->clsm) && !empty($oldStudent->clsa);
+
+            // // 🔹 Determine cls_sbj_students value
+            // $clsSbjValue = ($hasSubjects && $hasClassAndArm) ? 1 : 0;
+
+            $hasClass = $oldStudent && !empty($oldStudent->clsm);
+            $hasArm = $oldStudent && !empty($oldStudent->clsa);
+
+            // 🔹 Determine cls_sbj_students value
+            if ($hasClass && !$hasArm) {
+                // Class only
+                $clsSbjValue = 0;
+            } elseif ($hasClass && $hasArm && !$hasSubjects) {
+                // Class + Arm only
+                $clsSbjValue = 1;
+            } elseif ($hasClass && $hasArm && $hasSubjects) {
+                // Class + Arm + Subject
+                $clsSbjValue = 2;
+            } else {
+                $clsSbjValue = 0;
+            }
+
+
+            // 🔹 Update students table if value changed
+            if ($student->cls_sbj_students != $clsSbjValue) {
+                \DB::table('student')
+                    ->where('sid', $student->sid)
+                    ->update(['cls_sbj_students' => $clsSbjValue]);
+                $student->cls_sbj_students = $clsSbjValue; // update object for response
+            }
+
+            // 🔹 Build response exactly like your example
+            return [
+                's' => $student,
+                'b' => student_basic_data::where('user_id', $student->sid)->first(),
+                'a' => $latestAcademic,
+            ];
+        });
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "total" => $total,
+            "pld" => $pld,
+        ]);
+    }
 
 
 
@@ -32281,157 +32303,157 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
 
 
 
-/**
- * @OA\Post(
- *     path="/api/assignClassSubject",
- *     operationId="assignClassSubject",
- *     summary="Assign multiple subjects to a class",
- *     description="Assign multiple subjects (selected via checkboxes) to a class for a specific school, session, and term. Duplicate assignments are skipped.",
- *     tags={"Admin"},
- *     security={{"bearerAuth":{}}},
- *
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"schid","clsid","sesn","trm","subjects"},
- *
- *             @OA\Property(
- *                 property="schid",
- *                 type="integer",
- *                 example=13
- *             ),
- *             @OA\Property(
- *                 property="clsid",
- *                 type="integer",
- *                 example=12
- *             ),
- *             @OA\Property(
- *                 property="sesn",
- *                 type="integer",
- *                 example=2025
- *             ),
- *             @OA\Property(
- *                 property="trm",
- *                 type="integer",
- *                 example=2
- *             ),
- *
- *             @OA\Property(
- *                 property="subjects",
- *                 type="array",
- *                 minItems=1,
- *                 @OA\Items(
- *                     type="object",
- *                     required={"subj_id","name","comp"},
- *                     @OA\Property(
- *                         property="subj_id",
- *                         type="integer",
- *                         example=100
- *                     ),
- *                     @OA\Property(
- *                         property="name",
- *                         type="string",
- *                         example="FRENCH"
- *                     ),
- *                     @OA\Property(
- *                         property="comp",
- *                         type="integer",
- *                         example=1
- *                     )
- *                 )
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Subjects assignment completed",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Subjects assignment completed"),
- *
- *             @OA\Property(
- *                 property="assigned",
- *                 type="array",
- *                 @OA\Items(type="object")
- *             ),
- *             @OA\Property(
- *                 property="skipped",
- *                 type="array",
- *                 @OA\Items(type="object")
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=422,
- *         description="Validation error"
- *     ),
- *
- *     @OA\Response(
- *         response=500,
- *         description="Server error"
- *     )
- * )
- */
+    /**
+     * @OA\Post(
+     *     path="/api/assignClassSubject",
+     *     operationId="assignClassSubject",
+     *     summary="Assign multiple subjects to a class",
+     *     description="Assign multiple subjects (selected via checkboxes) to a class for a specific school, session, and term. Duplicate assignments are skipped.",
+     *     tags={"Admin"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"schid","clsid","sesn","trm","subjects"},
+     *
+     *             @OA\Property(
+     *                 property="schid",
+     *                 type="integer",
+     *                 example=13
+     *             ),
+     *             @OA\Property(
+     *                 property="clsid",
+     *                 type="integer",
+     *                 example=12
+     *             ),
+     *             @OA\Property(
+     *                 property="sesn",
+     *                 type="integer",
+     *                 example=2025
+     *             ),
+     *             @OA\Property(
+     *                 property="trm",
+     *                 type="integer",
+     *                 example=2
+     *             ),
+     *
+     *             @OA\Property(
+     *                 property="subjects",
+     *                 type="array",
+     *                 minItems=1,
+     *                 @OA\Items(
+     *                     type="object",
+     *                     required={"subj_id","name","comp"},
+     *                     @OA\Property(
+     *                         property="subj_id",
+     *                         type="integer",
+     *                         example=100
+     *                     ),
+     *                     @OA\Property(
+     *                         property="name",
+     *                         type="string",
+     *                         example="FRENCH"
+     *                     ),
+     *                     @OA\Property(
+     *                         property="comp",
+     *                         type="integer",
+     *                         example=1
+     *                     )
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Subjects assignment completed",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Subjects assignment completed"),
+     *
+     *             @OA\Property(
+     *                 property="assigned",
+     *                 type="array",
+     *                 @OA\Items(type="object")
+     *             ),
+     *             @OA\Property(
+     *                 property="skipped",
+     *                 type="array",
+     *                 @OA\Items(type="object")
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error"
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=500,
+     *         description="Server error"
+     *     )
+     * )
+     */
 
 
 
-public function assignClassSubject(Request $request)
-{
-    $request->validate([
-        "schid" => "required",
-        "clsid" => "required",
-        "sesn"  => "required",
-        "trm"   => "required",
-        "subjects" => "required|array|min:1",
-        "subjects.*.subj_id" => "required",
-        "subjects.*.name"    => "required|string",
-        "subjects.*.comp"    => "required",
-    ]);
+    public function assignClassSubject(Request $request)
+    {
+        $request->validate([
+            "schid" => "required",
+            "clsid" => "required",
+            "sesn" => "required",
+            "trm" => "required",
+            "subjects" => "required|array|min:1",
+            "subjects.*.subj_id" => "required",
+            "subjects.*.name" => "required|string",
+            "subjects.*.comp" => "required",
+        ]);
 
-    $inserted = [];
-    $skipped  = [];
+        $inserted = [];
+        $skipped = [];
 
-    foreach ($request->subjects as $subject) {
+        foreach ($request->subjects as $subject) {
 
-        $exists = class_subj::where('schid', $request->schid)
-            ->where('clsid', $request->clsid)
-            ->where('subj_id', $subject['subj_id'])
-            ->where('sesn', $request->sesn)
-            ->where('trm', $request->trm)
-            ->exists();
+            $exists = class_subj::where('schid', $request->schid)
+                ->where('clsid', $request->clsid)
+                ->where('subj_id', $subject['subj_id'])
+                ->where('sesn', $request->sesn)
+                ->where('trm', $request->trm)
+                ->exists();
 
-        if ($exists) {
-            $skipped[] = $subject;
-            continue;
+            if ($exists) {
+                $skipped[] = $subject;
+                continue;
+            }
+
+            $uid = $request->schid .
+                $request->clsid .
+                $subject['subj_id'] .
+                $request->sesn .
+                $request->trm;
+
+            $inserted[] = class_subj::create([
+                "uid" => $uid,
+                "schid" => $request->schid,
+                "clsid" => $request->clsid,
+                "subj_id" => $subject['subj_id'],
+                "name" => $subject['name'],
+                "comp" => $subject['comp'],
+                "sesn" => $request->sesn,
+                "trm" => $request->trm,
+            ]);
         }
 
-        $uid = $request->schid .
-               $request->clsid .
-               $subject['subj_id'] .
-               $request->sesn .
-               $request->trm;
-
-        $inserted[] = class_subj::create([
-            "uid"     => $uid,
-            "schid"   => $request->schid,
-            "clsid"   => $request->clsid,
-            "subj_id" => $subject['subj_id'],
-            "name"    => $subject['name'],
-            "comp"    => $subject['comp'],
-            "sesn"    => $request->sesn,
-            "trm"     => $request->trm,
+        return response()->json([
+            "status" => true,
+            "message" => "Subjects assignment completed",
+            "assigned" => $inserted,
+            "skipped" => $skipped
         ]);
     }
-
-    return response()->json([
-        "status"   => true,
-        "message"  => "Subjects assignment completed",
-        "assigned" => $inserted,
-        "skipped"  => $skipped
-    ]);
-}
 
 
     /**
@@ -32478,87 +32500,87 @@ public function assignClassSubject(Request $request)
 
 
     /**
- * @OA\Post(
- *     path="/api/setClassGradeAdmin",
- *     operationId="setClassGradeAdmin",
- *     summary="Set grading system for a class",
- *     description="Allows domain admin or schools to set/update the grading system, number of CAs, and exam marks per term for a class. Schools can override state-defined defaults.",
- *     tags={"Admin"},
- *     security={{"bearerAuth":{}}},
- *
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"grd","g0","g1","schid","clsid","ssn","trm"},
- *
- *             @OA\Property(property="grd", type="string", example="A-F"),
- *             @OA\Property(property="g0", type="number", example=0),
- *             @OA\Property(property="g1", type="number", example=100),
- *             @OA\Property(property="schid", type="integer", example=13),
- *             @OA\Property(property="clsid", type="integer", example=12),
- *             @OA\Property(property="ssn", type="integer", example=2025),
- *             @OA\Property(property="trm", type="integer", example=2)
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Grading system successfully set",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Grading system set successfully"),
- *             @OA\Property(property="data", type="object")
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=422,
- *         description="Validation error"
- *     ),
- *
- *     @OA\Response(
- *         response=500,
- *         description="Server error"
- *     )
- * )
- */
+     * @OA\Post(
+     *     path="/api/setClassGradeAdmin",
+     *     operationId="setClassGradeAdmin",
+     *     summary="Set grading system for a class",
+     *     description="Allows domain admin or schools to set/update the grading system, number of CAs, and exam marks per term for a class. Schools can override state-defined defaults.",
+     *     tags={"Admin"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"grd","g0","g1","schid","clsid","ssn","trm"},
+     *
+     *             @OA\Property(property="grd", type="string", example="A-F"),
+     *             @OA\Property(property="g0", type="number", example=0),
+     *             @OA\Property(property="g1", type="number", example=100),
+     *             @OA\Property(property="schid", type="integer", example=13),
+     *             @OA\Property(property="clsid", type="integer", example=12),
+     *             @OA\Property(property="ssn", type="integer", example=2025),
+     *             @OA\Property(property="trm", type="integer", example=2)
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Grading system successfully set",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Grading system set successfully"),
+     *             @OA\Property(property="data", type="object")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error"
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=500,
+     *         description="Server error"
+     *     )
+     * )
+     */
 
     public function setClassGradeAdmin(Request $request)
-{
-    // Data validation
-    $request->validate([
-        "grd"   => "required|string", // grading system name/code
-        "g0"    => "required|numeric", // min CA/Exam marks? adjust type if needed
-        "g1"    => "required|numeric", // max CA/Exam marks? adjust type if needed
-        "schid" => "required|integer",
-        "clsid" => "required|integer",
-        "ssn"   => "required|integer",
-        "trm"   => "required|integer",
-    ]);
+    {
+        // Data validation
+        $request->validate([
+            "grd" => "required|string", // grading system name/code
+            "g0" => "required|numeric", // min CA/Exam marks? adjust type if needed
+            "g1" => "required|numeric", // max CA/Exam marks? adjust type if needed
+            "schid" => "required|integer",
+            "clsid" => "required|integer",
+            "ssn" => "required|integer",
+            "trm" => "required|integer",
+        ]);
 
-    // Generate deterministic UID
-    $uid = $request->schid . $request->clsid . $request->ssn . $request->trm . $request->grd;
+        // Generate deterministic UID
+        $uid = $request->schid . $request->clsid . $request->ssn . $request->trm . $request->grd;
 
-    // Insert or update grading system
-    $grade = sch_grade::updateOrCreate(
-        ["uid" => $uid],
-        [
-            "grd"   => $request->grd,
-            "g0"    => $request->g0,
-            "g1"    => $request->g1,
-            "schid" => $request->schid,
-            "clsid" => $request->clsid,
-            "ssn"   => $request->ssn,
-            "trm"   => $request->trm,
-        ]
-    );
+        // Insert or update grading system
+        $grade = sch_grade::updateOrCreate(
+            ["uid" => $uid],
+            [
+                "grd" => $request->grd,
+                "g0" => $request->g0,
+                "g1" => $request->g1,
+                "schid" => $request->schid,
+                "clsid" => $request->clsid,
+                "ssn" => $request->ssn,
+                "trm" => $request->trm,
+            ]
+        );
 
-    return response()->json([
-        "status"  => true,
-        "message" => "Grading system set successfully",
-        "data"    => $grade
-    ]);
-}
+        return response()->json([
+            "status" => true,
+            "message" => "Grading system set successfully",
+            "data" => $grade
+        ]);
+    }
 
 
 }
