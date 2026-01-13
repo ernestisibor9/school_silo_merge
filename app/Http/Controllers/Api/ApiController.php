@@ -2521,24 +2521,29 @@ class ApiController extends Controller
                 $count = student::where('schid', $request->schid)->count() + 1;
             }
             $ssn = $request->ssn;
-            student::create([
-                "sid" => strval($usr->id),
-                "schid" => $request->schid,
-                "fname" => $request->fname,
-                "mname" => $request->mname,
-                "lname" => $request->lname,
-                "count" => strval($count),
-                "year" => $ssn,
-                "term" => $request->term,
-                "sch3" => $request->sch3,
-                "s_basic" => '0',
-                "s_medical" => '0',
-                "s_parent" => '0',
-                "s_academic" => '0',
-                "rfee" => $request->stat,
-                "stat" => $request->stat,
-                "cuid" => $request->cuid,
-            ]);
+            student::updateOrCreate(
+                [
+                    'sid'   => strval($usr->id),
+                    'schid' => $request->schid,
+                    'year'  => $request->ssn,
+                    'term'  => $request->term,
+                ],
+                [
+                    'fname' => $request->fname,
+                    'mname' => $request->mname,
+                    'lname' => $request->lname,
+                    'count' => strval($count),
+                    'sch3'  => $request->sch3,
+                    's_basic' => '0',
+                    's_medical' => '0',
+                    's_parent' => '0',
+                    's_academic' => '0',
+                    'rfee' => $request->stat,
+                    'stat' => $request->stat,
+                    'cuid' => $request->cuid,
+                ]
+            );
+
             $sid = $request->sch3 . '/' . $ssn . '/' . $request->term . '/' . strval($count);
             // Wrap the email sending logic in a try-catch block
             try {
@@ -32583,146 +32588,187 @@ class ApiController extends Controller
 
 
 
+/**
+ * @OA\Post(
+ *     path="/api/setStudentAcademicInfoBulk",
+ *     summary="Bulk set student academic information",
+ *     description="Uploads and updates academic information for multiple students at once. Existing records are updated, new ones are created where applicable.",
+ *     operationId="setStudentAcademicInfoBulk",
+ *     tags={"Api"},
+ *   security={{"bearerAuth":{}}},
+ *
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             required={"students"},
+ *             @OA\Property(
+ *                 property="students",
+ *                 type="array",
+ *                 minItems=1,
+ *                 @OA\Items(
+ *                     type="object",
+ *                     required={"user_id","schid","last_school","ssn","suid"},
+ *                     @OA\Property(
+ *                         property="user_id",
+ *                         type="integer",
+ *                         example=2406,
+ *                         description="Student system ID (sid)"
+ *                     ),
+ *                     @OA\Property(
+ *                         property="schid",
+ *                         type="integer",
+ *                         example=12,
+ *                         description="School ID"
+ *                     ),
+ *                     @OA\Property(
+ *                         property="last_school",
+ *                         type="string",
+ *                         example="HOLY GHOST COLLEGE",
+ *                         description="Previous school name"
+ *                     ),
+ *                     @OA\Property(
+ *                         property="last_class",
+ *                         type="string",
+ *                         nullable=true,
+ *                         example="1",
+ *                         description="Previous class"
+ *                     ),
+ *                     @OA\Property(
+ *                         property="new_class",
+ *                         type="string",
+ *                         nullable=true,
+ *                         example="1",
+ *                         description="New class assigned"
+ *                     ),
+ *                     @OA\Property(
+ *                         property="new_class_main",
+ *                         type="string",
+ *                         nullable=true,
+ *                         example="11",
+ *                         description="Main class group"
+ *                     ),
+ *                     @OA\Property(
+ *                         property="ssn",
+ *                         type="string",
+ *                         example="2025",
+ *                         description="Academic session"
+ *                     ),
+ *                     @OA\Property(
+ *                         property="suid",
+ *                         type="string",
+ *                         example="HGC/2025/1/376",
+ *                         description="Student unique identifier"
+ *                     )
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Bulk upload successful",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Bulk upload successful")
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation error",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+ *             @OA\Property(property="errors", type="object")
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=500,
+ *         description="Server error"
+ *     )
+ * )
+ */
 
-    /**
-     * @OA\Post(
-     *     path="/api/setStudentAcademicInfoBulk",
-     *     operationId="setStudentAcademicInfoBulk",
-     *     tags={"Api"},
-     *    security={{"bearerAuth":{}}},
-     *     summary="Bulk upload student academic info",
-     *     description="Upload or update academic information for multiple students at once. Clears subjects if class changed.",
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(
-     *                 property="students",
-     *                 type="array",
-     *                 description="Array of student academic records",
-     *                 @OA\Items(
-     *                     type="object",
-     *                     required={"user_id","schid","last_school","ssn","suid"},
-     *                     @OA\Property(property="user_id", type="integer", example=1000, description="Student ID"),
-     *                     @OA\Property(property="schid", type="integer", example=80, description="School ID"),
-     *                     @OA\Property(property="last_school", type="string", example="NIL", description="Previous school"),
-     *                     @OA\Property(property="last_class", type="string", example="12", description="Previous class (optional)"),
-     *                     @OA\Property(property="new_class", type="string", example="13", description="New class/arm assigned (optional)"),
-     *                     @OA\Property(property="new_class_main", type="string", example="11", description="New main class (optional)"),
-     *                     @OA\Property(property="ssn", type="string", example="2024", description="Session/Year"),
-     *                     @OA\Property(property="suid", type="string", example="SJC/2024/1/470", description="Student unique ID")
-     *                 )
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Bulk upload successful",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Bulk upload successful")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=422,
-     *         description="Validation error",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="The students field is required.")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=500,
-     *         description="Internal server error",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Something went wrong")
-     *         )
-     *     )
-     * )
-     */
 
-    public function setStudentAcademicInfoBulk(Request $request)
-    {
-        $request->validate([
-            "students" => "required|array|min:1",
-            "students.*.user_id" => "required",
-            "students.*.schid" => "required",
-            "students.*.last_school" => "required",
-            "students.*.last_class" => "nullable",
-            "students.*.new_class" => "nullable",
-            "students.*.new_class_main" => "nullable",
-            "students.*.ssn" => "required",
-            "students.*.suid" => "required",
-        ]);
+public function setStudentAcademicInfoBulk(Request $request)
+{
+    $request->validate([
+        "students" => "required|array|min:1",
+        "students.*.user_id" => "required",
+        "students.*.schid" => "required",
+        "students.*.last_school" => "required",
+        "students.*.last_class" => "nullable",
+        "students.*.new_class" => "nullable",
+        "students.*.new_class_main" => "nullable",
+        "students.*.ssn" => "required",
+        "students.*.suid" => "required",
+    ]);
 
-        DB::transaction(function () use ($request) {
+    DB::transaction(function () use ($request) {
 
-            foreach ($request->students as $data) {
+        foreach ($request->students as $data) {
 
-                // 🔹 Check existing academic data once
-                $oldData = student_academic_data::where('user_id', $data['user_id'])->first();
-                $refreshSubjects = !$oldData ||
-                    $oldData->new_class_main != ($data['new_class_main'] ?? null);
+            // 🔹 Check existing academic data once
+            $oldData = student_academic_data::where('user_id', $data['user_id'])->first();
+            $refreshSubjects = !$oldData ||
+                $oldData->new_class_main != ($data['new_class_main'] ?? null);
 
-                // 🔹 Academic data
-                student_academic_data::updateOrCreate(
-                    ["user_id" => $data['user_id']],
+            // 🔹 Academic data
+            student_academic_data::updateOrCreate(
+                ["user_id" => $data['user_id']],
+                [
+                    "last_school" => $data['last_school'],
+                    "last_class" => $data['last_class'] ?? null,
+                    "new_class" => $data['new_class'] ?? null,
+                    "new_class_main" => $data['new_class_main'] ?? null,
+                ]
+            );
+
+            // 🔹 Clear subjects only when needed
+            if ($refreshSubjects) {
+                student_subj::where('stid', $data['user_id'])->delete();
+            }
+
+            // 🔹 Fetch student safely
+            $std = student::where('sid', $data['user_id'])->first();
+            if (!$std) {
+                // Skip safely – prevents 500 error
+                continue;
+            }
+
+            // 🔹 old_student record
+            if (!empty($data['new_class']) && $data['new_class'] !== 'NIL') {
+
+                old_student::updateOrCreate(
                     [
-                        "last_school" => $data['last_school'],
-                        "last_class" => $data['last_class'] ?? null,
-                        "new_class" => $data['new_class'] ?? null,
-                        "new_class_main" => $data['new_class_main'] ?? null,
+                        'sid' => (int) $data['user_id'],
+                        'schid' => (int) $data['schid'],
+                        'ssn' => (int) $data['ssn'],
+                        'clsm' => (int) $data['new_class_main'],
+                    ],
+                    [
+                        'uid' => $data['ssn'] . $data['user_id'] . $data['new_class_main'],
+                        'fname' => $std->fname,
+                        'mname' => $std->mname,
+                        'lname' => $std->lname,
+                        'clsa' => $data['new_class'],
+                        'status' => 'active',
+                        'suid' => $data['suid'],
+                        'more' => '',
                     ]
                 );
-
-                // 🔹 Clear subjects only when needed
-                if ($refreshSubjects) {
-                    student_subj::where('stid', $data['user_id'])->delete();
-                }
-
-                // 🔹 Fetch student once
-                $std = student::where('sid', $data['user_id'])->first();
-                if (!$std) {
-                    continue;
-                }
-
-                // 🔹 old_student record
-                if (!empty($data['new_class']) && $data['new_class'] !== 'NIL') {
-
-                    old_student::updateOrCreate(
-                        [
-                            'sid' => $data['user_id'],
-                            'schid' => $data['schid'],
-                            'ssn' => $data['ssn'],
-                            'clsm' => $data['new_class_main'],
-                        ],
-                        [
-                            'uid' => $data['ssn'] . $data['user_id'] . $data['new_class_main'],
-                            'fname' => $std->fname,
-                            'mname' => $std->mname,
-                            'lname' => $std->lname,
-                            'clsa' => $data['new_class'],
-                            'status' => 'active',
-                            'suid' => $data['suid'],
-                            'more' => '',
-                        ]
-                    );
-                }
-
-                // 🔹 Mark academic set
-                $std->update(["s_academic" => 1]);
             }
-        });
 
-        return response()->json([
-            "status" => true,
-            "message" => "Bulk upload successful",
-        ]);
-    }
+            // 🔹 Mark academic set (SAFE)
+            $std->update(["s_academic" => 1]);
+        }
+    });
+
+    return response()->json([
+        "status" => true,
+        "message" => "Bulk upload successful",
+    ]);
+}
 
 
 }

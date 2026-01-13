@@ -29530,17 +29530,19 @@
                 "tags": [
                     "Api"
                 ],
-                "summary": "Bulk upload student academic info",
-                "description": "Upload or update academic information for multiple students at once. Clears subjects if class changed.",
+                "summary": "Bulk set student academic information",
+                "description": "Uploads and updates academic information for multiple students at once. Existing records are updated, new ones are created where applicable.",
                 "operationId": "setStudentAcademicInfoBulk",
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
+                                "required": [
+                                    "students"
+                                ],
                                 "properties": {
                                     "students": {
-                                        "description": "Array of student academic records",
                                         "type": "array",
                                         "items": {
                                             "required": [
@@ -29552,48 +29554,52 @@
                                             ],
                                             "properties": {
                                                 "user_id": {
-                                                    "description": "Student ID",
+                                                    "description": "Student system ID (sid)",
                                                     "type": "integer",
-                                                    "example": 1000
+                                                    "example": 2406
                                                 },
                                                 "schid": {
                                                     "description": "School ID",
                                                     "type": "integer",
-                                                    "example": 80
+                                                    "example": 12
                                                 },
                                                 "last_school": {
-                                                    "description": "Previous school",
+                                                    "description": "Previous school name",
                                                     "type": "string",
-                                                    "example": "NIL"
+                                                    "example": "HOLY GHOST COLLEGE"
                                                 },
                                                 "last_class": {
-                                                    "description": "Previous class (optional)",
+                                                    "description": "Previous class",
                                                     "type": "string",
-                                                    "example": "12"
+                                                    "example": "1",
+                                                    "nullable": true
                                                 },
                                                 "new_class": {
-                                                    "description": "New class/arm assigned (optional)",
+                                                    "description": "New class assigned",
                                                     "type": "string",
-                                                    "example": "13"
+                                                    "example": "1",
+                                                    "nullable": true
                                                 },
                                                 "new_class_main": {
-                                                    "description": "New main class (optional)",
+                                                    "description": "Main class group",
                                                     "type": "string",
-                                                    "example": "11"
+                                                    "example": "11",
+                                                    "nullable": true
                                                 },
                                                 "ssn": {
-                                                    "description": "Session/Year",
+                                                    "description": "Academic session",
                                                     "type": "string",
-                                                    "example": "2024"
+                                                    "example": "2025"
                                                 },
                                                 "suid": {
-                                                    "description": "Student unique ID",
+                                                    "description": "Student unique identifier",
                                                     "type": "string",
-                                                    "example": "SJC/2024/1/470"
+                                                    "example": "HGC/2025/1/376"
                                                 }
                                             },
                                             "type": "object"
-                                        }
+                                        },
+                                        "minItems": 1
                                     }
                                 },
                                 "type": "object"
@@ -29628,13 +29634,12 @@
                             "application/json": {
                                 "schema": {
                                     "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
                                         "message": {
                                             "type": "string",
-                                            "example": "The students field is required."
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object"
                                         }
                                     },
                                     "type": "object"
@@ -29643,24 +29648,7 @@
                         }
                     },
                     "500": {
-                        "description": "Internal server error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Something went wrong"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Server error"
                     }
                 },
                 "security": [
