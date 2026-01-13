@@ -4933,26 +4933,25 @@ public function setStudentAcademicInfo(Request $request)
         ], 404);
     }
 
-    // Record in old_student only if new_class is provided
+    // 🔹 Record in old_student only if new_class is specified
     if (!empty($request->new_class) && $request->new_class != 'NIL') {
-        // Build a unique uid using ssn, user_id, new_class_main, and trm
         $uid = $request->ssn . $request->user_id . $request->new_class_main . $request->trm;
 
         old_student::updateOrCreate(
-            ['uid' => $uid], // use uid as unique key to avoid duplicates
+            ["uid" => $uid], // UID ensures uniqueness
             [
-                'sid' => $request->user_id,
+                'sid'   => $request->user_id,
                 'schid' => $request->schid,
-                'ssn' => is_numeric($request->ssn) ? (int)$request->ssn : 0,
-                'trm' => $request->trm, // include term
-                'clsm' => is_numeric($request->new_class_main) ? (int)$request->new_class_main : 0,
+                'ssn'   => is_numeric($request->ssn) ? (int)$request->ssn : 0,
+                'trm'   => $request->trm, // term included here only
+                'clsm'  => is_numeric($request->new_class_main) ? (int)$request->new_class_main : 0,
                 'fname' => $std->fname ?? 'Unknown',
                 'mname' => $std->mname ?? '',
                 'lname' => $std->lname ?? 'Unknown',
-                'clsa' => $request->new_class,
-                'status' => 'active',
-                'suid' => $request->suid,
-                'more' => '',
+                'clsa'  => $request->new_class,
+                'status'=> 'active',
+                'suid'  => $request->suid,
+                'more'  => '',
             ]
         );
     }
