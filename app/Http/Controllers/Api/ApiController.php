@@ -32708,50 +32708,57 @@ public function setStudentAcademicInfoBulk(Request $request)
 
         foreach ($request->students as $data) {
 
-            // 🔹 Check existing academic data once
-            $oldData = student_academic_data::where('user_id', $data['user_id'])->first();
-            $refreshSubjects = !$oldData ||
-                $oldData->new_class_main != ($data['new_class_main'] ?? null);
+            $user_id = $data['user_id'];
+            $schid = $data['schid'];
+            $ssn = $data['ssn'];
 
-            // 🔹 Academic data
+            // 🔹 Keep "NIL" as-is for display purposes
+            $last_class = $data['last_class'] ?? 'NIL';
+            $new_class = $data['new_class'] ?? 'NIL';
+            $new_class_main = $data['new_class_main'] ?? 'NIL';
+
+            // 🔹 Check existing academic data
+            $oldData = student_academic_data::where('user_id', $user_id)->first();
+            $refreshSubjects = !$oldData || $oldData->new_class_main != $new_class_main;
+
+            // 🔹 Update academic data
             student_academic_data::updateOrCreate(
-                ["user_id" => $data['user_id']],
+                ["user_id" => $user_id],
                 [
                     "last_school" => $data['last_school'],
-                    "last_class" => $data['last_class'] ?? null,
-                    "new_class" => $data['new_class'] ?? null,
-                    "new_class_main" => $data['new_class_main'] ?? null,
+                    "last_class" => $last_class,
+                    "new_class" => $new_class,
+                    "new_class_main" => $new_class_main,
                 ]
             );
 
-            // 🔹 Clear subjects only when needed
+            // 🔹 Clear subjects if class changed
             if ($refreshSubjects) {
-                student_subj::where('stid', $data['user_id'])->delete();
+                student_subj::where('stid', $user_id)->delete();
             }
 
             // 🔹 Fetch student safely
-            $std = student::where('sid', $data['user_id'])->first();
+            $std = student::where('sid', $user_id)->first();
             if (!$std) {
-                // Skip safely – prevents 500 error
+                Log::warning("Student not found: $user_id");
                 continue;
             }
 
-            // 🔹 old_student record
-            if (!empty($data['new_class']) && $data['new_class'] !== 'NIL') {
-
+            // 🔹 Create old_student only if new_class is not NIL
+            if (!empty($new_class) && $new_class !== 'NIL') {
                 old_student::updateOrCreate(
                     [
-                        'sid' => (int) $data['user_id'],
-                        'schid' => (int) $data['schid'],
-                        'ssn' => (int) $data['ssn'],
-                        'clsm' => (int) $data['new_class_main'],
+                        'sid' => (int) $user_id,
+                        'schid' => (int) $schid,
+                        'ssn' => (int) $ssn,
+                        'clsm' => is_numeric($new_class_main) ? (int) $new_class_main : 0,
                     ],
                     [
-                        'uid' => $data['ssn'] . $data['user_id'] . $data['new_class_main'],
+                        'uid' => $ssn . $user_id . $new_class_main,
                         'fname' => $std->fname,
                         'mname' => $std->mname,
                         'lname' => $std->lname,
-                        'clsa' => $data['new_class'],
+                        'clsa' => $new_class,
                         'status' => 'active',
                         'suid' => $data['suid'],
                         'more' => '',
@@ -32759,7 +32766,7 @@ public function setStudentAcademicInfoBulk(Request $request)
                 );
             }
 
-            // 🔹 Mark academic set (SAFE)
+            // 🔹 Mark academic set
             $std->update(["s_academic" => 1]);
         }
     });
