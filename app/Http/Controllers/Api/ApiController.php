@@ -32698,7 +32698,7 @@ public function setStudentAcademicInfoBulk(Request $request)
         "students.*.new_class_main" => "nullable",
         "students.*.ssn" => "required",
         "students.*.suid" => "required",
-        "students.*.trm" => "required", // include term
+        // Notice: no trm here
     ]);
 
     try {
@@ -32709,16 +32709,16 @@ public function setStudentAcademicInfoBulk(Request $request)
                 $user_id = $data['user_id'];
                 $schid = $data['schid'];
                 $ssn = $data['ssn'];
-                $trm = $data['trm'];
 
                 $last_class = $data['last_class'] ?? 'NIL';
                 $new_class = $data['new_class'] ?? 'NIL';
                 $new_class_main = $data['new_class_main'] ?? 'NIL';
 
-                // Update academic data
+                // Check if academic data needs refresh
                 $oldData = student_academic_data::where('user_id', $user_id)->first();
                 $refreshSubjects = !$oldData || $oldData->new_class_main != $new_class_main;
 
+                // Update student_academic_data table
                 student_academic_data::updateOrCreate(
                     ["user_id" => $user_id],
                     [
@@ -32742,11 +32742,14 @@ public function setStudentAcademicInfoBulk(Request $request)
                 // Only create old_student if new_class is not NIL
                 if (!empty($new_class) && $new_class !== 'NIL') {
 
-                    // Create unique UID including trm to avoid duplicates
+                    // Assign a term, e.g., current term from student table
+                    $trm = $std->term ?? 1; // fallback to 1 if null
+
+                    // Unique UID includes term to avoid duplicates
                     $uid = $ssn . $user_id . $new_class_main . $trm;
 
                     old_student::updateOrCreate(
-                        ['uid' => $uid], // lookup by primary key
+                        ['uid' => $uid],
                         [
                             'sid' => (int) $user_id,
                             'schid' => (int) $schid,
@@ -32764,6 +32767,7 @@ public function setStudentAcademicInfoBulk(Request $request)
                     );
                 }
 
+                // Mark academic set
                 $std->update(["s_academic" => 1]);
             }
         });
