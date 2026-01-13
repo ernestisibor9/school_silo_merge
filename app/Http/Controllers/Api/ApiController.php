@@ -32704,72 +32704,74 @@ public function setStudentAcademicInfoBulk(Request $request)
         "students.*.suid" => "required",
     ]);
 
-    DB::transaction(function () use ($request) {
+    try {
+        DB::transaction(function () use ($request) {
 
-        foreach ($request->students as $data) {
+            foreach ($request->students as $data) {
 
-            $user_id = $data['user_id'];
-            $schid = $data['schid'];
-            $ssn = $data['ssn'];
+                $user_id = $data['user_id'];
+                $schid = $data['schid'];
+                $ssn = $data['ssn'];
 
-            // 🔹 Keep "NIL" as-is for display purposes
-            $last_class = $data['last_class'] ?? 'NIL';
-            $new_class = $data['new_class'] ?? 'NIL';
-            $new_class_main = $data['new_class_main'] ?? 'NIL';
+                $last_class = $data['last_class'] ?? 'NIL';
+                $new_class = $data['new_class'] ?? 'NIL';
+                $new_class_main = $data['new_class_main'] ?? 'NIL';
 
-            // 🔹 Check existing academic data
-            $oldData = student_academic_data::where('user_id', $user_id)->first();
-            $refreshSubjects = !$oldData || $oldData->new_class_main != $new_class_main;
+                $oldData = student_academic_data::where('user_id', $user_id)->first();
+                $refreshSubjects = !$oldData || $oldData->new_class_main != $new_class_main;
 
-            // 🔹 Update academic data
-            student_academic_data::updateOrCreate(
-                ["user_id" => $user_id],
-                [
-                    "last_school" => $data['last_school'],
-                    "last_class" => $last_class,
-                    "new_class" => $new_class,
-                    "new_class_main" => $new_class_main,
-                ]
-            );
-
-            // 🔹 Clear subjects if class changed
-            if ($refreshSubjects) {
-                student_subj::where('stid', $user_id)->delete();
-            }
-
-            // 🔹 Fetch student safely
-            $std = student::where('sid', $user_id)->first();
-            if (!$std) {
-                Log::warning("Student not found: $user_id");
-                continue;
-            }
-
-            // 🔹 Create old_student only if new_class is not NIL
-            if (!empty($new_class) && $new_class !== 'NIL') {
-                old_student::updateOrCreate(
+                student_academic_data::updateOrCreate(
+                    ["user_id" => $user_id],
                     [
-                        'sid' => (int) $user_id,
-                        'schid' => (int) $schid,
-                        'ssn' => (int) $ssn,
-                        'clsm' => is_numeric($new_class_main) ? (int) $new_class_main : 0,
-                    ],
-                    [
-                        'uid' => $ssn . $user_id . $new_class_main,
-                        'fname' => $std->fname,
-                        'mname' => $std->mname,
-                        'lname' => $std->lname,
-                        'clsa' => $new_class,
-                        'status' => 'active',
-                        'suid' => $data['suid'],
-                        'more' => '',
+                        "last_school" => $data['last_school'],
+                        "last_class" => $last_class,
+                        "new_class" => $new_class,
+                        "new_class_main" => $new_class_main,
                     ]
                 );
-            }
 
-            // 🔹 Mark academic set
-            $std->update(["s_academic" => 1]);
-        }
-    });
+                if ($refreshSubjects) {
+                    student_subj::where('stid', $user_id)->delete();
+                }
+
+                $std = student::where('sid', $user_id)->first();
+                if (!$std) {
+                    Log::warning("Student not found: $user_id");
+                    continue;
+                }
+
+                if (!empty($new_class) && $new_class !== 'NIL') {
+                    old_student::updateOrCreate(
+                        [
+                            'sid' => (int) $user_id,
+                            'schid' => (int) $schid,
+                            'ssn' => is_numeric($ssn) ? (int) $ssn : 0,
+                            'clsm' => is_numeric($new_class_main) ? (int) $new_class_main : 0,
+                        ],
+                        [
+                            'uid' => $ssn . $user_id . $new_class_main,
+                            'fname' => $std->fname ?? 'Unknown',
+                            'mname' => $std->mname ?? '',
+                            'lname' => $std->lname ?? 'Unknown',
+                            'clsa' => $new_class,
+                            'status' => 'active',
+                            'suid' => $data['suid'],
+                            'more' => '',
+                        ]
+                    );
+                }
+
+                $std->update(["s_academic" => 1]);
+            }
+        });
+    } catch (\Exception $e) {
+        Log::error("Bulk upload failed: " . $e->getMessage());
+        return response()->json([
+            "status" => false,
+            "message" => "Server Error",
+            "error" => $e->getMessage(),
+        ], 500);
+    }
 
     return response()->json([
         "status" => true,
