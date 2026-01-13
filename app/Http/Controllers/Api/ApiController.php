@@ -5189,140 +5189,127 @@ public function setStudentAcademicInfo(Request $request)
      * )
      */
 
+public function getOldStudents($schid, $ssn, $trm = '-1', $clsm = '-1', $clsa = '-1')
+{
+    // 🔹 Pagination
+    $start = request()->input('start', 0);
+    $count = request()->input('count', 20);
 
-    public function getOldStudents($schid, $ssn, $trm = '-1', $clsm = '-1', $clsa = '-1')
-    {
-        // 🔹 Pagination
-        $start = request()->input('start', 0);   // default 0
-        $count = request()->input('count', 20);  // default 20
+    // 🔹 Base query
+    $query = old_student::with(['academicData'])
+        ->where("schid", $schid)
+        ->where("ssn", $ssn)
+        ->where("status", "active");
 
-        // 🔹 Base query
-        $query = old_student::with(['academicData'])
-            ->where("schid", $schid)
-            ->where("ssn", $ssn)
-            ->where("status", "active");
-
-        // 🔹 Filter by term if not "-1"
-        if ($trm !== '-1') {
-            $query->where("trm", $trm);
-        }
-
-        // 🔹 Filter by main class if not "-1"
-        if ($clsm !== '-1') {
-            $query->where("clsm", $clsm);
-        }
-
-        // 🔹 Filter by arm if not "-1"
-        if ($clsa !== '-1') {
-            $query->where("clsa", $clsa);
-        }
-
-        // 🔹 Total count of unique students BEFORE pagination
-        $total = $query->distinct('sid')->count('sid');
-
-        // 🔹 Fetch paginated students
-        $students = $query->select(
-            'sid',
-            'suid',
-            'fname',
-            'mname',
-            'lname',
-            'ssn',
-            'trm',
-            'clsm',
-            'clsa',
-            'adm_ssn',
-            'adm_trm',
-            'cls_of_adm',
-            'date_of_adm',
-            'adm_status'
-        )
-            ->orderBy('lname', 'asc')
-            ->skip($start)
-            ->take($count)
-            ->get();
-
-        // 🔹 Remove duplicates by 'sid'
-        $uniqueStudents = $students->unique('sid')->values();
-
-        // 🔹 Map payload
-        // $pld = $uniqueStudents->map(function ($student) {
-        //     return [
-        //         "sid" => $student->sid,
-        //         "suid" => $student->suid,
-        //         "fname" => $student->fname,
-        //         "mname" => $student->mname,
-        //         "lname" => $student->lname,
-        //         "ssn" => $student->ssn,
-        //         "trm" => $student->trm,
-        //         "clsm" => $student->clsm,
-        //         "clsa" => $student->clsa,
-        //         "last_school" => $student->academicData?->last_school,
-        //         "last_class" => $student->academicData?->last_class,
-        //         "new_class" => $student->academicData?->new_class,
-        //         "new_class_main" => $student->academicData?->new_class_main,
-        //         "adm_ssn" => $student->adm_ssn,
-        //         "adm_trm" => $student->adm_trm,
-        //         "cls_of_adm" => $student->cls_of_adm,
-        //         "date_of_adm" => $student->date_of_adm,
-        //         "adm_status" => $student->adm_status,
-        //     ];
-        // });
-
-        $pld = $uniqueStudents->map(function ($student) use ($schid, $ssn, $trm) {
-
-            // 🔍 Check if student has subjects assigned
-            $hasSubjects = \DB::table('student_subj')
-                ->where('stid', $student->sid)
-                ->where('schid', $schid)
-                ->where('ssn', $ssn)
-                ->exists();
-
-            // 🔹 Update only if needed
-            $newValue = $hasSubjects ? 1 : 0;
-
-            if ($student->cls_sbj_students != $newValue) {
-                \DB::table('old_student')
-                    ->where('sid', $student->sid)
-                    ->where('schid', $schid)
-                    ->update(['cls_sbj_students' => $newValue]);
-            }
-
-            return [
-                "sid" => $student->sid,
-                "suid" => $student->suid,
-                "fname" => $student->fname,
-                "mname" => $student->mname,
-                "lname" => $student->lname,
-                "ssn" => $student->ssn,
-                "trm" => $student->trm,
-                "clsm" => $student->clsm,
-                "clsa" => $student->clsa,
-                "cls_sbj_students" => $newValue,  //  INCLUDED IN RESPONSE
-                "last_school" => $student->academicData?->last_school,
-                "last_class" => $student->academicData?->last_class,
-                "new_class" => $student->academicData?->new_class,
-                "new_class_main" => $student->academicData?->new_class_main,
-                "adm_ssn" => $student->adm_ssn,
-                "adm_trm" => $student->adm_trm,
-                "cls_of_adm" => $student->cls_of_adm,
-                "date_of_adm" => $student->date_of_adm,
-                "adm_status" => $student->adm_status,
-            ];
-        });
-
-
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "total" => $total,      // total unique students
-            "start" => $start,      // current start
-            "count" => $count,      // number of records returned
-            "returned" => $pld->count(), // for frontend UI
-            "pld" => $pld,
-        ]);
+    // 🔹 Filter by term
+    if ($trm !== '-1') {
+        $query->where("trm", $trm);
     }
 
+    // 🔹 Filter by main class
+    if ($clsm !== '-1') {
+        $query->where("clsm", $clsm);
+    }
+
+    // 🔹 Filter by class arm
+    if ($clsa !== '-1') {
+        $query->where("clsa", $clsa);
+    }
+
+    // 🔹 Total unique students
+    $total = $query->distinct('sid')->count('sid');
+
+    // 🔹 Fetch paginated students
+    $students = $query->select(
+        'sid',
+        'suid',
+        'fname',
+        'mname',
+        'lname',
+        'ssn',
+        'trm',
+        'clsm',
+        'clsa',
+        'cls_sbj_students',
+        'adm_ssn',
+        'adm_trm',
+        'cls_of_adm',
+        'date_of_adm',
+        'adm_status'
+    )
+        ->orderBy('lname', 'asc')
+        ->skip($start)
+        ->take($count)
+        ->get();
+
+    // 🔹 Remove duplicates
+    $uniqueStudents = $students->unique('sid')->values();
+
+    // 🔹 Map payload
+    $pld = $uniqueStudents->map(function ($student) use ($schid, $ssn) {
+
+        // 🔹 State checks
+        $hasClassMain = !empty($student->clsm) && $student->clsm !== 'NIL';
+        $hasClassArm  = !empty($student->clsa) && $student->clsa !== 'NIL';
+
+        $hasSubjects = \DB::table('student_subj')
+            ->where('stid', $student->sid)
+            ->where('schid', $schid)
+            ->where('ssn', $ssn)
+            ->exists();
+
+        // 🔹 cls_sbj_students logic
+        if ($hasClassMain && !$hasClassArm) {
+            $newValue = 0; // class only
+        } elseif ($hasClassMain && $hasClassArm && !$hasSubjects) {
+            $newValue = 1; // class + arm
+        } elseif ($hasClassMain && $hasClassArm && $hasSubjects) {
+            $newValue = 2; // class + arm + subject
+        } else {
+            $newValue = 0;
+        }
+
+        // 🔹 Update DB only if changed
+        if ((int)$student->cls_sbj_students !== $newValue) {
+            \DB::table('old_student')
+                ->where('sid', $student->sid)
+                ->where('schid', $schid)
+                ->update(['cls_sbj_students' => $newValue]);
+        }
+
+        return [
+            "sid" => $student->sid,
+            "suid" => $student->suid,
+            "fname" => $student->fname,
+            "mname" => $student->mname,
+            "lname" => $student->lname,
+            "ssn" => $student->ssn,
+            "trm" => $student->trm,
+            "clsm" => $student->clsm,
+            "clsa" => $student->clsa,
+            "cls_sbj_students" => $newValue,
+            "last_school" => $student->academicData?->last_school,
+            "last_class" => $student->academicData?->last_class,
+            "new_class" => $student->academicData?->new_class,
+            "new_class_main" => $student->academicData?->new_class_main,
+            "adm_ssn" => $student->adm_ssn,
+            "adm_trm" => $student->adm_trm,
+            "cls_of_adm" => $student->cls_of_adm,
+            "date_of_adm" => $student->date_of_adm,
+            "adm_status" => $student->adm_status,
+        ];
+    });
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "total" => $total,
+        "start" => $start,
+        "count" => $count,
+        "returned" => $pld->count(),
+        "pld" => $pld,
+    ]);
+}
 
 
 
