@@ -16871,121 +16871,106 @@ public function getOldStudents($schid, $ssn, $trm = '-1', $clsm = '-1', $clsa = 
     //     ]);
     // }
 
-    public function getStudentsBySchool(Request $request, $schid, $stat)
-    {
-        $start = $request->input('start', 0);
-        $count = $request->input('count', 20);
-        $year = $request->input('year');   // optional
-        $cls = $request->input('cls', 'zzz'); // "zzz" = ALL classes
-        $term = $request->input('term');   // optional
+public function getStudentsBySchool(Request $request, $schid, $stat)
+{
+    $start = $request->input('start', 0);
+    $count = $request->input('count', 20);
+    $year = $request->input('year');
+    $cls = $request->input('cls', 'zzz');
+    $term = $request->input('term');
 
-        // Base query: join latest student_academic_data
-        $query = student::query()
-            ->leftJoin('student_academic_data as sad', function ($join) {
-                $join->on('student.sid', '=', 'sad.user_id')
-                    ->whereRaw('sad.created_at = (
+    // Base query: join latest student_academic_data
+    $query = student::query()
+        ->leftJoin('student_academic_data as sad', function ($join) {
+            $join->on('student.sid', '=', 'sad.user_id')
+                ->whereRaw('sad.created_at = (
                     SELECT MAX(created_at)
                     FROM student_academic_data
                     WHERE user_id = student.sid
                 )');
-            })
-            ->where('student.schid', $schid)
-            ->where('student.stat', $stat);
+        })
+        ->where('student.schid', $schid)
+        ->where('student.stat', $stat)        // active students only
+        ->where('student.status', 'active');  // extra safety
 
-        // Filter by class if not "ALL"
-        if ($cls !== 'zzz') {
-            $query->where('sad.new_class_main', $cls);
-        }
-
-        // Optional filters
-        if ($year) {
-            $query->where('student.year', $year);
-        }
-        if ($term) {
-            $query->where('student.term', $term);
-        }
-
-        // Clone query for total count
-        $total = (clone $query)->distinct('student.sid')->count('student.sid');
-
-        // Fetch paginated results
-        $students = $query->select('student.*', 'sad.new_class_main')
-            ->distinct('student.sid')
-            ->orderBy('student.lname', 'asc')
-            ->skip($start)
-            ->take($count)
-            ->get();
-
-        // Format payload and calculate cls_sbj_students based on session/year (ssn)
-        $pld = $students->map(function ($student) use ($schid, $year) {
-
-            // 🔹 Latest academic data
-            $latestAcademic = student_academic_data::where('user_id', $student->sid)
-                ->orderBy('created_at', 'desc')
-                ->first();
-
-            // 🔹 Determine session/year to check subjects (fall back to student.year if $year not provided)
-            $ssn = $year ?? $student->year;
-
-            // 🔹 Check if student has subjects in student_subj for this session/year
-            $hasSubjects = \DB::table('student_subj')
-                ->where('stid', $student->sid)
-                ->where('schid', $schid)
-                ->where('ssn', $ssn)
-                ->exists();
-
-            // 🔹 Check if student has class and class arm in old_student table for this session/year
-            $oldStudent = \DB::table('old_student')
-                ->where('sid', $student->sid)
-                ->where('schid', $schid)
-                ->where('ssn', $ssn)
-                ->first();
-
-            // $hasClassAndArm = $oldStudent && !empty($oldStudent->clsm) && !empty($oldStudent->clsa);
-
-            // // 🔹 Determine cls_sbj_students value
-            // $clsSbjValue = ($hasSubjects && $hasClassAndArm) ? 1 : 0;
-
-            $hasClass = $oldStudent && !empty($oldStudent->clsm);
-            $hasArm = $oldStudent && !empty($oldStudent->clsa);
-
-            // 🔹 Determine cls_sbj_students value
-            if ($hasSubjects) {
-                // Class + Subject OR Class + Arm + Subject
-                $clsSbjValue = 2;
-            } elseif ($hasClass && $hasArm) {
-                // Class + Arm only
-                $clsSbjValue = 1;
-            } else {
-                // Class only
-                $clsSbjValue = 0;
-            }
-
-
-
-            // 🔹 Update students table if value changed
-            if ($student->cls_sbj_students != $clsSbjValue) {
-                \DB::table('student')
-                    ->where('sid', $student->sid)
-                    ->update(['cls_sbj_students' => $clsSbjValue]);
-                $student->cls_sbj_students = $clsSbjValue; // update object for response
-            }
-
-            // 🔹 Build response exactly like your example
-            return [
-                's' => $student,
-                'b' => student_basic_data::where('user_id', $student->sid)->first(),
-                'a' => $latestAcademic,
-            ];
-        });
-
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "total" => $total,
-            "pld" => $pld,
-        ]);
+    if ($cls !== 'zzz') {
+        $query->where('sad.new_class_main', $cls);
     }
+
+    if ($year) {
+        $query->where('student.year', $year);
+    }
+    if ($term) {
+        $query->where('student.term', $term);
+    }
+
+    $total = (clone $query)->distinct('student.sid')->count('student.sid');
+
+    $students = $query->select('student.*', 'sad.new_class_main')
+        ->distinct('student.sid')
+        ->orderBy('student.lname', 'asc')
+        ->skip($start)
+        ->take($count)
+        ->get();
+
+    $pld = $students->map(function ($student) use ($schid, $year) {
+
+        $latestAcademic = student_academic_data::where('user_id', $student->sid)
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        $ssn = $year ?? $student->year;
+
+        $hasSubjects = \DB::table('student_subj')
+            ->where('stid', $student->sid)
+            ->where('schid', $schid)
+            ->where('ssn', $ssn)
+            ->exists();
+
+        // only ACTIVE old_student
+        $oldStudent = \DB::table('old_student')
+            ->where('sid', $student->sid)
+            ->where('schid', $schid)
+            ->where('ssn', $ssn)
+            ->where('status', 'active')
+            ->first();
+
+        $hasClassMain = $oldStudent && !empty($oldStudent->clsm);
+        $hasClassArm  = $oldStudent && !empty($oldStudent->clsa);
+
+        // 🔹 CORRECT cls_sbj_students LOGIC
+        if ($hasClassMain && !$hasClassArm) {
+            $clsSbjValue = 0;               // class only
+        } elseif ($hasClassMain && $hasClassArm && !$hasSubjects) {
+            $clsSbjValue = 1;               // class + arm
+        } elseif ($hasClassMain && $hasClassArm && $hasSubjects) {
+            $clsSbjValue = 2;               // class + arm + subject
+        } else {
+            $clsSbjValue = 0;
+        }
+
+        if ($student->cls_sbj_students != $clsSbjValue) {
+            \DB::table('student')
+                ->where('sid', $student->sid)
+                ->update(['cls_sbj_students' => $clsSbjValue]);
+
+            $student->cls_sbj_students = $clsSbjValue;
+        }
+
+        return [
+            's' => $student,
+            'b' => student_basic_data::where('user_id', $student->sid)->first(),
+            'a' => $latestAcademic,
+        ];
+    });
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "total" => $total,
+        "pld" => $pld,
+    ]);
+}
 
 
 
