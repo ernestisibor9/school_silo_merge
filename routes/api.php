@@ -224,6 +224,8 @@ Route::group([
     Route::post('resetPass', [ApiController::class, 'resetPass']);
     Route::post('rePostStaff', [ApiController::class, 'rePostStaff']);
 
+    Route::post('/students/maintain-previous', [ApiController::class, 'maintainPreviousStudents']);
+
 
 
     Route::get('/getSubAccount/{acctid}', [ApiController::class, 'getSubAccount']);
