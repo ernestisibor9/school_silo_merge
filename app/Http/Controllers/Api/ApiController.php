@@ -32759,52 +32759,52 @@ class ApiController extends Controller
 
 
 
-/**
- * @OA\Post(
- *     path="/api/students/maintain-previous",
- *     summary="Maintain previous term students for new term",
- *     description="This endpoint duplicates active students from the previous term to the new term, along with their subjects.",
- *     tags={"Api"},
- *     security={{"bearerAuth":{}}},
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"schid","new_trm","ssn"},
- *             @OA\Property(property="schid", type="integer", example=6338, description="School ID"),
- *             @OA\Property(property="new_trm", type="integer", example=2, description="New term (1, 2, or 3)"),
- *             @OA\Property(property="ssn", type="integer", example=2025, description="Current session/year")
- *         )
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Success",
- *         @OA\JsonContent(
- *             @OA\Property(property="message", type="string", example="Previous term students maintained successfully.")
- *         )
- *     ),
- *     @OA\Response(
- *         response=400,
- *         description="Validation Error",
- *         @OA\JsonContent(
- *             @OA\Property(property="message", type="string", example="The schid field is required.")
- *         )
- *     ),
- *     @OA\Response(
- *         response=401,
- *         description="Unauthorized",
- *         @OA\JsonContent(
- *             @OA\Property(property="message", type="string", example="Unauthorized")
- *         )
- *     ),
- *     @OA\Response(
- *         response=500,
- *         description="Server Error",
- *         @OA\JsonContent(
- *             @OA\Property(property="message", type="string", example="An error occurred while maintaining previous term students.")
- *         )
- *     )
- * )
- */
+    /**
+     * @OA\Post(
+     *     path="/api/students/maintain-previous",
+     *     summary="Maintain previous term students for new term",
+     *     description="This endpoint duplicates active students from the previous term to the new term, along with their subjects.",
+     *     tags={"Api"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"schid","new_trm","ssn"},
+     *             @OA\Property(property="schid", type="integer", example=6338, description="School ID"),
+     *             @OA\Property(property="new_trm", type="integer", example=2, description="New term (1, 2, or 3)"),
+     *             @OA\Property(property="ssn", type="integer", example=2025, description="Current session/year")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Success",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Previous term students maintained successfully.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Validation Error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The schid field is required.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Unauthorized")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Server Error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="An error occurred while maintaining previous term students.")
+     *         )
+     *     )
+     * )
+     */
 
 public function maintainPreviousStudents(Request $request)
 {
@@ -32827,52 +32827,337 @@ public function maintainPreviousStudents(Request $request)
         $prev_ssn = $ssn;
     }
 
-    // --- Bulk insert students ---
+    /**
+     * ------------------------------------------------
+     * 1. Maintain students
+     * uid = ssn + trm + sid + clsm
+     * ------------------------------------------------
+     */
     DB::insert(
         "INSERT INTO old_student (
             uid, suid, sid, schid, fname, mname, lname, clsm, clsa, cls_sbj_students,
             status, adm_ssn, adm_trm, cls_of_adm, ssn, trm, created_at, updated_at
         )
         SELECT
-            CONCAT(?, ?, sid, clsm) AS uid,   -- new UID for student
-            suid,                             -- preserve old suid
+            CONCAT(?, ?, sid, clsm) AS uid,
+            suid,
             sid, schid, fname, mname, lname, clsm, clsa, cls_sbj_students,
-            'active', adm_ssn, adm_trm, cls_of_adm, ?, ?, NOW(), NOW()
+            'active',
+            adm_ssn, adm_trm, cls_of_adm,
+            ?, ?, NOW(), NOW()
         FROM old_student
-        WHERE schid = ? AND trm = ? AND ssn = ? AND status = 'active'",
+        WHERE schid = ?
+          AND trm = ?
+          AND ssn = ?
+          AND status = 'active'",
         [
-            $ssn, $new_trm,    // for new UID
-            $ssn, $new_trm,    // for new session/term
+            $ssn, $new_trm,     // uid
+            $ssn, $new_trm,     // new ssn, trm
             $schid, $prev_trm, $prev_ssn
         ]
     );
 
-    // --- Bulk insert student subjects ---
+    /**
+     * ------------------------------------------------
+     * 2. Maintain student subjects
+     * uid = ssn + trm + sbj + clsid
+     * ------------------------------------------------
+     */
     DB::insert(
         "INSERT INTO student_subj (
             uid, stid, sbj, comp, schid, clsid, trm, ssn, created_at, updated_at
         )
         SELECT
-            CONCAT(?, ?, s.sbj, s.clsid) AS uid,  -- new UID for subject (ssn + trm + sbj + clsid)
-            s.stid, s.sbj, s.comp, s.schid, s.clsid, ? AS trm, ? AS ssn, NOW(), NOW()
+            CONCAT(?, ?, s.sbj, s.clsid) AS uid,
+            s.stid,
+            s.sbj,
+            s.comp,
+            s.schid,
+            s.clsid,
+            ?, ?,
+            NOW(), NOW()
         FROM student_subj s
         JOIN old_student o
-            ON s.stid = o.sid
-            AND o.status = 'active'
-            AND o.trm = ?
-            AND o.ssn = ?
-            AND o.schid = ?
-        WHERE s.trm = ? AND s.ssn = ?",
+            ON o.sid = s.stid
+           AND o.schid = s.schid
+           AND o.trm = ?
+           AND o.ssn = ?
+           AND o.status = 'active'
+        WHERE s.trm = ?
+          AND s.ssn = ?",
         [
-            $ssn, $new_trm,      // for new UID
-            $new_trm, $ssn,      // new term/session
-            $prev_trm, $prev_ssn, $schid, // join with old_student for active students
-            $prev_trm, $prev_ssn  // select subjects from previous term
+            $ssn, $new_trm,
+            $new_trm, $ssn,
+            $prev_trm, $prev_ssn,
+            $prev_trm, $prev_ssn
         ]
     );
 
-    return response()->json(['message' => 'Previous term students and their subjects maintained successfully.']);
+    /**
+     * ------------------------------------------------
+     * 3. Maintain class subjects
+     * uid = ssn + trm + subj_id + clsid
+     * ------------------------------------------------
+     */
+    DB::insert(
+        "INSERT INTO class_subj (
+            uid, subj_id, schid, name, comp, clsid, sesn, trm, created_at, updated_at
+        )
+        SELECT
+            CONCAT(?, ?, subj_id, clsid) AS uid,
+            subj_id,
+            schid,
+            name,
+            comp,
+            clsid,
+            ?, ?,
+            NOW(), NOW()
+        FROM class_subj
+        WHERE schid = ?
+          AND trm = ?
+          AND sesn = ?",
+        [
+            $ssn, $new_trm,      // uid
+            $ssn, $new_trm,      // sesn, trm
+            $schid, $prev_trm, $prev_ssn
+        ]
+    );
+
+    return response()->json([
+        'message' => 'Previous term students, subjects, and class subjects maintained successfully.'
+    ]);
 }
+
+
+
+    /**
+     * @OA\Post(
+     *     path="/api/staff/maintain-previous",
+     *     operationId="maintainPreviousStaff",
+     *     summary="Maintain previous term staff",
+     *     description="Copies active staff and their class, arm, and subject assignments from the previous term into the new term.",
+     *     tags={"Api"},
+     *
+     *     security={
+     *         {"bearerAuth": {}}
+     *     },
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             required={"schid","new_trm","ssn"},
+     *             @OA\Property(
+     *                 property="schid",
+     *                 type="integer",
+     *                 example=6338,
+     *                 description="School ID"
+     *             ),
+     *             @OA\Property(
+     *                 property="new_trm",
+     *                 type="integer",
+     *                 example=1,
+     *                 description="New term (1, 2, or 3)"
+     *             ),
+     *             @OA\Property(
+     *                 property="ssn",
+     *                 type="integer",
+     *                 example=2025,
+     *                 description="Current academic session/year"
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Operation successful",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(
+     *                 property="message",
+     *                 type="string",
+     *                 example="Previous term staff and their assignments maintained successfully."
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=400,
+     *         description="Validation error"
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized"
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=500,
+     *         description="Internal server error"
+     *     )
+     * )
+     */
+
+
+    public function maintainPreviousStaff(Request $request)
+    {
+        $request->validate([
+            'schid' => 'required|integer',
+            'new_trm' => 'required|integer', // 1, 2, 3
+            'ssn' => 'required|integer', // current session
+        ]);
+
+        $schid = $request->schid;
+        $new_trm = $request->new_trm;
+        $ssn = $request->ssn;
+
+        // ---- Determine previous term & session ----
+        if ($new_trm == 1) {
+            $prev_trm = 3;
+            $prev_ssn = $ssn - 1;
+        } else {
+            $prev_trm = $new_trm - 1;
+            $prev_ssn = $ssn;
+        }
+
+        /**
+         * ------------------------------------------------
+         * 1. Bring staff forward (old_staff)
+         * uid = ssn + trm + sid + clsm
+         * suid MUST be preserved
+         * ------------------------------------------------
+         */
+        DB::insert(
+            "INSERT INTO old_staff
+        (uid, suid, sid, schid, fname, mname, lname, clsm, role, role2, status, ssn, trm, created_at, updated_at)
+        SELECT
+            CONCAT(?, ?, sid, clsm) AS uid,
+            suid,
+            sid,
+            schid,
+            fname,
+            mname,
+            lname,
+            clsm,
+            role,
+            role2,
+            'active',
+            ?, ?,
+            NOW(), NOW()
+        FROM old_staff
+        WHERE schid = ?
+          AND trm = ?
+          AND ssn = ?
+          AND status = 'active'",
+            [
+                $ssn,
+                $new_trm,        // uid parts
+                $ssn,
+                $new_trm,        // ssn, trm
+                $schid,
+                $prev_trm,
+                $prev_ssn
+            ]
+        );
+
+        /**
+         * ------------------------------------------------
+         * 2. Bring staff classes forward
+         * uid = ssn + trm + stid + cls
+         * ------------------------------------------------
+         */
+        DB::insert(
+            "INSERT INTO staff_class
+        (uid, stid, cls, schid, ssn, trm, created_at, updated_at)
+        SELECT
+            CONCAT(?, ?, stid, cls) AS uid,
+            stid,
+            cls,
+            schid,
+            ?, ?,
+            NOW(), NOW()
+        FROM staff_class
+        WHERE schid = ?
+          AND trm = ?
+          AND ssn = ?",
+            [
+                $ssn,
+                $new_trm,
+                $ssn,
+                $new_trm,
+                $schid,
+                $prev_trm,
+                $prev_ssn
+            ]
+        );
+
+        /**
+         * ------------------------------------------------
+         * 3. Bring staff class arms forward
+         * uid = ssn + trm + stid + cls + arm
+         * ------------------------------------------------
+         */
+        DB::insert(
+            "INSERT INTO staff_class_arm
+        (uid, stid, cls, arm, schid, sesn, trm, created_at, updated_at)
+        SELECT
+            CONCAT(?, ?, stid, cls, arm) AS uid,
+            stid,
+            cls,
+            arm,
+            schid,
+            ?, ?,
+            NOW(), NOW()
+        FROM staff_class_arm
+        WHERE schid = ?
+          AND trm = ?
+          AND sesn = ?",
+            [
+                $ssn,
+                $new_trm,
+                $ssn,
+                $new_trm,
+                $schid,
+                $prev_trm,
+                $prev_ssn
+            ]
+        );
+
+        /**
+         * ------------------------------------------------
+         * 4. Bring staff subjects forward
+         * uid = ssn + trm + stid + sbj
+         * ------------------------------------------------
+         */
+        DB::insert(
+            "INSERT INTO staff_subj
+        (uid, stid, sbj, schid, sesn, trm, created_at, updated_at)
+        SELECT
+            CONCAT(?, ?, stid, sbj) AS uid,
+            stid,
+            sbj,
+            schid,
+            ?, ?,
+            NOW(), NOW()
+        FROM staff_subj
+        WHERE schid = ?
+          AND trm = ?
+          AND sesn = ?",
+            [
+                $ssn,
+                $new_trm,
+                $ssn,
+                $new_trm,
+                $schid,
+                $prev_trm,
+                $prev_ssn
+            ]
+        );
+
+        return response()->json([
+            'message' => 'Previous term staff and all assignments successfully maintained.'
+        ]);
+    }
 
 
 }

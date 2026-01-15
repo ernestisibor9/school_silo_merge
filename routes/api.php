@@ -225,6 +225,7 @@ Route::group([
     Route::post('rePostStaff', [ApiController::class, 'rePostStaff']);
 
     Route::post('/students/maintain-previous', [ApiController::class, 'maintainPreviousStudents']);
+    Route::post('/staff/maintain-previous', [ApiController::class, 'maintainPreviousStaff']);
 
 
 

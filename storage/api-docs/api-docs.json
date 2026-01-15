@@ -29770,6 +29770,80 @@
                     }
                 ]
             }
+        },
+        "/api/staff/maintain-previous": {
+            "post": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Maintain previous term staff",
+                "description": "Copies active staff and their class, arm, and subject assignments from the previous term into the new term.",
+                "operationId": "maintainPreviousStaff",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "schid",
+                                    "new_trm",
+                                    "ssn"
+                                ],
+                                "properties": {
+                                    "schid": {
+                                        "description": "School ID",
+                                        "type": "integer",
+                                        "example": 6338
+                                    },
+                                    "new_trm": {
+                                        "description": "New term (1, 2, or 3)",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "ssn": {
+                                        "description": "Current academic session/year",
+                                        "type": "integer",
+                                        "example": 2025
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Operation successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Previous term staff and their assignments maintained successfully."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
