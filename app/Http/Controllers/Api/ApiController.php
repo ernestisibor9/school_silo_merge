@@ -32819,9 +32819,7 @@ class ApiController extends Controller
         $new_trm = $request->new_trm;
         $ssn = $request->ssn;
 
-        // ------------------------------------------------
-        // Determine previous term and session
-        // ------------------------------------------------
+        // Determine previous term & session
         if ($new_trm == 1) {
             $prev_trm = 3;
             $prev_ssn = $ssn - 1;
@@ -32833,17 +32831,32 @@ class ApiController extends Controller
         DB::beginTransaction();
 
         try {
+            // -----------------------------
+            // 1. Check if previous term has students assigned
+            // -----------------------------
+            $prevStudents = DB::table('old_student')
+                ->where('schid', $schid)
+                ->where('ssn', $prev_ssn)
+                ->where('trm', $prev_trm)
+                ->where('status', 'active')
+                ->exists();
 
-            /**
-             * ------------------------------------------------
-             * 1. Maintain students (old_student)
-             * uid = ssn + trm + sid + clsm
-             * ------------------------------------------------
-             */
-            DB::insert(
-                "INSERT INTO old_student (
-                uid, suid, sid, schid, fname, mname, lname, clsm, clsa, cls_sbj_students,
-                status, adm_ssn, adm_trm, cls_of_adm, ssn, trm, created_at, updated_at
+            if (!$prevStudents) {
+                return response()->json([
+                    'message' => 'No assignments found in the previous term.'
+                ], 400);
+            }
+
+            // -----------------------------
+            // 2. Maintain students (old_student)
+            // uid = ssn + new_trm + sid + clsm
+            // -----------------------------
+            DB::insert("
+            INSERT INTO old_student (
+                uid, suid, sid, schid, fname, mname, lname,
+                clsm, clsa, cls_sbj_students,
+                status, adm_ssn, adm_trm, cls_of_adm,
+                ssn, trm, created_at, updated_at
             )
             SELECT
                 CONCAT(?, ?, os.sid, os.clsm) AS uid,
@@ -32871,77 +32884,71 @@ class ApiController extends Controller
                   SELECT 1
                   FROM old_student x
                   WHERE x.uid = CONCAT(?, ?, os.sid, os.clsm)
-              )",
-                [
-                    $ssn,
-                    $new_trm,        // uid
-                    $ssn,
-                    $new_trm,        // new ssn, trm
-                    $schid,
-                    $prev_trm,
-                    $prev_ssn,
-                    $ssn,
-                    $new_trm         // NOT EXISTS uid check
-                ]
-            );
+              )
+        ", [
+                $ssn,
+                $new_trm,   // UID
+                $ssn,
+                $new_trm,   // New ssn, new_trm
+                $schid,
+                $prev_trm,
+                $prev_ssn,
+                $ssn,
+                $new_trm
+            ]);
 
-            /**
-             * ------------------------------------------------
-             * 2. Maintain student subjects (student_subj)
-             * uid = ssn + trm + sbj + clsid
-             * ------------------------------------------------
-             */
-            DB::insert(
-                "INSERT INTO old_student (
-        uid, suid, sid, schid, fname, mname, lname,
-        clsm, clsa, cls_sbj_students,
-        status, adm_ssn, adm_trm, cls_of_adm,
-        ssn, trm, created_at, updated_at
-    )
-    SELECT
-        CONCAT(?, '-', ?, '-', os.sid, '-', os.clsm) AS uid,
-        os.suid,
-        os.sid,
-        os.schid,
-        os.fname,
-        os.mname,
-        os.lname,
-        os.clsm,
-        os.clsa,
-        os.cls_sbj_students,
-        'active',
-        os.adm_ssn,
-        os.adm_trm,
-        os.cls_of_adm,
-        ?, ?,
-        NOW(), NOW()
-    FROM old_student os
-    WHERE os.schid = ?
-      AND os.trm = ?
-      AND os.ssn = ?
-      AND os.status = 'active'
-    GROUP BY os.sid, os.clsm",
-                [
-                    $ssn,
-                    $new_trm,
-                    $ssn,
-                    $new_trm,
-                    $schid,
-                    $prev_trm,
-                    $prev_ssn
-                ]
-            );
+            // -----------------------------
+            // 3. Maintain student subjects (student_subj)
+            // uid = ssn + new_trm + sbj + clsid
+            // -----------------------------
+            DB::insert("
+            INSERT INTO student_subj (
+                uid, stid, sbj, comp, schid, clsid, trm, ssn, created_at, updated_at
+            )
+            SELECT
+                CONCAT(?, ?, s.sbj, s.clsid) AS uid,
+                s.stid,
+                s.sbj,
+                s.comp,
+                s.schid,
+                s.clsid,
+                ?, ?,
+                NOW(), NOW()
+            FROM student_subj s
+            JOIN old_student o
+              ON o.sid = s.stid
+             AND o.schid = s.schid
+             AND o.trm = ?
+             AND o.ssn = ?
+             AND o.status = 'active'
+            WHERE s.trm = ?
+              AND s.ssn = ?
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM student_subj x
+                  WHERE x.uid = CONCAT(?, ?, s.sbj, s.clsid)
+              )
+        ", [
+                $ssn,
+                $new_trm,
+                $new_trm,
+                $ssn,    // new trm, ssn
+                $prev_trm,
+                $prev_ssn,
+                $prev_trm,
+                $prev_ssn,
+                $ssn,
+                $new_trm
+            ]);
 
-
-            /**
-             * ------------------------------------------------
-             * 3. Maintain class subjects (class_subj)
-             * uid = ssn + trm + subj_id + clsid
-             * ------------------------------------------------
-             */
-            DB::insert(
-                "INSERT INTO class_subj (
-                uid, subj_id, schid, name, comp, clsid, sesn, trm, created_at, updated_at
+            // -----------------------------
+            // 4. Maintain class subjects (class_subj)
+            // uid = ssn + new_trm + subj_id + clsid
+            // -----------------------------
+            DB::insert("
+            INSERT INTO class_subj (
+                uid, subj_id, schid, name, comp,
+                clsid, sesn, trm, created_at, updated_at
             )
             SELECT
                 CONCAT(?, ?, cs.subj_id, cs.clsid) AS uid,
@@ -32960,19 +32967,18 @@ class ApiController extends Controller
                   SELECT 1
                   FROM class_subj x
                   WHERE x.uid = CONCAT(?, ?, cs.subj_id, cs.clsid)
-              )",
-                [
-                    $ssn,
-                    $new_trm,        // uid
-                    $ssn,
-                    $new_trm,        // sesn, trm
-                    $schid,
-                    $prev_trm,
-                    $prev_ssn,
-                    $ssn,
-                    $new_trm         // NOT EXISTS uid check
-                ]
-            );
+              )
+        ", [
+                $ssn,
+                $new_trm,
+                $ssn,
+                $new_trm,
+                $schid,
+                $prev_trm,
+                $prev_ssn,
+                $ssn,
+                $new_trm
+            ]);
 
             DB::commit();
 
@@ -32981,7 +32987,6 @@ class ApiController extends Controller
             ], 200);
 
         } catch (\Throwable $e) {
-
             DB::rollBack();
 
             Log::error('Maintain Previous Students Failed', [
