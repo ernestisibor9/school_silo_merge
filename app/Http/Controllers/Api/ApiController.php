@@ -33042,61 +33042,64 @@ public function maintainPreviousStudents(Request $request)
      */
 
 
-    public function maintainPreviousStaff(Request $request)
-    {
-        $request->validate([
-            'schid' => 'required|integer',
-            'new_trm' => 'required|integer', // 1, 2, 3
-            'ssn' => 'required|integer', // current session
-        ]);
+public function maintainPreviousStaff(Request $request)
+{
+    $request->validate([
+        'schid' => 'required|integer',
+        'new_trm' => 'required|integer', // 1, 2, 3
+        'ssn' => 'required|integer',     // current session
+    ]);
 
-        $schid = $request->schid;
-        $new_trm = $request->new_trm;
-        $ssn = $request->ssn;
+    $schid = $request->schid;
+    $new_trm = $request->new_trm;
+    $ssn = $request->ssn;
 
-        // ---- Determine previous term & session ----
-        if ($new_trm == 1) {
-            $prev_trm = 3;
-            $prev_ssn = $ssn - 1;
-        } else {
-            $prev_trm = $new_trm - 1;
-            $prev_ssn = $ssn;
-        }
+    // ---- Determine previous term & session ----
+    if ($new_trm == 1) {
+        $prev_trm = 3;
+        $prev_ssn = $ssn - 1;
+    } else {
+        $prev_trm = $new_trm - 1;
+        $prev_ssn = $ssn;
+    }
 
+    DB::beginTransaction();
+
+    try {
         /**
          * ------------------------------------------------
          * 1. Bring staff forward (old_staff)
-         * uid = ssn + trm + sid + clsm
+         * uid = ssn + trm + sid + clsm + random 5-digit
          * suid MUST be preserved
          * ------------------------------------------------
          */
         DB::insert(
             "INSERT INTO old_staff
-        (uid, suid, sid, schid, fname, mname, lname, clsm, role, role2, status, ssn, trm, created_at, updated_at)
-        SELECT
-            CONCAT(?, ?, sid, clsm) AS uid,
-            suid,
-            sid,
-            schid,
-            fname,
-            mname,
-            lname,
-            clsm,
-            role,
-            role2,
-            'active',
-            ?, ?,
-            NOW(), NOW()
-        FROM old_staff
-        WHERE schid = ?
-          AND trm = ?
-          AND ssn = ?
-          AND status = 'active'",
+            (uid, suid, sid, schid, fname, mname, lname, clsm, role, role2, status, ssn, trm, created_at, updated_at)
+            SELECT
+                CONCAT(?, ?, sid, clsm, '-', FLOOR(RAND() * 90000 + 10000)) AS uid,
+                suid,
+                sid,
+                schid,
+                fname,
+                mname,
+                lname,
+                clsm,
+                role,
+                role2,
+                'active',
+                ?, ?,
+                NOW(), NOW()
+            FROM old_staff
+            WHERE schid = ?
+              AND trm = ?
+              AND ssn = ?
+              AND status = 'active'",
             [
                 $ssn,
-                $new_trm,        // uid parts
+                $new_trm,
                 $ssn,
-                $new_trm,        // ssn, trm
+                $new_trm,
                 $schid,
                 $prev_trm,
                 $prev_ssn
@@ -33106,23 +33109,23 @@ public function maintainPreviousStudents(Request $request)
         /**
          * ------------------------------------------------
          * 2. Bring staff classes forward
-         * uid = ssn + trm + stid + cls
+         * uid = ssn + trm + stid + cls + random 5-digit
          * ------------------------------------------------
          */
         DB::insert(
             "INSERT INTO staff_class
-        (uid, stid, cls, schid, ssn, trm, created_at, updated_at)
-        SELECT
-            CONCAT(?, ?, stid, cls) AS uid,
-            stid,
-            cls,
-            schid,
-            ?, ?,
-            NOW(), NOW()
-        FROM staff_class
-        WHERE schid = ?
-          AND trm = ?
-          AND ssn = ?",
+            (uid, stid, cls, schid, ssn, trm, created_at, updated_at)
+            SELECT
+                CONCAT(?, ?, stid, cls, '-', FLOOR(RAND() * 90000 + 10000)) AS uid,
+                stid,
+                cls,
+                schid,
+                ?, ?,
+                NOW(), NOW()
+            FROM staff_class
+            WHERE schid = ?
+              AND trm = ?
+              AND ssn = ?",
             [
                 $ssn,
                 $new_trm,
@@ -33137,24 +33140,24 @@ public function maintainPreviousStudents(Request $request)
         /**
          * ------------------------------------------------
          * 3. Bring staff class arms forward
-         * uid = ssn + trm + stid + cls + arm
+         * uid = ssn + trm + stid + cls + arm + random 5-digit
          * ------------------------------------------------
          */
         DB::insert(
             "INSERT INTO staff_class_arm
-        (uid, stid, cls, arm, schid, sesn, trm, created_at, updated_at)
-        SELECT
-            CONCAT(?, ?, stid, cls, arm) AS uid,
-            stid,
-            cls,
-            arm,
-            schid,
-            ?, ?,
-            NOW(), NOW()
-        FROM staff_class_arm
-        WHERE schid = ?
-          AND trm = ?
-          AND sesn = ?",
+            (uid, stid, cls, arm, schid, sesn, trm, created_at, updated_at)
+            SELECT
+                CONCAT(?, ?, stid, cls, arm, '-', FLOOR(RAND() * 90000 + 10000)) AS uid,
+                stid,
+                cls,
+                arm,
+                schid,
+                ?, ?,
+                NOW(), NOW()
+            FROM staff_class_arm
+            WHERE schid = ?
+              AND trm = ?
+              AND sesn = ?",
             [
                 $ssn,
                 $new_trm,
@@ -33169,23 +33172,23 @@ public function maintainPreviousStudents(Request $request)
         /**
          * ------------------------------------------------
          * 4. Bring staff subjects forward
-         * uid = ssn + trm + stid + sbj
+         * uid = ssn + trm + stid + sbj + random 5-digit
          * ------------------------------------------------
          */
         DB::insert(
             "INSERT INTO staff_subj
-        (uid, stid, sbj, schid, sesn, trm, created_at, updated_at)
-        SELECT
-            CONCAT(?, ?, stid, sbj) AS uid,
-            stid,
-            sbj,
-            schid,
-            ?, ?,
-            NOW(), NOW()
-        FROM staff_subj
-        WHERE schid = ?
-          AND trm = ?
-          AND sesn = ?",
+            (uid, stid, sbj, schid, sesn, trm, created_at, updated_at)
+            SELECT
+                CONCAT(?, ?, stid, sbj, '-', FLOOR(RAND() * 90000 + 10000)) AS uid,
+                stid,
+                sbj,
+                schid,
+                ?, ?,
+                NOW(), NOW()
+            FROM staff_subj
+            WHERE schid = ?
+              AND trm = ?
+              AND sesn = ?",
             [
                 $ssn,
                 $new_trm,
@@ -33197,10 +33200,28 @@ public function maintainPreviousStudents(Request $request)
             ]
         );
 
+        DB::commit();
+
         return response()->json([
             'message' => 'Previous term staff and all assignments successfully maintained.'
         ]);
+
+    } catch (\Throwable $e) {
+        DB::rollBack();
+
+        Log::error('Maintain Previous Staff Failed', [
+            'schid' => $schid,
+            'new_trm' => $new_trm,
+            'ssn' => $ssn,
+            'error' => $e->getMessage()
+        ]);
+
+        return response()->json([
+            'message' => 'Failed to maintain previous term staff data',
+            'error' => $e->getMessage()
+        ], 500);
     }
+}
 
 
 }
