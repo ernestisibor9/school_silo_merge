@@ -32807,46 +32807,48 @@ class ApiController extends Controller
      */
 
 
-public function maintainPreviousStudents(Request $request)
-{
-    $request->validate([
-        'schid' => 'required|integer',
-        'new_trm' => 'required|integer', // 1, 2, 3
-        'ssn' => 'required|integer',     // current session/year
-    ]);
+    public function maintainPreviousStudents(Request $request)
+    {
+        $request->validate([
+            'schid' => 'required|integer',
+            'new_trm' => 'required|integer', // 1, 2, 3
+            'ssn' => 'required|integer',     // current session/year
+        ]);
 
-    $schid = $request->schid;
-    $new_trm = $request->new_trm;
-    $ssn = $request->ssn;
+        $schid = $request->schid;
+        $new_trm = $request->new_trm;
+        $ssn = $request->ssn;
 
-    // Determine previous term & session
-    if ($new_trm == 1) {
-        $prev_trm = 3;
-        $prev_ssn = $ssn - 1;
-    } else {
-        $prev_trm = $new_trm - 1;
-        $prev_ssn = $ssn;
-    }
-
-    DB::beginTransaction();
-
-    try {
-        // 1. Check if previous term has students assigned
-        $prevStudents = DB::table('old_student')
-            ->where('schid', $schid)
-            ->where('ssn', $prev_ssn)
-            ->where('trm', $prev_trm)
-            ->where('status', 'active')
-            ->exists();
-
-        if (!$prevStudents) {
-            return response()->json([
-                'message' => 'No assignments found in the previous term.'
-            ], 400);
+        // Determine previous term & session
+        if ($new_trm == 1) {
+            $prev_trm = 3;
+            $prev_ssn = $ssn - 1;
+        } else {
+            $prev_trm = $new_trm - 1;
+            $prev_ssn = $ssn;
         }
 
-        // 2. Maintain students (old_student) - append random 5-digit number to UID
-        DB::insert("
+        DB::beginTransaction();
+
+        try {
+            // 1. Check if previous term has students assigned
+            $prevStudents = DB::table('old_student')
+                ->where('schid', $schid)
+                ->where('ssn', $prev_ssn)
+                ->where('trm', $prev_trm)
+                ->where('status', 'active')
+                ->exists();
+
+            if (!$prevStudents) {
+                return response()->json([
+                    "status" => false,
+                    "message" => "No assignments found in the previous term.",
+                    "pld" => null
+                ], 400);
+            }
+
+            // 2. Maintain students (old_student) - append random 5-digit number to UID
+            DB::insert("
             INSERT INTO old_student (
                 uid, suid, sid, schid, fname, mname, lname,
                 clsm, clsa, cls_sbj_students,
@@ -32876,17 +32878,17 @@ public function maintainPreviousStudents(Request $request)
               AND os.ssn = ?
               AND os.status = 'active'
         ", [
-            $ssn,
-            $new_trm,     // UID base
-            $ssn,
-            $new_trm,     // new ssn, trm
-            $schid,
-            $prev_trm,
-            $prev_ssn
-        ]);
+                $ssn,
+                $new_trm,
+                $ssn,
+                $new_trm,
+                $schid,
+                $prev_trm,
+                $prev_ssn
+            ]);
 
-        // 3. Maintain student subjects (student_subj) - append random 5-digit
-        DB::insert("
+            // 3. Maintain student subjects (student_subj) - append random 5-digit
+            DB::insert("
             INSERT INTO student_subj (
                 uid, stid, sbj, comp, schid, clsid, trm, ssn, created_at, updated_at
             )
@@ -32909,18 +32911,18 @@ public function maintainPreviousStudents(Request $request)
             WHERE s.trm = ?
               AND s.ssn = ?
         ", [
-            $ssn,
-            $new_trm,
-            $new_trm,
-            $ssn,
-            $prev_trm,
-            $prev_ssn,
-            $prev_trm,
-            $prev_ssn
-        ]);
+                $ssn,
+                $new_trm,
+                $new_trm,
+                $ssn,
+                $prev_trm,
+                $prev_ssn,
+                $prev_trm,
+                $prev_ssn
+            ]);
 
-        // 4. Maintain class subjects (class_subj) - append random 5-digit
-        DB::insert("
+            // 4. Maintain class subjects (class_subj) - append random 5-digit
+            DB::insert("
             INSERT INTO class_subj (
                 uid, subj_id, schid, name, comp,
                 clsid, sesn, trm, created_at, updated_at
@@ -32939,37 +32941,50 @@ public function maintainPreviousStudents(Request $request)
               AND cs.trm = ?
               AND cs.sesn = ?
         ", [
-            $ssn,
-            $new_trm,
-            $ssn,
-            $new_trm,
-            $schid,
-            $prev_trm,
-            $prev_ssn
-        ]);
+                $ssn,
+                $new_trm,
+                $ssn,
+                $new_trm,
+                $schid,
+                $prev_trm,
+                $prev_ssn
+            ]);
 
-        DB::commit();
+            DB::commit();
 
-        return response()->json([
-            'message' => 'Previous term students, subjects, and class subjects maintained successfully.'
-        ], 200);
+            // Payload for the response
+            $pld = [
+                'schid' => $schid,
+                'new_trm' => $new_trm,
+                'ssn' => $ssn,
+                'prev_trm' => $prev_trm,
+                'prev_ssn' => $prev_ssn
+            ];
 
-    } catch (\Throwable $e) {
-        DB::rollBack();
+            return response()->json([
+                "status" => true,
+                "message" => "Success",
+                "pld" => $pld,
+            ]);
 
-        Log::error('Maintain Previous Students Failed', [
-            'schid' => $schid,
-            'new_trm' => $new_trm,
-            'ssn' => $ssn,
-            'error' => $e->getMessage()
-        ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
 
-        return response()->json([
-            'message' => 'Failed to maintain previous term data',
-            'error' => $e->getMessage()
-        ], 500);
+            Log::error('Maintain Previous Students Failed', [
+                'schid' => $schid,
+                'new_trm' => $new_trm,
+                'ssn' => $ssn,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                "status" => false,
+                "message" => "Failed to maintain previous term data",
+                "error" => $e->getMessage(),
+                "pld" => null
+            ], 500);
+        }
     }
-}
 
 
 
@@ -33042,39 +33057,37 @@ public function maintainPreviousStudents(Request $request)
      */
 
 
-public function maintainPreviousStaff(Request $request)
-{
-    $request->validate([
-        'schid' => 'required|integer',
-        'new_trm' => 'required|integer', // 1, 2, 3
-        'ssn' => 'required|integer',     // current session
-    ]);
+    public function maintainPreviousStaff(Request $request)
+    {
+        $request->validate([
+            'schid' => 'required|integer',
+            'new_trm' => 'required|integer', // 1, 2, 3
+            'ssn' => 'required|integer',     // current session
+        ]);
 
-    $schid = $request->schid;
-    $new_trm = $request->new_trm;
-    $ssn = $request->ssn;
+        $schid = $request->schid;
+        $new_trm = $request->new_trm;
+        $ssn = $request->ssn;
 
-    // ---- Determine previous term & session ----
-    if ($new_trm == 1) {
-        $prev_trm = 3;
-        $prev_ssn = $ssn - 1;
-    } else {
-        $prev_trm = $new_trm - 1;
-        $prev_ssn = $ssn;
-    }
+        // ---- Determine previous term & session ----
+        if ($new_trm == 1) {
+            $prev_trm = 3;
+            $prev_ssn = $ssn - 1;
+        } else {
+            $prev_trm = $new_trm - 1;
+            $prev_ssn = $ssn;
+        }
 
-    DB::beginTransaction();
+        DB::beginTransaction();
 
-    try {
-        /**
-         * ------------------------------------------------
-         * 1. Bring staff forward (old_staff)
-         * uid = ssn + trm + sid + clsm + random 5-digit
-         * suid MUST be preserved
-         * ------------------------------------------------
-         */
-        DB::insert(
-            "INSERT INTO old_staff
+        try {
+            // ------------------------------------------------
+            // 1. Bring staff forward (old_staff)
+            // uid = ssn + trm + sid + clsm + random 5-digit
+            // suid MUST be preserved
+            // ------------------------------------------------
+            DB::insert(
+                "INSERT INTO old_staff
             (uid, suid, sid, schid, fname, mname, lname, clsm, role, role2, status, ssn, trm, created_at, updated_at)
             SELECT
                 CONCAT(?, ?, sid, clsm, '-', FLOOR(RAND() * 90000 + 10000)) AS uid,
@@ -33095,25 +33108,23 @@ public function maintainPreviousStaff(Request $request)
               AND trm = ?
               AND ssn = ?
               AND status = 'active'",
-            [
-                $ssn,
-                $new_trm,
-                $ssn,
-                $new_trm,
-                $schid,
-                $prev_trm,
-                $prev_ssn
-            ]
-        );
+                [
+                    $ssn,
+                    $new_trm,
+                    $ssn,
+                    $new_trm,
+                    $schid,
+                    $prev_trm,
+                    $prev_ssn
+                ]
+            );
 
-        /**
-         * ------------------------------------------------
-         * 2. Bring staff classes forward
-         * uid = ssn + trm + stid + cls + random 5-digit
-         * ------------------------------------------------
-         */
-        DB::insert(
-            "INSERT INTO staff_class
+            // ------------------------------------------------
+            // 2. Bring staff classes forward
+            // uid = ssn + trm + stid + cls + random 5-digit
+            // ------------------------------------------------
+            DB::insert(
+                "INSERT INTO staff_class
             (uid, stid, cls, schid, ssn, trm, created_at, updated_at)
             SELECT
                 CONCAT(?, ?, stid, cls, '-', FLOOR(RAND() * 90000 + 10000)) AS uid,
@@ -33126,25 +33137,23 @@ public function maintainPreviousStaff(Request $request)
             WHERE schid = ?
               AND trm = ?
               AND ssn = ?",
-            [
-                $ssn,
-                $new_trm,
-                $ssn,
-                $new_trm,
-                $schid,
-                $prev_trm,
-                $prev_ssn
-            ]
-        );
+                [
+                    $ssn,
+                    $new_trm,
+                    $ssn,
+                    $new_trm,
+                    $schid,
+                    $prev_trm,
+                    $prev_ssn
+                ]
+            );
 
-        /**
-         * ------------------------------------------------
-         * 3. Bring staff class arms forward
-         * uid = ssn + trm + stid + cls + arm + random 5-digit
-         * ------------------------------------------------
-         */
-        DB::insert(
-            "INSERT INTO staff_class_arm
+            // ------------------------------------------------
+            // 3. Bring staff class arms forward
+            // uid = ssn + trm + stid + cls + arm + random 5-digit
+            // ------------------------------------------------
+            DB::insert(
+                "INSERT INTO staff_class_arm
             (uid, stid, cls, arm, schid, sesn, trm, created_at, updated_at)
             SELECT
                 CONCAT(?, ?, stid, cls, arm, '-', FLOOR(RAND() * 90000 + 10000)) AS uid,
@@ -33158,25 +33167,23 @@ public function maintainPreviousStaff(Request $request)
             WHERE schid = ?
               AND trm = ?
               AND sesn = ?",
-            [
-                $ssn,
-                $new_trm,
-                $ssn,
-                $new_trm,
-                $schid,
-                $prev_trm,
-                $prev_ssn
-            ]
-        );
+                [
+                    $ssn,
+                    $new_trm,
+                    $ssn,
+                    $new_trm,
+                    $schid,
+                    $prev_trm,
+                    $prev_ssn
+                ]
+            );
 
-        /**
-         * ------------------------------------------------
-         * 4. Bring staff subjects forward
-         * uid = ssn + trm + stid + sbj + random 5-digit
-         * ------------------------------------------------
-         */
-        DB::insert(
-            "INSERT INTO staff_subj
+            // ------------------------------------------------
+            // 4. Bring staff subjects forward
+            // uid = ssn + trm + stid + sbj + random 5-digit
+            // ------------------------------------------------
+            DB::insert(
+                "INSERT INTO staff_subj
             (uid, stid, sbj, schid, sesn, trm, created_at, updated_at)
             SELECT
                 CONCAT(?, ?, stid, sbj, '-', FLOOR(RAND() * 90000 + 10000)) AS uid,
@@ -33189,40 +33196,51 @@ public function maintainPreviousStaff(Request $request)
             WHERE schid = ?
               AND trm = ?
               AND sesn = ?",
-            [
-                $ssn,
-                $new_trm,
-                $ssn,
-                $new_trm,
-                $schid,
-                $prev_trm,
-                $prev_ssn
-            ]
-        );
+                [
+                    $ssn,
+                    $new_trm,
+                    $ssn,
+                    $new_trm,
+                    $schid,
+                    $prev_trm,
+                    $prev_ssn
+                ]
+            );
 
-        DB::commit();
+            DB::commit();
 
-        return response()->json([
-            'message' => 'Previous term staff and all assignments successfully maintained.'
-        ]);
+            // Payload for the response
+            $pld = [
+                'schid' => $schid,
+                'new_trm' => $new_trm,
+                'ssn' => $ssn,
+                'prev_trm' => $prev_trm,
+                'prev_ssn' => $prev_ssn
+            ];
 
-    } catch (\Throwable $e) {
-        DB::rollBack();
+            return response()->json([
+                "status" => true,
+                "message" => "Success",
+                "pld" => $pld,
+            ]);
 
-        Log::error('Maintain Previous Staff Failed', [
-            'schid' => $schid,
-            'new_trm' => $new_trm,
-            'ssn' => $ssn,
-            'error' => $e->getMessage()
-        ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
 
-        return response()->json([
-            'message' => 'Failed to maintain previous term staff data',
-            'error' => $e->getMessage()
-        ], 500);
+            Log::error('Maintain Previous Staff Failed', [
+                'schid' => $schid,
+                'new_trm' => $new_trm,
+                'ssn' => $ssn,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                "status" => false,
+                "message" => "Failed to maintain previous term staff data",
+                "error" => $e->getMessage()
+            ], 500);
+        }
     }
-}
-
 
 }
 
