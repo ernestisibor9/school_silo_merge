@@ -32819,9 +32819,7 @@ public function maintainPreviousStudents(Request $request)
     $new_trm = $request->new_trm;
     $ssn = $request->ssn;
 
-    // ------------------------------------------------
     // Determine previous term & session
-    // ------------------------------------------------
     if ($new_trm == 1) {
         $prev_trm = 3;
         $prev_ssn = $ssn - 1;
@@ -32833,9 +32831,7 @@ public function maintainPreviousStudents(Request $request)
     DB::beginTransaction();
 
     try {
-        // -----------------------------
         // 1. Check if previous term has students assigned
-        // -----------------------------
         $prevStudents = DB::table('old_student')
             ->where('schid', $schid)
             ->where('ssn', $prev_ssn)
@@ -32849,10 +32845,7 @@ public function maintainPreviousStudents(Request $request)
             ], 400);
         }
 
-        // -----------------------------
-        // 2. Maintain students (old_student)
-        // uid = ssn + new_trm + sid + clsm + timestamp
-        // -----------------------------
+        // 2. Maintain students (old_student) - append random 5-digit number to UID
         DB::insert("
             INSERT INTO old_student (
                 uid, suid, sid, schid, fname, mname, lname,
@@ -32861,7 +32854,7 @@ public function maintainPreviousStudents(Request $request)
                 ssn, trm, created_at, updated_at
             )
             SELECT
-                CONCAT(?, ?, os.sid, os.clsm, '-', UNIX_TIMESTAMP()) AS uid,
+                CONCAT(?, ?, os.sid, os.clsm, '-', FLOOR(RAND() * 90000 + 10000)) AS uid,
                 os.suid,
                 os.sid,
                 os.schid,
@@ -32892,16 +32885,13 @@ public function maintainPreviousStudents(Request $request)
             $prev_ssn
         ]);
 
-        // -----------------------------
-        // 3. Maintain student subjects (student_subj)
-        // uid = ssn + new_trm + sbj + clsid + timestamp
-        // -----------------------------
+        // 3. Maintain student subjects (student_subj) - append random 5-digit
         DB::insert("
             INSERT INTO student_subj (
                 uid, stid, sbj, comp, schid, clsid, trm, ssn, created_at, updated_at
             )
             SELECT
-                CONCAT(?, ?, s.sbj, s.clsid, '-', UNIX_TIMESTAMP()) AS uid,
+                CONCAT(?, ?, s.sbj, s.clsid, '-', FLOOR(RAND() * 90000 + 10000)) AS uid,
                 s.stid,
                 s.sbj,
                 s.comp,
@@ -32929,17 +32919,14 @@ public function maintainPreviousStudents(Request $request)
             $prev_ssn
         ]);
 
-        // -----------------------------
-        // 4. Maintain class subjects (class_subj)
-        // uid = ssn + new_trm + subj_id + clsid + timestamp
-        // -----------------------------
+        // 4. Maintain class subjects (class_subj) - append random 5-digit
         DB::insert("
             INSERT INTO class_subj (
                 uid, subj_id, schid, name, comp,
                 clsid, sesn, trm, created_at, updated_at
             )
             SELECT
-                CONCAT(?, ?, cs.subj_id, cs.clsid, '-', UNIX_TIMESTAMP()) AS uid,
+                CONCAT(?, ?, cs.subj_id, cs.clsid, '-', FLOOR(RAND() * 90000 + 10000)) AS uid,
                 cs.subj_id,
                 cs.schid,
                 cs.name,
