@@ -32892,45 +32892,46 @@ class ApiController extends Controller
              * ------------------------------------------------
              */
             DB::insert(
-                "INSERT INTO student_subj (
-                uid, stid, sbj, comp, schid, clsid, trm, ssn, created_at, updated_at
-            )
-            SELECT
-                CONCAT(?, ?, s.sbj, s.clsid) AS uid,
-                s.stid,
-                s.sbj,
-                s.comp,
-                s.schid,
-                s.clsid,
-                ?, ?,
-                NOW(), NOW()
-            FROM student_subj s
-            JOIN old_student o
-                ON o.sid = s.stid
-               AND o.schid = s.schid
-               AND o.trm = ?
-               AND o.ssn = ?
-               AND o.status = 'active'
-            WHERE s.trm = ?
-              AND s.ssn = ?
-              AND NOT EXISTS (
-                  SELECT 1
-                  FROM student_subj x
-                  WHERE x.uid = CONCAT(?, ?, s.sbj, s.clsid)
-              )",
+                "INSERT INTO old_student (
+        uid, suid, sid, schid, fname, mname, lname,
+        clsm, clsa, cls_sbj_students,
+        status, adm_ssn, adm_trm, cls_of_adm,
+        ssn, trm, created_at, updated_at
+    )
+    SELECT
+        CONCAT(?, '-', ?, '-', os.sid, '-', os.clsm) AS uid,
+        os.suid,
+        os.sid,
+        os.schid,
+        os.fname,
+        os.mname,
+        os.lname,
+        os.clsm,
+        os.clsa,
+        os.cls_sbj_students,
+        'active',
+        os.adm_ssn,
+        os.adm_trm,
+        os.cls_of_adm,
+        ?, ?,
+        NOW(), NOW()
+    FROM old_student os
+    WHERE os.schid = ?
+      AND os.trm = ?
+      AND os.ssn = ?
+      AND os.status = 'active'
+    GROUP BY os.sid, os.clsm",
                 [
                     $ssn,
-                    $new_trm,        // uid
                     $new_trm,
-                    $ssn,        // new trm, ssn
-                    $prev_trm,
-                    $prev_ssn,
-                    $prev_trm,
-                    $prev_ssn,
                     $ssn,
-                    $new_trm         // NOT EXISTS uid check
+                    $new_trm,
+                    $schid,
+                    $prev_trm,
+                    $prev_ssn
                 ]
             );
+
 
             /**
              * ------------------------------------------------
