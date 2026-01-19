@@ -33083,14 +33083,21 @@ class ApiController extends Controller
         try {
             // ------------------------------------------------
             // 1. Bring staff forward (old_staff)
-            // uid = ssn + trm + sid + clsm + random 5-digit
+            // uid = ssn + trm + sid + clsm + timestamp + random
             // suid MUST be preserved
             // ------------------------------------------------
             DB::insert(
                 "INSERT INTO old_staff
             (uid, suid, sid, schid, fname, mname, lname, clsm, role, role2, status, ssn, trm, created_at, updated_at)
             SELECT
-                CONCAT(?, ?, sid, clsm, '-', FLOOR(RAND() * 90000 + 10000)) AS uid,
+                CONCAT(
+                    ?, ?,
+                    IFNULL(sid, 0),
+                    IFNULL(clsm, 0),
+                    '-',
+                    UNIX_TIMESTAMP(),
+                    FLOOR(RAND() * 1000)
+                ) AS uid,
                 suid,
                 sid,
                 schid,
@@ -33121,13 +33128,20 @@ class ApiController extends Controller
 
             // ------------------------------------------------
             // 2. Bring staff classes forward
-            // uid = ssn + trm + stid + cls + random 5-digit
+            // uid = ssn + trm + stid + cls + timestamp + random
             // ------------------------------------------------
             DB::insert(
                 "INSERT INTO staff_class
             (uid, stid, cls, schid, ssn, trm, created_at, updated_at)
             SELECT
-                CONCAT(?, ?, stid, cls, '-', FLOOR(RAND() * 90000 + 10000)) AS uid,
+                CONCAT(
+                    ?, ?,
+                    IFNULL(stid, 0),
+                    IFNULL(cls, 0),
+                    '-',
+                    UNIX_TIMESTAMP(),
+                    FLOOR(RAND() * 1000)
+                ) AS uid,
                 stid,
                 cls,
                 schid,
@@ -33150,13 +33164,21 @@ class ApiController extends Controller
 
             // ------------------------------------------------
             // 3. Bring staff class arms forward
-            // uid = ssn + trm + stid + cls + arm + random 5-digit
+            // uid = ssn + trm + stid + cls + arm + timestamp + random
             // ------------------------------------------------
             DB::insert(
                 "INSERT INTO staff_class_arm
             (uid, stid, cls, arm, schid, sesn, trm, created_at, updated_at)
             SELECT
-                CONCAT(?, ?, stid, cls, arm, '-', FLOOR(RAND() * 90000 + 10000)) AS uid,
+                CONCAT(
+                    ?, ?,
+                    IFNULL(stid, 0),
+                    IFNULL(cls, 0),
+                    IFNULL(arm, 0),
+                    '-',
+                    UNIX_TIMESTAMP(),
+                    FLOOR(RAND() * 1000)
+                ) AS uid,
                 stid,
                 cls,
                 arm,
@@ -33180,13 +33202,20 @@ class ApiController extends Controller
 
             // ------------------------------------------------
             // 4. Bring staff subjects forward
-            // uid = ssn + trm + stid + sbj + random 5-digit
+            // uid = ssn + trm + stid + sbj + timestamp + random
             // ------------------------------------------------
             DB::insert(
                 "INSERT INTO staff_subj
             (uid, stid, sbj, schid, sesn, trm, created_at, updated_at)
             SELECT
-                CONCAT(?, ?, stid, sbj, '-', FLOOR(RAND() * 90000 + 10000)) AS uid,
+                CONCAT(
+                    ?, ?,
+                    IFNULL(stid, 0),
+                    IFNULL(sbj, 0),
+                    '-',
+                    UNIX_TIMESTAMP(),
+                    FLOOR(RAND() * 1000)
+                ) AS uid,
                 stid,
                 sbj,
                 schid,
@@ -33241,6 +33270,7 @@ class ApiController extends Controller
             ], 500);
         }
     }
+
 
 }
 
