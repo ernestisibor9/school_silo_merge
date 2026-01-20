@@ -2488,7 +2488,6 @@ class ApiController extends Controller
             "ssn" => "required",
             "sch3" => "required",
             "stat" => "required",
-            "schid" => "required",
             "last_school" => "required",
             "last_class" => "required",
             "new_class" => "required",
