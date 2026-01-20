@@ -29531,7 +29531,7 @@
                     "Api"
                 ],
                 "summary": "Bulk set student academic information",
-                "description": "Uploads and updates academic information for multiple students at once. Existing records are updated, new ones are created where applicable.",
+                "description": "Uploads and updates academic information for multiple students at once. Existing records are updated and new historical (old_student) records are created where applicable.",
                 "operationId": "setStudentAcademicInfoBulk",
                 "requestBody": {
                     "required": true,
@@ -29550,51 +29550,62 @@
                                                 "schid",
                                                 "last_school",
                                                 "ssn",
-                                                "suid"
+                                                "suid",
+                                                "trm"
                                             ],
                                             "properties": {
                                                 "user_id": {
                                                     "description": "Student system ID (sid)",
                                                     "type": "integer",
-                                                    "example": 2406
+                                                    "example": 10000
                                                 },
                                                 "schid": {
                                                     "description": "School ID",
                                                     "type": "integer",
-                                                    "example": 12
+                                                    "example": 4028
                                                 },
                                                 "last_school": {
                                                     "description": "Previous school name",
                                                     "type": "string",
-                                                    "example": "HOLY GHOST COLLEGE"
+                                                    "example": "LEA PRIMARY SCHOOL DUTSE ALHAJI"
                                                 },
                                                 "last_class": {
                                                     "description": "Previous class",
                                                     "type": "string",
-                                                    "example": "1",
+                                                    "example": "NIL",
                                                     "nullable": true
                                                 },
                                                 "new_class": {
                                                     "description": "New class assigned",
                                                     "type": "string",
-                                                    "example": "1",
+                                                    "example": "1470",
                                                     "nullable": true
                                                 },
                                                 "new_class_main": {
-                                                    "description": "Main class group",
+                                                    "description": "Main class group ID",
                                                     "type": "string",
-                                                    "example": "11",
+                                                    "example": "5",
                                                     "nullable": true
                                                 },
                                                 "ssn": {
-                                                    "description": "Academic session",
+                                                    "description": "Academic session/year",
                                                     "type": "string",
                                                     "example": "2025"
+                                                },
+                                                "trm": {
+                                                    "description": "Academic term (1 = First, 2 = Second, 3 = Third)",
+                                                    "type": "integer",
+                                                    "enum": [
+                                                        1,
+                                                        2,
+                                                        3
+                                                    ],
+                                                    "example": 1
                                                 },
                                                 "suid": {
                                                     "description": "Student unique identifier",
                                                     "type": "string",
-                                                    "example": "HGC/2025/1/376"
+                                                    "example": "ST/2025/405754"
                                                 }
                                             },
                                             "type": "object"
@@ -29646,6 +29657,9 @@
                                 }
                             }
                         }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
                     },
                     "500": {
                         "description": "Server error"
