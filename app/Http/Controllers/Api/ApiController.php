@@ -4136,191 +4136,382 @@ class ApiController extends Controller
     //     ]);
     // }
 
+    // public function getStudentResultsByArm($schid, $clsid, $ssn, $trm, $arm)
+    // {
+    //     // Ensure we only fetch students for the selected session + class + arm + term
+    //     $members = student::join('old_student', 'student.sid', '=', 'old_student.sid')
+    //         ->where('student.schid', $schid)
+    //         ->where('student.stat', "1")
+    //         ->where('student.status', "active")
+    //         ->where('old_student.ssn', $ssn)
+    //         ->where('old_student.trm', $trm)   // filter by term
+    //         ->where('old_student.clsm', $clsid)
+    //         ->where('old_student.status', "active")
+    //         ->where('old_student.clsa', $arm)
+    //         ->select('student.*', 'old_student.uid as old_uid') // FIX: use uid instead of id
+    //         ->distinct('student.sid') // one record per student
+    //         ->get();
+
+    //     $totalStd = count($members);
+    //     $cstds = [];
+    //     $relevantSubjects = [];
+    //     $clsSbj = [];
+
+    //     // Get class subjects (avoid duplicate sbj)
+    //     $relevantClassSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
+    //         ->where('class_subj.schid', $schid)
+    //         ->where('class_subj.clsid', $clsid)
+    //         ->pluck('sbj')
+    //         ->unique(); // prevent duplicates
+
+    //     $nof = (int) (result_meta::where([
+    //         ['schid', $schid],
+    //         ['ssn', $ssn],
+    //         ['trm', $trm],
+    //     ])->value('num_of_days') ?? 0);
+
+    //     foreach ($members as $member) {
+    //         $user_id = $member->sid;
+
+    //         $res = student_res::where("schid", $schid)
+    //             ->where("ssn", $ssn)
+    //             ->where("trm", $trm)
+    //             ->where("clsm", $clsid)
+    //             ->where("clsa", $arm)
+    //             ->where("stid", $user_id)
+    //             ->first();
+
+    //         $academicData = student_academic_data::where('user_id', $user_id)->first();
+    //         $basicData = student_basic_data::where('user_id', $user_id)->first();
+    //         $psy = student_psy::where("schid", $schid)
+    //             ->where("ssn", $ssn)
+    //             ->where("trm", $trm)
+    //             ->where("clsm", $clsid)
+    //             ->where("clsa", $arm)
+    //             ->where("stid", $user_id)
+    //             ->first();
+
+    //         $std = old_student::where("schid", $schid)
+    //             ->where("ssn", $ssn)
+    //             ->where("trm", $trm) // make sure it's the selected term
+    //             ->where("clsm", $clsid)
+    //             ->where("status", "active")
+    //             ->where("clsa", $arm)
+    //             ->where("sid", $user_id)
+    //             ->first();
+
+    //         $studentSubjects = student_subj::where('stid', $user_id)
+    //             ->whereIn('sbj', $relevantClassSubjects)
+    //             ->pluck('sbj');
+
+    //         $allScores = std_score::where('stid', $user_id)
+    //             ->where("schid", $schid)
+    //             ->where("ssn", $ssn)
+    //             ->where("trm", $trm)
+    //             ->whereIn("sbj", $studentSubjects)
+    //             ->where("clsid", $clsid)
+    //             ->whereNotNull('scr')
+    //             ->where('scr', '>', 0)
+    //             ->get();
+
+    //         $mySbjs = [];
+    //         foreach ($allScores as $scr) {
+    //             $sbid = $scr->sbj;
+    //             if (!in_array($sbid, $mySbjs)) {
+    //                 $mySbjs[] = $sbid;
+    //             }
+    //             if (!in_array($sbid, $relevantSubjects)) {
+    //                 $schSbj = subj::where('id', $sbid)->first();
+    //                 if ($schSbj) {
+    //                     $clsSbj[$sbid] = $schSbj; // prevent duplicate subjects
+    //                     $relevantSubjects[] = $sbid;
+    //                 }
+    //             }
+    //         }
+
+    //         $subjectScores = [];
+    //         foreach ($mySbjs as $sbid) {
+    //             $subjectScores[$sbid] = [];
+    //         }
+
+    //         $scores = [];
+    //         foreach ($allScores as $scr) {
+    //             $sbid = $scr->sbj;
+    //             $subjectScores[$sbid][] = $scr;
+    //         }
+
+    //         $positions = [];
+    //         foreach ($mySbjs as $sbid) {
+    //             $scores[] = [
+    //                 'sbid' => $sbid,
+    //                 'scores' => $subjectScores[$sbid]
+    //             ];
+    //             $subjectPosition = student_sub_res::where('stid', $user_id)
+    //                 ->where('sbj', $sbid)
+    //                 ->where("schid", $schid)
+    //                 ->where("ssn", $ssn)
+    //                 ->where("trm", $trm)
+    //                 ->where("clsm", $clsid)
+    //                 ->where("clsa", $arm)
+    //                 ->first();
+
+    //             $positions[] = [
+    //                 'sbid' => $sbid,
+    //                 'pos' => $subjectPosition ? $subjectPosition->pos : null,
+    //             ];
+    //         }
+
+    //         $psyexist = student_psy::where([
+    //             ['schid', $schid],
+    //             ['ssn', $ssn],
+    //             ['trm', $trm],
+    //             ['clsm', $clsid],
+    //             ['stid', $user_id]
+    //         ])->exists();
+
+    //         $resexist = $res->stat ?? "0";
+
+    //         // Individual attendance logic
+    //         $presentCount = 0;
+    //         $absentCount = 0;
+
+    //         $attendanceQuery = \DB::table('attendances')
+    //             ->where('schid', $schid)
+    //             ->where('ssn', $ssn)
+    //             ->where('trm', $trm)
+    //             ->where('sid', $user_id);
+
+    //         if ($attendanceQuery->exists()) {
+    //             $presentCount = $attendanceQuery->where('status', '1')->count();
+    //             $absentCount = max(0, $nof - $presentCount);
+    //         }
+
+    //         $studentres = [
+    //             'std' => $std,
+    //             'sbj' => $mySbjs,
+    //             'scr' => $scores,
+    //             'psy' => $psyexist,
+    //             'res' => $resexist,
+    //             'present_days' => $presentCount,
+    //             'absent_days' => $absentCount,
+    //         ];
+
+    //         $cstds[] = [
+    //             's' => $member,
+    //             'b' => $basicData,
+    //             'a' => $academicData,
+    //             'p' => $psy,
+    //             'r' => $res,
+    //             'rs' => $studentres,
+    //             'cnt' => $totalStd,
+    //             'spos' => $positions
+    //         ];
+    //     }
+
+    //     $pld = [
+    //         'std-pld' => $cstds,
+    //         'cls-sbj' => array_values($clsSbj), // return unique subjects only
+    //         'num_of_days' => $nof,
+    //     ];
+
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => $pld,
+    //     ]);
+    // }
+
+
     public function getStudentResultsByArm($schid, $clsid, $ssn, $trm, $arm)
-    {
-        // Ensure we only fetch students for the selected session + class + arm + term
-        $members = student::join('old_student', 'student.sid', '=', 'old_student.sid')
-            ->where('student.schid', $schid)
-            ->where('student.stat', "1")
-            ->where('student.status', "active")
-            ->where('old_student.ssn', $ssn)
-            ->where('old_student.trm', $trm)   // filter by term
-            ->where('old_student.clsm', $clsid)
-            ->where('old_student.status', "active")
-            ->where('old_student.clsa', $arm)
-            ->select('student.*', 'old_student.uid as old_uid') // FIX: use uid instead of id
-            ->distinct('student.sid') // one record per student
+{
+    // Ensure we only fetch students for the selected session + class + arm + term
+    $members = student::join('old_student', 'student.sid', '=', 'old_student.sid')
+        ->where('student.schid', $schid)
+        ->where('student.stat', "1")
+        ->where('student.status', "active")
+        ->where('old_student.ssn', $ssn)
+        ->where('old_student.trm', $trm)   // filter by term
+        ->where('old_student.clsm', $clsid)
+        ->where('old_student.status', "active")
+        ->where('old_student.clsa', $arm)
+        ->select('student.*', 'old_student.uid as old_uid')
+        ->distinct('student.sid')
+        ->get();
+
+    $totalStd = count($members);
+    $cstds = [];
+    $relevantSubjects = [];
+    $clsSbj = [];
+
+    // Get class subjects (avoid duplicate sbj)
+    $relevantClassSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
+        ->where('class_subj.schid', $schid)
+        ->where('class_subj.clsid', $clsid)
+        ->pluck('sbj')
+        ->unique();
+
+    $nof = (int) (result_meta::where([
+        ['schid', $schid],
+        ['ssn', $ssn],
+        ['trm', $trm],
+    ])->value('num_of_days') ?? 0);
+
+    foreach ($members as $member) {
+        $user_id = $member->sid;
+
+        $res = student_res::where("schid", $schid)
+            ->where("ssn", $ssn)
+            ->where("trm", $trm)
+            ->where("clsm", $clsid)
+            ->where("clsa", $arm)
+            ->where("stid", $user_id)
+            ->first();
+
+        $academicData = student_academic_data::where('user_id', $user_id)->first();
+        $basicData = student_basic_data::where('user_id', $user_id)->first();
+
+        // ✅ FIX: Convert DOB timestamp (negative or positive) to readable date
+        if ($basicData && !empty($basicData->dob)) {
+            $basicData->dob = date('Y-m-d', intval($basicData->dob / 1000));
+        }
+
+        $psy = student_psy::where("schid", $schid)
+            ->where("ssn", $ssn)
+            ->where("trm", $trm)
+            ->where("clsm", $clsid)
+            ->where("clsa", $arm)
+            ->where("stid", $user_id)
+            ->first();
+
+        $std = old_student::where("schid", $schid)
+            ->where("ssn", $ssn)
+            ->where("trm", $trm)
+            ->where("clsm", $clsid)
+            ->where("status", "active")
+            ->where("clsa", $arm)
+            ->where("sid", $user_id)
+            ->first();
+
+        $studentSubjects = student_subj::where('stid', $user_id)
+            ->whereIn('sbj', $relevantClassSubjects)
+            ->pluck('sbj');
+
+        $allScores = std_score::where('stid', $user_id)
+            ->where("schid", $schid)
+            ->where("ssn", $ssn)
+            ->where("trm", $trm)
+            ->whereIn("sbj", $studentSubjects)
+            ->where("clsid", $clsid)
+            ->whereNotNull('scr')
+            ->where('scr', '>', 0)
             ->get();
 
-        $totalStd = count($members);
-        $cstds = [];
-        $relevantSubjects = [];
-        $clsSbj = [];
+        $mySbjs = [];
+        foreach ($allScores as $scr) {
+            $sbid = $scr->sbj;
+            if (!in_array($sbid, $mySbjs)) {
+                $mySbjs[] = $sbid;
+            }
+            if (!in_array($sbid, $relevantSubjects)) {
+                $schSbj = subj::where('id', $sbid)->first();
+                if ($schSbj) {
+                    $clsSbj[$sbid] = $schSbj;
+                    $relevantSubjects[] = $sbid;
+                }
+            }
+        }
 
-        // Get class subjects (avoid duplicate sbj)
-        $relevantClassSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
-            ->where('class_subj.schid', $schid)
-            ->where('class_subj.clsid', $clsid)
-            ->pluck('sbj')
-            ->unique(); // prevent duplicates
+        $subjectScores = [];
+        foreach ($mySbjs as $sbid) {
+            $subjectScores[$sbid] = [];
+        }
 
-        $nof = (int) (result_meta::where([
-            ['schid', $schid],
-            ['ssn', $ssn],
-            ['trm', $trm],
-        ])->value('num_of_days') ?? 0);
+        $scores = [];
+        foreach ($allScores as $scr) {
+            $subjectScores[$scr->sbj][] = $scr;
+        }
 
-        foreach ($members as $member) {
-            $user_id = $member->sid;
+        $positions = [];
+        foreach ($mySbjs as $sbid) {
+            $scores[] = [
+                'sbid' => $sbid,
+                'scores' => $subjectScores[$sbid]
+            ];
 
-            $res = student_res::where("schid", $schid)
-                ->where("ssn", $ssn)
-                ->where("trm", $trm)
-                ->where("clsm", $clsid)
-                ->where("clsa", $arm)
-                ->where("stid", $user_id)
-                ->first();
-
-            $academicData = student_academic_data::where('user_id', $user_id)->first();
-            $basicData = student_basic_data::where('user_id', $user_id)->first();
-            $psy = student_psy::where("schid", $schid)
-                ->where("ssn", $ssn)
-                ->where("trm", $trm)
-                ->where("clsm", $clsid)
-                ->where("clsa", $arm)
-                ->where("stid", $user_id)
-                ->first();
-
-            $std = old_student::where("schid", $schid)
-                ->where("ssn", $ssn)
-                ->where("trm", $trm) // make sure it's the selected term
-                ->where("clsm", $clsid)
-                ->where("status", "active")
-                ->where("clsa", $arm)
-                ->where("sid", $user_id)
-                ->first();
-
-            $studentSubjects = student_subj::where('stid', $user_id)
-                ->whereIn('sbj', $relevantClassSubjects)
-                ->pluck('sbj');
-
-            $allScores = std_score::where('stid', $user_id)
+            $subjectPosition = student_sub_res::where('stid', $user_id)
+                ->where('sbj', $sbid)
                 ->where("schid", $schid)
                 ->where("ssn", $ssn)
                 ->where("trm", $trm)
-                ->whereIn("sbj", $studentSubjects)
-                ->where("clsid", $clsid)
-                ->whereNotNull('scr')
-                ->where('scr', '>', 0)
-                ->get();
+                ->where("clsm", $clsid)
+                ->where("clsa", $arm)
+                ->first();
 
-            $mySbjs = [];
-            foreach ($allScores as $scr) {
-                $sbid = $scr->sbj;
-                if (!in_array($sbid, $mySbjs)) {
-                    $mySbjs[] = $sbid;
-                }
-                if (!in_array($sbid, $relevantSubjects)) {
-                    $schSbj = subj::where('id', $sbid)->first();
-                    if ($schSbj) {
-                        $clsSbj[$sbid] = $schSbj; // prevent duplicate subjects
-                        $relevantSubjects[] = $sbid;
-                    }
-                }
-            }
-
-            $subjectScores = [];
-            foreach ($mySbjs as $sbid) {
-                $subjectScores[$sbid] = [];
-            }
-
-            $scores = [];
-            foreach ($allScores as $scr) {
-                $sbid = $scr->sbj;
-                $subjectScores[$sbid][] = $scr;
-            }
-
-            $positions = [];
-            foreach ($mySbjs as $sbid) {
-                $scores[] = [
-                    'sbid' => $sbid,
-                    'scores' => $subjectScores[$sbid]
-                ];
-                $subjectPosition = student_sub_res::where('stid', $user_id)
-                    ->where('sbj', $sbid)
-                    ->where("schid", $schid)
-                    ->where("ssn", $ssn)
-                    ->where("trm", $trm)
-                    ->where("clsm", $clsid)
-                    ->where("clsa", $arm)
-                    ->first();
-
-                $positions[] = [
-                    'sbid' => $sbid,
-                    'pos' => $subjectPosition ? $subjectPosition->pos : null,
-                ];
-            }
-
-            $psyexist = student_psy::where([
-                ['schid', $schid],
-                ['ssn', $ssn],
-                ['trm', $trm],
-                ['clsm', $clsid],
-                ['stid', $user_id]
-            ])->exists();
-
-            $resexist = $res->stat ?? "0";
-
-            // Individual attendance logic
-            $presentCount = 0;
-            $absentCount = 0;
-
-            $attendanceQuery = \DB::table('attendances')
-                ->where('schid', $schid)
-                ->where('ssn', $ssn)
-                ->where('trm', $trm)
-                ->where('sid', $user_id);
-
-            if ($attendanceQuery->exists()) {
-                $presentCount = $attendanceQuery->where('status', '1')->count();
-                $absentCount = max(0, $nof - $presentCount);
-            }
-
-            $studentres = [
-                'std' => $std,
-                'sbj' => $mySbjs,
-                'scr' => $scores,
-                'psy' => $psyexist,
-                'res' => $resexist,
-                'present_days' => $presentCount,
-                'absent_days' => $absentCount,
-            ];
-
-            $cstds[] = [
-                's' => $member,
-                'b' => $basicData,
-                'a' => $academicData,
-                'p' => $psy,
-                'r' => $res,
-                'rs' => $studentres,
-                'cnt' => $totalStd,
-                'spos' => $positions
+            $positions[] = [
+                'sbid' => $sbid,
+                'pos' => $subjectPosition ? $subjectPosition->pos : null,
             ];
         }
 
-        $pld = [
-            'std-pld' => $cstds,
-            'cls-sbj' => array_values($clsSbj), // return unique subjects only
-            'num_of_days' => $nof,
+        $psyexist = student_psy::where([
+            ['schid', $schid],
+            ['ssn', $ssn],
+            ['trm', $trm],
+            ['clsm', $clsid],
+            ['stid', $user_id]
+        ])->exists();
+
+        $resexist = $res->stat ?? "0";
+
+        // Attendance
+        $presentCount = 0;
+        $absentCount = 0;
+
+        $attendanceQuery = \DB::table('attendances')
+            ->where('schid', $schid)
+            ->where('ssn', $ssn)
+            ->where('trm', $trm)
+            ->where('sid', $user_id);
+
+        if ($attendanceQuery->exists()) {
+            $presentCount = $attendanceQuery->where('status', '1')->count();
+            $absentCount = max(0, $nof - $presentCount);
+        }
+
+        $studentres = [
+            'std' => $std,
+            'sbj' => $mySbjs,
+            'scr' => $scores,
+            'psy' => $psyexist,
+            'res' => $resexist,
+            'present_days' => $presentCount,
+            'absent_days' => $absentCount,
         ];
 
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $pld,
-        ]);
+        $cstds[] = [
+            's' => $member,
+            'b' => $basicData,
+            'a' => $academicData,
+            'p' => $psy,
+            'r' => $res,
+            'rs' => $studentres,
+            'cnt' => $totalStd,
+            'spos' => $positions
+        ];
     }
 
+    $pld = [
+        'std-pld' => $cstds,
+        'cls-sbj' => array_values($clsSbj),
+        'num_of_days' => $nof,
+    ];
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => $pld,
+    ]);
+}
 
 
 
