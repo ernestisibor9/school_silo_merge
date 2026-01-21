@@ -4600,6 +4600,85 @@ class ApiController extends Controller
      * )
      */
 
+    // public function getStudent()
+    // {
+    //     $combined = false;
+    //     if (request()->has('combined')) {
+    //         $combined = request()->input('combined');
+    //     }
+
+    //     $uid = request()->input('uid', '');
+    //     $schid = request()->input('schid', '');
+
+    //     if ($uid === '' || $schid === '') {
+    //         return response()->json([
+    //             "status" => false,
+    //             "message" => "No UID/School ID provided",
+    //         ], 400);
+    //     }
+
+    //     if ($combined) {
+    //         $pld = [];
+    //         $compo = explode("/", $uid);
+    //         $members = [];
+
+    //         if (count($compo) == 4) {
+    //             [$sch3, $year, $term, $count] = $compo;
+    //             $members = student::where("schid", $schid)
+    //                 ->where("stat", "1")
+    //                 ->where("sch3", $sch3)
+    //                 ->where("year", $year)
+    //                 ->where("term", $term)
+    //                 ->where("count", $count)
+    //                 ->get();
+    //         } else {
+    //             $members = student::where("schid", $schid)
+    //                 ->where("stat", "1")
+    //                 ->where("cuid", $uid)
+    //                 ->get();
+    //         }
+
+    //         foreach ($members as $member) {
+    //             $user_id = $member->sid;
+    //             $academicData = student_academic_data::where('user_id', $user_id)->first();
+    //             $basicData = student_basic_data::where('user_id', $user_id)->first();
+
+    //             $oldStudent = old_student::where('sid', $user_id)
+    //                 ->where('schid', $schid)
+    //                 ->first();
+    //             $suid = $oldStudent ? $oldStudent->suid : null;
+
+    //             $pld[] = [
+    //                 's' => $member,
+    //                 'b' => $basicData,
+    //                 'a' => $academicData,
+    //                 'suid' => $suid, // added suid here
+    //             ];
+    //         }
+    //     } else {
+    //         $student = student::where("schid", $schid)
+    //             ->where("stat", "1")
+    //             ->where("sid", $uid)
+    //             ->first();
+
+    //         $oldStudent = old_student::where('sid', $uid)
+    //             ->where('schid', $schid)
+    //             ->first();
+    //         $suid = $oldStudent ? $oldStudent->suid : null;
+
+    //         $pld = $student ? $student->toArray() : [];
+    //         if ($student) {
+    //             $pld['suid'] = $suid; // add suid to the response
+    //         }
+    //     }
+
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => $pld,
+    //     ]);
+    // }
+
     public function getStudent()
     {
         $combined = false;
@@ -4643,6 +4722,11 @@ class ApiController extends Controller
                 $academicData = student_academic_data::where('user_id', $user_id)->first();
                 $basicData = student_basic_data::where('user_id', $user_id)->first();
 
+                // ✅ DOB FIX (timestamp → Y-m-d)
+                if ($basicData && !empty($basicData->dob)) {
+                    $basicData->dob = date('Y-m-d', intval($basicData->dob / 1000));
+                }
+
                 $oldStudent = old_student::where('sid', $user_id)
                     ->where('schid', $schid)
                     ->first();
@@ -4652,7 +4736,7 @@ class ApiController extends Controller
                     's' => $member,
                     'b' => $basicData,
                     'a' => $academicData,
-                    'suid' => $suid, // added suid here
+                    'suid' => $suid,
                 ];
             }
         } else {
@@ -4661,6 +4745,19 @@ class ApiController extends Controller
                 ->where("sid", $uid)
                 ->first();
 
+            $academicData = null;
+            $basicData = null;
+
+            if ($student) {
+                $academicData = student_academic_data::where('user_id', $student->sid)->first();
+                $basicData = student_basic_data::where('user_id', $student->sid)->first();
+
+                // ✅ DOB FIX (timestamp → Y-m-d)
+                if ($basicData && !empty($basicData->dob)) {
+                    $basicData->dob = date('Y-m-d', intval($basicData->dob / 1000));
+                }
+            }
+
             $oldStudent = old_student::where('sid', $uid)
                 ->where('schid', $schid)
                 ->first();
@@ -4668,7 +4765,9 @@ class ApiController extends Controller
 
             $pld = $student ? $student->toArray() : [];
             if ($student) {
-                $pld['suid'] = $suid; // add suid to the response
+                $pld['b'] = $basicData;
+                $pld['a'] = $academicData;
+                $pld['suid'] = $suid;
             }
         }
 
@@ -4678,6 +4777,7 @@ class ApiController extends Controller
             "pld" => $pld,
         ]);
     }
+
 
 
     /**
@@ -32572,230 +32672,230 @@ class ApiController extends Controller
 
 
 
-/**
- * @OA\Post(
- *     path="/api/setStudentAcademicInfoBulk",
- *     summary="Bulk set student academic information",
- *     description="Uploads and updates academic information for multiple students at once. Existing records are updated and new historical (old_student) records are created where applicable.",
- *     operationId="setStudentAcademicInfoBulk",
- *     tags={"Api"},
- *     security={{"bearerAuth":{}}},
- *
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"students"},
- *             @OA\Property(
- *                 property="students",
- *                 type="array",
- *                 minItems=1,
- *                 @OA\Items(
- *                     type="object",
- *                     required={
- *                         "user_id",
- *                         "schid",
- *                         "last_school",
- *                         "ssn",
- *                         "suid",
- *                         "trm"
- *                     },
- *                     @OA\Property(
- *                         property="user_id",
- *                         type="integer",
- *                         example=10000,
- *                         description="Student system ID (sid)"
- *                     ),
- *                     @OA\Property(
- *                         property="schid",
- *                         type="integer",
- *                         example=4028,
- *                         description="School ID"
- *                     ),
- *                     @OA\Property(
- *                         property="last_school",
- *                         type="string",
- *                         example="LEA PRIMARY SCHOOL DUTSE ALHAJI",
- *                         description="Previous school name"
- *                     ),
- *                     @OA\Property(
- *                         property="last_class",
- *                         type="string",
- *                         nullable=true,
- *                         example="NIL",
- *                         description="Previous class"
- *                     ),
- *                     @OA\Property(
- *                         property="new_class",
- *                         type="string",
- *                         nullable=true,
- *                         example="1470",
- *                         description="New class assigned"
- *                     ),
- *                     @OA\Property(
- *                         property="new_class_main",
- *                         type="string",
- *                         nullable=true,
- *                         example="5",
- *                         description="Main class group ID"
- *                     ),
- *                     @OA\Property(
- *                         property="ssn",
- *                         type="string",
- *                         example="2025",
- *                         description="Academic session/year"
- *                     ),
- *                     @OA\Property(
- *                         property="trm",
- *                         type="integer",
- *                         example=1,
- *                         enum={1,2,3},
- *                         description="Academic term (1 = First, 2 = Second, 3 = Third)"
- *                     ),
- *                     @OA\Property(
- *                         property="suid",
- *                         type="string",
- *                         example="ST/2025/405754",
- *                         description="Student unique identifier"
- *                     )
- *                 )
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Bulk upload successful",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Bulk upload successful")
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=422,
- *         description="Validation error",
- *         @OA\JsonContent(
- *             @OA\Property(property="message", type="string", example="The given data was invalid."),
- *             @OA\Property(property="errors", type="object")
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=401,
- *         description="Unauthorized"
- *     ),
- *
- *     @OA\Response(
- *         response=500,
- *         description="Server error"
- *     )
- * )
- */
+    /**
+     * @OA\Post(
+     *     path="/api/setStudentAcademicInfoBulk",
+     *     summary="Bulk set student academic information",
+     *     description="Uploads and updates academic information for multiple students at once. Existing records are updated and new historical (old_student) records are created where applicable.",
+     *     operationId="setStudentAcademicInfoBulk",
+     *     tags={"Api"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"students"},
+     *             @OA\Property(
+     *                 property="students",
+     *                 type="array",
+     *                 minItems=1,
+     *                 @OA\Items(
+     *                     type="object",
+     *                     required={
+     *                         "user_id",
+     *                         "schid",
+     *                         "last_school",
+     *                         "ssn",
+     *                         "suid",
+     *                         "trm"
+     *                     },
+     *                     @OA\Property(
+     *                         property="user_id",
+     *                         type="integer",
+     *                         example=10000,
+     *                         description="Student system ID (sid)"
+     *                     ),
+     *                     @OA\Property(
+     *                         property="schid",
+     *                         type="integer",
+     *                         example=4028,
+     *                         description="School ID"
+     *                     ),
+     *                     @OA\Property(
+     *                         property="last_school",
+     *                         type="string",
+     *                         example="LEA PRIMARY SCHOOL DUTSE ALHAJI",
+     *                         description="Previous school name"
+     *                     ),
+     *                     @OA\Property(
+     *                         property="last_class",
+     *                         type="string",
+     *                         nullable=true,
+     *                         example="NIL",
+     *                         description="Previous class"
+     *                     ),
+     *                     @OA\Property(
+     *                         property="new_class",
+     *                         type="string",
+     *                         nullable=true,
+     *                         example="1470",
+     *                         description="New class assigned"
+     *                     ),
+     *                     @OA\Property(
+     *                         property="new_class_main",
+     *                         type="string",
+     *                         nullable=true,
+     *                         example="5",
+     *                         description="Main class group ID"
+     *                     ),
+     *                     @OA\Property(
+     *                         property="ssn",
+     *                         type="string",
+     *                         example="2025",
+     *                         description="Academic session/year"
+     *                     ),
+     *                     @OA\Property(
+     *                         property="trm",
+     *                         type="integer",
+     *                         example=1,
+     *                         enum={1,2,3},
+     *                         description="Academic term (1 = First, 2 = Second, 3 = Third)"
+     *                     ),
+     *                     @OA\Property(
+     *                         property="suid",
+     *                         type="string",
+     *                         example="ST/2025/405754",
+     *                         description="Student unique identifier"
+     *                     )
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Bulk upload successful",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Bulk upload successful")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized"
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=500,
+     *         description="Server error"
+     *     )
+     * )
+     */
 
 
 
-public function setStudentAcademicInfoBulk(Request $request)
-{
-    $request->validate([
-        "students" => "required|array|min:1",
-        "students.*.user_id" => "required",
-        "students.*.schid" => "required",
-        "students.*.last_school" => "required",
-        "students.*.last_class" => "nullable",
-        "students.*.new_class" => "nullable",
-        "students.*.new_class_main" => "nullable",
-        "students.*.ssn" => "required",
-        "students.*.suid" => "required",
-        "students.*.trm" => "required|integer|in:1,2,3", // ✅ term from frontend
-    ]);
+    public function setStudentAcademicInfoBulk(Request $request)
+    {
+        $request->validate([
+            "students" => "required|array|min:1",
+            "students.*.user_id" => "required",
+            "students.*.schid" => "required",
+            "students.*.last_school" => "required",
+            "students.*.last_class" => "nullable",
+            "students.*.new_class" => "nullable",
+            "students.*.new_class_main" => "nullable",
+            "students.*.ssn" => "required",
+            "students.*.suid" => "required",
+            "students.*.trm" => "required|integer|in:1,2,3", // ✅ term from frontend
+        ]);
 
-    try {
-        DB::transaction(function () use ($request) {
+        try {
+            DB::transaction(function () use ($request) {
 
-            foreach ($request->students as $data) {
+                foreach ($request->students as $data) {
 
-                $user_id = $data['user_id'];
-                $schid   = $data['schid'];
-                $ssn     = $data['ssn'];
-                $trm     = (int) $data['trm']; // ✅ always correct
+                    $user_id = $data['user_id'];
+                    $schid = $data['schid'];
+                    $ssn = $data['ssn'];
+                    $trm = (int) $data['trm']; // ✅ always correct
 
-                $last_class      = $data['last_class'] ?? 'NIL';
-                $new_class       = $data['new_class'] ?? 'NIL';
-                $new_class_main  = $data['new_class_main'] ?? 'NIL';
+                    $last_class = $data['last_class'] ?? 'NIL';
+                    $new_class = $data['new_class'] ?? 'NIL';
+                    $new_class_main = $data['new_class_main'] ?? 'NIL';
 
-                // Check if academic data needs refresh
-                $oldData = student_academic_data::where('user_id', $user_id)->first();
-                $refreshSubjects = !$oldData || $oldData->new_class_main != $new_class_main;
+                    // Check if academic data needs refresh
+                    $oldData = student_academic_data::where('user_id', $user_id)->first();
+                    $refreshSubjects = !$oldData || $oldData->new_class_main != $new_class_main;
 
-                // Update student academic data
-                student_academic_data::updateOrCreate(
-                    ["user_id" => $user_id],
-                    [
-                        "last_school"     => $data['last_school'],
-                        "last_class"      => $last_class,
-                        "new_class"       => $new_class,
-                        "new_class_main"  => $new_class_main,
-                    ]
-                );
-
-                // Clear subjects if class changed
-                if ($refreshSubjects) {
-                    student_subj::where('stid', $user_id)->delete();
-                }
-
-                // Fetch student
-                $std = student::where('sid', $user_id)->first();
-                if (!$std) {
-                    Log::warning("Student not found: {$user_id}");
-                    continue;
-                }
-
-                // Create/update old_student only if new_class is valid
-                if (!empty($new_class) && $new_class !== 'NIL') {
-
-                    // UID includes term to prevent duplicates
-                    $uid = $ssn . $user_id . $new_class_main . $trm;
-
-                    old_student::updateOrCreate(
-                        ['uid' => $uid],
+                    // Update student academic data
+                    student_academic_data::updateOrCreate(
+                        ["user_id" => $user_id],
                         [
-                            'sid'    => (int) $user_id,
-                            'schid'  => (int) $schid,
-                            'ssn'    => is_numeric($ssn) ? (int) $ssn : 0,
-                            'trm'    => $trm,
-                            'clsm'   => is_numeric($new_class_main) ? (int) $new_class_main : 0,
-                            'fname'  => $std->fname ?? 'Unknown',
-                            'mname'  => $std->mname ?? '',
-                            'lname'  => $std->lname ?? 'Unknown',
-                            'clsa'   => $new_class,
-                            'status' => 'active',
-                            'suid'   => $data['suid'],
-                            'more'   => '',
+                            "last_school" => $data['last_school'],
+                            "last_class" => $last_class,
+                            "new_class" => $new_class,
+                            "new_class_main" => $new_class_main,
                         ]
                     );
-                }
 
-                // Mark academic record as set
-                $std->update([
-                    "s_academic" => 1
-                ]);
-            }
-        });
-    } catch (\Exception $e) {
-        Log::error("Bulk upload failed: " . $e->getMessage());
+                    // Clear subjects if class changed
+                    if ($refreshSubjects) {
+                        student_subj::where('stid', $user_id)->delete();
+                    }
+
+                    // Fetch student
+                    $std = student::where('sid', $user_id)->first();
+                    if (!$std) {
+                        Log::warning("Student not found: {$user_id}");
+                        continue;
+                    }
+
+                    // Create/update old_student only if new_class is valid
+                    if (!empty($new_class) && $new_class !== 'NIL') {
+
+                        // UID includes term to prevent duplicates
+                        $uid = $ssn . $user_id . $new_class_main . $trm;
+
+                        old_student::updateOrCreate(
+                            ['uid' => $uid],
+                            [
+                                'sid' => (int) $user_id,
+                                'schid' => (int) $schid,
+                                'ssn' => is_numeric($ssn) ? (int) $ssn : 0,
+                                'trm' => $trm,
+                                'clsm' => is_numeric($new_class_main) ? (int) $new_class_main : 0,
+                                'fname' => $std->fname ?? 'Unknown',
+                                'mname' => $std->mname ?? '',
+                                'lname' => $std->lname ?? 'Unknown',
+                                'clsa' => $new_class,
+                                'status' => 'active',
+                                'suid' => $data['suid'],
+                                'more' => '',
+                            ]
+                        );
+                    }
+
+                    // Mark academic record as set
+                    $std->update([
+                        "s_academic" => 1
+                    ]);
+                }
+            });
+        } catch (\Exception $e) {
+            Log::error("Bulk upload failed: " . $e->getMessage());
+
+            return response()->json([
+                "status" => false,
+                "message" => "Server Error",
+                "error" => $e->getMessage(),
+            ], 500);
+        }
 
         return response()->json([
-            "status"  => false,
-            "message" => "Server Error",
-            "error"   => $e->getMessage(),
-        ], 500);
+            "status" => true,
+            "message" => "Bulk upload successful",
+        ]);
     }
-
-    return response()->json([
-        "status"  => true,
-        "message" => "Bulk upload successful",
-    ]);
-}
 
 
 
