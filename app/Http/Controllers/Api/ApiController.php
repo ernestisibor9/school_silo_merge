@@ -97,6 +97,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Carbon\Carbon;
 
 
 
@@ -4135,6 +4136,7 @@ class ApiController extends Controller
     //     ]);
     // }
 
+
     public function getStudentResultsByArm($schid, $clsid, $ssn, $trm, $arm)
     {
         // Ensure we only fetch students for the selected session + class + arm + term
@@ -4337,7 +4339,6 @@ class ApiController extends Controller
             "pld" => $pld,
         ]);
     }
-
 
 
 
@@ -5171,6 +5172,8 @@ class ApiController extends Controller
                 'sid' => $request->sid,
                 'schid' => $request->schid,
                 'ssn' => $request->ssn,
+                'clsm' => $request->clsm,
+                'clsa' => $request->clsa,
             ],
             [
                 'fname' => $request->fname,
@@ -5178,8 +5181,6 @@ class ApiController extends Controller
                 'lname' => $request->lname,
                 'status' => 'active',
                 'suid' => $request->suid,
-                'clsm' => $request->clsm,
-                'clsa' => $request->clsa,
                 'more' => $request->more,
             ]
         );
@@ -25931,33 +25932,32 @@ class ApiController extends Controller
             'schid' => 'required',
             'sesn' => 'required',
             'trm' => 'required',
-            'clsm' => 'required', // main class
-            'clsa' => 'required', // class arm
-            'suid' => 'required|string'
+            'clsm' => 'required',
+            'clsa' => 'required',
+            'suid' => 'required|string',
         ]);
 
-        // Find the student
         $student = student::where('sid', $request->sid)->firstOrFail();
 
-        // Generate deterministic UID (no random numbers)
-        $uid = $request->sesn . $request->trm . $request->sid . $request->clsm;
-
-        // Create a new old_student record for repeating
-        old_student::create([
-            'uid' => $uid,
-            'sid' => $request->sid,
-            'schid' => $request->schid,
-            'fname' => $student->fname,
-            'mname' => $student->mname,
-            'lname' => $student->lname,
-            'status' => 'active',
-            'suid' => $request->suid,
-            'ssn' => $request->sesn,
-            'trm' => $request->trm,
-            'clsm' => $request->clsm,
-            'clsa' => $request->clsa,
-            'more' => '', // mark as repeat
-        ]);
+        old_student::updateOrCreate(
+            [
+                'sid' => $request->sid,
+                'ssn' => $request->sesn,
+                'trm' => $request->trm,
+                'clsm' => $request->clsm,
+                'clsa' => $request->clsa,
+            ],
+            [
+                'uid' => $request->sesn . $request->trm . $request->sid . $request->clsm,
+                'schid' => $request->schid,
+                'fname' => $student->fname,
+                'mname' => $student->mname,
+                'lname' => $student->lname,
+                'status' => 'active',
+                'suid' => $request->suid,
+                'more' => 'repeat',
+            ]
+        );
 
         return response()->json([
             'status' => true,
@@ -26602,22 +26602,23 @@ class ApiController extends Controller
         $promotion = old_student::updateOrCreate(
             [
                 'sid' => $request->sid,
-                'schid' => $request->schid,
                 'ssn' => $request->sesn,
                 'trm' => $request->trm,
+                'clsm' => $request->clsm,
+                'clsa' => $validArm->id,
             ],
             [
                 'uid' => $uid,
+                'schid' => $request->schid,
                 'fname' => $student->fname,
                 'mname' => $student->mname,
                 'lname' => $student->lname,
                 'status' => 'active',
                 'suid' => $request->suid,
-                'clsm' => $request->clsm,
-                'clsa' => $validArm->id,
                 'more' => '',
             ]
         );
+
 
         student_academic_data::where('user_id', $request->sid)
             ->update([
