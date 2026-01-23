@@ -26598,115 +26598,121 @@ class ApiController extends Controller
     //     ]);
     // }
 
-    public function rePromoteStudent(Request $request)
-    {
-        $request->validate([
-            'sid' => 'required',
-            'schid' => 'required',
-            'sesn' => 'required',
-            'trm' => 'required',
-            'clsm' => 'required',
-            'clsa' => 'required',
-            'suid' => 'required',
-        ]);
+public function rePromoteStudent(Request $request)
+{
+    // ✅ Validate request
+    $request->validate([
+        'sid' => 'required',
+        'schid' => 'required',
+        'sesn' => 'required',
+        'trm' => 'required',
+        'clsm' => 'required',
+        'clsa' => 'required',
+        'suid' => 'required',
+    ]);
 
-        $student = student::where('sid', $request->sid)->firstOrFail();
+    // ✅ Fetch student
+    $student = student::where('sid', $request->sid)->firstOrFail();
 
-        $validArm = DB::table('sch_cls')
-            ->where('id', $request->clsa)
-            ->where('cls_id', $request->clsm)
-            ->where('schid', $request->schid)
-            ->first();
+    // ✅ Validate class arm
+    $validArm = DB::table('sch_cls')
+        ->where('id', $request->clsa)
+        ->where('cls_id', $request->clsm)
+        ->where('schid', $request->schid)
+        ->first();
 
-        if (!$validArm) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Invalid class arm for the selected class',
-            ], 422);
-        }
+    if (!$validArm) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Invalid class arm for the selected class',
+        ], 422);
+    }
 
-        $hasScores = std_score::where('stid', $request->sid)
-            ->where('ssn', $request->sesn)
-            ->where('trm', $request->trm)
-            ->where('clsid', $request->clsm)
-            ->exists();
+    // ✅ Optional: check if student has scores for this class/session/term
+    $hasScores = std_score::where('stid', $request->sid)
+        ->where('ssn', $request->sesn)
+        ->where('trm', $request->trm)
+        ->where('clsid', $request->clsm)
+        ->exists();
 
-        // if ($hasScores) {
-        //     return response()->json([
-        //         'status' => false,
-        //         'message' => 'Cannot re-promote student: scores/results already exist for this class, session, and term.',
-        //     ], 422);
-        // }
+    // Uncomment if you want to block re-promotion when scores exist
+    // if ($hasScores) {
+    //     return response()->json([
+    //         'status' => false,
+    //         'message' => 'Cannot re-promote student: scores already exist for this class, session, and term.',
+    //     ], 422);
+    // }
 
-        $uid = $request->sesn . $request->trm . $request->sid . $request->clsm;
+    // ✅ Generate unique UID
+    $uid = $request->sesn . $request->trm . $request->sid . $request->clsm;
 
-        // ✅ FIXED DELETE LOGIC
-        old_student::where('sid', $request->sid)
-            ->where('ssn', $request->sesn)
-            ->where('trm', $request->trm)
-            ->where(function ($q) use ($request) {
-                $q->where('clsm', '!=', $request->clsm)
-                    ->where('clsa', '!=', $request->clsa);
-            })
-            ->delete();
+    // ✅ Delete old record for same class but different arm
+    old_student::where('sid', $request->sid)
+        ->where('ssn', $request->sesn)
+        ->where('trm', $request->trm)
+        ->where('clsm', $request->clsm) // same class
+        ->where('clsa', '!=', $validArm->id) // different arm
+        ->delete();
 
-        // ✅ Check if this combination already exists
-        $exists = old_student::where([
+    // ✅ Prevent duplicate for same class, arm, term
+    $exists = old_student::where([
+        'sid' => $request->sid,
+        'ssn' => $request->sesn,
+        'trm' => $request->trm,
+        'clsm' => $request->clsm,
+        'clsa' => $validArm->id,
+    ])->exists();
+
+    if ($exists) {
+        return response()->json([
+            'status' => false,
+            'message' => 'This student has already been reposted for the selected session, term, and class.',
+        ], 409);
+    }
+
+    // ✅ Create or update promotion record
+    $promotion = old_student::updateOrCreate(
+        [
             'sid' => $request->sid,
             'ssn' => $request->sesn,
             'trm' => $request->trm,
             'clsm' => $request->clsm,
             'clsa' => $validArm->id,
-        ])->exists();
+        ],
+        [
+            'uid' => $uid,
+            'schid' => $request->schid,
+            'fname' => $student->fname,
+            'mname' => $student->mname,
+            'lname' => $student->lname,
+            'status' => 'active',
+            'suid' => $request->suid,
+            'more' => '',
+        ]
+    );
 
-        if ($exists) {
-            return response()->json([
-                'status' => false,
-                'message' => 'This student has already been promoted for the selected session, term, and class.',
-            ], 409); // 409 Conflict
-        }
-
-        $promotion = old_student::updateOrCreate(
-            [
-                'sid' => $request->sid,
-                'ssn' => $request->sesn,
-                'trm' => $request->trm,
-                'clsm' => $request->clsm,
-                'clsa' => $validArm->id,
-            ],
-            [
-                'uid' => $uid,
-                'schid' => $request->schid,
-                'fname' => $student->fname,
-                'mname' => $student->mname,
-                'lname' => $student->lname,
-                'status' => 'active',
-                'suid' => $request->suid,
-                'more' => '',
-            ]
-        );
-
-
-        student_academic_data::where('user_id', $request->sid)
-            ->update([
-                'new_class_main' => $request->clsm,
-                'new_class' => $validArm->id,
-            ]);
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Student re-promoted successfully for this term',
-            'data' => [
-                'sid' => $promotion->sid,
-                'suid' => $promotion->suid,
-                'ssn' => $promotion->ssn,
-                'trm' => $promotion->trm,
-                'clsm' => $promotion->clsm,
-                'clsa' => $promotion->clsa,
-                'clsa_name' => $validArm->name,
-            ],
+    // ✅ Update student academic data
+    student_academic_data::where('user_id', $request->sid)
+        ->update([
+            'new_class_main' => $request->clsm,
+            'new_class' => $validArm->id,
         ]);
-    }
+
+    // ✅ Return response
+    return response()->json([
+        'status' => true,
+        'message' => 'Student re-promoted successfully for this term',
+        'data' => [
+            'sid' => $promotion->sid,
+            'suid' => $promotion->suid,
+            'ssn' => $promotion->ssn,
+            'trm' => $promotion->trm,
+            'clsm' => $promotion->clsm,
+            'clsa' => $promotion->clsa,
+            'clsa_name' => $validArm->name,
+        ],
+    ]);
+}
 
 
 
