@@ -4137,6 +4137,8 @@ class ApiController extends Controller
     // }
 
 
+
+
     public function getStudentResultsByArm($schid, $clsid, $ssn, $trm, $arm)
     {
         // Ensure we only fetch students for the selected session + class + arm + term
@@ -5055,6 +5057,22 @@ class ApiController extends Controller
         if (!empty($request->new_class) && $request->new_class != 'NIL') {
             $uid = $request->ssn . $request->user_id . $request->new_class_main . $request->trm;
 
+            // ✅ Check if this combination already exists
+            $exists = old_student::where([
+                'sid' => $request->sid,
+                'ssn' => $request->sesn,
+                'trm' => $request->trm,
+                'clsm' => $request->new_class_main,
+                'clsa' => $request->new_class,
+            ])->exists();
+
+            if ($exists) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'This student already exist.',
+                ], 409); // 409 Conflict
+            }
+
             old_student::updateOrCreate(
                 ["uid" => $uid], // UID ensures uniqueness
                 [
@@ -5167,6 +5185,7 @@ class ApiController extends Controller
          * - Same session
          * - Same UID
          */
+
         old_student::updateOrCreate(
             [
                 'sid' => $request->sid,
@@ -25671,6 +25690,22 @@ class ApiController extends Controller
         // 4. Generate deterministic UID (no random numbers)
         $uid = $request->sesn . $request->trm . $request->sid . $request->clsm;
 
+        // ✅ Check if this combination already exists
+        $exists = old_student::where([
+            'sid' => $request->sid,
+            'ssn' => $request->sesn,
+            'trm' => $request->trm,
+            'clsm' => $request->clsm,
+            'clsa' => $request->id,
+        ])->exists();
+
+        if ($exists) {
+            return response()->json([
+                'status' => false,
+                'message' => 'This student has already been promoted for the selected session, term, and class.',
+            ], 409); // 409 Conflict
+        }
+
         // 5. Create promotion record
         $promotion = old_student::updateOrCreate(
             [
@@ -25938,6 +25973,22 @@ class ApiController extends Controller
         ]);
 
         $student = student::where('sid', $request->sid)->firstOrFail();
+
+        // ✅ Check if this combination already exists
+        $exists = old_student::where([
+            'sid' => $request->sid,
+            'ssn' => $request->sesn,
+            'trm' => $request->trm,
+            'clsm' => $request->clsm,
+            'clsa' => $request->clsa,
+        ])->exists();
+
+        if ($exists) {
+            return response()->json([
+                'status' => false,
+                'message' => 'This student has already been repeated for the selected session, term, and class.',
+            ], 409); // 409 Conflict
+        }
 
         old_student::updateOrCreate(
             [
@@ -26598,6 +26649,22 @@ class ApiController extends Controller
                     ->where('clsa', '!=', $request->clsa);
             })
             ->delete();
+
+        // ✅ Check if this combination already exists
+        $exists = old_student::where([
+            'sid' => $request->sid,
+            'ssn' => $request->sesn,
+            'trm' => $request->trm,
+            'clsm' => $request->clsm,
+            'clsa' => $validArm->id,
+        ])->exists();
+
+        if ($exists) {
+            return response()->json([
+                'status' => false,
+                'message' => 'This student has already been promoted for the selected session, term, and class.',
+            ], 409); // 409 Conflict
+        }
 
         $promotion = old_student::updateOrCreate(
             [
@@ -32853,6 +32920,22 @@ class ApiController extends Controller
 
                     // Create/update old_student only if new_class is valid
                     if (!empty($new_class) && $new_class !== 'NIL') {
+
+                        // ✅ Check if this combination already exists
+                        $exists = old_student::where([
+                            'sid' => $user_id,
+                            'ssn' => $ssn,
+                            'trm' => $trm,
+                            'clsm' => $new_class_main,
+                            'clsa' => $new_class,
+                        ])->exists();
+
+                        if ($exists) {
+                            return response()->json([
+                                'status' => false,
+                                'message' => 'Duplicate record of students for the specified session, term, and class.',
+                            ], 409); // 409 Conflict
+                        }
 
                         // UID includes term to prevent duplicates
                         $uid = $ssn . $user_id . $new_class_main . $trm;
