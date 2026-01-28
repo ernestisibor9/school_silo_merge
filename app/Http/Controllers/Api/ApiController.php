@@ -33056,48 +33056,63 @@ public function setStudentAcademicInfoBulk(Request $request)
      */
 
 
-    public function maintainPreviousStudents(Request $request)
-    {
-        $request->validate([
-            'schid' => 'required|integer',
-            'new_trm' => 'required|integer', // 1, 2, 3
-            'ssn' => 'required|integer',     // current session/year
-        ]);
+public function maintainPreviousStudents(Request $request)
+{
+    $request->validate([
+        'schid' => 'required|integer',
+        'new_trm' => 'required|integer', // 1, 2, 3
+        'ssn' => 'required|integer',     // current session/year
+    ]);
 
-        $schid = $request->schid;
-        $new_trm = $request->new_trm;
-        $ssn = $request->ssn;
+    $schid = $request->schid;
+    $new_trm = $request->new_trm;
+    $ssn = $request->ssn;
 
-        // Determine previous term & session
-        if ($new_trm == 1) {
-            $prev_trm = 3;
-            $prev_ssn = $ssn - 1;
-        } else {
-            $prev_trm = $new_trm - 1;
-            $prev_ssn = $ssn;
+    // Determine previous term & session
+    if ($new_trm == 1) {
+        $prev_trm = 3;
+        $prev_ssn = $ssn - 1;
+    } else {
+        $prev_trm = $new_trm - 1;
+        $prev_ssn = $ssn;
+    }
+
+    DB::beginTransaction();
+
+    try {
+        // 1. Check if previous term has students assigned
+        $prevStudents = DB::table('old_student')
+            ->where('schid', $schid)
+            ->where('ssn', $prev_ssn)
+            ->where('trm', $prev_trm)
+            ->where('status', 'active')
+            ->exists();
+
+        if (!$prevStudents) {
+            return response()->json([
+                "status" => false,
+                "message" => "No assignments found in the previous term.",
+                "pld" => null
+            ], 400);
         }
 
-        DB::beginTransaction();
+        // ✅ BLOCK re-run for same term AND session
+        $alreadyMaintained = DB::table('old_student')
+            ->where('schid', $schid)
+            ->where('ssn', $ssn)       // current session
+            ->where('trm', $new_trm)   // current term
+            ->exists();
 
-        try {
-            // 1. Check if previous term has students assigned
-            $prevStudents = DB::table('old_student')
-                ->where('schid', $schid)
-                ->where('ssn', $prev_ssn)
-                ->where('trm', $prev_trm)
-                ->where('status', 'active')
-                ->exists();
+        if ($alreadyMaintained) {
+            return response()->json([
+                "status" => false,
+                "message" => "This term and session have already been maintained.",
+                "pld" => null
+            ], 409);
+        }
 
-            if (!$prevStudents) {
-                return response()->json([
-                    "status" => false,
-                    "message" => "No assignments found in the previous term.",
-                    "pld" => null
-                ], 400);
-            }
-
-            // 2. Maintain students (old_student) - append random 5-digit number to UID
-            DB::insert("
+        // 2. Maintain students (old_student)
+        DB::insert("
             INSERT INTO old_student (
                 uid, suid, sid, schid, fname, mname, lname,
                 clsm, clsa, cls_sbj_students,
@@ -33127,17 +33142,17 @@ public function setStudentAcademicInfoBulk(Request $request)
               AND os.ssn = ?
               AND os.status = 'active'
         ", [
-                $ssn,
-                $new_trm,
-                $ssn,
-                $new_trm,
-                $schid,
-                $prev_trm,
-                $prev_ssn
-            ]);
+            $ssn,
+            $new_trm,
+            $ssn,
+            $new_trm,
+            $schid,
+            $prev_trm,
+            $prev_ssn
+        ]);
 
-            // 3. Maintain student subjects (student_subj) - append random 5-digit
-            DB::insert("
+        // 3. Maintain student subjects (student_subj)
+        DB::insert("
             INSERT INTO student_subj (
                 uid, stid, sbj, comp, schid, clsid, trm, ssn, created_at, updated_at
             )
@@ -33159,19 +33174,30 @@ public function setStudentAcademicInfoBulk(Request $request)
              AND o.status = 'active'
             WHERE s.trm = ?
               AND s.ssn = ?
+              AND NOT EXISTS (
+                  SELECT 1 FROM student_subj x
+                  WHERE x.stid = s.stid
+                    AND x.sbj = s.sbj
+                    AND x.schid = s.schid
+                    AND x.clsid = s.clsid
+                    AND x.trm = ?
+                    AND x.ssn = ?
+              )
         ", [
-                $ssn,
-                $new_trm,
-                $new_trm,
-                $ssn,
-                $prev_trm,
-                $prev_ssn,
-                $prev_trm,
-                $prev_ssn
-            ]);
+            $ssn,
+            $new_trm,
+            $new_trm,
+            $ssn,
+            $prev_trm,
+            $prev_ssn,
+            $prev_trm,
+            $prev_ssn,
+            $new_trm,
+            $ssn
+        ]);
 
-            // 4. Maintain class subjects (class_subj) - append random 5-digit
-            DB::insert("
+        // 4. Maintain class subjects (class_subj)
+        DB::insert("
             INSERT INTO class_subj (
                 uid, subj_id, schid, name, comp,
                 clsid, sesn, trm, created_at, updated_at
@@ -33190,51 +33216,47 @@ public function setStudentAcademicInfoBulk(Request $request)
               AND cs.trm = ?
               AND cs.sesn = ?
         ", [
-                $ssn,
-                $new_trm,
-                $ssn,
-                $new_trm,
-                $schid,
-                $prev_trm,
-                $prev_ssn
-            ]);
+            $ssn,
+            $new_trm,
+            $ssn,
+            $new_trm,
+            $schid,
+            $prev_trm,
+            $prev_ssn
+        ]);
 
-            DB::commit();
+        DB::commit();
 
-            // Payload for the response
-            $pld = [
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => [
                 'schid' => $schid,
                 'new_trm' => $new_trm,
                 'ssn' => $ssn,
                 'prev_trm' => $prev_trm,
                 'prev_ssn' => $prev_ssn
-            ];
+            ],
+        ]);
 
-            return response()->json([
-                "status" => true,
-                "message" => "Success",
-                "pld" => $pld,
-            ]);
+    } catch (\Throwable $e) {
+        DB::rollBack();
 
-        } catch (\Throwable $e) {
-            DB::rollBack();
+        Log::error('Maintain Previous Students Failed', [
+            'schid' => $schid,
+            'new_trm' => $new_trm,
+            'ssn' => $ssn,
+            'error' => $e->getMessage()
+        ]);
 
-            Log::error('Maintain Previous Students Failed', [
-                'schid' => $schid,
-                'new_trm' => $new_trm,
-                'ssn' => $ssn,
-                'error' => $e->getMessage()
-            ]);
-
-            return response()->json([
-                "status" => false,
-                "message" => "Failed to maintain previous term data",
-                "error" => $e->getMessage(),
-                "pld" => null
-            ], 500);
-        }
+        return response()->json([
+            "status" => false,
+            "message" => "Failed to maintain previous term data",
+            "error" => $e->getMessage(),
+            "pld" => null
+        ], 500);
     }
-
+}
 
 
     /**
