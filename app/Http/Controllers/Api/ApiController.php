@@ -32764,7 +32764,8 @@ class ApiController extends Controller
      *     operationId="getClassGrades",
      *     summary="Get class grading system",
      *     description="Retrieve all grading ranges for a specific class, session, and term",
-     *     tags={"Grades"},
+     *     tags={"Api"},
+     *     security={{"bearerAuth":{}}},
      *
      *     @OA\Parameter(
      *         name="schid",

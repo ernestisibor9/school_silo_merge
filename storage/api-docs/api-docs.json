@@ -29528,7 +29528,7 @@
         "/api/getClassGradesAdmin/{schid}/{clsid}/{ssn}/{trm}": {
             "get": {
                 "tags": [
-                    "Grades"
+                    "Api"
                 ],
                 "summary": "Get class grading system",
                 "description": "Retrieve all grading ranges for a specific class, session, and term",
@@ -29652,7 +29652,12 @@
                             }
                         }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/setStudentAcademicInfoBulk": {
