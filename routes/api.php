@@ -71,6 +71,7 @@ Route::get('getClassMarks/{schid}/{clsid}/{ssn}/{trm}', [ApiController::class, '
 Route::get('getStudent', [ApiController::class, 'getStudent']);
 Route::get('getClass/{cid}', [ApiController::class, 'getCls']);
 Route::get('getClassGrades/{schid}/{clsid}/{ssn}/{trm}', [ApiController::class, 'getClassGrades']);
+Route::get('getClassGradesAdmin/{schid}/{clsid}/{ssn}/{trm}', [ApiController::class, 'getClassGradesAdmin']);
 Route::get('getStudentPsy/{schid}/{ssn}/{trm}/{clsm}/{clsa}/{stid}', [ApiController::class, 'getStudentPsy']);
 Route::get('getStudentRes/{schid}/{ssn}/{trm}/{clsm}/{clsa}/{stid}', [ApiController::class, 'getStudentRes']);
 Route::get('getStudentResult/{schid}/{ssn}/{trm}/{clsm}/{clsa}/{stid}', [ApiController::class, 'getStudentResult']);

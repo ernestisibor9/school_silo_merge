@@ -29525,6 +29525,136 @@
                 ]
             }
         },
+        "/api/getClassGradesAdmin/{schid}/{clsid}/{ssn}/{trm}": {
+            "get": {
+                "tags": [
+                    "Grades"
+                ],
+                "summary": "Get class grading system",
+                "description": "Retrieve all grading ranges for a specific class, session, and term",
+                "operationId": "getClassGrades",
+                "parameters": [
+                    {
+                        "name": "schid",
+                        "in": "path",
+                        "description": "School ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "clsid",
+                        "in": "path",
+                        "description": "Class ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 2
+                        }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "path",
+                        "description": "Academic session/year",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 2024
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "path",
+                        "description": "Academic term",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Grades retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Grades retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "grd": {
+                                                        "type": "string",
+                                                        "example": "A"
+                                                    },
+                                                    "g0": {
+                                                        "type": "number",
+                                                        "example": 70
+                                                    },
+                                                    "g1": {
+                                                        "type": "number",
+                                                        "example": 100
+                                                    },
+                                                    "schid": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "clsid": {
+                                                        "type": "integer",
+                                                        "example": 2
+                                                    },
+                                                    "ssn": {
+                                                        "type": "integer",
+                                                        "example": 2024
+                                                    },
+                                                    "trm": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No grades found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No grades found for this class"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/setStudentAcademicInfoBulk": {
             "post": {
                 "tags": [
