@@ -32760,20 +32760,13 @@ class ApiController extends Controller
      * Retrieve grading system for a class
      *
      * @OA\Get(
-     *     path="/api/getClassGradesAdmin/{schid}/{clsid}/{ssn}/{trm}",
+     *     path="/api/getClassGradesAdmin/{clsid}/{ssn}/{trm}",
      *     operationId="getClassGrades",
      *     summary="Get class grading system",
      *     description="Retrieve all grading ranges for a specific class, session, and term",
      *     tags={"Api"},
      *     security={{"bearerAuth":{}}},
      *
-     *     @OA\Parameter(
-     *         name="schid",
-     *         in="path",
-     *         required=true,
-     *         description="School ID",
-     *         @OA\Schema(type="integer", example=1)
-     *     ),
      *     @OA\Parameter(
      *         name="clsid",
      *         in="path",
@@ -32811,7 +32804,6 @@ class ApiController extends Controller
      *                     @OA\Property(property="grd", type="string", example="A"),
      *                     @OA\Property(property="g0", type="number", example=70),
      *                     @OA\Property(property="g1", type="number", example=100),
-     *                     @OA\Property(property="schid", type="integer", example=1),
      *                     @OA\Property(property="clsid", type="integer", example=2),
      *                     @OA\Property(property="ssn", type="integer", example=2024),
      *                     @OA\Property(property="trm", type="integer", example=1)
@@ -32832,10 +32824,9 @@ class ApiController extends Controller
      * )
      */
 
-    public function getClassGradesAdmin($schid, $clsid, $ssn, $trm)
+    public function getClassGradesAdmin($clsid, $ssn, $trm)
     {
-        $grades = sch_grade::where('schid', $schid)
-            ->where('clsid', $clsid)
+        $grades = sch_grade::where('clsid', $clsid)
             ->where('ssn', $ssn)
             ->where('trm', $trm)
             ->orderBy('g0', 'desc')

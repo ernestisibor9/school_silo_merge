@@ -29525,7 +29525,7 @@
                 ]
             }
         },
-        "/api/getClassGradesAdmin/{schid}/{clsid}/{ssn}/{trm}": {
+        "/api/getClassGradesAdmin/{clsid}/{ssn}/{trm}": {
             "get": {
                 "tags": [
                     "Api"
@@ -29534,16 +29534,6 @@
                 "description": "Retrieve all grading ranges for a specific class, session, and term",
                 "operationId": "getClassGrades",
                 "parameters": [
-                    {
-                        "name": "schid",
-                        "in": "path",
-                        "description": "School ID",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "example": 1
-                        }
-                    },
                     {
                         "name": "clsid",
                         "in": "path",
@@ -29605,10 +29595,6 @@
                                                     "g1": {
                                                         "type": "number",
                                                         "example": 100
-                                                    },
-                                                    "schid": {
-                                                        "type": "integer",
-                                                        "example": 1
                                                     },
                                                     "clsid": {
                                                         "type": "integer",
