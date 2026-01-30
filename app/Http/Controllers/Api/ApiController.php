@@ -32783,7 +32783,7 @@ public function setClassGradeAdmin(Request $request)
     return response()->json([
         "status"  => true,
         "message" => "Grade updated for all schools",
-        "affected_rows" => $affected
+        "pld" => $affected
     ]);
 }
 
@@ -32869,13 +32869,13 @@ public function setClassGradeAdmin(Request $request)
             return response()->json([
                 "status" => false,
                 "message" => "No grades found for this class"
-            ], 404);
+            ]);
         }
 
         return response()->json([
             "status" => true,
             "message" => "Grades retrieved successfully",
-            "data" => $grades
+            "pld" => $grades
         ]);
     }
 
