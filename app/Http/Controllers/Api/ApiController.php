@@ -32797,7 +32797,7 @@ public function setClassGradeAdmin(Request $request)
      *     operationId="getClassGrades",
      *     summary="Get class grading system",
      *     description="Retrieve all grading ranges for a specific class, session, and term",
-     *     tags={"Api"},
+     *     tags={"Admin"},
      *     security={{"bearerAuth":{}}},
      *
      *     @OA\Parameter(

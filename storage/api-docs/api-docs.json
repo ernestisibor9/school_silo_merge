@@ -29534,7 +29534,7 @@
         "/api/getClassGradesAdmin/{clsid}/{ssn}/{trm}": {
             "get": {
                 "tags": [
-                    "Api"
+                    "Admin"
                 ],
                 "summary": "Get class grading system",
                 "description": "Retrieve all grading ranges for a specific class, session, and term",
