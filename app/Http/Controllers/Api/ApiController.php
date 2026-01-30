@@ -32672,88 +32672,121 @@ class ApiController extends Controller
 
 
 
-    /**
-     * @OA\Post(
-     *     path="/api/setClassGradeAdmin",
-     *     operationId="setClassGradeAdmin",
-     *     summary="Set grading system for a class",
-     *     description="Allows domain admin or schools to set/update the grading system, number of CAs, and exam marks per term for a class. Schools can override state-defined defaults.",
-     *     tags={"Admin"},
-     *     security={{"bearerAuth":{}}},
-     *
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"grd","g0","g1","schid","clsid","ssn","trm"},
-     *
-     *             @OA\Property(property="grd", type="string", example="A-F"),
-     *             @OA\Property(property="g0", type="number", example=0),
-     *             @OA\Property(property="g1", type="number", example=100),
-     *             @OA\Property(property="schid", type="integer", example=13),
-     *             @OA\Property(property="clsid", type="integer", example=12),
-     *             @OA\Property(property="ssn", type="integer", example=2025),
-     *             @OA\Property(property="trm", type="integer", example=2)
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="Grading system successfully set",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Grading system set successfully"),
-     *             @OA\Property(property="data", type="object")
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=422,
-     *         description="Validation error"
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=500,
-     *         description="Server error"
-     *     )
-     * )
-     */
+/**
+ * Update grading range for all schools
+ *
+ * @OA\Post(
+ *     path="/api/setClassGradeAdmin",
+ *     operationId="setClassGradeAdmin",
+ *     summary="Update grading range for all schools",
+ *     description="Allows a system admin to update a grade range (e.g A, B, C) for a specific class, session, and term. The update is applied across all schools while preserving each school's schid.",
+ *     tags={"Admin"},
+ *     security={{"bearerAuth":{}}},
+ *
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             required={"grd","g0","g1","clsid","ssn","trm"},
+ *
+ *             @OA\Property(
+ *                 property="grd",
+ *                 type="string",
+ *                 example="A",
+ *                 description="Grade letter to update"
+ *             ),
+ *             @OA\Property(
+ *                 property="g0",
+ *                 type="number",
+ *                 example=70,
+ *                 description="Minimum score for the grade"
+ *             ),
+ *             @OA\Property(
+ *                 property="g1",
+ *                 type="number",
+ *                 example=100,
+ *                 description="Maximum score for the grade"
+ *             ),
+ *             @OA\Property(
+ *                 property="clsid",
+ *                 type="integer",
+ *                 example=11,
+ *                 description="Class ID"
+ *             ),
+ *             @OA\Property(
+ *                 property="ssn",
+ *                 type="integer",
+ *                 example=2024,
+ *                 description="Academic session"
+ *             ),
+ *             @OA\Property(
+ *                 property="trm",
+ *                 type="integer",
+ *                 example=1,
+ *                 description="Academic term"
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Grade updated successfully for all schools",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Grade updated for all schools"),
+ *             @OA\Property(
+ *                 property="affected_rows",
+ *                 type="integer",
+ *                 example=45,
+ *                 description="Number of school records updated"
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation error"
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthorized"
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=500,
+ *         description="Server error"
+ *     )
+ * )
+ */
 
-    public function setClassGradeAdmin(Request $request)
-    {
-        // Data validation
-        $request->validate([
-            "grd" => "required|string", // grading system name/code
-            "g0" => "required|numeric", // min CA/Exam marks? adjust type if needed
-            "g1" => "required|numeric", // max CA/Exam marks? adjust type if needed
-            "schid" => "required|integer",
-            "clsid" => "required|integer",
-            "ssn" => "required|integer",
-            "trm" => "required|integer",
+public function setClassGradeAdmin(Request $request)
+{
+    $request->validate([
+        "grd"   => "required|string",
+        "g0"    => "required|numeric",
+        "g1"    => "required|numeric",
+        "clsid" => "required|integer",
+        "ssn"   => "required|integer",
+        "trm"   => "required|integer",
+    ]);
+
+    // Update grade for ALL schools
+    $affected = sch_grade::where('grd', $request->grd)
+        ->where('clsid', $request->clsid)
+        ->where('ssn', $request->ssn)
+        ->where('trm', $request->trm)
+        ->update([
+            'g0' => $request->g0,
+            'g1' => $request->g1,
         ]);
 
-        // Generate deterministic UID
-        $uid = $request->schid . $request->clsid . $request->ssn . $request->trm . $request->grd;
+    return response()->json([
+        "status"  => true,
+        "message" => "Grade updated for all schools",
+        "affected_rows" => $affected
+    ]);
+}
 
-        // Insert or update grading system
-        $grade = sch_grade::updateOrCreate(
-            ["uid" => $uid],
-            [
-                "grd" => $request->grd,
-                "g0" => $request->g0,
-                "g1" => $request->g1,
-                "schid" => $request->schid,
-                "clsid" => $request->clsid,
-                "ssn" => $request->ssn,
-                "trm" => $request->trm,
-            ]
-        );
-
-        return response()->json([
-            "status" => true,
-            "message" => "Grading system set successfully",
-            "data" => $grade
-        ]);
-    }
 
 
     /**

@@ -29435,8 +29435,8 @@
                 "tags": [
                     "Admin"
                 ],
-                "summary": "Set grading system for a class",
-                "description": "Allows domain admin or schools to set/update the grading system, number of CAs, and exam marks per term for a class. Schools can override state-defined defaults.",
+                "summary": "Update grading range for all schools",
+                "description": "Allows a system admin to update a grade range (e.g A, B, C) for a specific class, session, and term. The update is applied across all schools while preserving each school's schid.",
                 "operationId": "setClassGradeAdmin",
                 "requestBody": {
                     "required": true,
@@ -29447,39 +29447,40 @@
                                     "grd",
                                     "g0",
                                     "g1",
-                                    "schid",
                                     "clsid",
                                     "ssn",
                                     "trm"
                                 ],
                                 "properties": {
                                     "grd": {
+                                        "description": "Grade letter to update",
                                         "type": "string",
-                                        "example": "A-F"
+                                        "example": "A"
                                     },
                                     "g0": {
+                                        "description": "Minimum score for the grade",
                                         "type": "number",
-                                        "example": 0
+                                        "example": 70
                                     },
                                     "g1": {
+                                        "description": "Maximum score for the grade",
                                         "type": "number",
                                         "example": 100
                                     },
-                                    "schid": {
-                                        "type": "integer",
-                                        "example": 13
-                                    },
                                     "clsid": {
+                                        "description": "Class ID",
                                         "type": "integer",
-                                        "example": 12
+                                        "example": 11
                                     },
                                     "ssn": {
+                                        "description": "Academic session",
                                         "type": "integer",
-                                        "example": 2025
+                                        "example": 2024
                                     },
                                     "trm": {
+                                        "description": "Academic term",
                                         "type": "integer",
-                                        "example": 2
+                                        "example": 1
                                     }
                                 },
                                 "type": "object"
@@ -29489,7 +29490,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Grading system successfully set",
+                        "description": "Grade updated successfully for all schools",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -29500,10 +29501,12 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "Grading system set successfully"
+                                            "example": "Grade updated for all schools"
                                         },
-                                        "data": {
-                                            "type": "object"
+                                        "affected_rows": {
+                                            "description": "Number of school records updated",
+                                            "type": "integer",
+                                            "example": 45
                                         }
                                     },
                                     "type": "object"
@@ -29513,6 +29516,9 @@
                     },
                     "422": {
                         "description": "Validation error"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
                     },
                     "500": {
                         "description": "Server error"
