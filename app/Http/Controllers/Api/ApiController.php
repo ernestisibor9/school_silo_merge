@@ -33406,8 +33406,7 @@ class ApiController extends Controller
             $prev_ssn = $ssn;
         }
 
-        ---------------------------------------------
-        -------------------------------------------------
+
         Log::info("The school name is " . $schid);
         Log::info("The new term " . $new_trm);
         Log::info("The session " . $ssn);
