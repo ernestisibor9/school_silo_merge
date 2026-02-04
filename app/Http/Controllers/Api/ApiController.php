@@ -33386,16 +33386,15 @@ class ApiController extends Controller
 
 public function maintainPreviousStudents(Request $request)
 {
-    // Validate incoming request data
     $request->validate([
-        'schid'   => 'required|integer',
+        'schid' => 'required|integer',
         'new_trm' => 'required|integer', // 1, 2, 3
-        'ssn'     => 'required|integer', // current session/year
+        'ssn' => 'required|integer',     // current session/year
     ]);
 
-    $schid   = $request->schid;
+    $schid = $request->schid;
     $new_trm = $request->new_trm;
-    $ssn     = $request->ssn;
+    $ssn = $request->ssn;
 
     // Determine previous term & session
     if ($new_trm == 1) {
@@ -33419,59 +33418,57 @@ public function maintainPreviousStudents(Request $request)
 
         if (!$prevStudents) {
             return response()->json([
-                "status"  => false,
+                "status" => false,
                 "message" => "No assignments found in the previous term.",
-                "pld"     => null
+                "pld" => null
             ], 400);
         }
 
-        // ✅ FIXED: Check only if THESE students were already promoted
+        // ✅ BLOCK re-run for same term AND session
         $alreadyMaintained = DB::table('old_student')
             ->where('schid', $schid)
-            ->where('ssn', $ssn)
-            ->where('trm', $new_trm)
-            ->whereIn('sid', function ($q) use ($schid, $prev_trm, $prev_ssn) {
-                $q->select('sid')
-                  ->from('old_student')
-                  ->where('schid', $schid)
-                  ->where('ssn', $prev_ssn)
-                  ->where('trm', $prev_trm)
-                  ->where('status', 'active');
-            })
+            ->where('ssn', $ssn)       // current session
+            ->where('trm', $new_trm)   // current term
             ->exists();
 
         if ($alreadyMaintained) {
             return response()->json([
-                "status"  => false,
+                "status" => false,
                 "message" => "This term and session have already been maintained.",
-                "pld"     => null
+                "pld" => null
             ], 409);
         }
 
         // 2. Maintain students (old_student)
         DB::insert("
             INSERT INTO old_student (
-                uid, suid, sid, schid, fname, mname, lname, clsm, clsa, cls_sbj_students,
-                status, adm_ssn, adm_trm, cls_of_adm, ssn, trm, created_at, updated_at
+                uid, suid, sid, schid, fname, mname, lname,
+                clsm, clsa, cls_sbj_students,
+                status, adm_ssn, adm_trm, cls_of_adm,
+                ssn, trm, created_at, updated_at
             )
             SELECT
                 CONCAT(?, ?, os.sid, os.clsm, '-', FLOOR(RAND() * 90000 + 10000)) AS uid,
-                os.suid, os.sid, os.schid, os.fname, os.mname, os.lname,
-                os.clsm, os.clsa, os.cls_sbj_students,
-                'active', os.adm_ssn, os.adm_trm, os.cls_of_adm, ?, ?, NOW(), NOW()
+                os.suid,
+                os.sid,
+                os.schid,
+                os.fname,
+                os.mname,
+                os.lname,
+                os.clsm,
+                os.clsa,
+                os.cls_sbj_students,
+                'active',
+                os.adm_ssn,
+                os.adm_trm,
+                os.cls_of_adm,
+                ?, ?,
+                NOW(), NOW()
             FROM old_student os
             WHERE os.schid = ?
               AND os.trm = ?
               AND os.ssn = ?
               AND os.status = 'active'
-              AND NOT EXISTS (
-                  SELECT 1
-                  FROM old_student x
-                  WHERE x.sid = os.sid
-                    AND x.schid = os.schid
-                    AND x.trm = ?
-                    AND x.ssn = ?
-              )
         ", [
             $ssn,
             $new_trm,
@@ -33479,9 +33476,7 @@ public function maintainPreviousStudents(Request $request)
             $new_trm,
             $schid,
             $prev_trm,
-            $prev_ssn,
-            $new_trm,
-            $ssn
+            $prev_ssn
         ]);
 
         // 3. Maintain student subjects (student_subj)
@@ -33491,19 +33486,24 @@ public function maintainPreviousStudents(Request $request)
             )
             SELECT
                 CONCAT(?, ?, s.sbj, s.clsid, '-', FLOOR(RAND() * 90000 + 10000)) AS uid,
-                s.stid, s.sbj, s.comp, s.schid, s.clsid, ?, ?, NOW(), NOW()
+                s.stid,
+                s.sbj,
+                s.comp,
+                s.schid,
+                s.clsid,
+                ?, ?,
+                NOW(), NOW()
             FROM student_subj s
             JOIN old_student o
-                ON o.sid = s.stid
-               AND o.schid = s.schid
-               AND o.trm = ?
-               AND o.ssn = ?
-               AND o.status = 'active'
+              ON o.sid = s.stid
+             AND o.schid = s.schid
+             AND o.trm = ?
+             AND o.ssn = ?
+             AND o.status = 'active'
             WHERE s.trm = ?
               AND s.ssn = ?
               AND NOT EXISTS (
-                  SELECT 1
-                  FROM student_subj x
+                  SELECT 1 FROM student_subj x
                   WHERE x.stid = s.stid
                     AND x.sbj = s.sbj
                     AND x.schid = s.schid
@@ -33527,11 +33527,18 @@ public function maintainPreviousStudents(Request $request)
         // 4. Maintain class subjects (class_subj)
         DB::insert("
             INSERT INTO class_subj (
-                uid, subj_id, schid, name, comp, clsid, sesn, trm, created_at, updated_at
+                uid, subj_id, schid, name, comp,
+                clsid, sesn, trm, created_at, updated_at
             )
             SELECT
                 CONCAT(?, ?, cs.subj_id, cs.clsid, '-', FLOOR(RAND() * 90000 + 10000)) AS uid,
-                cs.subj_id, cs.schid, cs.name, cs.comp, cs.clsid, ?, ?, NOW(), NOW()
+                cs.subj_id,
+                cs.schid,
+                cs.name,
+                cs.comp,
+                cs.clsid,
+                ?, ?,
+                NOW(), NOW()
             FROM class_subj cs
             WHERE cs.schid = ?
               AND cs.trm = ?
@@ -33549,12 +33556,12 @@ public function maintainPreviousStudents(Request $request)
         DB::commit();
 
         return response()->json([
-            "status"  => true,
+            "status" => true,
             "message" => "Success",
-            "pld"     => [
-                'schid'    => $schid,
-                'new_trm'  => $new_trm,
-                'ssn'      => $ssn,
+            "pld" => [
+                'schid' => $schid,
+                'new_trm' => $new_trm,
+                'ssn' => $ssn,
                 'prev_trm' => $prev_trm,
                 'prev_ssn' => $prev_ssn
             ],
@@ -33564,17 +33571,17 @@ public function maintainPreviousStudents(Request $request)
         DB::rollBack();
 
         Log::error('Maintain Previous Students Failed', [
-            'schid'   => $schid,
+            'schid' => $schid,
             'new_trm' => $new_trm,
-            'ssn'     => $ssn,
-            'error'   => $e->getMessage()
+            'ssn' => $ssn,
+            'error' => $e->getMessage()
         ]);
 
         return response()->json([
-            "status"  => false,
+            "status" => false,
             "message" => "Failed to maintain previous term data",
-            "error"   => $e->getMessage(),
-            "pld"     => null
+            "error" => $e->getMessage(),
+            "pld" => null
         ], 500);
     }
 }
