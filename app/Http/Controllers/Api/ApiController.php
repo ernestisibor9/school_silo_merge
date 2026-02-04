@@ -33390,7 +33390,7 @@ public function maintainPreviousStudents(Request $request)
     $request->validate([
         'schid' => 'required|integer',
         'new_trm' => 'required|integer', // 1, 2, 3
-        'ssn' => 'required|integer',     // target session/year
+        'ssn' => 'required|integer',     // current session/year
     ]);
 
     $schid = $request->schid;
@@ -33406,54 +33406,41 @@ public function maintainPreviousStudents(Request $request)
         $prev_ssn = $ssn;
     }
 
-    Log::info("The school name is " . $schid);
-    Log::info("The new term " . $new_trm);
-    Log::info("The session " . $ssn);
-
     DB::beginTransaction();
 
     try {
         // 1. Check if previous term has students assigned
-        $prevStudentsCount = DB::table('old_student')
+        $prevStudents = DB::table('old_student')
             ->where('schid', $schid)
             ->where('ssn', $prev_ssn)
             ->where('trm', $prev_trm)
             ->where('status', 'active')
-            ->count();
+            ->exists();
 
-        if ($prevStudentsCount == 0) {
+        if (!$prevStudents) {
             return response()->json([
                 "status" => false,
                 "message" => "No assignments found in the previous term.",
-                "pld" => []
+                "pld" => null
             ], 400);
         }
 
-        // 2. Check how many students are already promoted
-        $alreadyMaintainedCount = DB::table('old_student')
-            ->where('schid', $schid)
-            ->where('ssn', $ssn)
-            ->where('trm', $new_trm)
-            ->whereIn('sid', function ($q) use ($schid, $prev_trm, $prev_ssn) {
-                $q->select('sid')
-                  ->from('old_student')
-                  ->where('schid', $schid)
-                  ->where('ssn', $prev_ssn)
-                  ->where('trm', $prev_trm)
-                  ->where('status', 'active');
-            })
-            ->count();
+        // // ✅ BLOCK re-run for same term AND session
+        // $alreadyMaintained = DB::table('old_student')
+        //     ->where('schid', $schid)
+        //     ->where('ssn', $ssn)       // current session
+        //     ->where('trm', $new_trm)   // current term
+        //     ->exists();
 
-        // If all students already promoted, block
-        if ($alreadyMaintainedCount >= $prevStudentsCount) {
-            return response()->json([
-                "status" => false,
-                "message" => "This term and session have already been maintained.",
-                "pld" => []
-            ], 409);
-        }
+        // if ($alreadyMaintained) {
+        //     return response()->json([
+        //         "status" => false,
+        //         "message" => "This term and session have already been maintained.",
+        //         "pld" => null
+        //     ], 409);
+        // }
 
-        // 3. Maintain students (old_student)
+        // 2. Maintain students (old_student)
         DB::insert("
             INSERT INTO old_student (
                 uid, suid, sid, schid, fname, mname, lname,
@@ -33483,20 +33470,17 @@ public function maintainPreviousStudents(Request $request)
               AND os.trm = ?
               AND os.ssn = ?
               AND os.status = 'active'
-              AND NOT EXISTS (
-                  SELECT 1 FROM old_student x
-                  WHERE x.sid = os.sid
-                    AND x.schid = os.schid
-                    AND x.trm = ?
-                    AND x.ssn = ?
-              )
         ", [
-            $ssn, $new_trm, $ssn, $new_trm,
-            $schid, $prev_trm, $prev_ssn,
-            $new_trm, $ssn
+            $ssn,
+            $new_trm,
+            $ssn,
+            $new_trm,
+            $schid,
+            $prev_trm,
+            $prev_ssn
         ]);
 
-        // 4. Maintain student subjects (student_subj)
+        // 3. Maintain student subjects (student_subj)
         DB::insert("
             INSERT INTO student_subj (
                 uid, stid, sbj, comp, schid, clsid, trm, ssn, created_at, updated_at
@@ -33529,12 +33513,19 @@ public function maintainPreviousStudents(Request $request)
                     AND x.ssn = ?
               )
         ", [
-            $ssn, $new_trm, $new_trm, $ssn,
-            $prev_trm, $prev_ssn, $prev_trm, $prev_ssn,
-            $new_trm, $ssn
+            $ssn,
+            $new_trm,
+            $new_trm,
+            $ssn,
+            $prev_trm,
+            $prev_ssn,
+            $prev_trm,
+            $prev_ssn,
+            $new_trm,
+            $ssn
         ]);
 
-        // 5. Maintain class subjects (class_subj)
+        // 4. Maintain class subjects (class_subj)
         DB::insert("
             INSERT INTO class_subj (
                 uid, subj_id, schid, name, comp,
@@ -33554,8 +33545,13 @@ public function maintainPreviousStudents(Request $request)
               AND cs.trm = ?
               AND cs.sesn = ?
         ", [
-            $ssn, $new_trm, $ssn, $new_trm,
-            $schid, $prev_trm, $prev_ssn
+            $ssn,
+            $new_trm,
+            $ssn,
+            $new_trm,
+            $schid,
+            $prev_trm,
+            $prev_ssn
         ]);
 
         DB::commit();
@@ -33563,7 +33559,13 @@ public function maintainPreviousStudents(Request $request)
         return response()->json([
             "status" => true,
             "message" => "Success",
-            "pld" => []
+            "pld" => [
+                'schid' => $schid,
+                'new_trm' => $new_trm,
+                'ssn' => $ssn,
+                'prev_trm' => $prev_trm,
+                'prev_ssn' => $prev_ssn
+            ],
         ]);
 
     } catch (\Throwable $e) {
@@ -33580,11 +33582,10 @@ public function maintainPreviousStudents(Request $request)
             "status" => false,
             "message" => "Failed to maintain previous term data",
             "error" => $e->getMessage(),
-            "pld" => []
+            "pld" => null
         ], 500);
     }
 }
-
 
     /**
      * @OA\Post(
