@@ -33397,8 +33397,8 @@ public function maintainPreviousStudents(Request $request)
     $ssn = $request->ssn;
 
     Log::info("The school name is " . $schid);
-     Log::info("The new term " . $new_trm);
-      Log::info("The session" . $ssn);
+    Log::info("The new term " . $new_trm);
+    Log::info("The session " . $ssn);
 
     // Determine previous term & session
     if ($new_trm == 1) {
