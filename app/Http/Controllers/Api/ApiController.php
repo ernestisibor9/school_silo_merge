@@ -33425,7 +33425,7 @@ public function maintainPreviousStudents(Request $request)
             ], 400);
         }
 
-        // // ✅ BLOCK re-run for same term AND session
+        // // ✅ BLOCK re-run for same term AND session...
         // $alreadyMaintained = DB::table('old_student')
         //     ->where('schid', $schid)
         //     ->where('ssn', $ssn)       // current session
