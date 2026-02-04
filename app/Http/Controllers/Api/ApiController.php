@@ -32870,7 +32870,7 @@ class ApiController extends Controller
                 "status" => false,
                 "message" => "No grades found for this class",
                 "pld" => []
-            ], 404);
+            ]);
         }
 
         return response()->json([
