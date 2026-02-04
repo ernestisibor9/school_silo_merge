@@ -33185,30 +33185,29 @@ class ApiController extends Controller
 public function maintainPreviousStudents(Request $request)
 {
     $request->validate([
-        'schid' => 'required|integer',
-        'trm'   => 'required|integer|in:1,2,3', // CURRENT term
-        'ssn'   => 'required|integer',           // CURRENT session
+        'schid'   => 'required|integer',
+        'new_trm' => 'required|integer|in:1,2,3', // DESTINATION term
+        'ssn'     => 'required|integer',          // DESTINATION session
     ]);
 
-    $schid       = $request->schid;
-    $current_trm = $request->trm;
-    $current_ssn = $request->ssn;
+    $schid   = $request->schid;
+    $new_trm = $request->new_trm;
+    $new_ssn = $request->ssn;
 
     /*
     |--------------------------------------------------------------------------
-    | Determine NEXT term & session (PROMOTION LOGIC)
+    | Determine PREVIOUS term & session
     |--------------------------------------------------------------------------
-    | 2024 T3 → 2025 T1
-    | 2025 T1 → 2025 T2
-    | 2025 T2 → 2025 T3
-    | 2025 T3 → 2026 T1
+    | new_trm = 1 → prev_trm = 3, prev_ssn = ssn - 1
+    | new_trm = 2 → prev_trm = 1, prev_ssn = ssn
+    | new_trm = 3 → prev_trm = 2, prev_ssn = ssn
     */
-    if ($current_trm == 3) {
-        $new_trm = 1;
-        $new_ssn = $current_ssn + 1;
+    if ($new_trm == 1) {
+        $prev_trm = 3;
+        $prev_ssn = $new_ssn - 1;
     } else {
-        $new_trm = $current_trm + 1;
-        $new_ssn = $current_ssn;
+        $prev_trm = $new_trm - 1;
+        $prev_ssn = $new_ssn;
     }
 
     DB::beginTransaction();
@@ -33217,27 +33216,27 @@ public function maintainPreviousStudents(Request $request)
 
         /*
         |--------------------------------------------------------------------------
-        | 1️⃣ Confirm source students exist (CURRENT term/session)
+        | 1️⃣ Confirm previous term students exist
         |--------------------------------------------------------------------------
         */
         $prevStudentsCount = DB::table('old_student')
             ->where('schid', $schid)
-            ->where('ssn', $current_ssn)
-            ->where('trm', $current_trm)
+            ->where('ssn', $prev_ssn)
+            ->where('trm', $prev_trm)
             ->where('status', 'active')
             ->count();
 
         if ($prevStudentsCount === 0) {
             return response()->json([
                 "status"  => false,
-                "message" => "No students found in the current term to promote",
+                "message" => "No students found in the previous term",
                 "pld"     => []
             ], 400);
         }
 
         /*
         |--------------------------------------------------------------------------
-        | 2️⃣ Promote students
+        | 2️⃣ Promote students (ONLY term/session changes)
         |--------------------------------------------------------------------------
         */
         $studentsInserted = DB::affectingStatement("
@@ -33279,7 +33278,7 @@ public function maintainPreviousStudents(Request $request)
               )
         ", [
             $new_ssn, $new_trm,
-            $schid, $current_ssn, $current_trm,
+            $schid, $prev_ssn, $prev_trm,
             $new_ssn, $new_trm
         ]);
 
@@ -33317,7 +33316,7 @@ public function maintainPreviousStudents(Request $request)
               )
         ", [
             $new_trm, $new_ssn,
-            $schid, $current_ssn, $current_trm,
+            $schid, $prev_ssn, $prev_trm,
             $new_ssn, $new_trm
         ]);
 
@@ -33345,7 +33344,7 @@ public function maintainPreviousStudents(Request $request)
               AND cs.trm   = ?
         ", [
             $new_ssn, $new_trm,
-            $schid, $current_ssn, $current_trm
+            $schid, $prev_ssn, $prev_trm
         ]);
 
         DB::commit();
@@ -33358,8 +33357,8 @@ public function maintainPreviousStudents(Request $request)
                 "student_subjects_added" => $subjectsInserted,
                 "class_subjects_added"   => $classSubjectsInserted,
                 "from" => [
-                    "session" => $current_ssn,
-                    "term"    => $current_trm
+                    "session" => $prev_ssn,
+                    "term"    => $prev_trm
                 ],
                 "to" => [
                     "session" => $new_ssn,
@@ -33372,21 +33371,22 @@ public function maintainPreviousStudents(Request $request)
 
         DB::rollBack();
 
-        Log::error('Promotion Failed', [
-            'schid'   => $schid,
-            'from'    => "$current_ssn / T$current_trm",
-            'to'      => "$new_ssn / T$new_trm",
-            'error'   => $e->getMessage()
+        Log::error('Maintain Previous Students Failed', [
+            'schid' => $schid,
+            'from'  => "$prev_ssn / T$prev_trm",
+            'to'    => "$new_ssn / T$new_trm",
+            'error' => $e->getMessage()
         ]);
 
         return response()->json([
             "status"  => false,
-            "message" => "Promotion failed",
+            "message" => "Failed to maintain previous term data",
             "error"   => $e->getMessage(),
             "pld"     => []
         ], 500);
     }
 }
+
 
     /**
      * @OA\Post(
