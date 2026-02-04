@@ -33185,48 +33185,65 @@ class ApiController extends Controller
 public function maintainPreviousStudents(Request $request)
 {
     $request->validate([
-        'schid'   => 'required|integer',
-        'new_trm' => 'required|integer', // 1,2,3
-        'ssn'     => 'required|integer', // target session/year
+        'schid' => 'required|integer',
+        'trm'   => 'required|integer|in:1,2,3', // CURRENT term
+        'ssn'   => 'required|integer',           // CURRENT session
     ]);
 
-    $schid   = $request->schid;
-    $new_trm = $request->new_trm;
-    $ssn     = $request->ssn;
+    $schid       = $request->schid;
+    $current_trm = $request->trm;
+    $current_ssn = $request->ssn;
 
-    // Determine previous term & session
-    if ($new_trm == 1) {
-        $prev_trm = 3;
-        $prev_ssn = $ssn - 1;
+    /*
+    |--------------------------------------------------------------------------
+    | Determine NEXT term & session (PROMOTION LOGIC)
+    |--------------------------------------------------------------------------
+    | 2024 T3 → 2025 T1
+    | 2025 T1 → 2025 T2
+    | 2025 T2 → 2025 T3
+    | 2025 T3 → 2026 T1
+    */
+    if ($current_trm == 3) {
+        $new_trm = 1;
+        $new_ssn = $current_ssn + 1;
     } else {
-        $prev_trm = $new_trm - 1;
-        $prev_ssn = $ssn;
+        $new_trm = $current_trm + 1;
+        $new_ssn = $current_ssn;
     }
 
     DB::beginTransaction();
 
     try {
 
-        /** 1️⃣ Ensure previous term has active students */
+        /*
+        |--------------------------------------------------------------------------
+        | 1️⃣ Confirm source students exist (CURRENT term/session)
+        |--------------------------------------------------------------------------
+        */
         $prevStudentsCount = DB::table('old_student')
             ->where('schid', $schid)
-            ->where('ssn', $prev_ssn)
-            ->where('trm', $prev_trm)
+            ->where('ssn', $current_ssn)
+            ->where('trm', $current_trm)
             ->where('status', 'active')
             ->count();
 
         if ($prevStudentsCount === 0) {
             return response()->json([
                 "status"  => false,
-                "message" => "No assignments found in the previous term.",
+                "message" => "No students found in the current term to promote",
                 "pld"     => []
             ], 400);
         }
 
-        /** 2️⃣ Promote students */
+        /*
+        |--------------------------------------------------------------------------
+        | 2️⃣ Promote students
+        |--------------------------------------------------------------------------
+        */
         $studentsInserted = DB::affectingStatement("
             INSERT INTO old_student (
-                uid, suid, sid, schid, fname, mname, lname,
+                uid, suid, sid, schid,
+                fname, mname, lname,
                 clsm, clsa, cls_sbj_students,
                 status, adm_ssn, adm_trm, cls_of_adm,
                 ssn, trm, created_at, updated_at
@@ -33246,28 +33263,31 @@ public function maintainPreviousStudents(Request $request)
                 os.adm_ssn,
                 os.adm_trm,
                 os.cls_of_adm,
-                ?, ?,
-                NOW(), NOW()
+                ?, ?, NOW(), NOW()
             FROM old_student os
             WHERE os.schid = ?
-              AND os.trm   = ?
               AND os.ssn   = ?
+              AND os.trm   = ?
               AND os.status = 'active'
               AND NOT EXISTS (
                   SELECT 1
                   FROM old_student x
                   WHERE x.sid   = os.sid
                     AND x.schid = os.schid
-                    AND x.trm   = ?
                     AND x.ssn   = ?
+                    AND x.trm   = ?
               )
         ", [
-            $ssn, $new_trm,
-            $schid, $prev_trm, $prev_ssn,
-            $new_trm, $ssn
+            $new_ssn, $new_trm,
+            $schid, $current_ssn, $current_trm,
+            $new_ssn, $new_trm
         ]);
 
-        /** 3️⃣ Promote student subjects */
+        /*
+        |--------------------------------------------------------------------------
+        | 3️⃣ Promote student subjects
+        |--------------------------------------------------------------------------
+        */
         $subjectsInserted = DB::affectingStatement("
             INSERT INTO student_subj (
                 uid, stid, sbj, comp, schid, clsid,
@@ -33280,17 +33300,11 @@ public function maintainPreviousStudents(Request $request)
                 s.comp,
                 s.schid,
                 s.clsid,
-                ?, ?,
-                NOW(), NOW()
+                ?, ?, NOW(), NOW()
             FROM student_subj s
-            JOIN old_student o
-              ON o.sid   = s.stid
-             AND o.schid = s.schid
-             AND o.trm   = ?
-             AND o.ssn   = ?
-             AND o.status = 'active'
-            WHERE s.trm = ?
-              AND s.ssn = ?
+            WHERE s.schid = ?
+              AND s.ssn   = ?
+              AND s.trm   = ?
               AND NOT EXISTS (
                   SELECT 1
                   FROM student_subj x
@@ -33298,17 +33312,20 @@ public function maintainPreviousStudents(Request $request)
                     AND x.sbj   = s.sbj
                     AND x.schid = s.schid
                     AND x.clsid = s.clsid
-                    AND x.trm   = ?
                     AND x.ssn   = ?
+                    AND x.trm   = ?
               )
         ", [
-            $new_trm, $ssn,
-            $prev_trm, $prev_ssn,
-            $prev_trm, $prev_ssn,
-            $new_trm, $ssn
+            $new_trm, $new_ssn,
+            $schid, $current_ssn, $current_trm,
+            $new_ssn, $new_trm
         ]);
 
-        /** 4️⃣ Promote class subjects */
+        /*
+        |--------------------------------------------------------------------------
+        | 4️⃣ Promote class subjects
+        |--------------------------------------------------------------------------
+        */
         $classSubjectsInserted = DB::affectingStatement("
             INSERT INTO class_subj (
                 uid, subj_id, schid, name, comp,
@@ -33321,15 +33338,14 @@ public function maintainPreviousStudents(Request $request)
                 cs.name,
                 cs.comp,
                 cs.clsid,
-                ?, ?,
-                NOW(), NOW()
+                ?, ?, NOW(), NOW()
             FROM class_subj cs
             WHERE cs.schid = ?
-              AND cs.trm   = ?
               AND cs.sesn  = ?
+              AND cs.trm   = ?
         ", [
-            $new_trm, $ssn,
-            $schid, $prev_trm, $prev_ssn
+            $new_ssn, $new_trm,
+            $schid, $current_ssn, $current_trm
         ]);
 
         DB::commit();
@@ -33338,16 +33354,16 @@ public function maintainPreviousStudents(Request $request)
             "status"  => true,
             "message" => "Promotion completed successfully",
             "pld" => [
-                "students_promoted"        => $studentsInserted,
-                "student_subjects_added"   => $subjectsInserted,
-                "class_subjects_added"     => $classSubjectsInserted,
+                "students_promoted"      => $studentsInserted,
+                "student_subjects_added" => $subjectsInserted,
+                "class_subjects_added"   => $classSubjectsInserted,
                 "from" => [
-                    "term"    => $prev_trm,
-                    "session" => $prev_ssn
+                    "session" => $current_ssn,
+                    "term"    => $current_trm
                 ],
                 "to" => [
-                    "term"    => $new_trm,
-                    "session" => $ssn
+                    "session" => $new_ssn,
+                    "term"    => $new_trm
                 ]
             ]
         ]);
@@ -33356,16 +33372,16 @@ public function maintainPreviousStudents(Request $request)
 
         DB::rollBack();
 
-        Log::error('Maintain Previous Students Failed', [
+        Log::error('Promotion Failed', [
             'schid'   => $schid,
-            'new_trm' => $new_trm,
-            'ssn'     => $ssn,
+            'from'    => "$current_ssn / T$current_trm",
+            'to'      => "$new_ssn / T$new_trm",
             'error'   => $e->getMessage()
         ]);
 
         return response()->json([
             "status"  => false,
-            "message" => "Failed to maintain previous term data",
+            "message" => "Promotion failed",
             "error"   => $e->getMessage(),
             "pld"     => []
         ], 500);
