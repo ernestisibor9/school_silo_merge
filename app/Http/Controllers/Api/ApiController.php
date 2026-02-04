@@ -33397,10 +33397,6 @@ class ApiController extends Controller
         $new_trm = $request->new_trm;
         $ssn = $request->ssn;
 
-        Log::info("The school name is " . $schid);
-        Log::info("The new term " . $new_trm);
-        Log::info("The session " . $ssn);
-
         // Determine previous term & session
         if ($new_trm == 1) {
             $prev_trm = 3;
@@ -33409,6 +33405,12 @@ class ApiController extends Controller
             $prev_trm = $new_trm - 1;
             $prev_ssn = $ssn;
         }
+
+        ---------------------------------------------
+        -------------------------------------------------
+        Log::info("The school name is " . $schid);
+        Log::info("The new term " . $new_trm);
+        Log::info("The session " . $ssn);
 
         DB::beginTransaction();
 
