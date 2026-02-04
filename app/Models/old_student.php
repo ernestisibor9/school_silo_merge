@@ -26,6 +26,7 @@ class old_student extends Model
         'adm_trm',
         'cls_of_adm',
         'date_of_adm',
+        'maintained_from_prev',
         'adm_status',
         'more'
     ];

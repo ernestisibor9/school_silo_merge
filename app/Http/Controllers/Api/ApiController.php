@@ -32672,120 +32672,120 @@ class ApiController extends Controller
 
 
 
-/**
- * Update grading range for all schools
- *
- * @OA\Post(
- *     path="/api/setClassGradeAdmin",
- *     operationId="setClassGradeAdmin",
- *     summary="Update grading range for all schools",
- *     description="Allows a system admin to update a grade range (e.g A, B, C) for a specific class, session, and term. The update is applied across all schools while preserving each school's schid.",
- *     tags={"Admin"},
- *     security={{"bearerAuth":{}}},
- *
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"grd","g0","g1","clsid","ssn","trm"},
- *
- *             @OA\Property(
- *                 property="grd",
- *                 type="string",
- *                 example="A",
- *                 description="Grade letter to update"
- *             ),
- *             @OA\Property(
- *                 property="g0",
- *                 type="number",
- *                 example=70,
- *                 description="Minimum score for the grade"
- *             ),
- *             @OA\Property(
- *                 property="g1",
- *                 type="number",
- *                 example=100,
- *                 description="Maximum score for the grade"
- *             ),
- *             @OA\Property(
- *                 property="clsid",
- *                 type="integer",
- *                 example=11,
- *                 description="Class ID"
- *             ),
- *             @OA\Property(
- *                 property="ssn",
- *                 type="integer",
- *                 example=2024,
- *                 description="Academic session"
- *             ),
- *             @OA\Property(
- *                 property="trm",
- *                 type="integer",
- *                 example=1,
- *                 description="Academic term"
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Grade updated successfully for all schools",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Grade updated for all schools"),
- *             @OA\Property(
- *                 property="affected_rows",
- *                 type="integer",
- *                 example=45,
- *                 description="Number of school records updated"
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=422,
- *         description="Validation error"
- *     ),
- *
- *     @OA\Response(
- *         response=401,
- *         description="Unauthorized"
- *     ),
- *
- *     @OA\Response(
- *         response=500,
- *         description="Server error"
- *     )
- * )
- */
+    /**
+     * Update grading range for all schools
+     *
+     * @OA\Post(
+     *     path="/api/setClassGradeAdmin",
+     *     operationId="setClassGradeAdmin",
+     *     summary="Update grading range for all schools",
+     *     description="Allows a system admin to update a grade range (e.g A, B, C) for a specific class, session, and term. The update is applied across all schools while preserving each school's schid.",
+     *     tags={"Admin"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"grd","g0","g1","clsid","ssn","trm"},
+     *
+     *             @OA\Property(
+     *                 property="grd",
+     *                 type="string",
+     *                 example="A",
+     *                 description="Grade letter to update"
+     *             ),
+     *             @OA\Property(
+     *                 property="g0",
+     *                 type="number",
+     *                 example=70,
+     *                 description="Minimum score for the grade"
+     *             ),
+     *             @OA\Property(
+     *                 property="g1",
+     *                 type="number",
+     *                 example=100,
+     *                 description="Maximum score for the grade"
+     *             ),
+     *             @OA\Property(
+     *                 property="clsid",
+     *                 type="integer",
+     *                 example=11,
+     *                 description="Class ID"
+     *             ),
+     *             @OA\Property(
+     *                 property="ssn",
+     *                 type="integer",
+     *                 example=2024,
+     *                 description="Academic session"
+     *             ),
+     *             @OA\Property(
+     *                 property="trm",
+     *                 type="integer",
+     *                 example=1,
+     *                 description="Academic term"
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Grade updated successfully for all schools",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Grade updated for all schools"),
+     *             @OA\Property(
+     *                 property="affected_rows",
+     *                 type="integer",
+     *                 example=45,
+     *                 description="Number of school records updated"
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error"
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized"
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=500,
+     *         description="Server error"
+     *     )
+     * )
+     */
 
-public function setClassGradeAdmin(Request $request)
-{
-    $request->validate([
-        "grd"   => "required|string",
-        "g0"    => "required|numeric",
-        "g1"    => "required|numeric",
-        "clsid" => "required|integer",
-        "ssn"   => "required|integer",
-        "trm"   => "required|integer",
-    ]);
-
-    // Update grade for ALL schools
-    $affected = sch_grade::where('grd', $request->grd)
-        ->where('clsid', $request->clsid)
-        ->where('ssn', $request->ssn)
-        ->where('trm', $request->trm)
-        ->update([
-            'g0' => $request->g0,
-            'g1' => $request->g1,
+    public function setClassGradeAdmin(Request $request)
+    {
+        $request->validate([
+            "grd" => "required|string",
+            "g0" => "required|numeric",
+            "g1" => "required|numeric",
+            "clsid" => "required|integer",
+            "ssn" => "required|integer",
+            "trm" => "required|integer",
         ]);
 
-    return response()->json([
-        "status"  => true,
-        "message" => "Grade updated for all schools",
-        "pld" => $affected
-    ]);
-}
+        // Update grade for ALL schools
+        $affected = sch_grade::where('grd', $request->grd)
+            ->where('clsid', $request->clsid)
+            ->where('ssn', $request->ssn)
+            ->where('trm', $request->trm)
+            ->update([
+                'g0' => $request->g0,
+                'g1' => $request->g1,
+            ]);
+
+        return response()->json([
+            "status" => true,
+            "message" => "Grade updated for all schools",
+            "pld" => $affected
+        ]);
+    }
 
 
 
@@ -32868,8 +32868,9 @@ public function setClassGradeAdmin(Request $request)
         if ($grades->isEmpty()) {
             return response()->json([
                 "status" => false,
-                "message" => "No grades found for this class"
-            ]);
+                "message" => "No grades found for this class",
+                "pld" => []
+            ], 404);
         }
 
         return response()->json([
@@ -33180,12 +33181,216 @@ public function setClassGradeAdmin(Request $request)
      */
 
 
+    // public function maintainPreviousStudents(Request $request)
+// {
+//     $request->validate([
+//         'schid'   => 'required|integer',
+//         'new_trm' => 'required|integer', // 1,2,3
+//         'ssn'     => 'required|integer', // current session/year
+//     ]);
+
+    //     $schid   = $request->schid;
+//     $new_trm = $request->new_trm;
+//     $ssn     = $request->ssn;
+
+    //     // Determine previous term & session
+//     if ($new_trm == 1) {
+//         $prev_trm = 3;
+//         $prev_ssn = $ssn - 1;
+//     } else {
+//         $prev_trm = $new_trm - 1;
+//         $prev_ssn = $ssn;
+//     }
+
+    //     DB::beginTransaction();
+
+    //     try {
+//         // 1️⃣ Check previous term
+//         $prevStudents = DB::table('old_student')
+//             ->where('schid', $schid)
+//             ->where('ssn', $prev_ssn)
+//             ->where('trm', $prev_trm)
+//             ->where('status', 'active')
+//             ->exists();
+
+    //         if (!$prevStudents) {
+//             return response()->json([
+//                 "status" => false,
+//                 "message" => "No assignments found in the previous term.",
+//                 "pld"    => null
+//             ], 400);
+//         }
+
+    //         // 2️⃣ Block if current term already maintained
+//         $alreadyMaintained = DB::table('old_student')
+//             ->where('schid', $schid)
+//             ->where('ssn', $ssn)
+//             ->where('trm', $new_trm)
+//             ->where('maintained_from_prev', 1)
+//             ->where('status', 'active')
+//             ->exists();
+
+    //         if ($alreadyMaintained) {
+//             return response()->json([
+//                 "status" => false,
+//                 "message" => "This term and session have already been maintained.",
+//                 "pld"    => null
+//             ], 409);
+//         }
+
+    //         // 3️⃣ Maintain students
+//         DB::insert("
+//             INSERT INTO old_student (
+//                 uid, suid, sid, schid, fname, mname, lname,
+//                 clsm, clsa, cls_sbj_students,
+//                 status, adm_ssn, adm_trm, cls_of_adm,
+//                 ssn, trm, maintained_from_prev, created_at, updated_at
+//             )
+//             SELECT
+//                 CONCAT(?, ?, os.sid, os.clsm, '-', FLOOR(RAND()*90000 + 10000)),
+//                 os.suid,
+//                 os.sid,
+//                 os.schid,
+//                 os.fname,
+//                 os.mname,
+//                 os.lname,
+//                 os.clsm,
+//                 os.clsa,
+//                 os.cls_sbj_students,
+//                 'active',
+//                 os.adm_ssn,
+//                 os.adm_trm,
+//                 os.cls_of_adm,
+//                 ?, ?,  -- ssn, trm fixed
+//                 1,
+//                 NOW(), NOW()
+//             FROM old_student os
+//             WHERE os.schid = ?
+//               AND os.ssn = ?
+//               AND os.trm = ?
+//               AND os.status = 'active'
+//               AND NOT EXISTS (
+//                   SELECT 1 FROM old_student x
+//                   WHERE x.sid = os.sid
+//                     AND x.schid = os.schid
+//                     AND x.ssn = ?
+//                     AND x.trm = ?
+//               )
+//         ", [
+//             $ssn,          // uid prefix
+//             $new_trm,      // uid prefix
+//             $ssn,          // new ssn
+//             $new_trm,      // new trm
+//             $schid,
+//             $prev_ssn,     // prev ssn
+//             $prev_trm,     // prev trm
+//             $ssn,          // check for duplicate ssn
+//             $new_trm       // check for duplicate trm
+//         ]);
+
+    //         // 4️⃣ Maintain student subjects
+//         DB::insert("
+//             INSERT INTO student_subj (
+//                 uid, stid, sbj, comp, schid, clsid, trm, ssn, created_at, updated_at
+//             )
+//             SELECT
+//                 CONCAT(?, ?, s.sbj, s.clsid, '-', FLOOR(RAND()*90000 + 10000)),
+//                 s.stid,
+//                 s.sbj,
+//                 s.comp,
+//                 s.schid,
+//                 s.clsid,
+//                 ?, ?,  -- new trm, new ssn
+//                 NOW(), NOW()
+//             FROM student_subj s
+//             JOIN old_student o
+//               ON o.sid = s.stid
+//              AND o.schid = s.schid
+//              AND o.ssn = ?
+//              AND o.trm = ?
+//              AND o.status = 'active'
+//             WHERE s.trm = ?
+//               AND s.ssn = ?
+//         ", [
+//             $ssn,
+//             $new_trm,
+//             $new_trm,
+//             $ssn,
+//             $prev_ssn,
+//             $prev_trm,
+//             $prev_trm,
+//             $prev_ssn
+//         ]);
+
+    //         // 5️⃣ Maintain class subjects
+//         DB::insert("
+//             INSERT INTO class_subj (
+//                 uid, subj_id, schid, name, comp, clsid, sesn, trm, created_at, updated_at
+//             )
+//             SELECT
+//                 CONCAT(?, ?, cs.subj_id, cs.clsid, '-', FLOOR(RAND()*90000 + 10000)),
+//                 cs.subj_id,
+//                 cs.schid,
+//                 cs.name,
+//                 cs.comp,
+//                 cs.clsid,
+//                 cs.sesn,
+//                 ?,  -- new trm
+//                 NOW(), NOW()
+//             FROM class_subj cs
+//             WHERE cs.schid = ?
+//               AND cs.trm = ?
+//               AND cs.sesn = ?
+//         ", [
+//             $ssn,
+//             $new_trm,
+//             $new_trm,  // new trm
+//             $schid,
+//             $prev_trm,
+//             $prev_ssn
+//         ]);
+
+    //         DB::commit();
+
+    //         return response()->json([
+//             "status" => true,
+//             "message" => "Success",
+//             "pld" => [
+//                 'schid'    => $schid,
+//                 'new_trm'  => $new_trm,
+//                 'ssn'      => $ssn,
+//                 'prev_trm' => $prev_trm,
+//                 'prev_ssn' => $prev_ssn
+//             ]
+//         ]);
+
+    //     } catch (\Throwable $e) {
+//         DB::rollBack();
+
+    //         Log::error('Maintain Previous Students Failed', [
+//             'schid' => $schid,
+//             'new_trm' => $new_trm,
+//             'ssn' => $ssn,
+//             'error' => $e->getMessage()
+//         ]);
+
+    //         return response()->json([
+//             "status" => false,
+//             "message" => "Failed to maintain previous term data",
+//             "error" => $e->getMessage(),
+//             "pld" => null
+//         ], 500);
+//     }
+// }
+
+
     public function maintainPreviousStudents(Request $request)
     {
+        // Validate incoming request data
         $request->validate([
             'schid' => 'required|integer',
             'new_trm' => 'required|integer', // 1, 2, 3
-            'ssn' => 'required|integer',     // current session/year
+            'ssn' => 'required|integer', // current session/year
         ]);
 
         $schid = $request->schid;
@@ -33220,7 +33425,7 @@ public function setClassGradeAdmin(Request $request)
                 ], 400);
             }
 
-            // ✅ BLOCK re-run for same term AND session
+            // ✅ Check if the same term & session has already been maintained
             $alreadyMaintained = DB::table('old_student')
                 ->where('schid', $schid)
                 ->where('ssn', $ssn)       // current session
@@ -33238,33 +33443,15 @@ public function setClassGradeAdmin(Request $request)
             // 2. Maintain students (old_student)
             DB::insert("
             INSERT INTO old_student (
-                uid, suid, sid, schid, fname, mname, lname,
-                clsm, clsa, cls_sbj_students,
-                status, adm_ssn, adm_trm, cls_of_adm,
-                ssn, trm, created_at, updated_at
+                uid, suid, sid, schid, fname, mname, lname, clsm, clsa, cls_sbj_students,
+                status, adm_ssn, adm_trm, cls_of_adm, ssn, trm, created_at, updated_at
             )
             SELECT
                 CONCAT(?, ?, os.sid, os.clsm, '-', FLOOR(RAND() * 90000 + 10000)) AS uid,
-                os.suid,
-                os.sid,
-                os.schid,
-                os.fname,
-                os.mname,
-                os.lname,
-                os.clsm,
-                os.clsa,
-                os.cls_sbj_students,
-                'active',
-                os.adm_ssn,
-                os.adm_trm,
-                os.cls_of_adm,
-                ?, ?,
-                NOW(), NOW()
+                os.suid, os.sid, os.schid, os.fname, os.mname, os.lname, os.clsm, os.clsa, os.cls_sbj_students,
+                'active', os.adm_ssn, os.adm_trm, os.cls_of_adm, ?, ?, NOW(), NOW()
             FROM old_student os
-            WHERE os.schid = ?
-              AND os.trm = ?
-              AND os.ssn = ?
-              AND os.status = 'active'
+            WHERE os.schid = ? AND os.trm = ? AND os.ssn = ? AND os.status = 'active'
         ", [
                 $ssn,
                 $new_trm,
@@ -33282,31 +33469,17 @@ public function setClassGradeAdmin(Request $request)
             )
             SELECT
                 CONCAT(?, ?, s.sbj, s.clsid, '-', FLOOR(RAND() * 90000 + 10000)) AS uid,
-                s.stid,
-                s.sbj,
-                s.comp,
-                s.schid,
-                s.clsid,
-                ?, ?,
-                NOW(), NOW()
+                s.stid, s.sbj, s.comp, s.schid, s.clsid, ?, ?, NOW(), NOW()
             FROM student_subj s
             JOIN old_student o
-              ON o.sid = s.stid
-             AND o.schid = s.schid
-             AND o.trm = ?
-             AND o.ssn = ?
-             AND o.status = 'active'
-            WHERE s.trm = ?
-              AND s.ssn = ?
-              AND NOT EXISTS (
-                  SELECT 1 FROM student_subj x
-                  WHERE x.stid = s.stid
-                    AND x.sbj = s.sbj
-                    AND x.schid = s.schid
-                    AND x.clsid = s.clsid
-                    AND x.trm = ?
-                    AND x.ssn = ?
-              )
+                ON o.sid = s.stid AND o.schid = s.schid AND o.trm = ? AND o.ssn = ? AND o.status = 'active'
+            WHERE s.trm = ? AND s.ssn = ?
+            AND NOT EXISTS (
+                SELECT 1
+                FROM student_subj x
+                WHERE x.stid = s.stid AND x.sbj = s.sbj AND x.schid = s.schid
+                AND x.clsid = s.clsid AND x.trm = ? AND x.ssn = ?
+            )
         ", [
                 $ssn,
                 $new_trm,
@@ -33323,22 +33496,13 @@ public function setClassGradeAdmin(Request $request)
             // 4. Maintain class subjects (class_subj)
             DB::insert("
             INSERT INTO class_subj (
-                uid, subj_id, schid, name, comp,
-                clsid, sesn, trm, created_at, updated_at
+                uid, subj_id, schid, name, comp, clsid, sesn, trm, created_at, updated_at
             )
             SELECT
                 CONCAT(?, ?, cs.subj_id, cs.clsid, '-', FLOOR(RAND() * 90000 + 10000)) AS uid,
-                cs.subj_id,
-                cs.schid,
-                cs.name,
-                cs.comp,
-                cs.clsid,
-                ?, ?,
-                NOW(), NOW()
+                cs.subj_id, cs.schid, cs.name, cs.comp, cs.clsid, ?, ?, NOW(), NOW()
             FROM class_subj cs
-            WHERE cs.schid = ?
-              AND cs.trm = ?
-              AND cs.sesn = ?
+            WHERE cs.schid = ? AND cs.trm = ? AND cs.sesn = ?
         ", [
                 $ssn,
                 $new_trm,
@@ -33365,7 +33529,6 @@ public function setClassGradeAdmin(Request $request)
 
         } catch (\Throwable $e) {
             DB::rollBack();
-
             Log::error('Maintain Previous Students Failed', [
                 'schid' => $schid,
                 'new_trm' => $new_trm,
@@ -33381,6 +33544,7 @@ public function setClassGradeAdmin(Request $request)
             ], 500);
         }
     }
+
 
 
     /**
