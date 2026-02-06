@@ -33637,7 +33637,7 @@ public function maintainPreviousStudents(Request $request)
 {
     $request->validate([
         'schid'   => 'required|integer',
-        'new_trm' => 'required|integer', // 1,2,3
+        'new_trm' => 'required|integer', // 1, 2, 3
         'ssn'     => 'required|integer', // target session/year
     ]);
 
@@ -33645,7 +33645,7 @@ public function maintainPreviousStudents(Request $request)
     $new_trm = $request->new_trm;
     $ssn     = $request->ssn;
 
-    // Determine previous term & session dynamically
+    // Determine previous term & session
     if ($new_trm == 1) {
         $prev_trm = 3;
         $prev_ssn = $ssn - 1;
@@ -33653,15 +33653,6 @@ public function maintainPreviousStudents(Request $request)
         $prev_trm = $new_trm - 1;
         $prev_ssn = $ssn;
     }
-
-    // Log incoming data
-    Log::info('MaintainPreviousStudents called', [
-        'schid' => $schid,
-        'new_trm' => $new_trm,
-        'ssn' => $ssn,
-        'prev_trm' => $prev_trm,
-        'prev_ssn' => $prev_ssn
-    ]);
 
     DB::beginTransaction();
 
@@ -33674,10 +33665,6 @@ public function maintainPreviousStudents(Request $request)
             ->where('status', 'active')
             ->count();
 
-        Log::info('Previous students count', [
-            'count' => $prevStudentsCount
-        ]);
-
         if ($prevStudentsCount == 0) {
             return response()->json([
                 "status"  => false,
@@ -33686,17 +33673,8 @@ public function maintainPreviousStudents(Request $request)
             ], 400);
         }
 
-        // 2️⃣ Promote students dynamically (all classes)
-        $bindings = [
-            $ssn, $new_trm,       // UID: target session + term
-            $ssn, $new_trm,       // Insert target session + term
-            $schid, $prev_trm, $prev_ssn, // Source filter: previous term/session
-            $new_trm, $ssn        // Prevent duplicates
-        ];
-
-        Log::info('Promotion query bindings', $bindings);
-
-        $inserted = DB::insert("
+        // 2️⃣ Promote students (retain original suid, uid etc.)
+        DB::insert("
             INSERT INTO old_student (
                 uid, suid, sid, schid, fname, mname, lname,
                 clsm, clsa, cls_sbj_students,
@@ -33704,7 +33682,7 @@ public function maintainPreviousStudents(Request $request)
                 ssn, trm, created_at, updated_at
             )
             SELECT
-                CONCAT(os.sid, os.schid, ?, ?, os.clsm) AS uid,
+                os.uid,      -- keep original UID
                 os.suid,
                 os.sid,
                 os.schid,
@@ -33731,12 +33709,74 @@ public function maintainPreviousStudents(Request $request)
                     AND x.schid = os.schid
                     AND x.trm = ?
                     AND x.ssn = ?
-                    AND x.clsm = os.clsm
               )
-        ", $bindings);
+        ", [
+            $ssn, $new_trm,       // target session and term
+            $schid, $prev_trm, $prev_ssn, // previous term/session
+            $new_trm, $ssn        // prevent duplicates
+        ]);
 
-        Log::info('Promotion query executed', [
-            'inserted' => $inserted
+        // 3️⃣ Promote student subjects
+        DB::insert("
+            INSERT INTO student_subj (
+                uid, stid, sbj, comp, schid, clsid, trm, ssn, created_at, updated_at
+            )
+            SELECT
+                s.uid,       -- retain original UID
+                s.stid,
+                s.sbj,
+                s.comp,
+                s.schid,
+                s.clsid,
+                ?, ?,
+                NOW(), NOW()
+            FROM student_subj s
+            JOIN old_student o
+              ON o.sid = s.stid
+             AND o.schid = s.schid
+             AND o.trm = ?
+             AND o.ssn = ?
+             AND o.status = 'active'
+            WHERE s.trm = ?
+              AND s.ssn = ?
+              AND NOT EXISTS (
+                  SELECT 1 FROM student_subj x
+                  WHERE x.stid = s.stid
+                    AND x.sbj = s.sbj
+                    AND x.schid = s.schid
+                    AND x.clsid = s.clsid
+                    AND x.trm = ?
+                    AND x.ssn = ?
+              )
+        ", [
+            $new_trm, $ssn,       // target term/session
+            $prev_trm, $prev_ssn, // source filter
+            $prev_trm, $prev_ssn, // source filter
+            $new_trm, $ssn        // prevent duplicates
+        ]);
+
+        // 4️⃣ Promote class subjects
+        DB::insert("
+            INSERT INTO class_subj (
+                uid, subj_id, schid, name, comp,
+                clsid, sesn, trm, created_at, updated_at
+            )
+            SELECT
+                cs.uid,     -- keep original UID
+                cs.subj_id,
+                cs.schid,
+                cs.name,
+                cs.comp,
+                cs.clsid,
+                ?, ?,
+                NOW(), NOW()
+            FROM class_subj cs
+            WHERE cs.schid = ?
+              AND cs.trm = ?
+              AND cs.sesn = ?
+        ", [
+            $new_trm, $ssn,       // target term/session
+            $schid, $prev_trm, $prev_ssn // source term/session
         ]);
 
         DB::commit();
