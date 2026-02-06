@@ -33760,29 +33760,29 @@ public function maintainPreviousStudents(Request $request)
         ]);
 
         // 4. Promote class subjects
-        DB::insert("
-            INSERT INTO class_subj (
-                uid, subj_id, schid, name, comp,
-                clsid, sesn, trm, created_at, updated_at
-            )
-            SELECT
-                CONCAT(cs.clsid, cs.schid, ?, ?, cs.clsid) AS uid,
-                cs.subj_id,
-                cs.schid,
-                cs.name,
-                cs.comp,
-                cs.clsid,
-                ?, ?,
-                NOW(), NOW()
-            FROM class_subj cs
-            WHERE cs.schid = ?
-              AND cs.trm = ?
-              AND cs.sesn = ?
-        ", [
-            $new_trm, $ssn,       // uid
-            $new_trm, $ssn,       // insert trm/ssn
-            $schid, $prev_trm, $prev_ssn // source term/session
-        ]);
+DB::insert("
+    INSERT INTO class_subj (
+        uid, subj_id, schid, name, comp,
+        clsid, sesn, trm, created_at, updated_at
+    )
+    SELECT
+        CONCAT(cs.schid, cs.subj_id, ?, ?, cs.clsid) AS uid,
+        cs.subj_id,
+        cs.schid,
+        cs.name,
+        cs.comp,
+        cs.clsid,
+        ?, ?,
+        NOW(), NOW()
+    FROM class_subj cs
+    WHERE cs.schid = ?
+      AND cs.trm = ?
+      AND cs.sesn = ?
+", [
+    $ssn, $new_trm,       // for uid: sesn + trm
+    $ssn, $new_trm,       // for sesn, trm columns
+    $schid, $prev_trm, $prev_ssn // filter source term/session
+]);
 
         DB::commit();
 
