@@ -33646,7 +33646,7 @@ public function maintainPreviousStudents(Request $request)
     $new_trm = $request->new_trm;
     $ssn = $request->ssn;
 
-    // Determine previous term & session
+    // Determine previous term & session dynamically
     if ($new_trm == 1) {
         $prev_trm = 3;
         $prev_ssn = $ssn - 1;
@@ -33658,7 +33658,7 @@ public function maintainPreviousStudents(Request $request)
     DB::beginTransaction();
 
     try {
-        // 1. Check if previous term has students assigned
+        // 1️⃣ Check if previous term has students assigned
         $prevStudentsCount = DB::table('old_student')
             ->where('schid', $schid)
             ->where('ssn', $prev_ssn)
@@ -33674,7 +33674,7 @@ public function maintainPreviousStudents(Request $request)
             ], 400);
         }
 
-        // 2. Promote students with deterministic UID
+        // 2️⃣ Promote students with deterministic UID
         DB::insert("
             INSERT INTO old_student (
                 uid, suid, sid, schid, fname, mname, lname,
@@ -33710,16 +33710,15 @@ public function maintainPreviousStudents(Request $request)
                     AND x.schid = os.schid
                     AND x.trm = ?
                     AND x.ssn = ?
-                    AND x.clsm = os.clsm
               )
         ", [
-            $ssn, $new_trm,     // for UID
-            $ssn, $new_trm,     // insert ssn/trm
-            $schid, $prev_trm, $prev_ssn, // previous session/term filter
-            $new_trm, $ssn      // NOT EXISTS target trm/ssn
+            $ssn, $new_trm,       // UID generation
+            $ssn, $new_trm,       // actual insert ssn/trm
+            $schid, $prev_trm, $prev_ssn, // filter previous term
+            $new_trm, $ssn        // prevent duplicates
         ]);
 
-        // 3. Promote student subjects
+        // 3️⃣ Promote student subjects
         DB::insert("
             INSERT INTO student_subj (
                 uid, stid, sbj, comp, schid, clsid, trm, ssn, created_at, updated_at
@@ -33731,13 +33730,9 @@ public function maintainPreviousStudents(Request $request)
                 s.comp,
                 s.schid,
                 s.clsid,
-                ?, ?,  -- target term/session
+                ?, ?,  -- target trm/ssn
                 NOW(), NOW()
             FROM student_subj s
-            JOIN old_student o
-              ON o.sid = s.stid
-             AND o.schid = s.schid
-             AND o.status = 'active'
             WHERE s.trm = ?
               AND s.ssn = ?
               AND NOT EXISTS (
@@ -33750,13 +33745,13 @@ public function maintainPreviousStudents(Request $request)
                     AND x.ssn = ?
               )
         ", [
-            $new_trm, $ssn,       // for UID
-            $new_trm, $ssn,       // insert trm/ssn
-            $prev_trm, $prev_ssn, // previous trm/ssn filter
-            $new_trm, $ssn        // NOT EXISTS target trm/ssn
+            $new_trm, $ssn,   // UID
+            $new_trm, $ssn,   // insert
+            $prev_trm, $prev_ssn, // source
+            $new_trm, $ssn    // prevent duplicates
         ]);
 
-        // 4. Promote class subjects
+        // 4️⃣ Promote class subjects
         DB::insert("
             INSERT INTO class_subj (
                 uid, subj_id, schid, name, comp,
@@ -33784,10 +33779,10 @@ public function maintainPreviousStudents(Request $request)
                     AND x.sesn = ?
               )
         ", [
-            $new_trm, $ssn,       // for UID
-            $new_trm, $ssn,       // insert sesn/trm
-            $schid, $prev_trm, $prev_ssn, // previous sesn/trm filter
-            $new_trm, $ssn        // NOT EXISTS target sesn/trm
+            $new_trm, $ssn,   // UID
+            $new_trm, $ssn,   // insert
+            $schid, $prev_trm, $prev_ssn, // source filter
+            $new_trm, $ssn    // prevent duplicates
         ]);
 
         DB::commit();
@@ -33816,7 +33811,6 @@ public function maintainPreviousStudents(Request $request)
         ], 500);
     }
 }
-
 
     /**
      * @OA\Post(
