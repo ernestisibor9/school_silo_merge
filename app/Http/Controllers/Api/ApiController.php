@@ -33638,7 +33638,7 @@ public function maintainPreviousStudents(Request $request)
 {
     $request->validate([
         'schid' => 'required|integer',
-        'new_trm' => 'required|integer', // 1, 2, 3
+        'new_trm' => 'required|integer', // 1, 2, 3.
         'ssn' => 'required|integer',     // target session/year
     ]);
 
