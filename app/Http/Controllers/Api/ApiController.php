@@ -5009,7 +5009,7 @@ class ApiController extends Controller
      */
 
 
-//     public function setStudentAcademicInfo(Request $request)
+    //     public function setStudentAcademicInfo(Request $request)
 //     {
 //         // Data validation
 //         $request->validate([
@@ -5024,11 +5024,11 @@ class ApiController extends Controller
 //             "trm" => "required", // add term
 //         ]);
 
-//         // Determine if we need to refresh subjects
+    //         // Determine if we need to refresh subjects
 //         $oldData = student_academic_data::where('user_id', $request->user_id)->first();
 //         $refreshSubjects = !$oldData || $oldData->new_class_main != ($request->new_class_main ?? null);
 
-//         // Save/update student academic info
+    //         // Save/update student academic info
 //         student_academic_data::updateOrCreate(
 //             ["user_id" => $request->user_id],
 //             [
@@ -5039,12 +5039,12 @@ class ApiController extends Controller
 //             ]
 //         );
 
-//         // If class changed, clear subjects
+    //         // If class changed, clear subjects
 //         if ($refreshSubjects) {
 //             student_subj::where('stid', $request->user_id)->delete();
 //         }
 
-//         // Fetch student
+    //         // Fetch student
 //         $std = student::where('sid', $request->user_id)->first();
 //         if (!$std) {
 //             return response()->json([
@@ -5053,10 +5053,10 @@ class ApiController extends Controller
 //             ], 404);
 //         }
 
-//         // Only proceed if new_class is valid
+    //         // Only proceed if new_class is valid
 //         if (!empty($request->new_class) && $request->new_class != 'NIL') {
 
-//             // 🔹 Delete old record for the former class arm (if reposting)
+    //             // 🔹 Delete old record for the former class arm (if reposting)
 //             old_student::where('sid', $request->user_id)
 //                 ->where('ssn', $request->ssn)
 //                 ->where('trm', $request->trm)
@@ -5064,10 +5064,10 @@ class ApiController extends Controller
 //                 ->where('clsa', '!=', $request->new_class)
 //                 ->delete();
 
-//             // UID ensures uniqueness
+    //             // UID ensures uniqueness
 //           //  $uid = $request->ssn . $request->user_id . $request->new_class_main . $request->trm;
 
-//             // Check if this combination already exists
+    //             // Check if this combination already exists
 //             $exists = old_student::where([
 //                 'sid' => $request->user_id,
 //                 'ssn' => $request->ssn,
@@ -5076,14 +5076,14 @@ class ApiController extends Controller
 //                 'clsa' => $request->new_class,
 //             ])->exists();
 
-//             if ($exists) {
+    //             if ($exists) {
 //                 return response()->json([
 //                     'status' => false,
 //                     'message' => 'This student already exists in the selected session, term, and class arm.',
 //                 ], 409); // 409 Conflict
 //             }
 
-//             // Create or update the new record
+    //             // Create or update the new record
 // old_student::updateOrCreate(
 //     [
 //         'sid'   => $request->user_id,
@@ -5104,119 +5104,119 @@ class ApiController extends Controller
 //     ]
 // );
 
-//         }
+    //         }
 
-//         // Mark student academic record as set
+    //         // Mark student academic record as set
 //         $std->update([
 //             "s_academic" => '1'
 //         ]);
 
-//         return response()->json([
+    //         return response()->json([
 //             "status" => true,
 //             "message" => "Success",
 //         ]);
 //     }
 
 
-public function setStudentAcademicInfo(Request $request)
-{
-    // Data validation
-    $request->validate([
-        "user_id" => "required",
-        "schid" => "required",
-        "last_school" => "required",
-        "last_class" => "nullable",
-        "new_class" => "nullable",
-        "new_class_main" => "nullable",
-        "ssn" => "required",
-        "suid" => "required",
-        "trm" => "required", // add term
-    ]);
+    public function setStudentAcademicInfo(Request $request)
+    {
+        // Data validation
+        $request->validate([
+            "user_id" => "required",
+            "schid" => "required",
+            "last_school" => "required",
+            "last_class" => "nullable",
+            "new_class" => "nullable",
+            "new_class_main" => "nullable",
+            "ssn" => "required",
+            "suid" => "required",
+            "trm" => "required", // add term
+        ]);
 
-    // Determine if we need to refresh subjects
-    $oldData = student_academic_data::where('user_id', $request->user_id)->first();
-    $refreshSubjects = !$oldData || $oldData->new_class_main != ($request->new_class_main ?? null);
+        // Determine if we need to refresh subjects
+        $oldData = student_academic_data::where('user_id', $request->user_id)->first();
+        $refreshSubjects = !$oldData || $oldData->new_class_main != ($request->new_class_main ?? null);
 
-    // Save/update student academic info
-    student_academic_data::updateOrCreate(
-        ["user_id" => $request->user_id],
-        [
-            "last_school" => $request->last_school,
-            "last_class" => $request->last_class ?? 'NIL',
-            "new_class" => $request->new_class ?? 'NIL',
-            "new_class_main" => $request->new_class_main ?? 'NIL',
-        ]
-    );
+        // Save/update student academic info
+        student_academic_data::updateOrCreate(
+            ["user_id" => $request->user_id],
+            [
+                "last_school" => $request->last_school,
+                "last_class" => $request->last_class ?? 'NIL',
+                "new_class" => $request->new_class ?? 'NIL',
+                "new_class_main" => $request->new_class_main ?? 'NIL',
+            ]
+        );
 
-    // If class changed, clear subjects
-    if ($refreshSubjects) {
-        student_subj::where('stid', $request->user_id)->delete();
-    }
-
-    // Fetch student
-    $std = student::where('sid', $request->user_id)->first();
-    if (!$std) {
-        return response()->json([
-            "status" => false,
-            "message" => "Student not found",
-        ], 404);
-    }
-
-    // Only proceed if new_class is valid
-    if (!empty($request->new_class) && $request->new_class != 'NIL') {
-
-        // 🔹 Delete old record for the former class arm (if reposting)
-        old_student::where('sid', $request->user_id)
-            ->where('ssn', $request->ssn)
-            ->where('trm', $request->trm)
-            ->where('clsm', $request->new_class_main)
-            ->where('clsa', '!=', $request->new_class)
-            ->delete();
-
-        // 🔹 Guard against duplicates (NO redundancy after this)
-        $exists = old_student::where([
-            'sid'  => $request->user_id,
-            'ssn'  => $request->ssn,
-            'trm'  => $request->trm,
-            'clsm' => $request->new_class_main,
-            'clsa' => $request->new_class,
-        ])->exists();
-
-        if ($exists) {
-            return response()->json([
-                'status' => false,
-                'message' => 'This student already exists in the selected session, term, and class arm.',
-            ], 409);
+        // If class changed, clear subjects
+        if ($refreshSubjects) {
+            student_subj::where('stid', $request->user_id)->delete();
         }
 
-        // 🔹 Insert ONLY (no update, no overwrite, no corruption)
-        old_student::create([
-            'uid'    => (string) Str::uuid(),
-            'sid'    => $request->user_id,
-            'schid'  => $request->schid,
-            'ssn'    => $request->ssn,
-            'trm'    => $request->trm,
-            'clsm'   => $request->new_class_main,
-            'clsa'   => $request->new_class,
-            'fname'  => $std->fname ?? 'Unknown',
-            'mname'  => $std->mname ?? '',
-            'lname'  => $std->lname ?? 'Unknown',
-            'status' => 'active',
-            'suid'   => $request->suid,
-            'more'   => '',
+        // Fetch student
+        $std = student::where('sid', $request->user_id)->first();
+        if (!$std) {
+            return response()->json([
+                "status" => false,
+                "message" => "Student not found",
+            ], 404);
+        }
+
+        // Only proceed if new_class is valid
+        if (!empty($request->new_class) && $request->new_class != 'NIL') {
+
+            // 🔹 Delete old record for the former class arm (if reposting)
+            old_student::where('sid', $request->user_id)
+                ->where('ssn', $request->ssn)
+                ->where('trm', $request->trm)
+                ->where('clsm', $request->new_class_main)
+                ->where('clsa', '!=', $request->new_class)
+                ->delete();
+
+            // 🔹 Guard against duplicates (NO redundancy after this)
+            $exists = old_student::where([
+                'sid' => $request->user_id,
+                'ssn' => $request->ssn,
+                'trm' => $request->trm,
+                'clsm' => $request->new_class_main,
+                'clsa' => $request->new_class,
+            ])->exists();
+
+            if ($exists) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'This student already exists in the selected session, term, and class arm.',
+                ], 409);
+            }
+
+            // 🔹 Insert ONLY (no update, no overwrite, no corruption)
+            old_student::create([
+                'uid' => (string) Str::uuid(),
+                'sid' => $request->user_id,
+                'schid' => $request->schid,
+                'ssn' => $request->ssn,
+                'trm' => $request->trm,
+                'clsm' => $request->new_class_main,
+                'clsa' => $request->new_class,
+                'fname' => $std->fname ?? 'Unknown',
+                'mname' => $std->mname ?? '',
+                'lname' => $std->lname ?? 'Unknown',
+                'status' => 'active',
+                'suid' => $request->suid,
+                'more' => '',
+            ]);
+        }
+
+        // Mark student academic record as set
+        $std->update([
+            "s_academic" => '1'
+        ]);
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
         ]);
     }
-
-    // Mark student academic record as set
-    $std->update([
-        "s_academic" => '1'
-    ]);
-
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-    ]);
-}
 
 
 
@@ -33460,7 +33460,7 @@ public function setStudentAcademicInfo(Request $request)
 //     }
 // }
 
-// public function maintainPreviousStudents(Request $request)
+    // public function maintainPreviousStudents(Request $request)
 // {
 //     $request->validate([
 //         'schid' => 'required|integer',
@@ -33468,11 +33468,11 @@ public function setStudentAcademicInfo(Request $request)
 //         'ssn' => 'required|integer',     // target session/year
 //     ]);
 
-//     $schid = $request->schid;
+    //     $schid = $request->schid;
 //     $new_trm = $request->new_trm;
 //     $ssn = $request->ssn;
 
-//     // Determine previous term & session
+    //     // Determine previous term & session
 //     if ($new_trm == 1) {
 //         $prev_trm = 3;
 //         $prev_ssn = $ssn - 1;
@@ -33481,9 +33481,9 @@ public function setStudentAcademicInfo(Request $request)
 //         $prev_ssn = $ssn;
 //     }
 
-//     DB::beginTransaction();
+    //     DB::beginTransaction();
 
-//     try {
+    //     try {
 //         // 1. Check if previous term has students assigned
 //         $prevStudentsCount = DB::table('old_student')
 //             ->where('schid', $schid)
@@ -33492,7 +33492,7 @@ public function setStudentAcademicInfo(Request $request)
 //             ->where('status', 'active')
 //             ->count();
 
-//         if ($prevStudentsCount == 0) {
+    //         if ($prevStudentsCount == 0) {
 //             return response()->json([
 //                 "status" => false,
 //                 "message" => "No assignments found in the previous term.",
@@ -33500,7 +33500,7 @@ public function setStudentAcademicInfo(Request $request)
 //             ], 400);
 //         }
 
-//         // 2. Promote students using UUID() for uid to avoid duplicates
+    //         // 2. Promote students using UUID() for uid to avoid duplicates
 //         DB::insert("
 //             INSERT INTO old_student (
 //                 uid, suid, sid, schid, fname, mname, lname,
@@ -33543,7 +33543,7 @@ public function setStudentAcademicInfo(Request $request)
 //             $new_trm, $ssn        // check to prevent duplicates
 //         ]);
 
-//         // 3. Promote student subjects
+    //         // 3. Promote student subjects
 //         DB::insert("
 //             INSERT INTO student_subj (
 //                 uid, stid, sbj, comp, schid, clsid, trm, ssn, created_at, updated_at
@@ -33582,7 +33582,7 @@ public function setStudentAcademicInfo(Request $request)
 //             $new_trm, $ssn        // prevent duplicates
 //         ]);
 
-//         // 4. Promote class subjects
+    //         // 4. Promote class subjects
 //         DB::insert("
 //             INSERT INTO class_subj (
 //                 uid, subj_id, schid, name, comp,
@@ -33606,25 +33606,25 @@ public function setStudentAcademicInfo(Request $request)
 //             $schid, $prev_trm, $prev_ssn // source term/session
 //         ]);
 
-//         DB::commit();
+    //         DB::commit();
 
-//         return response()->json([
+    //         return response()->json([
 //             "status" => true,
 //             "message" => "Success",
 //             "pld" => []
 //         ]);
 
-//     } catch (\Throwable $e) {
+    //     } catch (\Throwable $e) {
 //         DB::rollBack();
 
-//         Log::error('Maintain Previous Students Failed', [
+    //         Log::error('Maintain Previous Students Failed', [
 //             'schid' => $schid,
 //             'new_trm' => $new_trm,
 //             'ssn' => $ssn,
 //             'error' => $e->getMessage()
 //         ]);
 
-//         return response()->json([
+    //         return response()->json([
 //             "status" => false,
 //             "message" => "Failed to maintain previous term data",
 //             "error" => $e->getMessage(),
@@ -33633,179 +33633,121 @@ public function setStudentAcademicInfo(Request $request)
 //     }
 // }
 
-public function maintainPreviousStudents(Request $request)
-{
-    $request->validate([
-        'schid'   => 'required|integer',
-        'new_trm' => 'required|integer', // 1, 2, 3
-        'ssn'     => 'required|integer', // target session/year
-    ]);
+    public function maintainPreviousStudents(Request $request)
+    {
+        $request->validate([
+            'schid' => 'required|integer',
+            'new_trm' => 'required|integer', // 1, 2, 3
+            'ssn' => 'required|integer', // target session/year
+        ]);
 
-    $schid   = $request->schid;
-    $new_trm = $request->new_trm;
-    $ssn     = $request->ssn;
+        $schid = $request->schid;
+        $new_trm = $request->new_trm;
+        $ssn = $request->ssn;
 
-    // Determine previous term & session
-    if ($new_trm == 1) {
-        $prev_trm = 3;
-        $prev_ssn = $ssn - 1;
-    } else {
-        $prev_trm = $new_trm - 1;
-        $prev_ssn = $ssn;
-    }
-
-    DB::beginTransaction();
-
-    try {
-        // 1️⃣ Check if previous term has students assigned
-        $prevStudentsCount = DB::table('old_student')
-            ->where('schid', $schid)
-            ->where('ssn', $prev_ssn)
-            ->where('trm', $prev_trm)
-            ->where('status', 'active')
-            ->count();
-
-        if ($prevStudentsCount == 0) {
-            return response()->json([
-                "status"  => false,
-                "message" => "No assignments found in the previous term.",
-                "pld"     => []
-            ], 400);
+        // Determine previous term & session
+        if ($new_trm == 1) {
+            $prev_trm = 3;
+            $prev_ssn = $ssn - 1;
+        } else {
+            $prev_trm = $new_trm - 1;
+            $prev_ssn = $ssn;
         }
 
-        // 2️⃣ Promote students (retain original suid, uid etc.)
-        DB::insert("
-            INSERT INTO old_student (
-                uid, suid, sid, schid, fname, mname, lname,
-                clsm, clsa, cls_sbj_students,
-                status, adm_ssn, adm_trm, cls_of_adm,
-                ssn, trm, created_at, updated_at
-            )
-            SELECT
-                os.uid,      -- keep original UID
-                os.suid,
-                os.sid,
-                os.schid,
-                os.fname,
-                os.mname,
-                os.lname,
-                os.clsm,
-                os.clsa,
-                os.cls_sbj_students,
-                'active',
-                os.adm_ssn,
-                os.adm_trm,
-                os.cls_of_adm,
-                ?, ?,  -- target ssn/trm
-                NOW(), NOW()
-            FROM old_student os
-            WHERE os.schid = ?
-              AND os.trm = ?
-              AND os.ssn = ?
-              AND os.status = 'active'
-              AND NOT EXISTS (
-                  SELECT 1 FROM old_student x
-                  WHERE x.sid = os.sid
-                    AND x.schid = os.schid
-                    AND x.trm = ?
-                    AND x.ssn = ?
-              )
-        ", [
-            $ssn, $new_trm,       // target session and term
-            $schid, $prev_trm, $prev_ssn, // previous term/session
-            $new_trm, $ssn        // prevent duplicates
-        ]);
+        DB::beginTransaction();
 
-        // 3️⃣ Promote student subjects
-        DB::insert("
-            INSERT INTO student_subj (
-                uid, stid, sbj, comp, schid, clsid, trm, ssn, created_at, updated_at
-            )
-            SELECT
-                s.uid,       -- retain original UID
-                s.stid,
-                s.sbj,
-                s.comp,
-                s.schid,
-                s.clsid,
-                ?, ?,
-                NOW(), NOW()
-            FROM student_subj s
-            JOIN old_student o
-              ON o.sid = s.stid
-             AND o.schid = s.schid
-             AND o.trm = ?
-             AND o.ssn = ?
-             AND o.status = 'active'
-            WHERE s.trm = ?
-              AND s.ssn = ?
-              AND NOT EXISTS (
-                  SELECT 1 FROM student_subj x
-                  WHERE x.stid = s.stid
-                    AND x.sbj = s.sbj
-                    AND x.schid = s.schid
-                    AND x.clsid = s.clsid
-                    AND x.trm = ?
-                    AND x.ssn = ?
-              )
-        ", [
-            $new_trm, $ssn,       // target term/session
-            $prev_trm, $prev_ssn, // source filter
-            $prev_trm, $prev_ssn, // source filter
-            $new_trm, $ssn        // prevent duplicates
-        ]);
+        try {
+            // 1️⃣ Check if previous term has students assigned
+            $prevStudentsCount = DB::table('old_student')
+                ->where('schid', $schid)
+                ->where('ssn', $prev_ssn)
+                ->where('trm', $prev_trm)
+                ->where('status', 'active')
+                ->count();
 
-        // 4️⃣ Promote class subjects
-        DB::insert("
-INSERT INTO class_subj (
-    uid, subj_id, schid, name, comp,
-    clsid, sesn, trm, created_at, updated_at
-)
-SELECT
-    UUID() AS uid,   -- generate new UID
-    cs.subj_id,
-    cs.schid,
-    cs.name,
-    cs.comp,
-    cs.clsid,
-    ?, ?,
-    NOW(), NOW()
-FROM class_subj cs
-WHERE cs.schid = ?
-  AND cs.trm = ?
-  AND cs.sesn = ?
+            if ($prevStudentsCount == 0) {
+                return response()->json([
+                    "status" => false,
+                    "message" => "No assignments found in the previous term.",
+                    "pld" => []
+                ], 400);
+            }
 
-        ", [
-            $new_trm, $ssn,       // target term/session
-            $schid, $prev_trm, $prev_ssn // source term/session
-        ]);
+            // 2️⃣ Promote students (retain original suid, uid etc.)
+// Before the insert, initialize a MySQL variable
+DB::statement('SET @counter := 0;');
 
-        DB::commit();
+// 2️⃣ Promote students (retain other fields but create a unique uid)
+DB::insert("
+    INSERT INTO old_student (
+        uid, suid, sid, schid, fname, mname, lname,
+        clsm, clsa, cls_sbj_students,
+        status, adm_ssn, adm_trm, cls_of_adm,
+        ssn, trm, created_at, updated_at
+    )
+    SELECT
+        CONCAT(os.ssn, os.trm, os.sid, os.clsm, '_', LPAD(@counter := @counter + 1, 4, '0')) AS uid,
+        os.suid,
+        os.sid,
+        os.schid,
+        os.fname,
+        os.mname,
+        os.lname,
+        os.clsm,
+        os.clsa,
+        os.cls_sbj_students,
+        'active',
+        os.adm_ssn,
+        os.adm_trm,
+        os.cls_of_adm,
+        ?, ?,  -- target ssn/trm
+        NOW(), NOW()
+    FROM old_student os
+    WHERE os.schid = ?
+      AND os.trm = ?
+      AND os.ssn = ?
+      AND os.status = 'active'
+      AND NOT EXISTS (
+          SELECT 1 FROM old_student x
+          WHERE x.sid = os.sid
+            AND x.schid = os.schid
+            AND x.trm = ?
+            AND x.ssn = ?
+      )
+    ORDER BY os.sid
+", [
+    $ssn, $new_trm,       // target ssn/trm
+    $schid, $prev_trm, $prev_ssn,  // source filter
+    $new_trm, $ssn        // prevent duplicates
+]);
 
-        return response()->json([
-            "status"  => true,
-            "message" => "Students promoted successfully",
-            "pld"     => []
-        ]);
 
-    } catch (\Throwable $e) {
-        DB::rollBack();
+            DB::commit();
 
-        Log::error('Maintain Previous Students Failed', [
-            'schid'   => $schid,
-            'new_trm' => $new_trm,
-            'ssn'     => $ssn,
-            'error'   => $e->getMessage()
-        ]);
+            return response()->json([
+                "status" => true,
+                "message" => "Students promoted successfully",
+                "pld" => []
+            ]);
 
-        return response()->json([
-            "status"  => false,
-            "message" => "Failed to promote students",
-            "error"   => $e->getMessage(),
-            "pld"     => []
-        ], 500);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            Log::error('Maintain Previous Students Failed', [
+                'schid' => $schid,
+                'new_trm' => $new_trm,
+                'ssn' => $ssn,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                "status" => false,
+                "message" => "Failed to promote students",
+                "error" => $e->getMessage(),
+                "pld" => []
+            ]);
+        }
     }
-}
 
 
     /**
