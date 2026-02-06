@@ -33183,7 +33183,7 @@ class ApiController extends Controller
 
 
 
-// public function maintainPreviousStudents(Request $request)
+    // public function maintainPreviousStudents(Request $request)
 // {
 //     $request->validate([
 //         'schid' => 'required|integer',
@@ -33191,11 +33191,11 @@ class ApiController extends Controller
 //         'ssn' => 'required|integer',     // target session/year
 //     ]);
 
-//     $schid = $request->schid;
+    //     $schid = $request->schid;
 //     $new_trm = $request->new_trm;
 //     $ssn = $request->ssn;
 
-//     // Determine previous term & session
+    //     // Determine previous term & session
 //     if ($new_trm == 1) {
 //         $prev_trm = 3;
 //         $prev_ssn = $ssn - 1;
@@ -33204,9 +33204,9 @@ class ApiController extends Controller
 //         $prev_ssn = $ssn;
 //     }
 
-//     DB::beginTransaction();
+    //     DB::beginTransaction();
 
-//     try {
+    //     try {
 //         // 1. Check if previous term has students assigned
 //         $prevStudentsCount = DB::table('old_student')
 //             ->where('schid', $schid)
@@ -33215,7 +33215,7 @@ class ApiController extends Controller
 //             ->where('status', 'active')
 //             ->count();
 
-//         if ($prevStudentsCount == 0) {
+    //         if ($prevStudentsCount == 0) {
 //             return response()->json([
 //                 "status" => false,
 //                 "message" => "No assignments found in the previous term.",
@@ -33223,7 +33223,7 @@ class ApiController extends Controller
 //             ]);
 //         }
 
-//         // 2. Promote students using UUID() for uid to avoid duplicates
+    //         // 2. Promote students using UUID() for uid to avoid duplicates
 //         DB::insert("
 //             INSERT INTO old_student (
 //                 uid, suid, sid, schid, fname, mname, lname,
@@ -33266,7 +33266,7 @@ class ApiController extends Controller
 //             $new_trm, $ssn        // check to prevent duplicates
 //         ]);
 
-//         // 3. Promote student subjects
+    //         // 3. Promote student subjects
 //         DB::insert("
 //             INSERT INTO student_subj (
 //                 uid, stid, sbj, comp, schid, clsid, trm, ssn, created_at, updated_at
@@ -33305,7 +33305,7 @@ class ApiController extends Controller
 //             $new_trm, $ssn        // prevent duplicates
 //         ]);
 
-//         // 4. Promote class subjects
+    //         // 4. Promote class subjects
 //         DB::insert("
 //             INSERT INTO class_subj (
 //                 uid, subj_id, schid, name, comp,
@@ -33329,25 +33329,25 @@ class ApiController extends Controller
 //             $schid, $prev_trm, $prev_ssn // source term/session
 //         ]);
 
-//         DB::commit();
+    //         DB::commit();
 
-//         return response()->json([
+    //         return response()->json([
 //             "status" => true,
 //             "message" => "Success",
 //             "pld" => []
 //         ]);
 
-//     } catch (\Throwable $e) {
+    //     } catch (\Throwable $e) {
 //         DB::rollBack();
 
-//         Log::error('Maintain Previous Students Failed', [
+    //         Log::error('Maintain Previous Students Failed', [
 //             'schid' => $schid,
 //             'new_trm' => $new_trm,
 //             'ssn' => $ssn,
 //             'error' => $e->getMessage()
 //         ]);
 
-//         return response()->json([
+    //         return response()->json([
 //             "status" => false,
 //             "message" => "Failed to maintain previous term data",
 //             "error" => $e->getMessage(),
@@ -33356,48 +33356,48 @@ class ApiController extends Controller
 //     }
 // }
 
-public function maintainPreviousStudents(Request $request)  
-{
-    $request->validate([
-        'schid' => 'required|integer',
-        'new_trm' => 'required|integer', // 1, 2, 3
-        'ssn' => 'required|integer',     // target session/year
-    ]);
+    public function maintainPreviousStudents(Request $request)
+    {
+        $request->validate([
+            'schid' => 'required|integer',
+            'new_trm' => 'required|integer', // 1, 2, 3
+            'ssn' => 'required|integer',     // target session/year
+        ]);
 
-    $schid = $request->schid;
-    $new_trm = $request->new_trm;
-    $ssn = $request->ssn;
+        $schid = $request->schid;
+        $new_trm = $request->new_trm;
+        $ssn = $request->ssn;
 
-    // Determine previous term & session
-    if ($new_trm == 1) {
-        $prev_trm = 3;
-        $prev_ssn = $ssn - 1;
-    } else {
-        $prev_trm = $new_trm - 1;
-        $prev_ssn = $ssn;
-    }
-
-    DB::beginTransaction();
-
-    try {
-        // 1. Check if previous term has students assigned
-        $prevStudentsCount = DB::table('old_student')
-            ->where('schid', $schid)
-            ->where('ssn', $prev_ssn)
-            ->where('trm', $prev_trm)
-            ->where('status', 'active')
-            ->count();
-
-        if ($prevStudentsCount == 0) {
-            return response()->json([
-                "status" => false,
-                "message" => "No assignments found in the previous term.",
-                "pld" => []
-            ]);
+        // Determine previous term & session
+        if ($new_trm == 1) {
+            $prev_trm = 3;
+            $prev_ssn = $ssn - 1;
+        } else {
+            $prev_trm = $new_trm - 1;
+            $prev_ssn = $ssn;
         }
 
-        // 2. Promote students using UID formatted as ssn,trm,sid,clsm
-        DB::insert("
+        DB::beginTransaction();
+
+        try {
+            // 1. Check if previous term has students assigned
+            $prevStudentsCount = DB::table('old_student')
+                ->where('schid', $schid)
+                ->where('ssn', $prev_ssn)
+                ->where('trm', $prev_trm)
+                ->where('status', 'active')
+                ->count();
+
+            if ($prevStudentsCount == 0) {
+                return response()->json([
+                    "status" => false,
+                    "message" => "No assignments found in the previous term.",
+                    "pld" => []
+                ]);
+            }
+
+            // 2. Promote students using UID formatted as ssn,trm,sid,clsm
+            DB::insert("
             INSERT INTO old_student (
                 uid, suid, sid, schid, fname, mname, lname,
                 clsm, clsa, cls_sbj_students,
@@ -33434,14 +33434,19 @@ public function maintainPreviousStudents(Request $request)
                     AND x.ssn = ?
               )
         ", [
-            $ssn, $new_trm,       // for UID: ssn,trm
-            $ssn, $new_trm,       // target session & term
-            $schid, $prev_trm, $prev_ssn, // source school/term/session
-            $new_trm, $ssn        // prevent duplicates
-        ]);
+                $ssn,
+                $new_trm,       // for UID: ssn,trm
+                $ssn,
+                $new_trm,       // target session & term
+                $schid,
+                $prev_trm,
+                $prev_ssn, // source school/term/session
+                $new_trm,
+                $ssn        // prevent duplicates
+            ]);
 
-        // 3. Promote student subjects
-        DB::insert("
+            // 3. Promote student subjects
+            DB::insert("
             INSERT INTO student_subj (
                 uid, stid, sbj, comp, schid, clsid, trm, ssn, created_at, updated_at
             )
@@ -33473,64 +33478,80 @@ public function maintainPreviousStudents(Request $request)
                     AND x.ssn = ?
               )
         ", [
-            $ssn, $new_trm,       // UID: ssn,trm
-            $new_trm, $ssn,       // target term/session
-            $prev_trm, $prev_ssn, // previous term/session
-            $prev_trm, $prev_ssn, // source subjects
-            $new_trm, $ssn        // prevent duplicates
-        ]);
+                $ssn,
+                $new_trm,       // UID: ssn,trm
+                $new_trm,
+                $ssn,       // target term/session
+                $prev_trm,
+                $prev_ssn, // previous term/session
+                $prev_trm,
+                $prev_ssn, // source subjects
+                $new_trm,
+                $ssn        // prevent duplicates
+            ]);
 
-        // 4. Promote class subjects
-        DB::insert("
-            INSERT INTO class_subj (
-                uid, subj_id, schid, name, comp,
-                clsid, sesn, trm, created_at, updated_at
-            )
-            SELECT
-                CONCAT(?, ',', ?, ',', cs.clsid, ',', ?) AS uid,
-                cs.subj_id,
-                cs.schid,
-                cs.name,
-                cs.comp,
-                cs.clsid,
-                ?, ?,
-                NOW(), NOW()
-            FROM class_subj cs
-            WHERE cs.schid = ?
-              AND cs.trm = ?
-              AND cs.sesn = ?
-        ", [
-            $ssn, $new_trm,       // UID: ssn,trm
-            $new_trm, $ssn,       // target term/session
-            $schid, $prev_trm, $prev_ssn // source term/session
-        ]);
+            // 4. Promote class subjects
+            DB::insert("
+    INSERT INTO class_subj (
+        uid, subj_id, schid, name, comp,
+        clsid, sesn, trm, created_at, updated_at
+    )
+    SELECT
+        CONCAT(?, ',', ?, ',', cs.clsid, ',', cs.subj_id) AS uid,
+        cs.subj_id,
+        cs.schid,
+        cs.name,
+        cs.comp,
+        cs.clsid,
+        ?, ?,
+        NOW(), NOW()
+    FROM class_subj cs
+    WHERE cs.schid = ?
+      AND cs.trm = ?
+      AND cs.sesn = ?
+      AND NOT EXISTS (
+          SELECT 1 FROM class_subj x
+          WHERE x.uid = CONCAT(?, ',', ?, ',', cs.clsid, ',', cs.subj_id)
+      )
+", [
+                $ssn,
+                $new_trm,           // for UID: ssn,new_trm
+                $ssn,
+                $new_trm,           // target sesn, trm
+                $schid,
+                $prev_trm,
+                $prev_ssn, // source schid, prev_trm, prev_ssn
+                $ssn,
+                $new_trm            // for NOT EXISTS UID check
+            ]);
 
-        DB::commit();
 
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => []
-        ]);
+            DB::commit();
 
-    } catch (\Throwable $e) {
-        DB::rollBack();
+            return response()->json([
+                "status" => true,
+                "message" => "Success",
+                "pld" => []
+            ]);
 
-        Log::error('Maintain Previous Students Failed', [
-            'schid' => $schid,
-            'new_trm' => $new_trm,
-            'ssn' => $ssn,
-            'error' => $e->getMessage()
-        ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
 
-        return response()->json([
-            "status" => false,
-            "message" => "Failed to maintain previous term data",
-            "error" => $e->getMessage(),
-            "pld" => []
-        ], 500);
+            Log::error('Maintain Previous Students Failed', [
+                'schid' => $schid,
+                'new_trm' => $new_trm,
+                'ssn' => $ssn,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                "status" => false,
+                "message" => "Failed to maintain previous term data",
+                "error" => $e->getMessage(),
+                "pld" => []
+            ], 500);
+        }
     }
-}
 
 
 
