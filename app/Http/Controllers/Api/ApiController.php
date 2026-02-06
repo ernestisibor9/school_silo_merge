@@ -33635,17 +33635,21 @@ class ApiController extends Controller
 public function maintainPreviousStudents(Request $request)
 {
     $request->validate([
-        'schid' => 'required|integer',
-        'new_trm' => 'required|integer', // current term user is in
-        'ssn' => 'required|integer',     // current session/year
+        'schid'   => 'required|integer',
+        'new_trm' => 'required|integer', // current term
+        'ssn'     => 'required|integer', // current session
     ]);
 
-    $schid = $request->schid;
-    $current_trm = $request->new_trm; // current term user is in
-    $current_ssn = $request->ssn;     // current session
+    $schid       = $request->schid;
+    $current_trm = (int) $request->new_trm;
+    $current_ssn = (int) $request->ssn;
 
-    // Calculate the next term and session
-    if ($current_trm == 3) {
+    /*
+    |--------------------------------------------------------------------------
+    | Determine next term & session
+    |--------------------------------------------------------------------------
+    */
+    if ($current_trm === 3) {
         $next_trm = 1;
         $next_ssn = $current_ssn + 1;
     } else {
@@ -33653,57 +33657,55 @@ public function maintainPreviousStudents(Request $request)
         $next_ssn = $current_ssn;
     }
 
-    // Previous term/session (we promote from)
     $prev_trm = $current_trm;
     $prev_ssn = $current_ssn;
 
     DB::beginTransaction();
 
     try {
-        // 1️⃣ Check if previous term has students assigned
+        /*
+        |--------------------------------------------------------------------------
+        | 1. Confirm students exist in current term/session
+        |--------------------------------------------------------------------------
+        */
         $prevStudentsCount = DB::table('old_student')
             ->where('schid', $schid)
-            ->where('ssn', $prev_ssn)
             ->where('trm', $prev_trm)
+            ->where('ssn', $prev_ssn)
             ->where('status', 'active')
             ->count();
 
         Log::info('Previous students count', [
             'schid' => $schid,
-            'prev_ssn' => $prev_ssn,
-            'prev_trm' => $prev_trm,
+            'trm'   => $prev_trm,
+            'ssn'   => $prev_ssn,
             'count' => $prevStudentsCount
         ]);
 
-        if ($prevStudentsCount == 0) {
+        if ($prevStudentsCount === 0) {
             return response()->json([
-                "status" => false,
-                "message" => "No assignments found in the previous term.",
-                "pld" => []
+                'status'  => false,
+                'message' => 'No students found for promotion'
             ], 400);
         }
 
-        // Initialize counter for unique UID
+        /*
+        |--------------------------------------------------------------------------
+        | 2. Promote students (old_student)
+        |--------------------------------------------------------------------------
+        */
         DB::statement('SET @counter := 0;');
-
-        // 2️⃣ Promote students
-        $studentBindings = [
-            $next_ssn, $next_trm,      // target term/session
-            $schid, $prev_trm, $prev_ssn, // previous term/session
-            $next_trm, $next_ssn       // prevent duplicates
-        ];
-
-        Log::info('Student insert query bindings', $studentBindings);
 
         DB::insert("
             INSERT INTO old_student (
-                uid, suid, sid, schid, fname, mname, lname,
+                uid, suid, sid, schid,
+                fname, mname, lname,
                 clsm, clsa, cls_sbj_students,
                 status, adm_ssn, adm_trm, cls_of_adm,
                 ssn, trm, created_at, updated_at
             )
             SELECT
-                CONCAT(os.ssn, os.trm, os.sid, os.clsm, '_', LPAD(@counter := @counter + 1, 4, '0')) AS uid,
+                CONCAT(?, ?, os.sid, os.clsm, '_', LPAD(@counter := @counter + 1, 4, '0')),
                 os.suid,
                 os.sid,
                 os.schid,
@@ -33732,20 +33734,22 @@ public function maintainPreviousStudents(Request $request)
                     AND x.ssn = ?
               )
             ORDER BY os.sid
-        ", $studentBindings);
+        ", [
+            $next_ssn, $next_trm,
+            $next_ssn, $next_trm,
+            $schid, $prev_trm, $prev_ssn,
+            $next_trm, $next_ssn
+        ]);
 
-        // 3️⃣ Promote student subjects
-        $subjectBindings = [
-            $next_trm, $next_ssn,       // target term/session
-            $prev_trm, $prev_ssn,       // previous term/session
-            $next_trm, $next_ssn        // prevent duplicates
-        ];
-
-        Log::info('Student subjects insert bindings', $subjectBindings);
-
+        /*
+        |--------------------------------------------------------------------------
+        | 3. Promote student subjects
+        |--------------------------------------------------------------------------
+        */
         DB::insert("
             INSERT INTO student_subj (
-                uid, stid, sbj, comp, schid, clsid, trm, ssn, created_at, updated_at
+                uid, stid, sbj, comp, schid, clsid,
+                trm, ssn, created_at, updated_at
             )
             SELECT
                 s.uid,
@@ -33774,79 +33778,37 @@ public function maintainPreviousStudents(Request $request)
                     AND x.trm = ?
                     AND x.ssn = ?
               )
-        ", $subjectBindings);
-
-        // 4️⃣ Promote class subjects
-        DB::statement('SET @counter := 0;'); // reset counter for unique UID
-        $classBindings = [
-            $next_trm, $next_ssn,     // target term/session
-            $schid, $prev_trm, $prev_ssn  // previous term/session
-        ];
-
-        Log::info('Class subjects insert bindings', $classBindings);
-
-DB::insert("
-    INSERT INTO student_subj (
-        uid, stid, sbj, comp, schid, clsid, trm, ssn, created_at, updated_at
-    )
-    SELECT
-        s.uid,
-        s.stid,
-        s.sbj,
-        s.comp,
-        s.schid,
-        s.clsid,
-        ?, ?,
-        NOW(), NOW()
-    FROM student_subj s
-    JOIN old_student o
-      ON o.sid = s.stid
-     AND o.schid = s.schid
-     AND o.trm = ?
-     AND o.ssn = ?
-     AND o.status = 'active'
-    WHERE s.trm = ?
-      AND s.ssn = ?
-      AND NOT EXISTS (
-          SELECT 1 FROM student_subj x
-          WHERE x.stid = s.stid
-            AND x.sbj = s.sbj
-            AND x.schid = s.schid
-            AND x.clsid = s.clsid
-            AND x.trm = ?
-            AND x.ssn = ?
-      )
-", $subjectBindings);
-
+        ", [
+            $next_trm, $next_ssn,
+            $prev_trm, $prev_ssn,
+            $prev_trm, $prev_ssn,
+            $next_trm, $next_ssn
+        ]);
 
         DB::commit();
 
         return response()->json([
-            "status" => true,
-            "message" => "Students, subjects, and class subjects promoted successfully",
-            "new_trm" => $next_trm,
-            "new_ssn" => $next_ssn
+            'status'   => true,
+            'message'  => 'Students promoted successfully',
+            'new_trm'  => $next_trm,
+            'new_ssn'  => $next_ssn
         ]);
 
     } catch (\Throwable $e) {
         DB::rollBack();
 
-        Log::error('Maintain Previous Students Failed', [
-            'schid' => $schid,
-            'current_trm' => $current_trm,
-            'current_ssn' => $current_ssn,
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
+        Log::error('Promotion failed', [
+            'error' => $e->getMessage()
         ]);
 
         return response()->json([
-            "status" => false,
-            "message" => "Failed to promote students",
-            "error" => $e->getMessage(),
-            "pld" => []
+            'status'  => false,
+            'message' => 'Promotion failed',
+            'error'   => $e->getMessage()
         ], 500);
     }
 }
+
 
 
     /**
