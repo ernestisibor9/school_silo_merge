@@ -33636,57 +33636,57 @@ public function maintainPreviousStudents(Request $request)
 {
     $request->validate([
         'schid' => 'required|integer',
-        'new_trm' => 'required|integer', // 1, 2, 3
-        'ssn' => 'required|integer',     // target session/year
+        'trm' => 'required|integer',       // current term
+        'ssn' => 'required|integer',       // current session/year
     ]);
 
     $schid = $request->schid;
-    $new_trm = $request->new_trm;
-    $ssn = $request->ssn;
+    $current_trm = $request->trm;         // the term the user clicked
+    $current_ssn = $request->ssn;         // the session the user clicked
 
-    // Determine previous term & session
-    if ($new_trm == 1) {
-        $prev_trm = 3;
-        $prev_ssn = $ssn - 1;
-    } else {
-        $prev_trm = $new_trm - 1;
-        $prev_ssn = $ssn;
+    // Determine the target term/session after promotion
+    $new_trm = $current_trm + 1;
+    $new_ssn = $current_ssn;
+
+    if ($new_trm > 3) {
+        $new_trm = 1;      // wrap around to term 1
+        $new_ssn = $current_ssn + 1; // move to next session
     }
 
     DB::beginTransaction();
 
     try {
-        // 1️⃣ Check if previous term has students assigned
-        $prevStudentsCount = DB::table('old_student')
+        // 1️⃣ Check if current term has students assigned
+        $currentStudentsCount = DB::table('old_student')
             ->where('schid', $schid)
-            ->where('ssn', $prev_ssn)
-            ->where('trm', $prev_trm)
+            ->where('ssn', $current_ssn)
+            ->where('trm', $current_trm)
             ->where('status', 'active')
             ->count();
 
-        Log::info('Previous students count', [
+        Log::info('Current students count', [
             'schid' => $schid,
-            'prev_ssn' => $prev_ssn,
-            'prev_trm' => $prev_trm,
-            'count' => $prevStudentsCount
+            'current_ssn' => $current_ssn,
+            'current_trm' => $current_trm,
+            'count' => $currentStudentsCount
         ]);
 
-        if ($prevStudentsCount == 0) {
+        if ($currentStudentsCount == 0) {
             return response()->json([
                 "status" => false,
-                "message" => "No assignments found in the previous term.",
+                "message" => "No students found in the current term.",
                 "pld" => []
             ], 400);
         }
 
-        // Initialize counter
+        // Initialize MySQL counter for UID
         DB::statement('SET @counter := 0;');
 
         // 2️⃣ Promote students
         $bindings = [
-            $ssn, $new_trm,             // target ssn/trm
-            $schid, $prev_trm, $prev_ssn, // source filter
-            $new_trm, $ssn              // prevent duplicates
+            $new_ssn, $new_trm,       // target ssn/trm
+            $schid, $current_trm, $current_ssn, // source filter
+            $new_trm, $new_ssn        // prevent duplicates
         ];
 
         Log::info('Insert query bindings', $bindings);
@@ -33737,6 +33737,8 @@ public function maintainPreviousStudents(Request $request)
         return response()->json([
             "status" => true,
             "message" => "Students promoted successfully",
+            "target_trm" => $new_trm,
+            "target_ssn" => $new_ssn,
             "pld" => []
         ]);
 
@@ -33745,8 +33747,8 @@ public function maintainPreviousStudents(Request $request)
 
         Log::error('Maintain Previous Students Failed', [
             'schid' => $schid,
-            'new_trm' => $new_trm,
-            'ssn' => $ssn,
+            'current_trm' => $current_trm,
+            'current_ssn' => $current_ssn,
             'error' => $e->getMessage(),
             'trace' => $e->getTraceAsString()
         ]);
@@ -33756,9 +33758,10 @@ public function maintainPreviousStudents(Request $request)
             "message" => "Failed to promote students",
             "error" => $e->getMessage(),
             "pld" => []
-        ], 500);
+        ]);
     }
 }
+
 
 
     /**
