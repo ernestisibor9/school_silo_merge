@@ -33356,7 +33356,7 @@ class ApiController extends Controller
 //     }
 // }
 
-public function maintainPreviousStudents(Request $request) 
+public function maintainPreviousStudents(Request $request)
 {
     $request->validate([
         'schid' => 'required|integer',
@@ -33393,10 +33393,10 @@ public function maintainPreviousStudents(Request $request)
                 "status" => false,
                 "message" => "No assignments found in the previous term.",
                 "pld" => []
-            ]);
+            ], 400);
         }
 
-        // 2. Promote students using UID formatted as ssn,trm,sid,clsm
+        // 2. Promote students using UUID() for uid to avoid duplicates
         DB::insert("
             INSERT INTO old_student (
                 uid, suid, sid, schid, fname, mname, lname,
@@ -33405,7 +33405,7 @@ public function maintainPreviousStudents(Request $request)
                 ssn, trm, created_at, updated_at
             )
             SELECT
-                CONCAT(?, ',', ?, ',', os.sid, ',', os.clsm) AS uid,
+                UUID() AS uid,
                 os.suid,
                 os.sid,
                 os.schid,
@@ -33428,22 +33428,24 @@ public function maintainPreviousStudents(Request $request)
               AND os.status = 'active'
               AND NOT EXISTS (
                   SELECT 1 FROM old_student x
-                  WHERE x.uid = CONCAT(?, ',', ?, ',', os.sid, ',', os.clsm)
+                  WHERE x.sid = os.sid
+                    AND x.schid = os.schid
+                    AND x.trm = ?
+                    AND x.ssn = ?
               )
         ", [
-            $ssn, $new_trm,       // for UID: ssn,trm
-            $ssn, $new_trm,       // target session & term
+            $ssn, $new_trm,       // target session and term
             $schid, $prev_trm, $prev_ssn, // source school/term/session
-            $ssn, $new_trm        // for NOT EXISTS UID check
+            $new_trm, $ssn        // check to prevent duplicates
         ]);
 
-        // 3. Promote student subjects using UID formatted as ssn,trm,stid,clsid,subj_id
+        // 3. Promote student subjects
         DB::insert("
             INSERT INTO student_subj (
                 uid, stid, sbj, comp, schid, clsid, trm, ssn, created_at, updated_at
             )
             SELECT
-                CONCAT(?, ',', ?, ',', s.stid, ',', s.clsid, ',', s.sbj) AS uid,
+                UUID() AS uid,
                 s.stid,
                 s.sbj,
                 s.comp,
@@ -33452,28 +33454,38 @@ public function maintainPreviousStudents(Request $request)
                 ?, ?,
                 NOW(), NOW()
             FROM student_subj s
+            JOIN old_student o
+              ON o.sid = s.stid
+             AND o.schid = s.schid
+             AND o.trm = ?
+             AND o.ssn = ?
+             AND o.status = 'active'
             WHERE s.trm = ?
               AND s.ssn = ?
-              AND s.schid = ?
               AND NOT EXISTS (
                   SELECT 1 FROM student_subj x
-                  WHERE x.uid = CONCAT(?, ',', ?, ',', s.stid, ',', s.clsid, ',', s.sbj)
+                  WHERE x.stid = s.stid
+                    AND x.sbj = s.sbj
+                    AND x.schid = s.schid
+                    AND x.clsid = s.clsid
+                    AND x.trm = ?
+                    AND x.ssn = ?
               )
         ", [
-            $ssn, $new_trm,       // UID prefix: ssn,new_trm
             $new_trm, $ssn,       // target term/session
-            $prev_trm, $prev_ssn, $schid, // previous term/session/school
-            $ssn, $new_trm        // for NOT EXISTS UID check
+            $prev_trm, $prev_ssn, // previous term/session
+            $prev_trm, $prev_ssn, // filter source subjects
+            $new_trm, $ssn        // prevent duplicates
         ]);
 
-        // 4. Promote class subjects using UID formatted as ssn,trm,clsid,subj_id
+        // 4. Promote class subjects
         DB::insert("
             INSERT INTO class_subj (
                 uid, subj_id, schid, name, comp,
                 clsid, sesn, trm, created_at, updated_at
             )
             SELECT
-                CONCAT(?, ',', ?, ',', cs.clsid, ',', cs.subj_id) AS uid,
+                UUID() AS uid,
                 cs.subj_id,
                 cs.schid,
                 cs.name,
@@ -33485,15 +33497,9 @@ public function maintainPreviousStudents(Request $request)
             WHERE cs.schid = ?
               AND cs.trm = ?
               AND cs.sesn = ?
-              AND NOT EXISTS (
-                  SELECT 1 FROM class_subj x
-                  WHERE x.uid = CONCAT(?, ',', ?, ',', cs.clsid, ',', cs.subj_id)
-              )
         ", [
-            $ssn, $new_trm,       // UID prefix
-            $ssn, $new_trm,       // target sesn, trm
-            $schid, $prev_trm, $prev_ssn, // source schid, prev_trm, prev_ssn
-            $ssn, $new_trm        // for NOT EXISTS UID check
+            $new_trm, $ssn,       // target term/session
+            $schid, $prev_trm, $prev_ssn // source term/session
         ]);
 
         DB::commit();
