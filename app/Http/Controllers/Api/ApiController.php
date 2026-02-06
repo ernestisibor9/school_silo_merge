@@ -33757,23 +33757,24 @@ public function maintainPreviousStudents(Request $request)
 
         // 4️⃣ Promote class subjects
         DB::insert("
-            INSERT INTO class_subj (
-                uid, subj_id, schid, name, comp,
-                clsid, sesn, trm, created_at, updated_at
-            )
-            SELECT
-                cs.uid,     -- keep original UID
-                cs.subj_id,
-                cs.schid,
-                cs.name,
-                cs.comp,
-                cs.clsid,
-                ?, ?,
-                NOW(), NOW()
-            FROM class_subj cs
-            WHERE cs.schid = ?
-              AND cs.trm = ?
-              AND cs.sesn = ?
+INSERT INTO class_subj (
+    uid, subj_id, schid, name, comp,
+    clsid, sesn, trm, created_at, updated_at
+)
+SELECT
+    UUID() AS uid,   -- generate new UID
+    cs.subj_id,
+    cs.schid,
+    cs.name,
+    cs.comp,
+    cs.clsid,
+    ?, ?,
+    NOW(), NOW()
+FROM class_subj cs
+WHERE cs.schid = ?
+  AND cs.trm = ?
+  AND cs.sesn = ?
+
         ", [
             $new_trm, $ssn,       // target term/session
             $schid, $prev_trm, $prev_ssn // source term/session
