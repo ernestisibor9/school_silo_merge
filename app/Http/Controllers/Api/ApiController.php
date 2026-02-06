@@ -33674,61 +33674,50 @@ public function maintainPreviousStudents(Request $request)
             ], 400);
         }
 
-        $prevStudents = DB::table('old_student')
-    ->where('schid', $schid)
-    ->where('ssn', $prev_ssn)
-    ->where('trm', $prev_trm)
-    ->where('status', 'active')
-    ->get();
-
-dd($prevStudents);
-
-
         // 2. Promote students with deterministic UID
-DB::insert("
-    INSERT INTO old_student (
-        uid, suid, sid, schid, fname, mname, lname,
-        clsm, clsa, cls_sbj_students,
-        status, adm_ssn, adm_trm, cls_of_adm,
-        ssn, trm, created_at, updated_at
-    )
-    SELECT
-        CONCAT(os.sid, os.schid, ?, ?, os.clsm) AS uid,
-        os.suid,
-        os.sid,
-        os.schid,
-        os.fname,
-        os.mname,
-        os.lname,
-        os.clsm,
-        os.clsa,
-        os.cls_sbj_students,
-        'active',
-        os.adm_ssn,
-        os.adm_trm,
-        os.cls_of_adm,
-        ?, ?,  -- target ssn/trm
-        NOW(), NOW()
-    FROM old_student os
-    WHERE os.schid = ?
-      AND os.trm = ?
-      AND os.ssn = ?
-      AND os.status = 'active'
-      AND NOT EXISTS (
-          SELECT 1 FROM old_student x
-          WHERE x.sid = os.sid
-            AND x.schid = os.schid
-            AND x.trm = ?   -- target trm
-            AND x.ssn = ?   -- target ssn
-            AND x.clsm = os.clsm
-      )
-", [
-    $ssn, $new_trm,     // for uid (target session + term)
-    $ssn, $new_trm,     // for actual insert
-    $schid, $prev_trm, $prev_ssn, // previous session/term
-    $new_trm, $ssn      // prevent duplicates
-]);
-
+        DB::insert("
+            INSERT INTO old_student (
+                uid, suid, sid, schid, fname, mname, lname,
+                clsm, clsa, cls_sbj_students,
+                status, adm_ssn, adm_trm, cls_of_adm,
+                ssn, trm, created_at, updated_at
+            )
+            SELECT
+                CONCAT(os.sid, os.schid, ?, ?, os.clsm) AS uid,
+                os.suid,
+                os.sid,
+                os.schid,
+                os.fname,
+                os.mname,
+                os.lname,
+                os.clsm,
+                os.clsa,
+                os.cls_sbj_students,
+                'active',
+                os.adm_ssn,
+                os.adm_trm,
+                os.cls_of_adm,
+                ?, ?,  -- target ssn/trm
+                NOW(), NOW()
+            FROM old_student os
+            WHERE os.schid = ?
+              AND os.trm = ?
+              AND os.ssn = ?
+              AND os.status = 'active'
+              AND NOT EXISTS (
+                  SELECT 1 FROM old_student x
+                  WHERE x.sid = os.sid
+                    AND x.schid = os.schid
+                    AND x.trm = ?
+                    AND x.ssn = ?
+                    AND x.clsm = os.clsm
+              )
+        ", [
+            $ssn, $new_trm,     // for UID
+            $ssn, $new_trm,     // insert ssn/trm
+            $schid, $prev_trm, $prev_ssn, // previous session/term filter
+            $new_trm, $ssn      // NOT EXISTS target trm/ssn
+        ]);
 
         // 3. Promote student subjects
         DB::insert("
@@ -33736,7 +33725,7 @@ DB::insert("
                 uid, stid, sbj, comp, schid, clsid, trm, ssn, created_at, updated_at
             )
             SELECT
-                CONCAT(s.stid, s.schid, s.ssn, s.trm, s.clsid) AS uid,
+                CONCAT(s.stid, s.schid, ?, ?, s.clsid) AS uid,
                 s.stid,
                 s.sbj,
                 s.comp,
@@ -33761,9 +33750,10 @@ DB::insert("
                     AND x.ssn = ?
               )
         ", [
-            $new_trm, $ssn,       // target term/session
-            $prev_trm, $prev_ssn, // previous term/session
-            $new_trm, $ssn        // prevent duplicates
+            $new_trm, $ssn,       // for UID
+            $new_trm, $ssn,       // insert trm/ssn
+            $prev_trm, $prev_ssn, // previous trm/ssn filter
+            $new_trm, $ssn        // NOT EXISTS target trm/ssn
         ]);
 
         // 4. Promote class subjects
@@ -33773,7 +33763,7 @@ DB::insert("
                 clsid, sesn, trm, created_at, updated_at
             )
             SELECT
-                CONCAT(cs.schid, cs.subj_id, cs.sesn, cs.trm, cs.clsid) AS uid,
+                CONCAT(cs.schid, cs.subj_id, ?, ?, cs.clsid) AS uid,
                 cs.subj_id,
                 cs.schid,
                 cs.name,
@@ -33794,9 +33784,10 @@ DB::insert("
                     AND x.sesn = ?
               )
         ", [
-            $ssn, $new_trm,       // target sesn/trm
-            $schid, $prev_trm, $prev_ssn, // previous sesn/trm
-            $new_trm, $ssn        // prevent duplicates
+            $new_trm, $ssn,       // for UID
+            $new_trm, $ssn,       // insert sesn/trm
+            $schid, $prev_trm, $prev_ssn, // previous sesn/trm filter
+            $new_trm, $ssn        // NOT EXISTS target sesn/trm
         ]);
 
         DB::commit();
