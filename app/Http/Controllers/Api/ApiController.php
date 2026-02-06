@@ -33487,7 +33487,7 @@ public function maintainPreviousStudents(Request $request)
                 clsid, sesn, trm, created_at, updated_at
             )
             SELECT
-                CONCAT(?, ',', ?, ',', cs.clsid, ',', cs.clsid) AS uid,
+                CONCAT(?, ',', ?, ',', cs.clsid, ',', ?) AS uid,
                 cs.subj_id,
                 cs.schid,
                 cs.name,
