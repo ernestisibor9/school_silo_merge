@@ -33460,7 +33460,7 @@ class ApiController extends Controller
 //     }
 // }
 
-    // public function maintainPreviousStudents(Request $request)
+//     public function maintainPreviousStudents(Request $request)
 // {
 //     $request->validate([
 //         'schid' => 'required|integer',
@@ -33468,11 +33468,11 @@ class ApiController extends Controller
 //         'ssn' => 'required|integer',     // target session/year
 //     ]);
 
-    //     $schid = $request->schid;
+//         $schid = $request->schid;
 //     $new_trm = $request->new_trm;
 //     $ssn = $request->ssn;
 
-    //     // Determine previous term & session
+//         // Determine previous term & session
 //     if ($new_trm == 1) {
 //         $prev_trm = 3;
 //         $prev_ssn = $ssn - 1;
@@ -33481,9 +33481,9 @@ class ApiController extends Controller
 //         $prev_ssn = $ssn;
 //     }
 
-    //     DB::beginTransaction();
+//         DB::beginTransaction();
 
-    //     try {
+//         try {
 //         // 1. Check if previous term has students assigned
 //         $prevStudentsCount = DB::table('old_student')
 //             ->where('schid', $schid)
@@ -33492,7 +33492,7 @@ class ApiController extends Controller
 //             ->where('status', 'active')
 //             ->count();
 
-    //         if ($prevStudentsCount == 0) {
+//             if ($prevStudentsCount == 0) {
 //             return response()->json([
 //                 "status" => false,
 //                 "message" => "No assignments found in the previous term.",
@@ -33500,7 +33500,7 @@ class ApiController extends Controller
 //             ], 400);
 //         }
 
-    //         // 2. Promote students using UUID() for uid to avoid duplicates
+//             // 2. Promote students using UUID() for uid to avoid duplicates
 //         DB::insert("
 //             INSERT INTO old_student (
 //                 uid, suid, sid, schid, fname, mname, lname,
@@ -33543,7 +33543,7 @@ class ApiController extends Controller
 //             $new_trm, $ssn        // check to prevent duplicates
 //         ]);
 
-    //         // 3. Promote student subjects
+//             // 3. Promote student subjects
 //         DB::insert("
 //             INSERT INTO student_subj (
 //                 uid, stid, sbj, comp, schid, clsid, trm, ssn, created_at, updated_at
@@ -33582,7 +33582,7 @@ class ApiController extends Controller
 //             $new_trm, $ssn        // prevent duplicates
 //         ]);
 
-    //         // 4. Promote class subjects
+//             // 4. Promote class subjects
 //         DB::insert("
 //             INSERT INTO class_subj (
 //                 uid, subj_id, schid, name, comp,
@@ -33606,25 +33606,25 @@ class ApiController extends Controller
 //             $schid, $prev_trm, $prev_ssn // source term/session
 //         ]);
 
-    //         DB::commit();
+//             DB::commit();
 
-    //         return response()->json([
+//             return response()->json([
 //             "status" => true,
 //             "message" => "Success",
 //             "pld" => []
 //         ]);
 
-    //     } catch (\Throwable $e) {
+//         } catch (\Throwable $e) {
 //         DB::rollBack();
 
-    //         Log::error('Maintain Previous Students Failed', [
+//             Log::error('Maintain Previous Students Failed', [
 //             'schid' => $schid,
 //             'new_trm' => $new_trm,
 //             'ssn' => $ssn,
 //             'error' => $e->getMessage()
 //         ]);
 
-    //         return response()->json([
+//             return response()->json([
 //             "status" => false,
 //             "message" => "Failed to maintain previous term data",
 //             "error" => $e->getMessage(),
