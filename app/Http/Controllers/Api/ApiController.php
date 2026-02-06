@@ -33633,18 +33633,17 @@ public function setStudentAcademicInfo(Request $request)
 //     }
 // }
 
-
 public function maintainPreviousStudents(Request $request)
 {
     $request->validate([
-        'schid' => 'required|integer',
-        'new_trm' => 'required|integer', // 1, 2, 3.
-        'ssn' => 'required|integer',     // target session/year
+        'schid'   => 'required|integer',
+        'new_trm' => 'required|integer', // 1,2,3
+        'ssn'     => 'required|integer', // target session/year
     ]);
 
-    $schid = $request->schid;
+    $schid   = $request->schid;
     $new_trm = $request->new_trm;
-    $ssn = $request->ssn;
+    $ssn     = $request->ssn;
 
     // Determine previous term & session dynamically
     if ($new_trm == 1) {
@@ -33654,6 +33653,15 @@ public function maintainPreviousStudents(Request $request)
         $prev_trm = $new_trm - 1;
         $prev_ssn = $ssn;
     }
+
+    // Log incoming data
+    Log::info('MaintainPreviousStudents called', [
+        'schid' => $schid,
+        'new_trm' => $new_trm,
+        'ssn' => $ssn,
+        'prev_trm' => $prev_trm,
+        'prev_ssn' => $prev_ssn
+    ]);
 
     DB::beginTransaction();
 
@@ -33666,16 +33674,29 @@ public function maintainPreviousStudents(Request $request)
             ->where('status', 'active')
             ->count();
 
+        Log::info('Previous students count', [
+            'count' => $prevStudentsCount
+        ]);
+
         if ($prevStudentsCount == 0) {
             return response()->json([
-                "status" => false,
+                "status"  => false,
                 "message" => "No assignments found in the previous term.",
-                "pld" => []
+                "pld"     => []
             ], 400);
         }
 
-        // 2️⃣ Promote students with deterministic UID
-        DB::insert("
+        // 2️⃣ Promote students dynamically (all classes)
+        $bindings = [
+            $ssn, $new_trm,       // UID: target session + term
+            $ssn, $new_trm,       // Insert target session + term
+            $schid, $prev_trm, $prev_ssn, // Source filter: previous term/session
+            $new_trm, $ssn        // Prevent duplicates
+        ];
+
+        Log::info('Promotion query bindings', $bindings);
+
+        $inserted = DB::insert("
             INSERT INTO old_student (
                 uid, suid, sid, schid, fname, mname, lname,
                 clsm, clsa, cls_sbj_students,
@@ -33710,107 +33731,41 @@ public function maintainPreviousStudents(Request $request)
                     AND x.schid = os.schid
                     AND x.trm = ?
                     AND x.ssn = ?
+                    AND x.clsm = os.clsm
               )
-        ", [
-            $ssn, $new_trm,       // UID generation
-            $ssn, $new_trm,       // actual insert ssn/trm
-            $schid, $prev_trm, $prev_ssn, // filter previous term
-            $new_trm, $ssn        // prevent duplicates
-        ]);
+        ", $bindings);
 
-        // 3️⃣ Promote student subjects
-        DB::insert("
-            INSERT INTO student_subj (
-                uid, stid, sbj, comp, schid, clsid, trm, ssn, created_at, updated_at
-            )
-            SELECT
-                CONCAT(s.stid, s.schid, ?, ?, s.clsid) AS uid,
-                s.stid,
-                s.sbj,
-                s.comp,
-                s.schid,
-                s.clsid,
-                ?, ?,  -- target trm/ssn
-                NOW(), NOW()
-            FROM student_subj s
-            WHERE s.trm = ?
-              AND s.ssn = ?
-              AND NOT EXISTS (
-                  SELECT 1 FROM student_subj x
-                  WHERE x.stid = s.stid
-                    AND x.sbj = s.sbj
-                    AND x.schid = s.schid
-                    AND x.clsid = s.clsid
-                    AND x.trm = ?
-                    AND x.ssn = ?
-              )
-        ", [
-            $new_trm, $ssn,   // UID
-            $new_trm, $ssn,   // insert
-            $prev_trm, $prev_ssn, // source
-            $new_trm, $ssn    // prevent duplicates
-        ]);
-
-        // 4️⃣ Promote class subjects
-        DB::insert("
-            INSERT INTO class_subj (
-                uid, subj_id, schid, name, comp,
-                clsid, sesn, trm, created_at, updated_at
-            )
-            SELECT
-                CONCAT(cs.schid, cs.subj_id, ?, ?, cs.clsid) AS uid,
-                cs.subj_id,
-                cs.schid,
-                cs.name,
-                cs.comp,
-                cs.clsid,
-                ?, ?,  -- target sesn/trm
-                NOW(), NOW()
-            FROM class_subj cs
-            WHERE cs.schid = ?
-              AND cs.trm = ?
-              AND cs.sesn = ?
-              AND NOT EXISTS (
-                  SELECT 1 FROM class_subj x
-                  WHERE x.subj_id = cs.subj_id
-                    AND x.schid = cs.schid
-                    AND x.clsid = cs.clsid
-                    AND x.trm = ?
-                    AND x.sesn = ?
-              )
-        ", [
-            $new_trm, $ssn,   // UID
-            $new_trm, $ssn,   // insert
-            $schid, $prev_trm, $prev_ssn, // source filter
-            $new_trm, $ssn    // prevent duplicates
+        Log::info('Promotion query executed', [
+            'inserted' => $inserted
         ]);
 
         DB::commit();
 
         return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => []
+            "status"  => true,
+            "message" => "Students promoted successfully",
+            "pld"     => []
         ]);
 
     } catch (\Throwable $e) {
         DB::rollBack();
 
         Log::error('Maintain Previous Students Failed', [
-            'schid' => $schid,
+            'schid'   => $schid,
             'new_trm' => $new_trm,
-            'ssn' => $ssn,
-            'error' => $e->getMessage()
+            'ssn'     => $ssn,
+            'error'   => $e->getMessage()
         ]);
 
         return response()->json([
-            "status" => false,
-            "message" => "Failed to maintain previous term data",
-            "error" => $e->getMessage(),
-            "pld" => []
+            "status"  => false,
+            "message" => "Failed to promote students",
+            "error"   => $e->getMessage(),
+            "pld"     => []
         ], 500);
     }
 }
+
 
     /**
      * @OA\Post(
