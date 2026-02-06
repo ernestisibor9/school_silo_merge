@@ -33685,48 +33685,50 @@ dd($prevStudents);
 
 
         // 2. Promote students with deterministic UID
-        DB::insert("
-            INSERT INTO old_student (
-                uid, suid, sid, schid, fname, mname, lname,
-                clsm, clsa, cls_sbj_students,
-                status, adm_ssn, adm_trm, cls_of_adm,
-                ssn, trm, created_at, updated_at
-            )
-            SELECT
-                CONCAT(os.sid, os.schid, os.ssn, os.trm, os.clsm) AS uid,
-                os.suid,
-                os.sid,
-                os.schid,
-                os.fname,
-                os.mname,
-                os.lname,
-                os.clsm,
-                os.clsa,
-                os.cls_sbj_students,
-                'active',
-                os.adm_ssn,
-                os.adm_trm,
-                os.cls_of_adm,
-                ?, ?,  -- target ssn and trm
-                NOW(), NOW()
-            FROM old_student os
-            WHERE os.schid = ?
-              AND os.trm = ?
-              AND os.ssn = ?
-              AND os.status = 'active'
-              AND NOT EXISTS (
-                  SELECT 1 FROM old_student x
-                  WHERE x.sid = os.sid
-                    AND x.schid = os.schid
-                    AND x.trm = ?
-                    AND x.ssn = ?
-                    AND x.clsm = os.clsm
-              )
-        ", [
-            $ssn, $new_trm,       // target session and term
-            $schid, $prev_trm, $prev_ssn, // source school/term/session
-            $new_trm, $ssn        // prevent duplicates
-        ]);
+DB::insert("
+    INSERT INTO old_student (
+        uid, suid, sid, schid, fname, mname, lname,
+        clsm, clsa, cls_sbj_students,
+        status, adm_ssn, adm_trm, cls_of_adm,
+        ssn, trm, created_at, updated_at
+    )
+    SELECT
+        CONCAT(os.sid, os.schid, ?, ?, os.clsm) AS uid,
+        os.suid,
+        os.sid,
+        os.schid,
+        os.fname,
+        os.mname,
+        os.lname,
+        os.clsm,
+        os.clsa,
+        os.cls_sbj_students,
+        'active',
+        os.adm_ssn,
+        os.adm_trm,
+        os.cls_of_adm,
+        ?, ?,  -- target ssn/trm
+        NOW(), NOW()
+    FROM old_student os
+    WHERE os.schid = ?
+      AND os.trm = ?
+      AND os.ssn = ?
+      AND os.status = 'active'
+      AND NOT EXISTS (
+          SELECT 1 FROM old_student x
+          WHERE x.sid = os.sid
+            AND x.schid = os.schid
+            AND x.trm = ?   -- target trm
+            AND x.ssn = ?   -- target ssn
+            AND x.clsm = os.clsm
+      )
+", [
+    $ssn, $new_trm,     // for uid (target session + term)
+    $ssn, $new_trm,     // for actual insert
+    $schid, $prev_trm, $prev_ssn, // previous session/term
+    $new_trm, $ssn      // prevent duplicates
+]);
+
 
         // 3. Promote student subjects
         DB::insert("
