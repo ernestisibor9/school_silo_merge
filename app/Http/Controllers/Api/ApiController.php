@@ -33785,25 +33785,39 @@ public function maintainPreviousStudents(Request $request)
 
         Log::info('Class subjects insert bindings', $classBindings);
 
-        DB::insert("
-            INSERT INTO class_subj (
-                uid, subj_id, schid, name, comp,
-                clsid, sesn, trm, created_at, updated_at
-            )
-            SELECT
-                CONCAT('CS_', LPAD(@counter := @counter + 1, 4, '0')) AS uid,
-                cs.subj_id,
-                cs.schid,
-                cs.name,
-                cs.comp,
-                cs.clsid,
-                ?, ?,
-                NOW(), NOW()
-            FROM class_subj cs
-            WHERE cs.schid = ?
-              AND cs.trm = ?
-              AND cs.sesn = ?
-        ", $classBindings);
+DB::insert("
+    INSERT INTO student_subj (
+        uid, stid, sbj, comp, schid, clsid, trm, ssn, created_at, updated_at
+    )
+    SELECT
+        s.uid,
+        s.stid,
+        s.sbj,
+        s.comp,
+        s.schid,
+        s.clsid,
+        ?, ?,
+        NOW(), NOW()
+    FROM student_subj s
+    JOIN old_student o
+      ON o.sid = s.stid
+     AND o.schid = s.schid
+     AND o.trm = ?
+     AND o.ssn = ?
+     AND o.status = 'active'
+    WHERE s.trm = ?
+      AND s.ssn = ?
+      AND NOT EXISTS (
+          SELECT 1 FROM student_subj x
+          WHERE x.stid = s.stid
+            AND x.sbj = s.sbj
+            AND x.schid = s.schid
+            AND x.clsid = s.clsid
+            AND x.trm = ?
+            AND x.ssn = ?
+      )
+", $subjectBindings);
+
 
         DB::commit();
 
