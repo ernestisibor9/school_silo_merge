@@ -33674,6 +33674,16 @@ public function maintainPreviousStudents(Request $request)
             ], 400);
         }
 
+        $prevStudents = DB::table('old_student')
+    ->where('schid', $schid)
+    ->where('ssn', $prev_ssn)
+    ->where('trm', $prev_trm)
+    ->where('status', 'active')
+    ->get();
+
+dd($prevStudents);
+
+
         // 2. Promote students with deterministic UID
         DB::insert("
             INSERT INTO old_student (
