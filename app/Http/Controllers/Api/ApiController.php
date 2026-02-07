@@ -19771,54 +19771,139 @@ class ApiController extends Controller
 
     /////////////////////////
 
-    /**
-     * @OA\Post(
-     *     path="/api/setAttendanceMark",
-     *     summary="Set attendance for multiple students",
-     *     description="Allows Admin or Form Teacher to set or update attendance status for students for a specific term, class, week, and day.",
-     *     tags={"Api"},
-     *     security={{"bearerAuth": {}}},
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"schid", "ssn", "trm", "clsm", "clsa", "stid", "week", "day", "students"},
-     *             @OA\Property(property="schid", type="string", example="SCH123"),
-     *             @OA\Property(property="ssn", type="string", example="SSN001"),
-     *             @OA\Property(property="trm", type="string", example="2024/2025"),
-     *             @OA\Property(property="clsm", type="string", example="JSS1"),
-     *             @OA\Property(property="clsa", type="string", example="A"),
-     *             @OA\Property(property="stid", type="string", example="STAFF001"),
-     *             @OA\Property(property="week", type="integer", example=3, minimum=1, maximum=14),
-     *             @OA\Property(property="day", type="string", enum={"monday", "tuesday", "wednesday", "thursday", "friday"}, example="monday"),
-     *             @OA\Property(
-     *                 property="students",
-     *                 type="array",
-     *                 @OA\Items(
-     *                     @OA\Property(property="sid", type="string", example="STU001"),
-     *                     @OA\Property(property="status", type="integer", enum={0,1,2}, example=1, description="0 = Draft, 1 = Present, 2 = Absent")
-     *                 )
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Attendance marked successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="string", example="success"),
-     *             @OA\Property(property="message", type="string", example="Attendance marked successfully for students."),
-     *             @OA\Property(property="data", type="array", @OA\Items(type="object"))
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=403,
-     *         description="Unauthorized or staff not found",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="string", example="error"),
-     *             @OA\Property(property="message", type="string", example="Unauthorized")
-     *         )
-     *     )
-     * )
-     */
+/**
+ * @OA\Post(
+ *     path="/api/setAttendanceMark",
+ *     operationId="setAttendanceMark",
+ *     summary="Set or update student attendance",
+ *     description="Allows an Admin or Form Teacher to mark or update attendance for multiple students based on session, term, class, week, day, and period (morning or evening).",
+ *     tags={"Attendance"},
+ *     security={{"bearerAuth":{}}},
+ *
+ *     @OA\RequestBody(
+ *         required=true,
+ *         description="Attendance marking payload",
+ *         @OA\JsonContent(
+ *             required={"schid","ssn","trm","clsm","clsa","week","day","period","students"},
+ *
+ *             @OA\Property(property="schid", type="string", example="51", description="School ID"),
+ *             @OA\Property(property="ssn", type="string", example="2024", description="Academic session"),
+ *             @OA\Property(property="trm", type="string", example="1", description="Academic term (1, 2 or 3)"),
+ *             @OA\Property(property="clsm", type="string", example="NUR 1", description="Class main"),
+ *             @OA\Property(property="clsa", type="string", example="B", description="Class arm"),
+ *             @OA\Property(
+ *                 property="stid",
+ *                 type="string",
+ *                 nullable=true,
+ *                 example="12",
+ *                 description="Staff ID (optional — required only for role validation)"
+ *             ),
+ *             @OA\Property(
+ *                 property="week",
+ *                 type="integer",
+ *                 minimum=1,
+ *                 maximum=14,
+ *                 example=3,
+ *                 description="Week number"
+ *             ),
+ *             @OA\Property(
+ *                 property="day",
+ *                 type="string",
+ *                 enum={"monday","tuesday","wednesday","thursday","friday"},
+ *                 example="monday",
+ *                 description="Day of the week"
+ *             ),
+ *             @OA\Property(
+ *                 property="period",
+ *                 type="string",
+ *                 enum={"morning","evening"},
+ *                 example="morning",
+ *                 description="Attendance period"
+ *             ),
+ *             @OA\Property(
+ *                 property="students",
+ *                 type="array",
+ *                 minItems=1,
+ *                 description="List of students and their attendance status",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     required={"sid","status"},
+ *                     @OA\Property(property="sid", type="string", example="25464", description="Student ID"),
+ *                     @OA\Property(
+ *                         property="status",
+ *                         type="integer",
+ *                         enum={0,1,2},
+ *                         example=1,
+ *                         description="0 = Draft, 1 = Present, 2 = Absent"
+ *                     )
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Attendance marked successfully",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="string", example="success"),
+ *             @OA\Property(property="message", type="string", example="Attendance marked successfully for students."),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     @OA\Property(property="sid", type="string", example="25464"),
+ *                     @OA\Property(property="week", type="integer", example=3),
+ *                     @OA\Property(property="day", type="string", example="monday"),
+ *                     @OA\Property(property="period", type="string", example="morning"),
+ *                     @OA\Property(
+ *                         property="status",
+ *                         type="integer",
+ *                         enum={0,1,2},
+ *                         example=1
+ *                     )
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthenticated",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="string", example="error"),
+ *             @OA\Property(property="message", type="string", example="Unauthenticated.")
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=403,
+ *         description="Unauthorized or staff not found",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="string", example="error"),
+ *             @OA\Property(property="message", type="string", example="Unauthorized")
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation error",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="string", example="error"),
+ *             @OA\Property(property="message", type="string", example="Validation failed."),
+ *             @OA\Property(
+ *                 property="errors",
+ *                 type="object",
+ *                 example={
+ *                     "period": {"The selected period is invalid."},
+ *                     "week": {"The week must be between 1 and 14."},
+ *                     "students.0.status": {"The selected status is invalid."}
+ *                 }
+ *             )
+ *         )
+ *     )
+ * )
+ */
+
 
 
     public function setAttendanceMark(Request $request)
@@ -19832,6 +19917,7 @@ class ApiController extends Controller
             'stid' => 'nullable|string', // stid is now optional
             'week' => 'required|integer|min:1|max:14',
             'day' => 'required|in:monday,tuesday,wednesday,thursday,friday',
+            'period' => 'required|in:morning,evening', // ✅ NEW
             'students' => 'required|array',
             'students.*.sid' => 'required|string',
             'students.*.status' => 'required|in:0,1,2',
@@ -19863,6 +19949,7 @@ class ApiController extends Controller
                 'sid' => $student['sid'],
                 'week' => $validated['week'],
                 'day' => $validated['day'],
+                'period' => $validated['period'],
             ])->first();
 
             if ($existing) {
@@ -19882,6 +19969,7 @@ class ApiController extends Controller
                     'stid' => $validated['stid'] ?? null, // Safe nullable fallback
                     'week' => $validated['week'],
                     'day' => $validated['day'],
+                    'period' => $validated['period'],
                     'status' => $student['status'],
                 ]);
             }
@@ -20080,133 +20168,153 @@ class ApiController extends Controller
 
 
     ////
-    /**
-     * @OA\Get(
-     *     path="/api/getAttendance/{week}/{schid}/{trm}/{ssn}/{clsm}/{clsa}",
-     *     summary="Retrieve attendance records for a given week",
-     *     description="Fetches all attendance records for a specified school, term, session, class main, and class arm for the given week (excluding day).",
-     *     operationId="getAttendance",
-     *     tags={"Api"},
-     *     security={{"bearerAuth": {}}},
-     *
-     *     @OA\Parameter(
-     *         name="week",
-     *         in="path",
-     *         required=true,
-     *         description="Week number (1-14)",
-     *         @OA\Schema(type="integer", example=2)
-     *     ),
-     *     @OA\Parameter(
-     *         name="schid",
-     *         in="path",
-     *         required=true,
-     *         description="School ID",
-     *         @OA\Schema(type="string", example="SCH12345")
-     *     ),
-     *     @OA\Parameter(
-     *         name="trm",
-     *         in="path",
-     *         required=true,
-     *         description="Term (e.g., First, Second, Third)",
-     *         @OA\Schema(type="string", example="First")
-     *     ),
-     *     @OA\Parameter(
-     *         name="ssn",
-     *         in="path",
-     *         required=true,
-     *         description="Session (e.g., 2024/2025)",
-     *         @OA\Schema(type="string", example="2024/2025")
-     *     ),
-     *     @OA\Parameter(
-     *         name="clsm",
-     *         in="path",
-     *         required=true,
-     *         description="Class Main (e.g., JSS1)",
-     *         @OA\Schema(type="string", example="JSS1")
-     *     ),
-     *     @OA\Parameter(
-     *         name="clsa",
-     *         in="path",
-     *         required=true,
-     *         description="Class Arm (e.g., A, B, C)",
-     *         @OA\Schema(type="string", example="A")
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="Attendance records retrieved successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="string", example="success"),
-     *             @OA\Property(property="message", type="string", example="Attendance records retrieved successfully."),
-     *             @OA\Property(
-     *                 property="pld",
-     *                 type="array",
-     *                 @OA\Items(
-     *                     @OA\Property(property="sid", type="string", example="STU001"),
-     *                     @OA\Property(property="student_name", type="string", example="John Doe"),
-     *                     @OA\Property(property="status", type="string", example="Present"),
-     *                     @OA\Property(property="week", type="integer", example=2),
-     *                     @OA\Property(property="day", type="string", example="Monday")
-     *                 )
-     *             )
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=404,
-     *         description="No attendance records found",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="string", example="error"),
-     *             @OA\Property(property="message", type="string", example="No attendance records found for this week.")
-     *         )
-     *     )
-     * )
-     */
+/**
+ * @OA\Get(
+ *     path="/api/getAttendance/{week}/{schid}/{trm}/{ssn}/{clsm}/{clsa}",
+ *     operationId="getAttendance",
+ *     summary="Retrieve attendance records for a given week",
+ *     description="Fetches attendance records for a specified school, term, session, class, and arm for the given week. Attendance is recorded per day and per period (morning or evening).",
+ *     tags={"Attendance"},
+ *     security={{"bearerAuth":{}}},
+ *
+ *     @OA\Parameter(
+ *         name="week",
+ *         in="path",
+ *         required=true,
+ *         description="Week number (1–14)",
+ *         @OA\Schema(type="integer", minimum=1, maximum=14, example=2)
+ *     ),
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="path",
+ *         required=true,
+ *         description="School ID",
+ *         @OA\Schema(type="integer", example=51)
+ *     ),
+ *     @OA\Parameter(
+ *         name="trm",
+ *         in="path",
+ *         required=true,
+ *         description="Academic term (1 = First, 2 = Second, 3 = Third)",
+ *         @OA\Schema(type="integer", example=3)
+ *     ),
+ *     @OA\Parameter(
+ *         name="ssn",
+ *         in="path",
+ *         required=true,
+ *         description="Academic session",
+ *         @OA\Schema(type="string", example="2024")
+ *     ),
+ *     @OA\Parameter(
+ *         name="clsm",
+ *         in="path",
+ *         required=true,
+ *         description="Class main",
+ *         @OA\Schema(type="string", example="NUR 1")
+ *     ),
+ *     @OA\Parameter(
+ *         name="clsa",
+ *         in="path",
+ *         required=true,
+ *         description="Class arm",
+ *         @OA\Schema(type="string", example="B")
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Attendance records retrieved successfully",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="string", example="success"),
+ *             @OA\Property(property="message", type="string", example="Attendance records retrieved successfully."),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     @OA\Property(property="sid", type="integer", example=10095),
+ *                     @OA\Property(property="student_name", type="string", example="John Doe"),
+ *                     @OA\Property(
+ *                         property="status",
+ *                         type="string",
+ *                         example="Present",
+ *                         enum={"Draft","Present","Absent"}
+ *                     ),
+ *                     @OA\Property(property="week", type="integer", example=1),
+ *                     @OA\Property(
+ *                         property="day",
+ *                         type="string",
+ *                         example="Monday",
+ *                         enum={"Monday","Tuesday","Wednesday","Thursday","Friday"}
+ *                     ),
+ *                     @OA\Property(
+ *                         property="period",
+ *                         type="string",
+ *                         description="Attendance period",
+ *                         enum={"morning","evening"},
+ *                         example="morning"
+ *                     )
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=404,
+ *         description="No attendance records found",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="string", example="error"),
+ *             @OA\Property(property="message", type="string", example="No attendance records found for this week.")
+ *         )
+ *     )
+ * )
+ */
 
 
     // Get attendance for a student
-    public function getAttendance($week, $schid, $trm, $ssn, $clsm, $clsa)
-    {
-        // Retrieve the attendance records for the specified week (day removed)
-        $attendances = attendance::where('week', $week)
-            ->where('schid', $schid)
-            ->where('ssn', $ssn)
-            ->where('trm', $trm)
-            ->where('clsm', $clsm)
-            ->where('clsa', $clsa)
-            ->get();
+public function getAttendance($week, $schid, $trm, $ssn, $clsm, $clsa)
+{
+    $attendances = attendance::where('week', $week)
+        ->where('schid', $schid)
+        ->where('ssn', $ssn)
+        ->where('trm', $trm)
+        ->where('clsm', $clsm)
+        ->where('clsa', $clsa)
+        ->get();
 
-        // Check if no attendance records are found
-        if ($attendances->isEmpty()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'No attendance records found for this week.',
-            ], 404);
-        }
-
-        // Format the attendance details for each student
-        $attendanceDetails = $attendances->map(function ($attendance) {
-            // Retrieve student details (e.g., name, id)
-            $student = student::where('sid', $attendance->sid)->first();
-
-            // Concatenate first, middle, and last names
-            $fullName = $student ? trim($student->fname . ' ' . $student->mname . ' ' . $student->lname) : 'Unknown';
-
-            return [
-                'sid' => $attendance->sid,
-                'student_name' => $fullName,
-                'status' => $attendance->status == 0 ? 'Draft' : ($attendance->status == 1 ? 'Present' : 'Absent'),
-                'week' => $attendance->week,
-                'day' => $attendance->day, // Still returning day in result if available
-            ];
-        });
-
+    if ($attendances->isEmpty()) {
         return response()->json([
-            'status' => 'success',
-            'message' => 'Attendance records retrieved successfully.',
-            'pld' => $attendanceDetails,
-        ], 200);
+            'status' => 'error',
+            'message' => 'No attendance records found for this week.',
+        ], 404);
     }
+
+    $attendanceDetails = $attendances->map(function ($attendance) {
+        $student = student::where('sid', $attendance->sid)->first();
+
+        $fullName = $student
+            ? trim($student->fname.' '.$student->mname.' '.$student->lname)
+            : 'Unknown';
+
+        return [
+            'sid' => $attendance->sid,
+            'student_name' => $fullName,
+            'status' => match ($attendance->status) {
+                0 => 'Draft',
+                1 => 'Present',
+                2 => 'Absent',
+                default => 'Unknown'
+            },
+            'week' => $attendance->week,
+            'day' => ucfirst($attendance->day),
+            'period' => ucfirst($attendance->period), // ✅ morning / evening
+        ];
+    });
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Attendance records retrieved successfully.',
+        'pld' => $attendanceDetails,
+    ], 200);
+}
 
 
 
@@ -20304,118 +20412,155 @@ class ApiController extends Controller
 
     //////////////////////////////////
 
-    /**
-     * @OA\Get(
-     *     path="/api/getAttendanceByWeek/{week}/{schid}",
-     *     summary="Retrieve attendance records grouped by day for a specific week",
-     *     description="Fetches attendance records for a specified week and school ID, grouping the data by day and returning student attendance details for each day.",
-     *     tags={"Api"},
-     *     security={{"bearerAuth": {}}},
-     *     @OA\Parameter(
-     *         name="week",
-     *         in="path",
-     *         required=true,
-     *         @OA\Schema(type="integer", example=1, description="Week number (1 to 14)")
-     *     ),
-     *     @OA\Parameter(
-     *         name="schid",
-     *         in="path",
-     *         required=true,
-     *         @OA\Schema(type="string", example="SCH123", description="School ID")
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Attendance records grouped by day retrieved successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="string", example="success"),
-     *             @OA\Property(property="message", type="string", example="Attendance records grouped by day for the selected week."),
-     *             @OA\Property(property="week", type="integer", example=1),
-     *             @OA\Property(
-     *                 property="attendance_by_day",
-     *                 type="array",
-     *                 @OA\Items(
-     *                     @OA\Property(property="day", type="string", example="Monday"),
-     *                     @OA\Property(property="total_present", type="integer", example=20),
-     *                     @OA\Property(property="total_absent", type="integer", example=5),
-     *                     @OA\Property(
-     *                         property="students",
-     *                         type="array",
-     *                         @OA\Items(
-     *                             @OA\Property(property="sid", type="string", example="STU001"),
-     *                             @OA\Property(property="student_name", type="string", example="Doe John Smith"),
-     *                             @OA\Property(property="status", type="string", example="Present")
-     *                         )
-     *                     )
-     *                 )
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="No attendance records found for this week",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="string", example="error"),
-     *             @OA\Property(property="message", type="string", example="No attendance records found for this week.")
-     *         )
-     *     )
-     * )
-     */
+/**
+ * @OA\Get(
+ *     path="/api/getAttendanceByWeek/{week}/{schid}",
+ *     operationId="getAttendanceByWeek",
+ *     summary="Retrieve attendance records grouped by day and period",
+ *     description="Fetches attendance records for a specified week and school ID. Attendance is grouped by day, then by period (morning or evening), and includes student attendance details for each period.",
+ *     tags={"Attendance"},
+ *     security={{"bearerAuth":{}}},
+ *
+ *     @OA\Parameter(
+ *         name="week",
+ *         in="path",
+ *         required=true,
+ *         description="Week number (1–14)",
+ *         @OA\Schema(type="integer", minimum=1, maximum=14, example=1)
+ *     ),
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="path",
+ *         required=true,
+ *         description="School ID",
+ *         @OA\Schema(type="integer", example=51)
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Attendance records grouped by day and period retrieved successfully",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="string", example="success"),
+ *             @OA\Property(property="message", type="string", example="Attendance records grouped by day and period."),
+ *             @OA\Property(property="week", type="integer", example=1),
+ *             @OA\Property(
+ *                 property="attendance_by_day",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     @OA\Property(
+ *                         property="day",
+ *                         type="string",
+ *                         example="Monday",
+ *                         enum={"Monday","Tuesday","Wednesday","Thursday","Friday"}
+ *                     ),
+ *                     @OA\Property(
+ *                         property="periods",
+ *                         type="array",
+ *                         @OA\Items(
+ *                             @OA\Property(
+ *                                 property="period",
+ *                                 type="string",
+ *                                 description="Attendance period",
+ *                                 enum={"morning","evening"},
+ *                                 example="morning"
+ *                             ),
+ *                             @OA\Property(property="total_present", type="integer", example=20),
+ *                             @OA\Property(property="total_absent", type="integer", example=5),
+ *                             @OA\Property(
+ *                                 property="students",
+ *                                 type="array",
+ *                                 @OA\Items(
+ *                                     @OA\Property(property="sid", type="integer", example=10095),
+ *                                     @OA\Property(property="student_name", type="string", example="Doe John Smith"),
+ *                                     @OA\Property(
+ *                                         property="status",
+ *                                         type="string",
+ *                                         enum={"Draft","Present","Absent"},
+ *                                         example="Present"
+ *                                     )
+ *                                 )
+ *                             )
+ *                         )
+ *                     )
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=404,
+ *         description="No attendance records found for this week",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="string", example="error"),
+ *             @OA\Property(property="message", type="string", example="No attendance records found for this week.")
+ *         )
+ *     )
+ * )
+ */
 
 
-    public function getAttendanceByWeek($week, $schid)
-    {
-        // Fetch attendance for the specified school and week
-        $attendances = attendance::where('week', $week)
-            ->where('schid', $schid)
-            ->get();
 
-        if ($attendances->isEmpty()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'No attendance records found for this week.',
-            ], 404);
-        }
+public function getAttendanceByWeek($week, $schid)
+{
+    $attendances = attendance::where('week', $week)
+        ->where('schid', $schid)
+        ->get();
 
-        // Group attendance records by day (e.g., monday, tuesday...)
-        $groupedByDay = $attendances->groupBy('day')->map(function ($records, $day) {
-            $students = $records->map(function ($attendance) {
-                // Try to find student in current or old student table
-                $student = student::where('sid', $attendance->sid)->first()
-                    ?? old_student::where('sid', $attendance->sid)->first();
+    if ($attendances->isEmpty()) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'No attendance records found for this week.',
+        ], 404);
+    }
 
-                $fullName = $student ? trim($student->lname . ' ' . $student->fname . ' ' . $student->mname) : 'Unknown';
+    // Group by day then by period (morning / evening)
+    $groupedByDay = $attendances
+        ->groupBy(['day', 'period'])
+        ->map(function ($periods, $day) {
+
+            $periodData = $periods->map(function ($records, $period) {
+
+                $students = $records->map(function ($attendance) {
+                    $student = student::where('sid', $attendance->sid)->first()
+                        ?? old_student::where('sid', $attendance->sid)->first();
+
+                    $fullName = $student
+                        ? trim($student->lname.' '.$student->fname.' '.$student->mname)
+                        : 'Unknown';
+
+                    return [
+                        'sid' => $attendance->sid,
+                        'student_name' => $fullName,
+                        'status' => match ($attendance->status) {
+                            0 => 'Draft',
+                            1 => 'Present',
+                            2 => 'Absent',
+                            default => 'Unknown'
+                        },
+                    ];
+                });
 
                 return [
-                    'sid' => $attendance->sid,
-                    'student_name' => $fullName,
-                    'status' => match ($attendance->status) {
-                        0 => 'Draft',
-                        1 => 'Present',
-                        2 => 'Absent',
-                        default => 'Unknown'
-                    },
+                    'period' => ucfirst($period),
+                    'total_present' => $records->where('status', 1)->count(),
+                    'total_absent' => $records->where('status', 2)->count(),
+                    'students' => $students,
                 ];
-            });
-
-            // You can also include totals if you want
-            $presentCount = $records->where('status', 1)->count();
-            $absentCount = $records->where('status', 2)->count();
+            })->values();
 
             return [
                 'day' => ucfirst($day),
-                'total_present' => $presentCount,
-                'total_absent' => $absentCount,
-                'students' => $students,
+                'periods' => $periodData,
             ];
         })->values();
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Attendance records grouped by day for the selected week.',
-            'week' => $week,
-            'attendance_by_day' => $groupedByDay
-        ], 200);
-    }
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Attendance records grouped by day and period.',
+        'week' => $week,
+        'attendance_by_day' => $groupedByDay
+    ], 200);
+}
 
 
     ////////////////
@@ -33810,202 +33955,180 @@ class ApiController extends Controller
 //     }
 // }
 
+public function maintainPreviousStudents(Request $request) 
+{
+    $request->validate([
+        'schid' => 'required|integer',
+        'new_trm' => 'required|integer', // current term
+        'ssn' => 'required|integer',     // current session
+    ]);
 
-    public function maintainPreviousStudents(Request $request)
-    {
-        $request->validate([
-            'schid' => 'required|integer',
-            'new_trm' => 'required|integer', // current term
-            'ssn' => 'required|integer', // current session
+    $schid = (int) $request->schid;
+    $current_trm = (int) $request->new_trm;
+    $current_ssn = (int) $request->ssn;
+
+    // Determine next term & session
+    if ($current_trm === 3) {
+        $next_trm = 1;
+        $next_ssn = $current_ssn + 1;
+    } else {
+        $next_trm = $current_trm + 1;
+        $next_ssn = $current_ssn;
+    }
+
+    $prev_trm = $current_trm;
+    $prev_ssn = $current_ssn;
+
+    try {
+        // 1. Confirm students exist
+        $count = DB::table('old_student')
+            ->where('schid', $schid)
+            ->where('trm', $prev_trm)
+            ->where('ssn', $prev_ssn)
+            ->where('status', 'active')
+            ->count();
+
+        Log::info('Previous students count', [
+            'schid' => $schid,
+            'trm' => $prev_trm,
+            'ssn' => $prev_ssn,
+            'count' => $count
         ]);
 
-        $schid = (int) $request->schid;
-        $current_trm = (int) $request->new_trm;
-        $current_ssn = (int) $request->ssn;
-
-        /*
-        |--------------------------------------------------------------------------
-        | Determine next term & session
-        |--------------------------------------------------------------------------
-        */
-        if ($current_trm === 3) {
-            $next_trm = 1;
-            $next_ssn = $current_ssn + 1;
-        } else {
-            $next_trm = $current_trm + 1;
-            $next_ssn = $current_ssn;
-        }
-
-        $prev_trm = $current_trm;
-        $prev_ssn = $current_ssn;
-
-        DB::beginTransaction();
-
-        try {
-            /*
-            |--------------------------------------------------------------------------
-            | 1. Confirm students exist
-            |--------------------------------------------------------------------------
-            */
-            $count = DB::table('old_student')
-                ->where('schid', $schid)
-                ->where('trm', $prev_trm)
-                ->where('ssn', $prev_ssn)
-                ->where('status', 'active')
-                ->count();
-
-            Log::info('Previous students count', [
-                'schid' => $schid,
-                'trm' => $prev_trm,
-                'ssn' => $prev_ssn,
-                'count' => $count
-            ]);
-
-            if ($count === 0) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'No students found for promotion'
-                ], 400);
-            }
-
-            /*
-            |--------------------------------------------------------------------------
-            | 2. Promote students (old_student)
-            |--------------------------------------------------------------------------
-            */
-            DB::insert("
-    INSERT IGNORE INTO old_student (
-        uid, suid, sid, schid,
-        fname, mname, lname,
-        clsm, clsa, cls_sbj_students,
-        status, adm_ssn, adm_trm, cls_of_adm,
-        ssn, trm, created_at, updated_at
-    )
-    SELECT
-        CONCAT(?, ?, os.sid, os.clsm) AS uid,
-        os.suid,
-        os.sid,
-        os.schid,
-        os.fname,
-        os.mname,
-        os.lname,
-        os.clsm,
-        os.clsa,
-        os.cls_sbj_students,
-        'active',
-        os.adm_ssn,
-        os.adm_trm,
-        os.cls_of_adm,
-        ?, ?,
-        NOW(), NOW()
-    FROM old_student os
-    WHERE os.schid = ?
-      AND os.trm = ?
-      AND os.ssn = ?
-      AND os.status = 'active'
-", [
-                $next_ssn,
-                $next_trm,
-                $next_ssn,
-                $next_trm,
-                $schid,
-                $prev_trm,
-                $prev_ssn
-            ]);
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | 3. Promote student subjects
-            |--------------------------------------------------------------------------
-            */
-            DB::insert("
-    INSERT IGNORE INTO student_subj (
-        uid, stid, sbj, comp, schid, clsid,
-        trm, ssn, created_at, updated_at
-    )
-    SELECT
-        s.uid,
-        s.stid,
-        s.sbj,
-        s.comp,
-        s.schid,
-        s.clsid,
-        ?, ?,
-        NOW(), NOW()
-    FROM student_subj s
-    JOIN old_student o
-      ON o.sid = s.stid
-     AND o.schid = s.schid
-     AND o.trm = ?
-     AND o.ssn = ?
-     AND o.status = 'active'
-    WHERE s.trm = ?
-      AND s.ssn = ?
-", [
-                $next_trm,
-                $next_ssn,
-                $prev_trm,
-                $prev_ssn,
-                $prev_trm,
-                $prev_ssn
-            ]);
-
-
-            // 4. Promote class subjects
-            DB::insert("
-    INSERT IGNORE INTO class_subj (
-        uid, subj_id, schid, name, comp,
-        clsid, sesn, trm, created_at, updated_at
-    )
-    SELECT
-        CONCAT(?, ?, cs.clsid, cs.subj_id) AS uid,  -- use session+term+clsid+subj_id
-        cs.subj_id,
-        cs.schid,
-        cs.name,
-        cs.comp,
-        cs.clsid,
-        ?, ?,                                    -- new session & term
-        NOW(), NOW()
-    FROM class_subj cs
-    WHERE cs.schid = ?
-      AND cs.trm = ?
-      AND cs.sesn = ?
-", [
-                $next_ssn,
-                $next_trm,  // for uid
-                $next_ssn,
-                $next_trm,  // for sesn & trm columns
-                $schid,                 // school filter
-                $prev_trm,
-                $prev_ssn    // filter old records
-            ]);
-
-
-
-            DB::commit();
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Students promoted successfully',
-                'new_trm' => $next_trm,
-                'new_ssn' => $next_ssn
-            ]);
-
-        } catch (\Throwable $e) {
-            DB::rollBack();
-
-            Log::error('Promotion failed', [
-                'error' => $e->getMessage()
-            ]);
-
+        if ($count === 0) {
             return response()->json([
                 'status' => false,
-                'message' => 'Promotion failed',
-                'error' => $e->getMessage()
-            ]);
+                'message' => 'No students found for promotion'
+            ], 400);
         }
+
+        // 2. Promote students (keep transaction for atomicity)
+        DB::beginTransaction();
+        DB::insert("
+            INSERT IGNORE INTO old_student (
+                uid, suid, sid, schid,
+                fname, mname, lname,
+                clsm, clsa, cls_sbj_students,
+                status, adm_ssn, adm_trm, cls_of_adm,
+                ssn, trm, created_at, updated_at
+            )
+            SELECT
+                CONCAT(?, ?, os.sid, os.clsm) AS uid,
+                os.suid,
+                os.sid,
+                os.schid,
+                os.fname,
+                os.mname,
+                os.lname,
+                os.clsm,
+                os.clsa,
+                os.cls_sbj_students,
+                'active',
+                os.adm_ssn,
+                os.adm_trm,
+                os.cls_of_adm,
+                ?, ?,
+                NOW(), NOW()
+            FROM old_student os
+            WHERE os.schid = ?
+              AND os.trm = ?
+              AND os.ssn = ?
+              AND os.status = 'active'
+        ", [
+            $next_ssn,
+            $next_trm,
+            $next_ssn,
+            $next_trm,
+            $schid,
+            $prev_trm,
+            $prev_ssn
+        ]);
+        DB::commit();
+
+        // 3. Promote student subjects in smaller batches outside transaction
+        $batchSize = 50; // reduce batch size to avoid locks
+        $studentSubjects = DB::table('student_subj as s')
+            ->join('old_student as o', function ($join) use ($prev_trm, $prev_ssn) {
+                $join->on('o.sid', '=', 's.stid')
+                     ->on('o.schid', '=', 's.schid')
+                     ->where('o.trm', $prev_trm)
+                     ->where('o.ssn', $prev_ssn)
+                     ->where('o.status', 'active');
+            })
+            ->where('s.trm', $prev_trm)
+            ->where('s.ssn', $prev_ssn)
+            ->select('s.*')
+            ->get();
+
+        foreach ($studentSubjects->chunk($batchSize) as $chunk) {
+            $insertData = $chunk->map(function ($s) use ($next_trm, $next_ssn) {
+                return [
+                    'uid' => $s->uid,
+                    'stid' => $s->stid,
+                    'sbj' => $s->sbj,
+                    'comp' => $s->comp,
+                    'schid' => $s->schid,
+                    'clsid' => $s->clsid,
+                    'trm' => $next_trm,
+                    'ssn' => $next_ssn,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            })->toArray();
+
+            DB::table('student_subj')->insertOrIgnore($insertData);
+        }
+
+        // 4. Promote class subjects in smaller batches outside transaction
+        $classSubjects = DB::table('class_subj as cs')
+            ->where('cs.schid', $schid)
+            ->where('cs.trm', $prev_trm)
+            ->where('cs.sesn', $prev_ssn)
+            ->select('cs.*')
+            ->get();
+
+        foreach ($classSubjects->chunk($batchSize) as $chunk) {
+            $insertData = $chunk->map(function ($cs) use ($next_trm, $next_ssn) {
+                return [
+                    'uid' => $next_ssn . $next_trm . $cs->clsid . $cs->subj_id,
+                    'subj_id' => $cs->subj_id,
+                    'schid' => $cs->schid,
+                    'name' => $cs->name,
+                    'comp' => $cs->comp,
+                    'clsid' => $cs->clsid,
+                    'sesn' => $next_ssn,
+                    'trm' => $next_trm,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            })->toArray();
+
+            DB::table('class_subj')->insertOrIgnore($insertData);
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Students promoted successfully',
+            'new_trm' => $next_trm,
+            'new_ssn' => $next_ssn
+        ]);
+
+    } catch (\Throwable $e) {
+        DB::rollBack();
+
+        Log::error('Promotion failed', [
+            'error' => $e->getMessage()
+        ]);
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Promotion failed',
+            'error' => $e->getMessage()
+        ]);
     }
+}
+
+
 
 
 

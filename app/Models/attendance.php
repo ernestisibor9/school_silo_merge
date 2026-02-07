@@ -16,6 +16,8 @@ class attendance extends Model
     const STATUS_PRESENT = 1;
     const STATUS_ABSENT = 2;
 
+    const PERIODS = ['morning', 'evening'];
+
     // Day constants (optional)
     const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
 }
