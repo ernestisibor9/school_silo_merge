@@ -25865,172 +25865,6 @@ class ApiController extends Controller
     // }
 
 
-    public function maintainPreviousStudents(Request $request)
-    {
-        $request->validate([
-            'schid' => 'required|integer',
-            'new_trm' => 'required|integer', // current term
-            'ssn' => 'required|integer', // current session
-        ]);
-
-        $schid = (int) $request->schid;
-        $current_trm = (int) $request->new_trm;
-        $current_ssn = (int) $request->ssn;
-
-        /*
-        |--------------------------------------------------------------------------
-        | Determine next term & session
-        |--------------------------------------------------------------------------
-        */
-        if ($current_trm === 3) {
-            $next_trm = 1;
-            $next_ssn = $current_ssn + 1;
-        } else {
-            $next_trm = $current_trm + 1;
-            $next_ssn = $current_ssn;
-        }
-
-        $prev_trm = $current_trm;
-        $prev_ssn = $current_ssn;
-
-        DB::beginTransaction();
-
-        try {
-            /*
-            |--------------------------------------------------------------------------
-            | 1. Confirm students exist
-            |--------------------------------------------------------------------------
-            */
-            $count = DB::table('old_student')
-                ->where('schid', $schid)
-                ->where('trm', $prev_trm)
-                ->where('ssn', $prev_ssn)
-                ->where('status', 'active')
-                ->count();
-
-            Log::info('Previous students count', [
-                'schid' => $schid,
-                'trm' => $prev_trm,
-                'ssn' => $prev_ssn,
-                'count' => $count
-            ]);
-
-            if ($count === 0) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'No students found for promotion'
-                ], 400);
-            }
-
-            /*
-            |--------------------------------------------------------------------------
-            | 2. Promote students (old_student)
-            |--------------------------------------------------------------------------
-            */
-            DB::insert("
-    INSERT IGNORE INTO old_student (
-        uid, suid, sid, schid,
-        fname, mname, lname,
-        clsm, clsa, cls_sbj_students,
-        status, adm_ssn, adm_trm, cls_of_adm,
-        ssn, trm, created_at, updated_at
-    )
-    SELECT
-        CONCAT(?, ?, os.sid, os.clsm) AS uid,
-        os.suid,
-        os.sid,
-        os.schid,
-        os.fname,
-        os.mname,
-        os.lname,
-        os.clsm,
-        os.clsa,
-        os.cls_sbj_students,
-        'active',
-        os.adm_ssn,
-        os.adm_trm,
-        os.cls_of_adm,
-        ?, ?,
-        NOW(), NOW()
-    FROM old_student os
-    WHERE os.schid = ?
-      AND os.trm = ?
-      AND os.ssn = ?
-      AND os.status = 'active'
-", [
-                $next_ssn,
-                $next_trm,
-                $next_ssn,
-                $next_trm,
-                $schid,
-                $prev_trm,
-                $prev_ssn
-            ]);
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | 3. Promote student subjects
-            |--------------------------------------------------------------------------
-            */
-            DB::insert("
-    INSERT IGNORE INTO student_subj (
-        uid, stid, sbj, comp, schid, clsid,
-        trm, ssn, created_at, updated_at
-    )
-    SELECT
-        s.uid,
-        s.stid,
-        s.sbj,
-        s.comp,
-        s.schid,
-        s.clsid,
-        ?, ?,
-        NOW(), NOW()
-    FROM student_subj s
-    JOIN old_student o
-      ON o.sid = s.stid
-     AND o.schid = s.schid
-     AND o.trm = ?
-     AND o.ssn = ?
-     AND o.status = 'active'
-    WHERE s.trm = ?
-      AND s.ssn = ?
-", [
-                $next_trm,
-                $next_ssn,
-                $prev_trm,
-                $prev_ssn,
-                $prev_trm,
-                $prev_ssn
-            ]);
-
-
-            DB::commit();
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Students promoted successfully',
-                'new_trm' => $next_trm,
-                'new_ssn' => $next_ssn
-            ]);
-
-        } catch (\Throwable $e) {
-            DB::rollBack();
-
-            Log::error('Promotion failed', [
-                'error' => $e->getMessage()
-            ]);
-
-            return response()->json([
-                'status' => false,
-                'message' => 'Promotion failed',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-
 
 
     /**
@@ -33975,6 +33809,203 @@ class ApiController extends Controller
 //         ], 500);
 //     }
 // }
+
+
+    public function maintainPreviousStudents(Request $request)
+    {
+        $request->validate([
+            'schid' => 'required|integer',
+            'new_trm' => 'required|integer', // current term
+            'ssn' => 'required|integer', // current session
+        ]);
+
+        $schid = (int) $request->schid;
+        $current_trm = (int) $request->new_trm;
+        $current_ssn = (int) $request->ssn;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Determine next term & session
+        |--------------------------------------------------------------------------
+        */
+        if ($current_trm === 3) {
+            $next_trm = 1;
+            $next_ssn = $current_ssn + 1;
+        } else {
+            $next_trm = $current_trm + 1;
+            $next_ssn = $current_ssn;
+        }
+
+        $prev_trm = $current_trm;
+        $prev_ssn = $current_ssn;
+
+        DB::beginTransaction();
+
+        try {
+            /*
+            |--------------------------------------------------------------------------
+            | 1. Confirm students exist
+            |--------------------------------------------------------------------------
+            */
+            $count = DB::table('old_student')
+                ->where('schid', $schid)
+                ->where('trm', $prev_trm)
+                ->where('ssn', $prev_ssn)
+                ->where('status', 'active')
+                ->count();
+
+            Log::info('Previous students count', [
+                'schid' => $schid,
+                'trm' => $prev_trm,
+                'ssn' => $prev_ssn,
+                'count' => $count
+            ]);
+
+            if ($count === 0) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'No students found for promotion'
+                ], 400);
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | 2. Promote students (old_student)
+            |--------------------------------------------------------------------------
+            */
+            DB::insert("
+    INSERT IGNORE INTO old_student (
+        uid, suid, sid, schid,
+        fname, mname, lname,
+        clsm, clsa, cls_sbj_students,
+        status, adm_ssn, adm_trm, cls_of_adm,
+        ssn, trm, created_at, updated_at
+    )
+    SELECT
+        CONCAT(?, ?, os.sid, os.clsm) AS uid,
+        os.suid,
+        os.sid,
+        os.schid,
+        os.fname,
+        os.mname,
+        os.lname,
+        os.clsm,
+        os.clsa,
+        os.cls_sbj_students,
+        'active',
+        os.adm_ssn,
+        os.adm_trm,
+        os.cls_of_adm,
+        ?, ?,
+        NOW(), NOW()
+    FROM old_student os
+    WHERE os.schid = ?
+      AND os.trm = ?
+      AND os.ssn = ?
+      AND os.status = 'active'
+", [
+                $next_ssn,
+                $next_trm,
+                $next_ssn,
+                $next_trm,
+                $schid,
+                $prev_trm,
+                $prev_ssn
+            ]);
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | 3. Promote student subjects
+            |--------------------------------------------------------------------------
+            */
+            DB::insert("
+    INSERT IGNORE INTO student_subj (
+        uid, stid, sbj, comp, schid, clsid,
+        trm, ssn, created_at, updated_at
+    )
+    SELECT
+        s.uid,
+        s.stid,
+        s.sbj,
+        s.comp,
+        s.schid,
+        s.clsid,
+        ?, ?,
+        NOW(), NOW()
+    FROM student_subj s
+    JOIN old_student o
+      ON o.sid = s.stid
+     AND o.schid = s.schid
+     AND o.trm = ?
+     AND o.ssn = ?
+     AND o.status = 'active'
+    WHERE s.trm = ?
+      AND s.ssn = ?
+", [
+                $next_trm,
+                $next_ssn,
+                $prev_trm,
+                $prev_ssn,
+                $prev_trm,
+                $prev_ssn
+            ]);
+
+
+            // 4. Promote class subjects
+            DB::insert("
+    INSERT IGNORE INTO class_subj (
+        uid, subj_id, schid, name, comp,
+        clsid, sesn, trm, created_at, updated_at
+    )
+    SELECT
+        CONCAT(?, ?, cs.clsid, cs.subj_id) AS uid,  -- use session+term+clsid+subj_id
+        cs.subj_id,
+        cs.schid,
+        cs.name,
+        cs.comp,
+        cs.clsid,
+        ?, ?,                                    -- new session & term
+        NOW(), NOW()
+    FROM class_subj cs
+    WHERE cs.schid = ?
+      AND cs.trm = ?
+      AND cs.sesn = ?
+", [
+                $next_ssn,
+                $next_trm,  // for uid
+                $next_ssn,
+                $next_trm,  // for sesn & trm columns
+                $schid,                 // school filter
+                $prev_trm,
+                $prev_ssn    // filter old records
+            ]);
+
+
+
+            DB::commit();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Students promoted successfully',
+                'new_trm' => $next_trm,
+                'new_ssn' => $next_ssn
+            ]);
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            Log::error('Promotion failed', [
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Promotion failed',
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
 
 
 
