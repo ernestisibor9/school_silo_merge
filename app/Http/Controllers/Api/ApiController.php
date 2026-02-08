@@ -24542,467 +24542,252 @@ public function getAttendanceByWeek($week, $schid)
      *     ),
      *     @OA\Response(
      *         response=404,
-     *         description="No records found"
+     *         description="No records found."
      *     )
      * )
      */
 
 
 
-    // public function getCummulativeBroadsheet($schid, $ssn, $clsm, $clsa)
-    // {
-    //     // Ensure one row per student (avoid duplicates across terms)
-    //     $students = old_student::where('schid', $schid)
-    //         ->where('ssn', $ssn)
-    //         ->where('clsm', $clsm)
-    //         ->when($clsa != '-1', fn($q) => $q->where('clsa', $clsa))
-    //         ->selectRaw('MIN(uid) as uid, sid, schid, fname, lname, mname, suid, clsm, clsa')
-    //         ->groupBy('sid', 'schid', 'fname', 'lname', 'mname', 'suid', 'clsm', 'clsa')
-    //         ->get();
+    public function getCummulativeBroadsheet($schid, $ssn, $clsm, $clsa)
+    {
+        // Ensure one row per student (avoid duplicates across terms)
+        $students = old_student::where('schid', $schid)
+            ->where('ssn', $ssn)
+            ->where('clsm', $clsm)
+            ->when($clsa != '-1', fn($q) => $q->where('clsa', $clsa))
+            ->selectRaw('MIN(uid) as uid, sid, schid, fname, lname, mname, suid, clsm, clsa')
+            ->groupBy('sid', 'schid', 'fname', 'lname', 'mname', 'suid', 'clsm', 'clsa')
+            ->get();
 
-    //     // Unique student IDs
-    //     $allClassStudentIds = $students->pluck('sid')->unique()->values();
+        // Unique student IDs
+        $allClassStudentIds = $students->pluck('sid')->unique()->values();
 
-    //     // Class/Arm names
-    //     $className = cls::where('id', $clsm)->value('name') ?? "CLS-$clsm";
-    //     $armName = $clsa !== '-1'
-    //         ? sch_cls::where('cls_id', $clsm)
-    //             ->where('schid', $schid)
-    //             ->where('id', $clsa)
-    //             ->value('name')
-    //         : null;
+        // Class/Arm names
+        $className = cls::where('id', $clsm)->value('name') ?? "CLS-$clsm";
+        $armName = $clsa !== '-1'
+            ? sch_cls::where('cls_id', $clsm)
+                ->where('schid', $schid)
+                ->where('id', $clsa)
+                ->value('name')
+            : null;
 
-    //     // Subjects for class
-    //     $subjects = class_subj::where('schid', $schid)
-    //         ->where('clsid', $clsm)
-    //         ->pluck('subj_id')
-    //         ->toArray();
+        // Subjects for class
+        $subjects = class_subj::where('schid', $schid)
+            ->where('clsid', $clsm)
+            ->pluck('subj_id')
+            ->toArray();
 
-    //     $subjectPositions = [];
-    //     $subjectAverages = [];
+        $subjectPositions = [];
+        $subjectAverages = [];
 
-    //     // $control = broadsheet_control::where('schid', $schid)
-    //     //     ->where('ssn', $ssn)
-    //     //      ->where('sid', $stid) // 👈 VERY IMPORTANT
-    //     //     ->where('clsm', $clsm)
-    //     //     ->where('clsa', $clsa)
-    //     //     ->first();
+        // $control = broadsheet_control::where('schid', $schid)
+        //     ->where('ssn', $ssn)
+        //      ->where('sid', $stid) // 👈 VERY IMPORTANT
+        //     ->where('clsm', $clsm)
+        //     ->where('clsa', $clsa)
+        //     ->first();
 
-    //     // $broadsheetStat = $control->stat ?? 1;  // default = unlocked
-
-
-    //     // Process each subject
-    //     foreach ($subjects as $sbj) {
-    //         $subjectScores = std_score::select(
-    //             'stid',
-    //             DB::raw("SUM(CASE WHEN trm = 1 THEN scr ELSE 0 END) as t1"),
-    //             DB::raw("SUM(CASE WHEN trm = 2 THEN scr ELSE 0 END) as t2"),
-    //             DB::raw("SUM(CASE WHEN trm = 3 THEN scr ELSE 0 END) as t3")
-    //         )
-    //             ->where('schid', $schid)
-    //             ->where('ssn', $ssn)
-    //             ->where('clsid', $clsm)
-    //             ->where('sbj', $sbj)
-    //             ->whereIn('stid', $allClassStudentIds)
-    //             ->groupBy('stid')
-    //             ->get()
-    //             ->map(function ($item) {
-    //                 $total = 0;
-    //                 $count = 0;
-    //                 if ($item->t1 > 0) {
-    //                     $total += $item->t1;
-    //                     $count++;
-    //                 }
-    //                 if ($item->t2 > 0) {
-    //                     $total += $item->t2;
-    //                     $count++;
-    //                 }
-    //                 if ($item->t3 > 0) {
-    //                     $total += $item->t3;
-    //                     $count++;
-    //                 }
-    //                 $avg = $count > 0 ? round($total / $count, 2) : 0;
-    //                 return ['stid' => $item->stid, 'average' => $avg];
-    //             })
-    //             ->filter(fn($row) => $row['average'] > 0) // ⛔ remove students with 0.00 avg
-    //             ->sortByDesc('average')
-    //             ->values();
-
-    //         // Ranking
-    //         $rank = [];
-    //         $position = 1;
-    //         $lastAvg = null;
-    //         $sameRankCount = 0;
-
-    //         foreach ($subjectScores as $row) {
-    //             if ($row['average'] === $lastAvg) {
-    //                 $sameRankCount++;
-    //             } else {
-    //                 $position += $sameRankCount;
-    //                 $sameRankCount = 1;
-    //             }
-    //             $rank[$row['stid']] = $position;
-    //             $lastAvg = $row['average'];
-    //         }
-
-    //         foreach ($subjectScores as $row) {
-    //             $subjectAverages[$row['stid']][$sbj] = $row['average'];
-    //             $subjectPositions[$row['stid']][$sbj] = $rank[$row['stid']] ?? null;
-    //         }
-    //     }
-
-    //     // Final averages
-    //     $finalAverages = [];
-    //     foreach ($students as $std) {
-    //         $stid = $std->sid;
-    //         $subjectsTaken = student_subj::where('stid', $stid)->pluck('sbj')->toArray();
-
-    //         $total = 0;
-    //         $count = 0;
-    //         foreach ($subjectsTaken as $sbj) {
-    //             $avg = $subjectAverages[$stid][$sbj] ?? 0;
-    //             if ($avg > 0) {
-    //                 $total += $avg;
-    //                 $count++;
-    //             }
-    //         }
-
-    //         if ($count > 0) { // ⛔ Exclude students with no subjects or all zero scores
-    //             $finalAverages[$stid] = round($total / $count, 2);
-    //         }
-    //     }
-
-    //     // Overall ranking
-    //     $overallSorted = collect($finalAverages)->sortDesc();
-    //     $overallPosition = [];
-    //     $rank = 1;
-    //     $last = null;
-    //     $tieCount = 0;
-
-    //     foreach ($overallSorted as $stid => $avg) {
-    //         if ($avg === $last) {
-    //             $tieCount++;
-    //         } else {
-    //             $rank += $tieCount;
-    //             $tieCount = 1;
-    //         }
-    //         $overallPosition[$stid] = $rank;
-    //         $last = $avg;
-    //     }
-
-    //     // Final output
-    //     $final = [];
-
-    //     foreach ($students as $std) {
-    //         $stid = $std->sid;
-
-    //         $control = broadsheet_control::where('schid', $schid)
-    //             ->where('ssn', $ssn)
-    //             ->where('sid', $stid)
-    //             ->where('clsm', $clsm)
-    //             ->where('clsa', $clsa)
-    //             ->first();
-
-    //         $broadsheetStat = $control->stat ?? 1;
+        //// $broadsheetStat = $control->stat ?? 1;  // default = unlocked
 
 
+        // Process each subject
+        foreach ($subjects as $sbj) {
+            $subjectScores = std_score::select(
+                'stid',
+                DB::raw("SUM(CASE WHEN trm = 1 THEN scr ELSE 0 END) as t1"),
+                DB::raw("SUM(CASE WHEN trm = 2 THEN scr ELSE 0 END) as t2"),
+                DB::raw("SUM(CASE WHEN trm = 3 THEN scr ELSE 0 END) as t3")
+            )
+                ->where('schid', $schid)
+                ->where('ssn', $ssn)
+                ->where('clsid', $clsm)
+                ->where('sbj', $sbj)
+                ->whereIn('stid', $allClassStudentIds)
+                ->groupBy('stid')
+                ->get()
+                ->map(function ($item) {
+                    $total = 0;
+                    $count = 0;
+                    if ($item->t1 > 0) {
+                        $total += $item->t1;
+                        $count++;
+                    }
+                    if ($item->t2 > 0) {
+                        $total += $item->t2;
+                        $count++;
+                    }
+                    if ($item->t3 > 0) {
+                        $total += $item->t3;
+                        $count++;
+                    }
+                    $avg = $count > 0 ? round($total / $count, 2) : 0;
+                    return ['stid' => $item->stid, 'average' => $avg];
+                })
+                ->filter(fn($row) => $row['average'] > 0) // ⛔ remove students with 0.00 avg
+                ->sortByDesc('average')
+                ->values();
 
-    //         // skip students with no average
-    //         if (!isset($finalAverages[$stid]))
-    //             continue;
+            // Ranking
+            $rank = [];
+            $position = 1;
+            $lastAvg = null;
+            $sameRankCount = 0;
 
-    //         $name = strtoupper(trim($std->lname . ' ' . $std->fname));
-    //         $subjectsTaken = student_subj::where('stid', $stid)->pluck('sbj')->toArray();
-
-    //         $subjectsInfo = [];
-    //         $count = 0;
-
-    //         foreach ($subjectsTaken as $sbj) {
-    //             $avg = $subjectAverages[$stid][$sbj] ?? 0;
-    //             if ($avg <= 0)
-    //                 continue;
-
-    //             $pos = $subjectPositions[$stid][$sbj] ?? null;
-    //             $count++;
-
-    //             $subjectsInfo[] = [
-    //                 'subject_id' => $sbj,
-    //                 'subject_name' => subj::find($sbj)?->name ?? 'Subject',
-    //                 'yearly_average' => number_format($avg, 2),
-    //                 'subject_position' => $pos,
-    //             ];
-    //         }
-
-    //         // Psychomotor
-    //         $psy = student_psy::where('stid', $stid)
-    //             ->where('schid', $schid)
-    //             ->where('ssn', $ssn)
-    //             ->where('trm', 2)
-    //             ->where('clsm', $clsm)
-    //             ->when($clsa !== '-1', fn($q) => $q->where('clsa', (int) $clsa))
-    //             ->first();
-
-    //         $psychomotor = $psy ? [
-    //             'punc' => $psy->punc,
-    //             'hon' => $psy->hon,
-    //             'pol' => $psy->pol,
-    //             'neat' => $psy->neat,
-    //             'pers' => $psy->pers,
-    //             'rel' => $psy->rel,
-    //             'dil' => $psy->dil,
-    //             'cre' => $psy->cre,
-    //             'pat' => $psy->pat,
-    //             'verb' => $psy->verb,
-    //             'gam' => $psy->gam,
-    //             'musc' => $psy->musc,
-    //             'drw' => $psy->drw,
-    //             'wrt' => $psy->wrt,
-    //         ] : [];
-
-    //         $finalAvg = $finalAverages[$stid] ?? 0;
-    //         $final[] = [
-    //             'uid' => $std->uid,
-    //             'sid' => $stid,
-    //             'name' => $name,
-    //             'learner_id' => $std->suid ?? $std->sid,
-    //             'class_name' => $className,
-    //             'class_arm_name' => $armName ?? 'N/A',
-    //             'clsm' => $clsm,
-    //             'clsa' => $clsa,
-    //             'final_average' => number_format($finalAvg, 2),
-    //             'overall_position' => $overallPosition[$stid] ?? null,
-    //             'no_of_subjects' => $count,
-    //             'subjects' => $subjectsInfo,
-    //             'psychomotor' => $psychomotor,
-    //             'broadsheet_status' => $broadsheetStat,
-
-    //         ];
-    //     }
-
-    //     $final = collect($final)->sortBy('overall_position')->values()->all();
-
-    //     return response()->json([
-    //         'status' => true,
-    //         'message' => 'Success',
-    //         'pld' => $final
-    //     ]);
-    // }
-
-public function getCummulativeBroadsheet($schid, $ssn, $clsm, $clsa)
-{
-    // Ensure one row per student (avoid duplicates across terms)
-    $students = old_student::where('schid', $schid)
-        ->where('ssn', $ssn)
-        ->where('clsm', $clsm)
-        ->when($clsa != '-1', fn($q) => $q->where('clsa', $clsa))
-        ->selectRaw('MIN(uid) as uid, sid, schid, fname, lname, mname, suid, clsm, clsa')
-        ->groupBy('sid', 'schid', 'fname', 'lname', 'mname', 'suid', 'clsm', 'clsa')
-        ->get();
-
-    $allClassStudentIds = $students->pluck('sid')->unique()->values();
-
-    $className = cls::where('id', $clsm)->value('name') ?? "CLS-$clsm";
-    $armName = $clsa !== '-1'
-        ? sch_cls::where('cls_id', $clsm)->where('schid', $schid)->where('id', $clsa)->value('name')
-        : null;
-
-    $subjects = class_subj::where('schid', $schid)
-        ->where('clsid', $clsm)
-        ->pluck('subj_id')
-        ->toArray();
-
-    $subjectPositions = [];
-    $subjectAverages = [];      // yearly avg (for display)
-    $subjectTermAverages = [];  // 🔴 term avg from getOldStudentSubjectHistory (for final_average)
-
-    /*
-    |--------------------------------------------------------------------------
-    | SUBJECT PROCESSING
-    |--------------------------------------------------------------------------
-    */
-    foreach ($subjects as $sbj) {
-
-        $scores = collect();
-
-        foreach ($allClassStudentIds as $stid) {
-
-            // 🔴 SOURCE OF TRUTH — TERM AVG
-            $history = $this->getOldStudentSubjectHistory(
-                $schid,
-                $ssn,
-                $clsm,
-                $clsa,
-                $stid,
-                $sbj
-            );
-
-            if (!$history)
-                continue;
-
-            // yearly average (DISPLAY ONLY)
-            $yearlyAvg = round(
-                collect([$history['t1_avg'], $history['t2_avg'], $history['t3_avg']])
-                    ->filter(fn($v) => $v > 0)
-                    ->avg() ?? 0,
-                2
-            );
-
-            if ($yearlyAvg <= 0)
-                continue;
-
-            // store
-            $subjectAverages[$stid][$sbj] = $yearlyAvg;
-
-            // 🔴 STORE TERM AVERAGES (USED FOR FINAL AVERAGE)
-            $subjectTermAverages[$stid][$sbj] = [
-                't1' => $history['t1_avg'],
-                't2' => $history['t2_avg'],
-                't3' => $history['t3_avg'],
-            ];
-
-            $scores->push([
-                'stid' => $stid,
-                'average' => $yearlyAvg
-            ]);
-        }
-
-        // ranking by yearly avg (unchanged)
-        $scores = $scores->sortByDesc('average')->values();
-
-        $rank = [];
-        $position = 1;
-        $lastAvg = null;
-        $sameRank = 0;
-
-        foreach ($scores as $row) {
-            if ($row['average'] === $lastAvg) {
-                $sameRank++;
-            } else {
-                $position += $sameRank;
-                $sameRank = 1;
+            foreach ($subjectScores as $row) {
+                if ($row['average'] === $lastAvg) {
+                    $sameRankCount++;
+                } else {
+                    $position += $sameRankCount;
+                    $sameRankCount = 1;
+                }
+                $rank[$row['stid']] = $position;
+                $lastAvg = $row['average'];
             }
-            $rank[$row['stid']] = $position;
-            $lastAvg = $row['average'];
+
+            foreach ($subjectScores as $row) {
+                $subjectAverages[$row['stid']][$sbj] = $row['average'];
+                $subjectPositions[$row['stid']][$sbj] = $rank[$row['stid']] ?? null;
+            }
         }
 
-        foreach ($scores as $row) {
-            $subjectPositions[$row['stid']][$sbj] = $rank[$row['stid']] ?? null;
-        }
-    }
+        // Final averages
+        $finalAverages = [];
+        foreach ($students as $std) {
+            $stid = $std->sid;
+            $subjectsTaken = student_subj::where('stid', $stid)->pluck('sbj')->toArray();
 
-    /*
-    |--------------------------------------------------------------------------
-    | FINAL AVERAGE — TERM AVG ONLY
-    |--------------------------------------------------------------------------
-    */
-    $finalAverages = [];
-
-    foreach ($students as $std) {
-        $stid = $std->sid;
-        $subjectsTaken = student_subj::where('stid', $stid)->pluck('sbj')->toArray();
-
-        $total = 0;
-        $count = 0;
-
-        foreach ($subjectsTaken as $sbj) {
-            if (!isset($subjectTermAverages[$stid][$sbj]))
-                continue;
-
-            foreach ($subjectTermAverages[$stid][$sbj] as $termAvg) {
-                if ($termAvg > 0) {
-                    $total += $termAvg;
+            $total = 0;
+            $count = 0;
+            foreach ($subjectsTaken as $sbj) {
+                $avg = $subjectAverages[$stid][$sbj] ?? 0;
+                if ($avg > 0) {
+                    $total += $avg;
                     $count++;
                 }
             }
+
+            if ($count > 0) { // ⛔ Exclude students with no subjects or all zero scores
+                $finalAverages[$stid] = round($total / $count, 2);
+            }
         }
 
-        if ($count > 0) {
-            $finalAverages[$stid] = round($total / $count, 2);
+        // Overall ranking
+        $overallSorted = collect($finalAverages)->sortDesc();
+        $overallPosition = [];
+        $rank = 1;
+        $last = null;
+        $tieCount = 0;
+
+        foreach ($overallSorted as $stid => $avg) {
+            if ($avg === $last) {
+                $tieCount++;
+            } else {
+                $rank += $tieCount;
+                $tieCount = 1;
+            }
+            $overallPosition[$stid] = $rank;
+            $last = $avg;
         }
-    }
 
-    /*
-    |--------------------------------------------------------------------------
-    | OVERALL RANKING
-    |--------------------------------------------------------------------------
-    */
-    $overallSorted = collect($finalAverages)->sortDesc();
-    $overallPosition = [];
-    $rank = 1;
-    $last = null;
-    $tie = 0;
+        // Final output
+        $final = [];
 
-    foreach ($overallSorted as $stid => $avg) {
-        if ($avg === $last) {
-            $tie++;
-        } else {
-            $rank += $tie;
-            $tie = 1;
-        }
-        $overallPosition[$stid] = $rank;
-        $last = $avg;
-    }
+        foreach ($students as $std) {
+            $stid = $std->sid;
 
-    /*
-    |--------------------------------------------------------------------------
-    | FINAL OUTPUT
-    |--------------------------------------------------------------------------
-    */
-    $final = [];
+            $control = broadsheet_control::where('schid', $schid)
+                ->where('ssn', $ssn)
+                ->where('sid', $stid)
+                ->where('clsm', $clsm)
+                ->where('clsa', $clsa)
+                ->first();
 
-    foreach ($students as $std) {
-        $stid = $std->sid;
+            $broadsheetStat = $control->stat ?? 1;
 
-        if (!isset($finalAverages[$stid]))
-            continue;
 
-        $control = broadsheet_control::where('schid', $schid)
-            ->where('ssn', $ssn)
-            ->where('sid', $stid)
-            ->where('clsm', $clsm)
-            ->where('clsa', $clsa)
-            ->first();
 
-        $name = strtoupper(trim($std->lname . ' ' . $std->fname));
+            // skip students with no average
+            if (!isset($finalAverages[$stid]))
+                continue;
 
-        $subjectsInfo = [];
-        $count = 0;
+            $name = strtoupper(trim($std->lname . ' ' . $std->fname));
+            $subjectsTaken = student_subj::where('stid', $stid)->pluck('sbj')->toArray();
 
-        foreach ($subjectAverages[$stid] ?? [] as $sbj => $avg) {
-            $subjectsInfo[] = [
-                'subject_id' => $sbj,
-                'subject_name' => subj::find($sbj)?->name ?? 'Subject',
-                'yearly_average' => number_format($avg, 2),
-                'subject_position' => $subjectPositions[$stid][$sbj] ?? null,
+            $subjectsInfo = [];
+            $count = 0;
+
+            foreach ($subjectsTaken as $sbj) {
+                $avg = $subjectAverages[$stid][$sbj] ?? 0;
+                if ($avg <= 0)
+                    continue;
+
+                $pos = $subjectPositions[$stid][$sbj] ?? null;
+                $count++;
+
+                $subjectsInfo[] = [
+                    'subject_id' => $sbj,
+                    'subject_name' => subj::find($sbj)?->name ?? 'Subject',
+                    'yearly_average' => number_format($avg, 2),
+                    'subject_position' => $pos,
+                ];
+            }
+
+            // Psychomotor
+            $psy = student_psy::where('stid', $stid)
+                ->where('schid', $schid)
+                ->where('ssn', $ssn)
+                ->where('trm', 2)
+                ->where('clsm', $clsm)
+                ->when($clsa !== '-1', fn($q) => $q->where('clsa', (int) $clsa))
+                ->first();
+
+            $psychomotor = $psy ? [
+                'punc' => $psy->punc,
+                'hon' => $psy->hon,
+                'pol' => $psy->pol,
+                'neat' => $psy->neat,
+                'pers' => $psy->pers,
+                'rel' => $psy->rel,
+                'dil' => $psy->dil,
+                'cre' => $psy->cre,
+                'pat' => $psy->pat,
+                'verb' => $psy->verb,
+                'gam' => $psy->gam,
+                'musc' => $psy->musc,
+                'drw' => $psy->drw,
+                'wrt' => $psy->wrt,
+            ] : [];
+
+            $finalAvg = $finalAverages[$stid] ?? 0;
+            $final[] = [
+                'uid' => $std->uid,
+                'sid' => $stid,
+                'name' => $name,
+                'learner_id' => $std->suid ?? $std->sid,
+                'class_name' => $className,
+                'class_arm_name' => $armName ?? 'N/A',
+                'clsm' => $clsm,
+                'clsa' => $clsa,
+                'final_average' => number_format($finalAvg, 2),
+                'overall_position' => $overallPosition[$stid] ?? null,
+                'no_of_subjects' => $count,
+                'subjects' => $subjectsInfo,
+                'psychomotor' => $psychomotor,
+                'broadsheet_status' => $broadsheetStat,
+
             ];
-            $count++;
         }
 
-        $final[] = [
-            'uid' => $std->uid,
-            'sid' => $stid,
-            'name' => $name,
-            'learner_id' => $std->suid ?? $stid,
-            'class_name' => $className,
-            'class_arm_name' => $armName ?? 'N/A',
-            'clsm' => $clsm,
-            'clsa' => $clsa,
-            'final_average' => number_format($finalAverages[$stid], 2),
-            'overall_position' => $overallPosition[$stid] ?? null,
-            'no_of_subjects' => $count,
-            'subjects' => $subjectsInfo,
-            'broadsheet_status' => $control->stat ?? 1,
-        ];
+        $final = collect($final)->sortBy('overall_position')->values()->all();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Success',
+            'pld' => $final
+        ]);
     }
 
-    $final = collect($final)->sortBy('overall_position')->values()->all();
-
-    return response()->json([
-        'status' => true,
-        'message' => 'Success',
-        'pld' => $final
-    ]);
-}
 
 
 
