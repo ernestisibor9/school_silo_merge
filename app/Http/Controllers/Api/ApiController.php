@@ -20558,51 +20558,120 @@ class ApiController extends Controller
 
 
     // Get attendance for a student
+    // public function getAttendance($week, $schid, $trm, $ssn, $clsm, $clsa)
+    // {
+    //     $attendances = attendance::where('week', $week)
+    //         ->where('schid', $schid)
+    //         ->where('ssn', $ssn)
+    //         ->where('trm', $trm)
+    //         ->where('clsm', $clsm)
+    //         ->where('clsa', $clsa)
+    //         ->get();
+
+    //     if ($attendances->isEmpty()) {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => 'No attendance records found for this week.',
+    //         ], 404);
+    //     }
+
+    //     $attendanceDetails = $attendances->map(function ($attendance) {
+    //         $student = student::where('sid', $attendance->sid)->first();
+
+    //         $fullName = $student
+    //             ? trim($student->fname . ' ' . $student->mname . ' ' . $student->lname)
+    //             : 'Unknown';
+
+    //         return [
+    //             'sid' => $attendance->sid,
+    //             'student_name' => $fullName,
+    //             'status' => match ($attendance->status) {
+    //                 0 => 'Draft',
+    //                 1 => 'Present',
+    //                 2 => 'Absent',
+    //                 default => 'Unknown'
+    //             },
+    //             'week' => $attendance->week,
+    //             'day' => ucfirst($attendance->day),
+    //             'period' => ucfirst($attendance->period), // ✅ morning / evening
+    //         ];
+    //     });
+
+    //     return response()->json([
+    //         'status' => 'success',
+    //         'message' => 'Attendance records retrieved successfully.',
+    //         'pld' => $attendanceDetails,
+    //     ], 200);
+    // }
+
+
     public function getAttendance($week, $schid, $trm, $ssn, $clsm, $clsa)
-    {
-        $attendances = attendance::where('week', $week)
-            ->where('schid', $schid)
-            ->where('ssn', $ssn)
-            ->where('trm', $trm)
-            ->where('clsm', $clsm)
-            ->where('clsa', $clsa)
-            ->get();
+{
+    $attendances = attendance::where('week', $week)
+        ->where('schid', $schid)
+        ->where('ssn', $ssn)
+        ->where('trm', $trm)
+        ->where('clsm', $clsm)
+        ->where('clsa', $clsa)
+        ->get();
 
-        if ($attendances->isEmpty()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'No attendance records found for this week.',
-            ], 404);
-        }
+    if ($attendances->isEmpty()) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'No attendance records found for this week.',
+        ], 404);
+    }
 
-        $attendanceDetails = $attendances->map(function ($attendance) {
-            $student = student::where('sid', $attendance->sid)->first();
+    $attendanceDetails = $attendances->map(function ($attendance) {
+        // Try to get student from 'student' table first, then 'old_student'
+        $student = student::where('sid', $attendance->sid)->first()
+            ?? old_student::where('sid', $attendance->sid)->first();
 
-            $fullName = $student
-                ? trim($student->fname . ' ' . $student->mname . ' ' . $student->lname)
-                : 'Unknown';
+        $fullName = $student
+            ? trim($student->fname . ' ' . $student->mname . ' ' . $student->lname)
+            : 'Unknown';
+
+        return [
+            'sid' => $attendance->sid,
+            'student_name' => $fullName,
+            'status' => match ($attendance->status) {
+                0 => 'Draft',
+                1 => 'Present',
+                2 => 'Absent',
+                default => 'Unknown'
+            },
+            'week' => $attendance->week,
+            'day' => ucfirst($attendance->day),
+            'period' => ucfirst($attendance->period), // morning / evening
+        ];
+    });
+
+    // Group by day, then by period (morning/evening) for better clarity
+    $groupedByDay = $attendanceDetails
+        ->groupBy(['day', 'period'])
+        ->map(function ($periods, $day) {
+            $periodData = $periods->map(function ($records, $period) {
+                return [
+                    'period' => $period,
+                    'total_present' => $records->where('status', 'Present')->count(),
+                    'total_absent' => $records->where('status', 'Absent')->count(),
+                    'students' => $records->values(),
+                ];
+            })->values();
 
             return [
-                'sid' => $attendance->sid,
-                'student_name' => $fullName,
-                'status' => match ($attendance->status) {
-                    0 => 'Draft',
-                    1 => 'Present',
-                    2 => 'Absent',
-                    default => 'Unknown'
-                },
-                'week' => $attendance->week,
-                'day' => ucfirst($attendance->day),
-                'period' => ucfirst($attendance->period), // ✅ morning / evening
+                'day' => $day,
+                'periods' => $periodData,
             ];
-        });
+        })->values();
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Attendance records retrieved successfully.',
-            'pld' => $attendanceDetails,
-        ], 200);
-    }
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Attendance records retrieved successfully.',
+        'week' => $week,
+        'attendance_by_day' => $groupedByDay,
+    ], 200);
+}
 
 
 
