@@ -20182,7 +20182,7 @@ class ApiController extends Controller
     //     ]);
     // }
 
-   public function setAttendanceMark(Request $request)
+public function setAttendanceMark(Request $request)
 {
     $validated = $request->validate([
         'schid' => 'required|string',
@@ -20201,10 +20201,13 @@ class ApiController extends Controller
 
     // Check staff only if stid is provided
     if (!empty($validated['stid'])) {
-        $staff = staff::where('sid', $validated['stid'])->first();
+        $staff = old_staff::where('sid', $validated['stid'])
+            ->where('ssn', $validated['ssn'])
+            ->where('trm', $validated['trm'])
+            ->first();
 
         if (!$staff) {
-            return response()->json(['status' => 'error', 'message' => 'Staff not found'], 403);
+            return response()->json(['status' => 'error', 'message' => 'Staff not found for this session/term'], 403);
         }
 
         $allowedRoles = ['Admin', 'Form Teacher'];
@@ -20247,7 +20250,7 @@ class ApiController extends Controller
                 'clsm' => $validated['clsm'],
                 'clsa' => $validated['clsa'],
                 'sid' => $student['sid'],
-                'stid' => $validated['stid'] ?? null, // Safe nullable fallback
+                'stid' => $validated['stid'] ?? null,
                 'week' => $validated['week'],
                 'day' => $validated['day'],
                 'period' => $validated['period'],
