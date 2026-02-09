@@ -8395,202 +8395,202 @@ class ApiController extends Controller
 
 
     public function getStudentResult($schid, $ssn, $trm, $clsm, $clsa, $stid)
-{
-    try {
-        $user = auth()->user();
-        $userType = $user->typ ?? null;
+    {
+        try {
+            $user = auth()->user();
+            $userType = $user->typ ?? null;
 
-        // Check if results are published
-        $isPublished = student_res::where([
-            ['schid', $schid],
-            ['ssn', $ssn],
-            ['trm', $trm],
-            ['clsm', $clsm],
-            ['clsa', $clsa],
-            ['stat', 1],
-        ])->exists();
+            // Check if results are published
+            $isPublished = student_res::where([
+                ['schid', $schid],
+                ['ssn', $ssn],
+                ['trm', $trm],
+                ['clsm', $clsm],
+                ['clsa', $clsa],
+                ['stat', 1],
+            ])->exists();
 
-        if (!$isPublished) {
-            if (!$userType || !in_array($userType, ['a', 's'])) {
+            if (!$isPublished) {
+                if (!$userType || !in_array($userType, ['a', 's'])) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Results have not been published yet.'
+                    ], 403);
+                }
+            }
+
+            $totalStd = student::join('old_student', 'student.sid', '=', 'old_student.sid')
+                ->where('student.schid', $schid)
+                ->where('student.stat', '1')
+                ->where('old_student.ssn', $ssn)
+                ->where('old_student.clsm', $clsm)
+                ->where('old_student.clsa', $clsa)
+                ->count();
+
+            $std = old_student::where('schid', $schid)
+                ->where('ssn', $ssn)
+                ->where('clsm', $clsm)
+                ->where('clsa', $clsa)
+                ->where('sid', $stid)
+                ->first();
+
+            if (!$std) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Results have not been published yet.'
-                ], 403);
+                    'message' => 'Student has been exited',
+                    'pld' => []
+                ], 404);
             }
-        }
 
-        $totalStd = student::join('old_student', 'student.sid', '=', 'old_student.sid')
-            ->where('student.schid', $schid)
-            ->where('student.stat', '1')
-            ->where('old_student.ssn', $ssn)
-            ->where('old_student.clsm', $clsm)
-            ->where('old_student.clsa', $clsa)
-            ->count();
+            $user_id = $std->sid;
+            $scores = [];
+            $mySbjs = [];
 
-        $std = old_student::where('schid', $schid)
-            ->where('ssn', $ssn)
-            ->where('clsm', $clsm)
-            ->where('clsa', $clsa)
-            ->where('sid', $stid)
-            ->first();
+            /**
+             * ===============================
+             * FIX 1: GET UNIQUE CLASS SUBJECTS
+             * ===============================
+             */
+            $relevantSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
+                ->where('class_subj.schid', $schid)
+                ->where('class_subj.clsid', $clsm)
+                ->pluck('sbj')
+                ->unique()
+                ->values();
 
-        if (!$std) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Student has been exited',
-                'pld' => []
-            ], 404);
-        }
+            /**
+             * ==================================
+             * FIX 2: GET UNIQUE STUDENT SUBJECTS
+             * ==================================
+             */
+            $studentSubjects = student_subj::where('stid', $user_id)
+                ->whereIn('sbj', $relevantSubjects)
+                ->pluck('sbj')
+                ->unique()
+                ->values();
 
-        $user_id = $std->sid;
-        $scores = [];
-        $mySbjs = [];
-
-        /**
-         * ===============================
-         * FIX 1: GET UNIQUE CLASS SUBJECTS
-         * ===============================
-         */
-        $relevantSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
-            ->where('class_subj.schid', $schid)
-            ->where('class_subj.clsid', $clsm)
-            ->pluck('sbj')
-            ->unique()
-            ->values();
-
-        /**
-         * ==================================
-         * FIX 2: GET UNIQUE STUDENT SUBJECTS
-         * ==================================
-         */
-        $studentSubjects = student_subj::where('stid', $user_id)
-            ->whereIn('sbj', $relevantSubjects)
-            ->pluck('sbj')
-            ->unique()
-            ->values();
-
-        /**
-         * ==========================
-         * FETCH SCORES (SAFE QUERY)
-         * ==========================
-         */
-        $allScores = std_score::where('stid', $user_id)
-            ->where('schid', $schid)
-            ->where('ssn', $ssn)
-            ->where('trm', $trm)
-            ->where('clsid', $clsm)
-            ->whereIn('sbj', $studentSubjects)
-            ->whereNotNull('scr')
-            ->where('scr', '>', 0)
-            ->get();
-
-        foreach ($allScores as $scr) {
-            if (!in_array($scr->sbj, $mySbjs)) {
-                $mySbjs[] = $scr->sbj;
-            }
-        }
-
-        $subjectScores = [];
-        foreach ($mySbjs as $sbid) {
-            $subjectScores[$sbid] = [];
-        }
-
-        foreach ($allScores as $scr) {
-            $subjectScores[$scr->sbj][] = $scr;
-        }
-
-        $positions = [];
-        foreach ($mySbjs as $sbid) {
-            $scores[] = [
-                'sbid' => $sbid,
-                'scores' => $subjectScores[$sbid]
-            ];
-
-            $subjectPosition = student_sub_res::where('stid', $user_id)
-                ->where('sbj', $sbid)
+            /**
+             * ==========================
+             * FETCH SCORES (SAFE QUERY)
+             * ==========================
+             */
+            $allScores = std_score::where('stid', $user_id)
                 ->where('schid', $schid)
                 ->where('ssn', $ssn)
                 ->where('trm', $trm)
+                ->where('clsid', $clsm)
+                ->whereIn('sbj', $studentSubjects)
+                ->whereNotNull('scr')
+                ->where('scr', '>', 0)
+                ->get();
+
+            foreach ($allScores as $scr) {
+                if (!in_array($scr->sbj, $mySbjs)) {
+                    $mySbjs[] = $scr->sbj;
+                }
+            }
+
+            $subjectScores = [];
+            foreach ($mySbjs as $sbid) {
+                $subjectScores[$sbid] = [];
+            }
+
+            foreach ($allScores as $scr) {
+                $subjectScores[$scr->sbj][] = $scr;
+            }
+
+            $positions = [];
+            foreach ($mySbjs as $sbid) {
+                $scores[] = [
+                    'sbid' => $sbid,
+                    'scores' => $subjectScores[$sbid]
+                ];
+
+                $subjectPosition = student_sub_res::where('stid', $user_id)
+                    ->where('sbj', $sbid)
+                    ->where('schid', $schid)
+                    ->where('ssn', $ssn)
+                    ->where('trm', $trm)
+                    ->where('clsm', $clsm)
+                    ->where('clsa', $clsa)
+                    ->first();
+
+                if ($subjectPosition) {
+                    $positions[] = [
+                        'sbid' => $sbid,
+                        'pos' => $subjectPosition->pos,
+                    ];
+                }
+            }
+
+            $psy = student_psy::where([
+                ['schid', $schid],
+                ['ssn', $ssn],
+                ['trm', $trm],
+                ['clsm', $clsm],
+                ['stid', $user_id]
+            ])->exists();
+
+            $rinfo = student_res::where('schid', $schid)
+                ->where('ssn', $ssn)
+                ->where('trm', $trm)
                 ->where('clsm', $clsm)
-                ->where('clsa', $clsa)
+                ->where('stid', $user_id)
+                ->when($userType && !in_array($userType, ['a', 's']), function ($q) {
+                    $q->where('stat', 1);
+                })
                 ->first();
 
-            if ($subjectPosition) {
-                $positions[] = [
-                    'sbid' => $sbid,
-                    'pos' => $subjectPosition->pos,
-                ];
+            $res = $rinfo ? $rinfo->stat : '0';
+
+            $nof = result_meta::where([
+                ['schid', $schid],
+                ['ssn', $ssn],
+                ['trm', $trm],
+            ])->value('num_of_days') ?? 0;
+
+            $presentCountQuery = \DB::table('attendances')
+                ->where('schid', $schid)
+                ->where('ssn', $ssn)
+                ->where('trm', $trm)
+                ->where('sid', $user_id);
+
+            if ((clone $presentCountQuery)->exists()) {
+                $presentCount = (clone $presentCountQuery)->where('status', 1)->count();
+                $absentCount = max(0, $nof - $presentCount);
+            } else {
+                $presentCount = null;
+                $absentCount = null;
             }
+
+            $pld = [
+                'std' => $std,
+                'sbj' => $mySbjs,
+                'scr' => $scores,
+                'psy' => $psy,
+                'res' => $res,
+                'rinfo' => $rinfo,
+                'cnt' => $totalStd,
+                'num_of_days' => $nof,
+                'present_days' => $presentCount,
+                'absent_days' => $absentCount,
+                'spos' => $positions,
+            ];
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Success',
+                'pld' => $pld,
+            ]);
+        } catch (Throwable $e) {
+            Log::error($e->getMessage() . "\n" . $e->getTraceAsString());
+            return response()->json([
+                'status' => false,
+                'message' => 'Server Error: ' . $e->getMessage(),
+                'pld' => []
+            ], 500);
         }
-
-        $psy = student_psy::where([
-            ['schid', $schid],
-            ['ssn', $ssn],
-            ['trm', $trm],
-            ['clsm', $clsm],
-            ['stid', $user_id]
-        ])->exists();
-
-        $rinfo = student_res::where('schid', $schid)
-            ->where('ssn', $ssn)
-            ->where('trm', $trm)
-            ->where('clsm', $clsm)
-            ->where('stid', $user_id)
-            ->when($userType && !in_array($userType, ['a', 's']), function ($q) {
-                $q->where('stat', 1);
-            })
-            ->first();
-
-        $res = $rinfo ? $rinfo->stat : '0';
-
-        $nof = result_meta::where([
-            ['schid', $schid],
-            ['ssn', $ssn],
-            ['trm', $trm],
-        ])->value('num_of_days') ?? 0;
-
-        $presentCountQuery = \DB::table('attendances')
-            ->where('schid', $schid)
-            ->where('ssn', $ssn)
-            ->where('trm', $trm)
-            ->where('sid', $user_id);
-
-        if ((clone $presentCountQuery)->exists()) {
-            $presentCount = (clone $presentCountQuery)->where('status', 1)->count();
-            $absentCount = max(0, $nof - $presentCount);
-        } else {
-            $presentCount = null;
-            $absentCount = null;
-        }
-
-        $pld = [
-            'std' => $std,
-            'sbj' => $mySbjs,
-            'scr' => $scores,
-            'psy' => $psy,
-            'res' => $res,
-            'rinfo' => $rinfo,
-            'cnt' => $totalStd,
-            'num_of_days' => $nof,
-            'present_days' => $presentCount,
-            'absent_days' => $absentCount,
-            'spos' => $positions,
-        ];
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Success',
-            'pld' => $pld,
-        ]);
-    } catch (Throwable $e) {
-        Log::error($e->getMessage() . "\n" . $e->getTraceAsString());
-        return response()->json([
-            'status' => false,
-            'message' => 'Server Error: ' . $e->getMessage(),
-            'pld' => []
-        ], 500);
     }
-}
 
     /////////////////////////////////////
 
@@ -20125,10 +20125,10 @@ class ApiController extends Controller
 
         // Check staff only if stid is provided
         if (!empty($validated['stid'])) {
-                    $staff = old_staff::where('sid', $validated['stid'])
-            ->where('ssn', $validated['ssn'])
-            ->where('trm', $validated['trm'])
-            ->first();
+            $staff = old_staff::where('sid', $validated['stid'])
+                ->where('ssn', $validated['ssn'])
+                ->where('trm', $validated['trm'])
+                ->first();
 
             if (!$staff) {
                 return response()->json(['status' => 'error', 'message' => 'Staff not found'], 403);
@@ -20185,7 +20185,7 @@ class ApiController extends Controller
         ]);
     }
 
-// public function setAttendanceMark(Request $request)
+    // public function setAttendanceMark(Request $request)
 // {
 //     $validated = $request->validate([
 //         'schid' => 'required|string',
@@ -20202,31 +20202,31 @@ class ApiController extends Controller
 //         'students.*.status' => 'required|in:0,1,2',
 //     ]);
 
-//     // Check staff only if stid is provided
+    //     // Check staff only if stid is provided
 //     if (!empty($validated['stid'])) {
 //         $staff = old_staff::where('sid', $validated['stid'])
 //             ->where('ssn', $validated['ssn'])
 //             ->where('trm', $validated['trm'])
 //             ->first();
 
-//         if (!$staff) {
+    //         if (!$staff) {
 //             return response()->json(['status' => 'error', 'message' => 'Staff not found for this session/term'], 403);
 //         }
 
-//         $allowedRoles = ['Admin', 'Form Teacher'];
+    //         $allowedRoles = ['Admin', 'Form Teacher'];
 //         $staffRoles = staff_role::whereIn('id', array_filter([$staff->role, $staff->role2]))
 //             ->pluck('name')
 //             ->toArray();
 
-//         // Allow access if staff has ANY allowed role
+    //         // Allow access if staff has ANY allowed role
 //         if (count(array_intersect($allowedRoles, $staffRoles)) === 0) {
 //             return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
 //         }
 //     }
 
-//     $marked = [];
+    //     $marked = [];
 
-//     foreach ($validated['students'] as $student) {
+    //     foreach ($validated['students'] as $student) {
 //         $existing = attendance::where([
 //             'schid' => $validated['schid'],
 //             'ssn' => $validated['ssn'],
@@ -20239,7 +20239,7 @@ class ApiController extends Controller
 //             'period' => $validated['period'],
 //         ])->first();
 
-//         if ($existing) {
+    //         if ($existing) {
 //             $existing->update([
 //                 'status' => $student['status'],
 //                 'stid' => $validated['stid'] ?? null,
@@ -20262,7 +20262,7 @@ class ApiController extends Controller
 //         }
 //     }
 
-//     return response()->json([
+    //     return response()->json([
 //         'status' => 'success',
 //         'message' => 'Attendance marked successfully for students.',
 //         'pld' => $marked
@@ -20788,6 +20788,69 @@ class ApiController extends Controller
 
 
 
+    // public function getAttendanceByWeek($week, $schid)
+    // {
+    //     $attendances = attendance::where('week', $week)
+    //         ->where('schid', $schid)
+    //         ->get();
+
+    //     if ($attendances->isEmpty()) {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => 'No attendance records found for this week.',
+    //         ], 404);
+    //     }
+
+    //     // Group by day then by period (morning / evening)
+    //     $groupedByDay = $attendances
+    //         ->groupBy(['day', 'period'])
+    //         ->map(function ($periods, $day) {
+
+    //             $periodData = $periods->map(function ($records, $period) {
+
+    //                 $students = $records->map(function ($attendance) {
+    //                     $student = student::where('sid', $attendance->sid)->first()
+    //                         ?? old_student::where('sid', $attendance->sid)->first();
+
+    //                     $fullName = $student
+    //                         ? trim($student->lname . ' ' . $student->fname . ' ' . $student->mname)
+    //                         : 'Unknown';
+
+    //                     return [
+    //                         'sid' => $attendance->sid,
+    //                         'student_name' => $fullName,
+    //                         'status' => match ($attendance->status) {
+    //                             0 => 'Draft',
+    //                             1 => 'Present',
+    //                             2 => 'Absent',
+    //                             default => 'Unknown'
+    //                         },
+    //                     ];
+    //                 });
+
+    //                 return [
+    //                     'period' => ucfirst($period),
+    //                     'total_present' => $records->where('status', 1)->count(),
+    //                     'total_absent' => $records->where('status', 2)->count(),
+    //                     'students' => $students,
+    //                 ];
+    //             })->values();
+
+    //             return [
+    //                 'day' => ucfirst($day),
+    //                 'periods' => $periodData,
+    //             ];
+    //         })->values();
+
+    //     return response()->json([
+    //         'status' => 'success',
+    //         'message' => 'Attendance records grouped by day and period.',
+    //         'week' => $week,
+    //         'attendance_by_day' => $groupedByDay
+    //     ], 200);
+    // }
+
+
     public function getAttendanceByWeek($week, $schid)
     {
         $attendances = attendance::where('week', $week)
@@ -20832,13 +20895,22 @@ class ApiController extends Controller
                         'period' => ucfirst($period),
                         'total_present' => $records->where('status', 1)->count(),
                         'total_absent' => $records->where('status', 2)->count(),
+                        'total_marked' => $records->whereIn('status', [1, 2])->count(),
                         'students' => $students,
                     ];
                 })->values();
 
+                // Calculate per-day summary across periods
+                $dayTotals = [
+                    'total_marked_today' => $periodData->sum(fn($p) => $p['total_marked']),
+                    'total_present_today' => $periodData->sum(fn($p) => $p['total_present']),
+                    'total_absent_today' => $periodData->sum(fn($p) => $p['total_absent']),
+                ];
+
                 return [
                     'day' => ucfirst($day),
                     'periods' => $periodData,
+                    'day_totals' => $dayTotals,
                 ];
             })->values();
 
