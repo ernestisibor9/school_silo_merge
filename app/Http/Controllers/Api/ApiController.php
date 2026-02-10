@@ -20605,74 +20605,49 @@ class ApiController extends Controller
     // }
 
 
+    // Get attendance for a student
     public function getAttendance($week, $schid, $trm, $ssn, $clsm, $clsa)
-{
-    $attendances = attendance::where('week', $week)
-        ->where('schid', $schid)
-        ->where('ssn', $ssn)
-        ->where('trm', $trm)
-        ->where('clsm', $clsm)
-        ->where('clsa', $clsa)
-        ->get();
+    {
+        // Retrieve the attendance records for the specified week (day removed)
+        $attendances = attendance::where('week', $week)
+            ->where('schid', $schid)
+            ->where('ssn', $ssn)
+            ->where('trm', $trm)
+            ->where('clsm', $clsm)
+            ->where('clsa', $clsa)
+            ->get();
 
-    if ($attendances->isEmpty()) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'No attendance records found for this week.',
-        ], 404);
-    }
+        // Check if no attendance records are found
+        if ($attendances->isEmpty()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No attendance records found for this week.',
+            ], 404);
+        }
 
-    $attendanceDetails = $attendances->map(function ($attendance) {
-        // Try to get student from 'student' table first, then 'old_student'
-        $student = student::where('sid', $attendance->sid)->first()
-            ?? old_student::where('sid', $attendance->sid)->first();
+        // Format the attendance details for each student
+        $attendanceDetails = $attendances->map(function ($attendance) {
+            // Retrieve student details (e.g., name, id)
+            $student = student::where('sid', $attendance->sid)->first();
 
-        $fullName = $student
-            ? trim($student->fname . ' ' . $student->mname . ' ' . $student->lname)
-            : 'Unknown';
-
-        return [
-            'sid' => $attendance->sid,
-            'student_name' => $fullName,
-            'status' => match ($attendance->status) {
-                0 => 'Draft',
-                1 => 'Present',
-                2 => 'Absent',
-                default => 'Unknown'
-            },
-            'week' => $attendance->week,
-            'day' => ucfirst($attendance->day),
-            'period' => ucfirst($attendance->period), // morning / evening
-        ];
-    });
-
-    // Group by day, then by period (morning/evening) for better clarity
-    $groupedByDay = $attendanceDetails
-        ->groupBy(['day', 'period'])
-        ->map(function ($periods, $day) {
-            $periodData = $periods->map(function ($records, $period) {
-                return [
-                    'period' => $period,
-                    'total_present' => $records->where('status', 'Present')->count(),
-                    'total_absent' => $records->where('status', 'Absent')->count(),
-                    'students' => $records->values(),
-                ];
-            })->values();
+            // Concatenate first, middle, and last names
+            $fullName = $student ? trim($student->fname . ' ' . $student->mname . ' ' . $student->lname) : 'Unknown';
 
             return [
-                'day' => $day,
-                'periods' => $periodData,
+                'sid' => $attendance->sid,
+                'student_name' => $fullName,
+                'status' => $attendance->status == 0 ? 'Draft' : ($attendance->status == 1 ? 'Present' : 'Absent'),
+                'week' => $attendance->week,
+                'day' => $attendance->day, // Still returning day in result if available
             ];
-        })->values();
+        });
 
-    return response()->json([
-        'status' => 'success',
-        'message' => 'Attendance records retrieved successfully.',
-        'week' => $week,
-        'attendance_by_day' => $groupedByDay,
-    ], 200);
-}
-
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Attendance records retrieved successfully.',
+            'pld' => $attendanceDetails,
+        ], 200);
+    }
 
 
     ////
@@ -20922,6 +20897,7 @@ class ApiController extends Controller
 
     public function getAttendanceByWeek($week, $schid)
     {
+        // Fetch attendance for the specified school and week
         $attendances = attendance::where('week', $week)
             ->where('schid', $schid)
             ->get();
@@ -20933,64 +20909,46 @@ class ApiController extends Controller
             ], 404);
         }
 
-        // Group by day then by period (morning / evening)
-        $groupedByDay = $attendances
-            ->groupBy(['day', 'period'])
-            ->map(function ($periods, $day) {
+        // Group attendance records by day (e.g., monday, tuesday...)
+        $groupedByDay = $attendances->groupBy('day')->map(function ($records, $day) {
+            $students = $records->map(function ($attendance) {
+                // Try to find student in current or old student table
+                $student = student::where('sid', $attendance->sid)->first()
+                    ?? old_student::where('sid', $attendance->sid)->first();
 
-                $periodData = $periods->map(function ($records, $period) {
-
-                    $students = $records->map(function ($attendance) {
-                        $student = student::where('sid', $attendance->sid)->first()
-                            ?? old_student::where('sid', $attendance->sid)->first();
-
-                        $fullName = $student
-                            ? trim($student->lname . ' ' . $student->fname . ' ' . $student->mname)
-                            : 'Unknown';
-
-                        return [
-                            'sid' => $attendance->sid,
-                            'student_name' => $fullName,
-                            'status' => match ($attendance->status) {
-                                0 => 'Draft',
-                                1 => 'Present',
-                                2 => 'Absent',
-                                default => 'Unknown'
-                            },
-                        ];
-                    });
-
-                    return [
-                        'period' => ucfirst($period),
-                        'total_present' => $records->where('status', 1)->count(),
-                        'total_absent' => $records->where('status', 2)->count(),
-                        'total_marked' => $records->whereIn('status', [1, 2])->count(),
-                        'students' => $students,
-                    ];
-                })->values();
-
-                // Calculate per-day summary across periods
-                $dayTotals = [
-                    'total_marked_today' => $periodData->sum(fn($p) => $p['total_marked']),
-                    'total_present_today' => $periodData->sum(fn($p) => $p['total_present']),
-                    'total_absent_today' => $periodData->sum(fn($p) => $p['total_absent']),
-                ];
+                $fullName = $student ? trim($student->lname . ' ' . $student->fname . ' ' . $student->mname) : 'Unknown';
 
                 return [
-                    'day' => ucfirst($day),
-                    'periods' => $periodData,
-                    'day_totals' => $dayTotals,
+                    'sid' => $attendance->sid,
+                    'student_name' => $fullName,
+                    'status' => match ($attendance->status) {
+                        0 => 'Draft',
+                        1 => 'Present',
+                        2 => 'Absent',
+                        default => 'Unknown'
+                    },
                 ];
-            })->values();
+            });
+
+            // You can also include totals if you want
+            $presentCount = $records->where('status', 1)->count();
+            $absentCount = $records->where('status', 2)->count();
+
+            return [
+                'day' => ucfirst($day),
+                'total_present' => $presentCount,
+                'total_absent' => $absentCount,
+                'students' => $students,
+            ];
+        })->values();
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Attendance records grouped by day and period.',
+            'message' => 'Attendance records grouped by day for the selected week.',
             'week' => $week,
             'attendance_by_day' => $groupedByDay
         ], 200);
     }
-
 
     ////////////////
 
