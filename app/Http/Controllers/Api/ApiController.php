@@ -8550,19 +8550,21 @@ class ApiController extends Controller
                 ['trm', $trm],
             ])->value('num_of_days') ?? 0;
 
-            $presentCountQuery = \DB::table('attendances')
+            $attendanceQuery = \DB::table('attendances')
                 ->where('schid', $schid)
                 ->where('ssn', $ssn)
                 ->where('trm', $trm)
-                ->where('sid', $user_id);
+                ->where('sid', $user_id)
+                ->whereIn('status', [1, 2]); // 1 = present, 2 = absent
 
-            if ((clone $presentCountQuery)->exists()) {
-                $presentCount = (clone $presentCountQuery)->where('status', 1)->count();
-                $absentCount = max(0, $nof - $presentCount);
+            if ((clone $attendanceQuery)->exists()) {
+                $presentCount = (clone $attendanceQuery)->where('status', 1)->count();
+                $absentCount = (clone $attendanceQuery)->where('status', 2)->count();
             } else {
                 $presentCount = null;
                 $absentCount = null;
             }
+
 
             $pld = [
                 'std' => $std,
