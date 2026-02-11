@@ -4275,19 +4275,19 @@ class ApiController extends Controller
             $resexist = $res->stat ?? "0";
 
             // Individual attendance logic
-            $presentCount = 0;
-            $absentCount = 0;
-
+// Individual attendance logic (Morning + Evening aware)
             $attendanceQuery = \DB::table('attendances')
                 ->where('schid', $schid)
                 ->where('ssn', $ssn)
                 ->where('trm', $trm)
-                ->where('sid', $user_id);
+                ->where('sid', $user_id)
+                ->whereIn('status', [1, 2]); // only present & absent
 
-            if ($attendanceQuery->exists()) {
-                $presentCount = $attendanceQuery->where('status', '1')->count();
-                $absentCount = max(0, $nof - $presentCount);
-            }
+            $presentCount = $attendanceQuery->where('status', 1)->count();
+            $absentCount = $attendanceQuery->where('status', 2)->count();
+
+            // Total times attendance was marked (morning/evening combined)
+            $totalMarked = $presentCount + $absentCount;
 
             $studentres = [
                 'std' => $std,
@@ -4297,6 +4297,7 @@ class ApiController extends Controller
                 'res' => $resexist,
                 'present_days' => $presentCount,
                 'absent_days' => $absentCount,
+                'total_marked_days' => $totalMarked,
             ];
             //
             // $cstds[] = [
@@ -20605,54 +20606,54 @@ class ApiController extends Controller
     // }
 
 
-public function getAttendance($week, $schid, $trm, $ssn, $clsm, $clsa)
-{
-    $attendances = attendance::where('week', $week)
-        ->where('schid', $schid)
-        ->where('ssn', $ssn)
-        ->where('trm', $trm)
-        ->where('clsm', $clsm)
-        ->where('clsa', $clsa)
-        ->get();
+    public function getAttendance($week, $schid, $trm, $ssn, $clsm, $clsa)
+    {
+        $attendances = attendance::where('week', $week)
+            ->where('schid', $schid)
+            ->where('ssn', $ssn)
+            ->where('trm', $trm)
+            ->where('clsm', $clsm)
+            ->where('clsa', $clsa)
+            ->get();
 
-    if ($attendances->isEmpty()) {
+        if ($attendances->isEmpty()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No attendance records found for this week.',
+            ], 404);
+        }
+
+        $attendanceList = $attendances->map(function ($attendance) {
+
+            $student = student::where('sid', $attendance->sid)->first()
+                ?? old_student::where('sid', $attendance->sid)->first();
+
+            $fullName = $student
+                ? trim($student->fname . ' ' . $student->mname . ' ' . $student->lname)
+                : 'Unknown';
+
+            return [
+                'sid' => (string) $attendance->sid,
+                'student_name' => $fullName,
+                'status' => match ((int) $attendance->status) {
+                    0 => 'Draft',
+                    1 => 'Present',
+                    2 => 'Absent',
+                    default => 'Unknown',
+                },
+                'week' => (int) $attendance->week,
+                'day' => ucfirst(strtolower($attendance->day)),
+                'period' => ucfirst(strtolower($attendance->period)),
+            ];
+        });
+
         return response()->json([
-            'status' => 'error',
-            'message' => 'No attendance records found for this week.',
-        ], 404);
+            'status' => 'success',
+            'message' => 'Attendance records retrieved successfully.',
+            'week' => (int) $week,
+            'pld' => $attendanceList,
+        ], 200);
     }
-
-    $attendanceList = $attendances->map(function ($attendance) {
-
-        $student = student::where('sid', $attendance->sid)->first()
-            ?? old_student::where('sid', $attendance->sid)->first();
-
-        $fullName = $student
-            ? trim($student->fname . ' ' . $student->mname . ' ' . $student->lname)
-            : 'Unknown';
-
-        return [
-            'sid' => (string) $attendance->sid,
-            'student_name' => $fullName,
-            'status' => match ((int) $attendance->status) {
-                0 => 'Draft',
-                1 => 'Present',
-                2 => 'Absent',
-                default => 'Unknown',
-            },
-            'week' => (int) $attendance->week,
-            'day' => ucfirst(strtolower($attendance->day)),
-            'period' => ucfirst(strtolower($attendance->period)),
-        ];
-    });
-
-    return response()->json([
-        'status' => 'success',
-        'message' => 'Attendance records retrieved successfully.',
-        'week' => (int) $week,
-        'pld' => $attendanceList,
-    ], 200);
-}
 
 
 
@@ -20901,88 +20902,88 @@ public function getAttendance($week, $schid, $trm, $ssn, $clsm, $clsa)
     // }
 
 
-public function getAttendanceByWeek($week, $schid)
-{
-    $attendances = attendance::where('week', $week)
-        ->where('schid', $schid)
-        ->get();
+    public function getAttendanceByWeek($week, $schid)
+    {
+        $attendances = attendance::where('week', $week)
+            ->where('schid', $schid)
+            ->get();
 
-    if ($attendances->isEmpty()) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'No attendance records found for this week.',
-        ], 404);
-    }
+        if ($attendances->isEmpty()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No attendance records found for this week.',
+            ], 404);
+        }
 
-    // Group by day then by period (morning / evening)
-    $groupedByDay = $attendances
-        ->groupBy(['day', 'period'])
-        ->map(function ($periods, $day) {
+        // Group by day then by period (morning / evening)
+        $groupedByDay = $attendances
+            ->groupBy(['day', 'period'])
+            ->map(function ($periods, $day) {
 
-            $periodData = $periods->map(function ($records, $period) {
+                $periodData = $periods->map(function ($records, $period) {
 
-                $students = $records->map(function ($attendance) {
-                    $student = student::where('sid', $attendance->sid)->first()
-                        ?? old_student::where('sid', $attendance->sid)->first();
+                    $students = $records->map(function ($attendance) {
+                        $student = student::where('sid', $attendance->sid)->first()
+                            ?? old_student::where('sid', $attendance->sid)->first();
 
-                    $fullName = $student
-                        ? trim($student->lname . ' ' . $student->fname . ' ' . $student->mname)
-                        : 'Unknown';
+                        $fullName = $student
+                            ? trim($student->lname . ' ' . $student->fname . ' ' . $student->mname)
+                            : 'Unknown';
+
+                        return [
+                            'sid' => $attendance->sid,
+                            'student_name' => $fullName,
+                            'status' => match ((int) $attendance->status) {
+                                0 => 'Draft',
+                                1 => 'Present',
+                                2 => 'Absent',
+                                default => 'Unknown'
+                            },
+                        ];
+                    });
 
                     return [
-                        'sid' => $attendance->sid,
-                        'student_name' => $fullName,
-                        'status' => match ((int) $attendance->status) {
-                            0 => 'Draft',
-                            1 => 'Present',
-                            2 => 'Absent',
-                            default => 'Unknown'
-                        },
+                        'period' => ucfirst($period),
+
+                        // Each record represents ONE marking (morning OR evening)
+                        'total_present' => $records->where('status', 1)->count(),
+                        'total_absent' => $records->where('status', 2)->count(),
+
+                        // Marked = present OR absent (draft excluded)
+                        'total_marked' => $records->whereIn('status', [1, 2])->count(),
+
+                        'students' => $students,
                     ];
-                });
+                })->values();
+
+                /**
+                 * Per-day totals
+                 * NOTE:
+                 * - Morning + Evening are counted separately
+                 * - If a student appears twice, it means they were marked twice
+                 * - If they appear once, they were marked once
+                 */
+                $dayTotals = [
+                    'total_marked_today' => $periodData->sum('total_marked'),
+                    'total_present_today' => $periodData->sum('total_present'),
+                    'total_absent_today' => $periodData->sum('total_absent'),
+                ];
 
                 return [
-                    'period' => ucfirst($period),
-
-                    // Each record represents ONE marking (morning OR evening)
-                    'total_present' => $records->where('status', 1)->count(),
-                    'total_absent'  => $records->where('status', 2)->count(),
-
-                    // Marked = present OR absent (draft excluded)
-                    'total_marked'  => $records->whereIn('status', [1, 2])->count(),
-
-                    'students' => $students,
+                    'day' => ucfirst($day),
+                    'periods' => $periodData,
+                    'day_totals' => $dayTotals,
                 ];
-            })->values();
+            })
+            ->values();
 
-            /**
-             * Per-day totals
-             * NOTE:
-             * - Morning + Evening are counted separately
-             * - If a student appears twice, it means they were marked twice
-             * - If they appear once, they were marked once
-             */
-            $dayTotals = [
-                'total_marked_today'  => $periodData->sum('total_marked'),
-                'total_present_today' => $periodData->sum('total_present'),
-                'total_absent_today'  => $periodData->sum('total_absent'),
-            ];
-
-            return [
-                'day' => ucfirst($day),
-                'periods' => $periodData,
-                'day_totals' => $dayTotals,
-            ];
-        })
-        ->values();
-
-    return response()->json([
-        'status' => 'success',
-        'message' => 'Attendance records grouped by day and period.',
-        'week' => (int) $week,
-        'attendance_by_day' => $groupedByDay
-    ], 200);
-}
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Attendance records grouped by day and period.',
+            'week' => (int) $week,
+            'attendance_by_day' => $groupedByDay
+        ], 200);
+    }
 
     ////////////////
 
