@@ -4276,26 +4276,34 @@ class ApiController extends Controller
 
             // Individual attendance logic
 // Individual attendance logic (Morning + Evening aware)
-            $attendanceQuery = \DB::table('attendances')
-                ->where('schid', $schid)
-                ->where('ssn', $ssn)
-                ->where('trm', $trm)
-                ->where('sid', $user_id)
-                ->whereIn('status', [1, 2]); // only present & absent
+$attendanceRows = \DB::table('attendances')
+    ->where('schid', $schid)
+    ->where('ssn', $ssn)
+    ->where('trm', $trm)
+    ->where('sid', $user_id)
+    ->whereIn('status', [1, 2])
+    ->whereIn('period', ['morning', 'evening'])
+    ->get();
 
-            $presentDays = (clone $attendanceQuery)
-                ->where('status', 1)
-                ->distinct('day')
-                ->count('day');
+/**
+ * ARRIVAL (PRESENT)
+ */
+$morningPresent = $attendanceRows
+    ->where('period', 'morning')
+    ->where('status', 1)
+    ->count();
 
-            $absentDays = (clone $attendanceQuery)
-                ->where('status', 2)
-                ->distinct('day')
-                ->count('day');
+$eveningPresent = $attendanceRows
+    ->where('period', 'evening')
+    ->where('status', 1)
+    ->count();
 
-            $totalMarkedDays = (clone $attendanceQuery)
-                ->distinct('day')
-                ->count('day');
+/**
+ * DEPARTURE (ABSENT)
+ */
+$morningAbsent = max(0, $nof - $morningPresent);
+$eveningAbsent = max(0, $nof - $eveningPresent);
+
 
 
             // Total times attendance was marked (morning/evening combined)
@@ -4307,9 +4315,10 @@ class ApiController extends Controller
                 'scr' => $scores,
                 'psy' => $psyexist,
                 'res' => $resexist,
-                'present_days' => $presentDays,
-                'absent_days' => $absentDays,
-                'total_marked_days' => $totalMarkedDays,
+                'arrival_present_morning' => $morningPresent,
+                'arrival_present_evening' => $eveningPresent,
+                'departure_absent_morning' => $morningAbsent,
+                'departure_absent_evening' => $eveningAbsent,
             ];
             //
             // $cstds[] = [
@@ -8562,31 +8571,41 @@ class ApiController extends Controller
                 ['trm', $trm],
             ])->value('num_of_days') ?? 0;
 
-            $attendanceRows = \DB::table('attendances')
-                ->where('schid', $schid)
-                ->where('ssn', $ssn)
-                ->where('trm', $trm)
-                ->where('sid', $user_id)
-                ->whereIn('status', [1, 2])
-                ->get();
+$attendanceRows = DB::table('attendances')
+    ->where('schid', $schid)
+    ->where('ssn', $ssn)
+    ->where('trm', $trm)
+    ->where('sid', $user_id)
+    ->whereIn('status', [1, 2])
+    ->whereIn('period', ['morning', 'evening'])
+    ->get();
 
-            /**
-             * Group attendance by DAY
-             */
-            $byDay = $attendanceRows->groupBy('day');
+/**
+ * COUNT PRESENT PER PERIOD (UNIQUE DAYS)
+ */
+$morningPresent = $attendanceRows
+    ->where('period', 'morning')
+    ->where('status', 1)
+    ->unique('day')
+    ->count();
 
-            /**
-             * Count days
-             */
-            $totalMarkedDays = $byDay->count();
+$eveningPresent = $attendanceRows
+    ->where('period', 'evening')
+    ->where('status', 1)
+    ->unique('day')
+    ->count();
 
-            $presentDays = $byDay->filter(function ($records) {
-                return $records->where('status', 1)->isNotEmpty();
-            })->count();
+/**
+ * TOTAL SCHOOL OPEN DAYS
+ */
+$totalSchoolDays = $nof;
 
-            $absentDays = $byDay->filter(function ($records) {
-                return $records->where('status', 2)->isNotEmpty();
-            })->count();
+/**
+ * DEPARTURE (ABSENT)
+ */
+$morningAbsent = max(0, $totalSchoolDays - $morningPresent);
+$eveningAbsent = max(0, $totalSchoolDays - $eveningPresent);
+
 
 
 
@@ -8599,9 +8618,10 @@ class ApiController extends Controller
                 'rinfo' => $rinfo,
                 'cnt' => $totalStd,
                 'num_of_days' => $nof,
-                'present_days' => $presentDays,
-                'absent_days' => $absentDays,
-                'total_marked_days' => $totalMarkedDays,
+        'arrival_present_morning' => $morningPresent,
+        'arrival_present_evening' => $eveningPresent,
+        'departure_absent_morning' => $morningAbsent,
+        'departure_absent_evening' => $eveningAbsent,
                 'spos' => $positions,
             ];
 
