@@ -20156,6 +20156,14 @@ $eveningAbsent = max(0, $totalSchoolDays - $eveningPresent);
 
     public function setAttendanceMark(Request $request)
     {
+        Log::info('RAW REQUEST', $request->all());
+
+            // Normalize input first
+    $request->merge([
+        'period' => is_string($request->period)
+            ? trim(strtolower($request->period))
+            : $request->period,
+    ]);
         $validated = $request->validate([
             'schid' => 'required|string',
             'ssn' => 'required|string',
