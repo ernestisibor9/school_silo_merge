@@ -4283,11 +4283,23 @@ class ApiController extends Controller
                 ->where('sid', $user_id)
                 ->whereIn('status', [1, 2]); // only present & absent
 
-            $presentCount = $attendanceQuery->where('status', 1)->count();
-            $absentCount = $attendanceQuery->where('status', 2)->count();
+            $presentDays = (clone $attendanceQuery)
+                ->where('status', 1)
+                ->distinct('day')
+                ->count('day');
+
+            $absentDays = (clone $attendanceQuery)
+                ->where('status', 2)
+                ->distinct('day')
+                ->count('day');
+
+            $totalMarkedDays = (clone $attendanceQuery)
+                ->distinct('day')
+                ->count('day');
+
 
             // Total times attendance was marked (morning/evening combined)
-            $totalMarked = $presentCount + $absentCount;
+            // $totalMarked = $presentCount + $absentCount;
 
             $studentres = [
                 'std' => $std,
@@ -4295,9 +4307,9 @@ class ApiController extends Controller
                 'scr' => $scores,
                 'psy' => $psyexist,
                 'res' => $resexist,
-                'present_days' => $presentCount,
-                'absent_days' => $absentCount,
-                'total_marked_days' => $totalMarked,
+                'present_days' => $presentDays,
+                'absent_days' => $absentDays,
+                'total_marked_days' => $totalMarkedDays,
             ];
             //
             // $cstds[] = [
@@ -8550,20 +8562,32 @@ class ApiController extends Controller
                 ['trm', $trm],
             ])->value('num_of_days') ?? 0;
 
-            $attendanceQuery = \DB::table('attendances')
+            $attendanceRows = \DB::table('attendances')
                 ->where('schid', $schid)
                 ->where('ssn', $ssn)
                 ->where('trm', $trm)
                 ->where('sid', $user_id)
-                ->whereIn('status', [1, 2]); // 1 = present, 2 = absent
+                ->whereIn('status', [1, 2])
+                ->get();
 
-            if ((clone $attendanceQuery)->exists()) {
-                $presentCount = (clone $attendanceQuery)->where('status', 1)->count();
-                $absentCount = (clone $attendanceQuery)->where('status', 2)->count();
-            } else {
-                $presentCount = null;
-                $absentCount = null;
-            }
+            /**
+             * Group attendance by DAY
+             */
+            $byDay = $attendanceRows->groupBy('day');
+
+            /**
+             * Count days
+             */
+            $totalMarkedDays = $byDay->count();
+
+            $presentDays = $byDay->filter(function ($records) {
+                return $records->where('status', 1)->isNotEmpty();
+            })->count();
+
+            $absentDays = $byDay->filter(function ($records) {
+                return $records->where('status', 2)->isNotEmpty();
+            })->count();
+
 
 
             $pld = [
@@ -8575,8 +8599,9 @@ class ApiController extends Controller
                 'rinfo' => $rinfo,
                 'cnt' => $totalStd,
                 'num_of_days' => $nof,
-                'present_days' => $presentCount,
-                'absent_days' => $absentCount,
+                'present_days' => $presentDays,
+                'absent_days' => $absentDays,
+                'total_marked_days' => $totalMarkedDays,
                 'spos' => $positions,
             ];
 
