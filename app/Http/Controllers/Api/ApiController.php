@@ -4276,33 +4276,33 @@ class ApiController extends Controller
 
             // Individual attendance logic
 // Individual attendance logic (Morning + Evening aware)
-$attendanceRows = \DB::table('attendances')
-    ->where('schid', $schid)
-    ->where('ssn', $ssn)
-    ->where('trm', $trm)
-    ->where('sid', $user_id)
-    ->whereIn('status', [1, 2])
-    ->whereIn('period', ['morning', 'evening'])
-    ->get();
+            $attendanceRows = \DB::table('attendances')
+                ->where('schid', $schid)
+                ->where('ssn', $ssn)
+                ->where('trm', $trm)
+                ->where('sid', $user_id)
+                ->whereIn('status', [1, 2])
+                ->whereIn('period', ['morning', 'evening'])
+                ->get();
 
-/**
- * ARRIVAL (PRESENT)
- */
-$morningPresent = $attendanceRows
-    ->where('period', 'morning')
-    ->where('status', 1)
-    ->count();
+            /**
+             * ARRIVAL (PRESENT)
+             */
+            $morningPresent = $attendanceRows
+                ->where('period', 'morning')
+                ->where('status', 1)
+                ->count();
 
-$eveningPresent = $attendanceRows
-    ->where('period', 'evening')
-    ->where('status', 1)
-    ->count();
+            $eveningPresent = $attendanceRows
+                ->where('period', 'evening')
+                ->where('status', 1)
+                ->count();
 
-/**
- * DEPARTURE (ABSENT)
- */
-$morningAbsent = max(0, $nof - $morningPresent);
-$eveningAbsent = max(0, $nof - $eveningPresent);
+            /**
+             * DEPARTURE (ABSENT)
+             */
+            $morningAbsent = max(0, $nof - $morningPresent);
+            $eveningAbsent = max(0, $nof - $eveningPresent);
 
 
 
@@ -4336,9 +4336,13 @@ $eveningAbsent = max(0, $nof - $eveningPresent);
                 'b' => $basicData ? array_merge(
                     $basicData->toArray(),
                     [
-                        'dob' => !empty($basicData->dob)
-                            ? date('Y-m-d', intval($basicData->dob / 1000))
-                            : null
+'dob' => (!empty($basicData->dob) && is_numeric($basicData->dob))
+    ? (
+        strlen((string)$basicData->dob) > 10
+            ? Carbon::createFromTimestampMs($basicData->dob)->format('Y-m-d')
+            : Carbon::createFromTimestamp($basicData->dob)->format('Y-m-d')
+    )
+    : null
                     ]
                 ) : null,
                 'a' => $academicData,
@@ -8571,40 +8575,40 @@ $eveningAbsent = max(0, $nof - $eveningPresent);
                 ['trm', $trm],
             ])->value('num_of_days') ?? 0;
 
-$attendanceRows = DB::table('attendances')
-    ->where('schid', $schid)
-    ->where('ssn', $ssn)
-    ->where('trm', $trm)
-    ->where('sid', $user_id)
-    ->whereIn('status', [1, 2])
-    ->whereIn('period', ['morning', 'evening'])
-    ->get();
+            $attendanceRows = DB::table('attendances')
+                ->where('schid', $schid)
+                ->where('ssn', $ssn)
+                ->where('trm', $trm)
+                ->where('sid', $user_id)
+                ->whereIn('status', [1, 2])
+                ->whereIn('period', ['morning', 'evening'])
+                ->get();
 
-/**
- * COUNT PRESENT PER PERIOD (UNIQUE DAYS)
- */
-$morningPresent = $attendanceRows
-    ->where('period', 'morning')
-    ->where('status', 1)
-    ->unique('day')
-    ->count();
+            /**
+             * COUNT PRESENT PER PERIOD (UNIQUE DAYS)
+             */
+            $morningPresent = $attendanceRows
+                ->where('period', 'morning')
+                ->where('status', 1)
+                ->unique('day')
+                ->count();
 
-$eveningPresent = $attendanceRows
-    ->where('period', 'evening')
-    ->where('status', 1)
-    ->unique('day')
-    ->count();
+            $eveningPresent = $attendanceRows
+                ->where('period', 'evening')
+                ->where('status', 1)
+                ->unique('day')
+                ->count();
 
-/**
- * TOTAL SCHOOL OPEN DAYS
- */
-$totalSchoolDays = $nof;
+            /**
+             * TOTAL SCHOOL OPEN DAYS
+             */
+            $totalSchoolDays = $nof;
 
-/**
- * DEPARTURE (ABSENT)
- */
-$morningAbsent = max(0, $totalSchoolDays - $morningPresent);
-$eveningAbsent = max(0, $totalSchoolDays - $eveningPresent);
+            /**
+             * DEPARTURE (ABSENT)
+             */
+            $morningAbsent = max(0, $totalSchoolDays - $morningPresent);
+            $eveningAbsent = max(0, $totalSchoolDays - $eveningPresent);
 
 
 
@@ -8618,10 +8622,10 @@ $eveningAbsent = max(0, $totalSchoolDays - $eveningPresent);
                 'rinfo' => $rinfo,
                 'cnt' => $totalStd,
                 'num_of_days' => $nof,
-        'arrival_present_morning' => $morningPresent,
-        'arrival_present_evening' => $eveningPresent,
-        'departure_absent_morning' => $morningAbsent,
-        'departure_absent_evening' => $eveningAbsent,
+                'arrival_present_morning' => $morningPresent,
+                'arrival_present_evening' => $eveningPresent,
+                'departure_absent_morning' => $morningAbsent,
+                'departure_absent_evening' => $eveningAbsent,
                 'spos' => $positions,
             ];
 
@@ -20156,14 +20160,12 @@ $eveningAbsent = max(0, $totalSchoolDays - $eveningPresent);
 
     public function setAttendanceMark(Request $request)
     {
-        Log::info('RAW REQUEST', $request->all());
-
-            // Normalize input first
-    $request->merge([
-        'period' => is_string($request->period)
-            ? trim(strtolower($request->period))
-            : $request->period,
-    ]);
+        // Normalize input first
+        $request->merge([
+            'period' => is_string($request->period)
+                ? trim(strtolower($request->period))
+                : $request->period,
+        ]);
         $validated = $request->validate([
             'schid' => 'required|string',
             'ssn' => 'required|string',
