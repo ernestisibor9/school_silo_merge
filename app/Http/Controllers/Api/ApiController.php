@@ -4336,13 +4336,9 @@ class ApiController extends Controller
                 'b' => $basicData ? array_merge(
                     $basicData->toArray(),
                     [
-'dob' => (!empty($basicData->dob) && is_numeric($basicData->dob))
-    ? (
-        strlen((string)$basicData->dob) > 10
-            ? Carbon::createFromTimestampMs($basicData->dob)->format('Y-m-d')
-            : Carbon::createFromTimestamp($basicData->dob)->format('Y-m-d')
-    )
-    : null
+                        'dob' => !empty($basicData->dob_fixed)
+                            ? Carbon::parse($basicData->dob_fixed)->format('Y-m-d')
+                            : null
                     ]
                 ) : null,
                 'a' => $academicData,
