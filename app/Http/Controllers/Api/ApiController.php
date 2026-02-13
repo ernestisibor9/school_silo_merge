@@ -4336,8 +4336,8 @@ class ApiController extends Controller
                 'b' => $basicData ? array_merge(
                     $basicData->toArray(),
                     [
-                        'dob' => !empty($basicData->dob_fixed)
-                            ? Carbon::parse($basicData->dob_fixed)->format('Y-m-d')
+                        'dob' => !empty($basicData->dob)
+                            ? Carbon::parse($basicData->dob)->format('Y-m-d')
                             : null
                     ]
                 ) : null,
