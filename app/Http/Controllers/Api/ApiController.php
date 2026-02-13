@@ -8606,11 +8606,17 @@ class ApiController extends Controller
             $morningAbsent = max(0, $totalSchoolDays - $morningPresent);
             $eveningAbsent = max(0, $totalSchoolDays - $eveningPresent);
 
+            // Date of birth
+            $basicData = student_basic_data::where('user_id', $user_id)->first();
+            $dob = $basicData && $basicData->dob
+    ? Carbon::parse($basicData->dob)->format('Y-m-d')
+    : null;
 
 
 
             $pld = [
                 'std' => $std,
+                'dob' => $dob,
                 'sbj' => $mySbjs,
                 'scr' => $scores,
                 'psy' => $psy,
@@ -35016,7 +35022,7 @@ class ApiController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'Date of birth updated successfully',
-            'data' => [
+            'pld' => [
                 'user_id' => $userId,
                 'dob' => $validated['dob'] ?? null,
                 'schid' => $validated['schid'],
