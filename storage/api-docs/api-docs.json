@@ -30037,37 +30037,40 @@
             }
         },
         "/api/learners/{userId}/dob": {
-            "patch": {
+            "put": {
                 "tags": [
                     "Api"
                 ],
-                "summary": "Update learner date of birth",
-                "description": "Updates the learner's date of birth (DOB). Only updates when DOB is provided. Date must be before today.",
-                "operationId": "updateLearnerDob",
+                "summary": "Update a student's date of birth",
+                "description": "Allows a school to update the date of birth of a student belonging to their school",
+                "operationId": "596d6ab1bcd6d54a9eab95bdcc2a068e",
                 "parameters": [
                     {
                         "name": "userId",
                         "in": "path",
-                        "description": "Learner User ID",
+                        "description": "ID of the student",
                         "required": true,
                         "schema": {
-                            "type": "string",
-                            "example": "1001"
+                            "type": "integer"
                         }
                     }
                 ],
                 "requestBody": {
-                    "description": "Date of birth payload",
-                    "required": false,
+                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
                                 "properties": {
                                     "dob": {
-                                        "description": "Learner date of birth in YYYY-MM-DD format",
+                                        "description": "Date of birth in YYYY-MM-DD format",
                                         "type": "string",
                                         "format": "date",
-                                        "example": "2009-12-16"
+                                        "example": "2010-03-10"
+                                    },
+                                    "schid": {
+                                        "description": "School ID of the student's school",
+                                        "type": "integer",
+                                        "example": 12
                                     }
                                 },
                                 "type": "object"
@@ -30077,7 +30080,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Date of birth updated successfully",
+                        "description": "Successfully updated",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -30093,13 +30096,17 @@
                                         "data": {
                                             "properties": {
                                                 "user_id": {
-                                                    "type": "string",
-                                                    "example": "1001"
+                                                    "type": "integer",
+                                                    "example": 100
                                                 },
                                                 "dob": {
                                                     "type": "string",
                                                     "format": "date",
-                                                    "example": "2009-12-16"
+                                                    "example": "2010-03-10"
+                                                },
+                                                "schid": {
+                                                    "type": "integer",
+                                                    "example": 12
                                                 }
                                             },
                                             "type": "object"
@@ -30110,34 +30117,19 @@
                             }
                         }
                     },
-                    "422": {
-                        "description": "Validation error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "The dob must be a date before today."
-                                        },
-                                        "errors": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
                     "404": {
-                        "description": "Learner not found",
+                        "description": "Student does not belong to this school",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
                                         "message": {
                                             "type": "string",
-                                            "example": "No query results for model"
+                                            "example": "Student does not belong to this school."
                                         }
                                     },
                                     "type": "object"

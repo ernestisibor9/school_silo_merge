@@ -34921,45 +34921,44 @@ class ApiController extends Controller
 
 
     /**
-     * @OA\Patch(
+     * @OA\Put(
      *     path="/api/learners/{userId}/dob",
-     *     operationId="updateLearnerDob",
+     *     summary="Update a student's date of birth",
+     *     description="Allows a school to update the date of birth of a student belonging to their school",
      *     tags={"Api"},
      *     security={
      *         {"bearerAuth": {}}
      *     },
-     *     summary="Update learner date of birth",
-     *     description="Updates the learner's date of birth (DOB). Only updates when DOB is provided. Date must be before today.",
      *
      *     @OA\Parameter(
      *         name="userId",
      *         in="path",
+     *         description="ID of the student",
      *         required=true,
-     *         description="Learner User ID",
-     *         @OA\Schema(
-     *             type="string",
-     *             example="1001"
-     *         )
+     *         @OA\Schema(type="integer")
      *     ),
-     *
      *     @OA\RequestBody(
-     *         required=false,
-     *         description="Date of birth payload",
+     *         required=true,
      *         @OA\JsonContent(
      *             type="object",
      *             @OA\Property(
      *                 property="dob",
      *                 type="string",
      *                 format="date",
-     *                 example="2009-12-16",
-     *                 description="Learner date of birth in YYYY-MM-DD format"
+     *                 description="Date of birth in YYYY-MM-DD format",
+     *                 example="2010-03-10"
+     *             ),
+     *             @OA\Property(
+     *                 property="schid",
+     *                 type="integer",
+     *                 description="School ID of the student's school",
+     *                 example=12
      *             )
      *         )
      *     ),
-     *
      *     @OA\Response(
      *         response=200,
-     *         description="Date of birth updated successfully",
+     *         description="Successfully updated",
      *         @OA\JsonContent(
      *             type="object",
      *             @OA\Property(property="status", type="boolean", example=true),
@@ -34967,51 +34966,60 @@ class ApiController extends Controller
      *             @OA\Property(
      *                 property="data",
      *                 type="object",
-     *                 @OA\Property(property="user_id", type="string", example="1001"),
-     *                 @OA\Property(property="dob", type="string", format="date", example="2009-12-16")
+     *                 @OA\Property(property="user_id", type="integer", example=100),
+     *                 @OA\Property(property="dob", type="string", format="date", example="2010-03-10"),
+     *                 @OA\Property(property="schid", type="integer", example=12)
      *             )
      *         )
      *     ),
-     *
-     *     @OA\Response(
-     *         response=422,
-     *         description="Validation error",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="message", type="string", example="The dob must be a date before today."),
-     *             @OA\Property(property="errors", type="object")
-     *         )
-     *     ),
-     *
      *     @OA\Response(
      *         response=404,
-     *         description="Learner not found",
+     *         description="Student does not belong to this school",
      *         @OA\JsonContent(
      *             type="object",
-     *             @OA\Property(property="message", type="string", example="No query results for model")
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Student does not belong to this school.")
      *         )
-     *     )
+     *     ),
      * )
      */
+
+
     public function updateDob(Request $request, $userId)
     {
         $validated = $request->validate([
             'dob' => ['nullable', 'date', 'before:today'],
+            'schid' => ['required', 'integer', 'exists:student,schid'],
         ]);
 
-        $student = student_basic_data::where('user_id', $userId)->firstOrFail();
+        // Check if the student belongs to the school
+        $exists = DB::table('student_basic_data as sb')
+            ->join('student as s', 's.sid', '=', 'sb.user_id')
+            ->where('sb.user_id', $userId)
+            ->where('s.schid', $validated['schid'])
+            ->exists();
 
+        if (!$exists) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Student does not belong to this school.',
+            ], 404);
+        }
+
+        // Only update dob if provided
         if ($request->has('dob')) {
-            $student->dob = $validated['dob'];
-            $student->save();
+            DB::table('student_basic_data')
+                ->where('user_id', $userId)
+                ->update(['dob' => $validated['dob']]);
         }
 
         return response()->json([
             'status' => true,
             'message' => 'Date of birth updated successfully',
             'data' => [
-                'user_id' => $student->user_id,
-                'dob' => $student->dob,
+                'user_id' => $userId,
+                'dob' => $validated['dob'] ?? null,
+                'schid' => $validated['schid'],
             ],
         ]);
     }
