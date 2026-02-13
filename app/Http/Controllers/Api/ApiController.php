@@ -34925,6 +34925,9 @@ class ApiController extends Controller
      *     path="/api/learners/{userId}/dob",
      *     operationId="updateLearnerDob",
      *     tags={"Api"},
+     *     security={
+     *         {"bearerAuth": {}}
+     *     },
      *     summary="Update learner date of birth",
      *     description="Updates the learner's date of birth (DOB). Only updates when DOB is provided. Date must be before today.",
      *
