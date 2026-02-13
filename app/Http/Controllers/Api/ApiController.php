@@ -21892,7 +21892,7 @@ public function updateLessonPlan(Request $request)
  * )
  */
 
-    public function getWeeklyLessonPlan($schid, $ssn, $trm, $clsm)
+public function getWeeklyLessonPlan($schid, $ssn, $trm, $clsm)
 {
     $start = request()->input('start', 0);
     $count = request()->input('count', 20);
@@ -21905,9 +21905,16 @@ public function updateLessonPlan(Request $request)
 
     // Optional: filter by week_start (YYYY-MM-DD)
     if (request()->has('week_start')) {
-        $weekStart = Carbon::parse(request()->input('week_start'))->startOfWeek();
-        $weekEnd = $weekStart->copy()->endOfWeek();
-        $query->whereBetween('date', [$weekStart, $weekEnd]);
+        try {
+            // Parse the week_start date and get start and end of the week
+            $weekStart = Carbon::parse(request()->input('week_start'))->startOfWeek();
+            $weekEnd = Carbon::parse(request()->input('week_start'))->endOfWeek();
+
+            // Filter lesson plans whose 'date' falls within that week
+            $query->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()]);
+        } catch (\Exception $e) {
+            // Invalid date provided, ignore week filter
+        }
     }
 
     $lessonPlan = $query->skip($start)->take($count)->get();
@@ -21918,7 +21925,6 @@ public function updateLessonPlan(Request $request)
         "pld" => $lessonPlan,
     ]);
 }
-
     //////////////////////////////////////////
     /**
      * @OA\Get(
