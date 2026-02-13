@@ -25,6 +25,7 @@ class lesson_plan extends Model
         'duration',
         'learning_materials',
         'lesson_objectives',
+        'plan_type', // new field
     ];
 
     protected $casts = [

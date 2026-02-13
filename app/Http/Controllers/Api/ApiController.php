@@ -21317,137 +21317,188 @@ public function getOldStudentsAndSubjectScoreSheet($schid, $ssn, $trm, $clsm, $c
 
     ///////////////////////////////////////////////////
 
-    /**
-     * @OA\Post(
-     *     path="/api/setLessonPlan",
-     *     summary="Create or update a lesson plan",
-     *     description="Stores or updates a lesson plan based on school, session, term, class, subject, and date.",
-     *     tags={"Api"},
-     *     security={{"bearerAuth": {}}},
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={
-     *                 "schid", "clsm", "date", "ssn", "trm", "sbj",
-     *                 "no_of_class", "average_age", "topic",
-     *                 "time_from", "time_to", "duration"
-     *             },
-     *             @OA\Property(property="schid", type="string", example="SCH001"),
-     *             @OA\Property(property="clsm", type="string", example="1"),
-     *             @OA\Property(property="date", type="string", format="date", example="2025-05-09"),
-     *             @OA\Property(property="ssn", type="string", example="2025"),
-     *             @OA\Property(property="trm", type="string", example="2"),
-     *             @OA\Property(property="sbj", type="string", example="Mathematics"),
-     *             @OA\Property(property="no_of_class", type="integer", example=2),
-     *             @OA\Property(property="average_age", type="number", format="float", example=10.5),
-     *             @OA\Property(property="topic", type="string", example="Addition and Subtraction"),
-     *             @OA\Property(
-     *                 property="sub_topic",
-     *                 type="array",
-     *                 @OA\Items(type="string", example="Two-digit addition")
-     *             ),
-     *             @OA\Property(property="time_from", type="string", format="time", example="09:00"),
-     *             @OA\Property(property="time_to", type="string", format="time", example="10:00"),
-     *             @OA\Property(property="duration", type="string", example="1 hour"),
-     *             @OA\Property(
-     *                 property="learning_materials",
-     *                 type="array",
-     *                 @OA\Items(type="string", example="Flashcards")
-     *             ),
-     *  *             @OA\Property(
-     *                 property="lesson_objectives",
-     *                 type="array",
-     *                 @OA\Items(type="string", example="At the end of the lesson, students should be able to count numbers")
-     *             ),
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Lesson plan saved successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Lesson plan saved successfully"),
-     *             @OA\Property(property="pld", type="object")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=422,
-     *         description="Validation error",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
-     *             @OA\Property(
-     *                 property="errors",
-     *                 type="object",
-     *                 additionalProperties=@OA\Property(type="array", @OA\Items(type="string"))
-     *             )
-     *         )
-     *     )
-     * )
-     */
+/**
+ * @OA\Post(
+ *     path="/api/setLessonPlan",
+ *     summary="Create or update a lesson plan",
+ *     tags={"Lesson Plan"},
+ *    security={{"bearerAuth":{}}},
+ *     description="Allows the user to create or update a lesson plan. Supports weekly or termly planning.",
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             type="object",
+ *             required={"schid","clsm","date","ssn","trm","sbj","no_of_class","average_age","topic","time_from","time_to","duration","lesson_objectives","plan_type"},
+ *             @OA\Property(property="schid", type="string", example="12", description="School ID"),
+ *             @OA\Property(property="clsm", type="string", example="11", description="Class/grade"),
+ *             @OA\Property(property="date", type="string", format="date", example="2025-09-03", description="Date of the lesson plan"),
+ *             @OA\Property(property="ssn", type="string", example="2025", description="Session/academic year"),
+ *             @OA\Property(property="trm", type="integer", example=1, description="Term number"),
+ *             @OA\Property(property="sbj", type="string", example="ENGLISH LANGUAGE", description="Subject name"),
+ *             @OA\Property(property="no_of_class", type="integer", example=35, description="Number of students in class"),
+ *             @OA\Property(property="average_age", type="number", format="float", example=12, description="Average age of students"),
+ *             @OA\Property(property="topic", type="string", example="Parts of Speech", description="Lesson topic"),
+ *             @OA\Property(property="sub_topic", type="array", @OA\Items(type="string"), example={"Nouns", "Verbs"}, description="Optional subtopics"),
+ *             @OA\Property(property="time_from", type="string", format="time", example="07:30", description="Lesson start time"),
+ *             @OA\Property(property="time_to", type="string", format="time", example="08:10", description="Lesson end time"),
+ *             @OA\Property(property="duration", type="string", example="40 minutes", description="Lesson duration"),
+ *             @OA\Property(property="learning_materials", type="array", @OA\Items(type="string"), example={"Textbook", "Board"}, description="Optional list of learning materials"),
+ *             @OA\Property(property="lesson_objectives", type="array", @OA\Items(type="string"), example={"Identify nouns", "Recognize verbs"}, description="Learning objectives"),
+ *             @OA\Property(property="plan_type", type="string", enum={"weekly","termly"}, example="weekly", description="Plan type: weekly or termly")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Lesson plan saved successfully",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Lesson plan saved successfully"),
+ *             @OA\Property(property="pld", type="object", description="Saved lesson plan object")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation error",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+ *             @OA\Property(property="errors", type="object", additionalProperties=@OA\Property(type="array", @OA\Items(type="string")))
+ *         )
+ *     )
+ * )
+ */
 
+
+
+    // public function setLessonPlan(Request $request)
+    // {
+    //     $request->validate([
+    //         "schid" => "required|string",
+    //         "clsm" => "required|string",
+    //         'date' => 'required|date',
+    //         "ssn" => "required|string",
+    //         "trm" => "required",
+    //         "sbj" => "required|string",
+    //         'no_of_class' => 'required|integer',
+    //         'average_age' => 'required|numeric',
+    //         'topic' => 'required|string',
+    //         'sub_topic' => 'nullable|array',
+    //         'time_from' => 'required|date_format:H:i',
+    //         'time_to' => 'required|date_format:H:i|after:time_from',
+    //         'duration' => 'required|string',
+    //         'learning_materials' => 'nullable|array',
+    //         'lesson_objectives' => 'required|array',
+    //     ]);
+
+    //     $data = $request->only([
+    //         'date',
+    //         'no_of_class',
+    //         'average_age',
+    //         'topic',
+    //         'time_from',
+    //         'time_to',
+    //         'duration',
+    //         "ssn",
+    //         "trm",
+    //         "sbj",
+    //         "schid",
+    //         "clsm",
+    //     ]);
+
+    //     $data['sub_topic'] = $request->sub_topic;
+    //     $data['learning_materials'] = $request->learning_materials;
+    //     $data['lesson_objectives'] = $request->lesson_objectives;
+
+    //     $lessonPlan = lesson_plan::updateOrCreate(
+    //         [
+    //             'date' => $request->date,
+    //             "schid" => $request->schid,
+    //             "clsm" => $request->clsm,
+    //             "ssn" => $request->ssn,
+    //             "trm" => $request->trm,
+    //             "sbj" => $request->sbj,
+    //             "no_of_class" => $request->no_of_class,
+    //             "time_from" => $request->time_from,
+    //             "time_to" => $request->time_to,
+    //             "topic" => $request->topic,
+    //             "average_age" => $request->average_age
+    //         ],
+    //         $data
+    //     );
+
+    //     return response()->json([
+    //         'status' => true,
+    //         'message' => 'Lesson plan saved successfully',
+    //         'pld' => $lessonPlan,
+    //     ], 200);
+    // }
 
     public function setLessonPlan(Request $request)
-    {
-        $request->validate([
-            "schid" => "required|string",
-            "clsm" => "required|string",
-            'date' => 'required|date',
-            "ssn" => "required|string",
-            "trm" => "required",
-            "sbj" => "required|string",
-            'no_of_class' => 'required|integer',
-            'average_age' => 'required|numeric',
-            'topic' => 'required|string',
-            'sub_topic' => 'nullable|array',
-            'time_from' => 'required|date_format:H:i',
-            'time_to' => 'required|date_format:H:i|after:time_from',
-            'duration' => 'required|string',
-            'learning_materials' => 'nullable|array',
-            'lesson_objectives' => 'required|array',
-        ]);
+{
+    $request->validate([
+        "schid" => "required|string",
+        "clsm" => "required|string",
+        'date' => 'required|date',
+        "ssn" => "required|string",
+        "trm" => "required",
+        "sbj" => "required|string",
+        'no_of_class' => 'required|integer',
+        'average_age' => 'required|numeric',
+        'topic' => 'required|string',
+        'sub_topic' => 'nullable|array',
+        'time_from' => 'required|date_format:H:i',
+        'time_to' => 'required|date_format:H:i|after:time_from',
+        'duration' => 'required|string',
+        'learning_materials' => 'nullable|array',
+        'lesson_objectives' => 'required|array',
+        'plan_type' => 'required|in:weekly,termly', // new
+    ]);
 
-        $data = $request->only([
-            'date',
-            'no_of_class',
-            'average_age',
-            'topic',
-            'time_from',
-            'time_to',
-            'duration',
-            "ssn",
-            "trm",
-            "sbj",
-            "schid",
-            "clsm",
-        ]);
+    $data = $request->only([
+        'date',
+        'no_of_class',
+        'average_age',
+        'topic',
+        'time_from',
+        'time_to',
+        'duration',
+        "ssn",
+        "trm",
+        "sbj",
+        "schid",
+        "clsm",
+        'plan_type', // new
+    ]);
 
-        $data['sub_topic'] = $request->sub_topic;
-        $data['learning_materials'] = $request->learning_materials;
-        $data['lesson_objectives'] = $request->lesson_objectives;
+    $data['sub_topic'] = $request->sub_topic;
+    $data['learning_materials'] = $request->learning_materials;
+    $data['lesson_objectives'] = $request->lesson_objectives;
 
-        $lessonPlan = lesson_plan::updateOrCreate(
-            [
-                'date' => $request->date,
-                "schid" => $request->schid,
-                "clsm" => $request->clsm,
-                "ssn" => $request->ssn,
-                "trm" => $request->trm,
-                "sbj" => $request->sbj,
-                "no_of_class" => $request->no_of_class,
-                "time_from" => $request->time_from,
-                "time_to" => $request->time_to,
-                "topic" => $request->topic,
-                "average_age" => $request->average_age
-            ],
-            $data
-        );
+    $lessonPlan = lesson_plan::updateOrCreate(
+        [
+            'date' => $request->date,
+            "schid" => $request->schid,
+            "clsm" => $request->clsm,
+            "ssn" => $request->ssn,
+            "trm" => $request->trm,
+            "sbj" => $request->sbj,
+            "no_of_class" => $request->no_of_class,
+            "time_from" => $request->time_from,
+            "time_to" => $request->time_to,
+            "topic" => $request->topic,
+            "average_age" => $request->average_age
+        ],
+        $data
+    );
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Lesson plan saved successfully',
-            'pld' => $lessonPlan,
-        ], 200);
-    }
+    return response()->json([
+        'status' => true,
+        'message' => 'Lesson plan saved successfully',
+        'pld' => $lessonPlan,
+    ], 200);
+}
+
 
 
 
