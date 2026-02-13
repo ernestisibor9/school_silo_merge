@@ -18150,6 +18150,213 @@
                 ]
             }
         },
+        "/api/lesson-plan/weekly/{schid}/{ssn}/{trm}/{clsm}": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get weekly lesson plans",
+                "description": "Fetch weekly lesson plans for a specific school, class, session, and term. Optionally filter by week_start date.",
+                "operationId": "a9decdf5c8683c61d97eb953707c2967",
+                "parameters": [
+                    {
+                        "name": "schid",
+                        "in": "path",
+                        "description": "School ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "12"
+                        }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "path",
+                        "description": "Session/academic year",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "2025"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "path",
+                        "description": "Term number",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "clsm",
+                        "in": "path",
+                        "description": "Class/grade",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "11"
+                        }
+                    },
+                    {
+                        "name": "week_start",
+                        "in": "query",
+                        "description": "Start date of the week (YYYY-MM-DD) to filter lesson plans",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date",
+                            "example": "2026-02-09"
+                        }
+                    },
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Pagination start index",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 0
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "Number of lesson plans to return",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 20
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Weekly lesson plans retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 5
+                                                    },
+                                                    "schid": {
+                                                        "type": "string",
+                                                        "example": "12"
+                                                    },
+                                                    "clsm": {
+                                                        "type": "string",
+                                                        "example": "11"
+                                                    },
+                                                    "ssn": {
+                                                        "type": "string",
+                                                        "example": "2025"
+                                                    },
+                                                    "trm": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "plan_type": {
+                                                        "type": "string",
+                                                        "example": "weekly"
+                                                    },
+                                                    "sbj": {
+                                                        "type": "string",
+                                                        "example": "ENGLISH LANGUAGE"
+                                                    },
+                                                    "topic": {
+                                                        "type": "string",
+                                                        "example": "Parts of Speech"
+                                                    },
+                                                    "sub_topic": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        },
+                                                        "example": [
+                                                            "Nouns",
+                                                            "Verbs"
+                                                        ]
+                                                    },
+                                                    "date": {
+                                                        "type": "string",
+                                                        "format": "date",
+                                                        "example": "2025-09-03"
+                                                    },
+                                                    "no_of_class": {
+                                                        "type": "integer",
+                                                        "example": 35
+                                                    },
+                                                    "average_age": {
+                                                        "type": "number",
+                                                        "example": 12
+                                                    },
+                                                    "time_from": {
+                                                        "type": "string",
+                                                        "format": "time",
+                                                        "example": "07:30"
+                                                    },
+                                                    "time_to": {
+                                                        "type": "string",
+                                                        "format": "time",
+                                                        "example": "08:10"
+                                                    },
+                                                    "duration": {
+                                                        "type": "string",
+                                                        "example": "40 minutes"
+                                                    },
+                                                    "learning_materials": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        },
+                                                        "example": [
+                                                            "Textbook",
+                                                            "Board"
+                                                        ]
+                                                    },
+                                                    "lesson_objectives": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        },
+                                                        "example": [
+                                                            "Identify nouns",
+                                                            "Recognize verbs"
+                                                        ]
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/getLessonPlanBySubject/{schid}/{ssn}/{trm}/{clsm}/{sbj}": {
             "get": {
                 "tags": [
