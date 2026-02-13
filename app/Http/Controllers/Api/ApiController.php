@@ -21503,132 +21503,205 @@ public function getOldStudentsAndSubjectScoreSheet($schid, $ssn, $trm, $clsm, $c
 
 
     //////////////////////////////////////////////////
-    /**
-     * @OA\Put(
-     *     path="/api/updateLessonPlan",
-     *     summary="Update a lesson plan",
-     *     description="Updates an existing lesson plan record based on schid, clsm, ssn, and trm. Only provided fields will be updated.",
-     *     operationId="updateLessonPlan",
-     *     tags={"Api"},
-     *     security={{"bearerAuth": {}}},
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"schid", "clsm", "ssn", "trm"},
-     *             @OA\Property(property="schid", type="string", example="SCH001"),
-     *             @OA\Property(property="clsm", type="string", example="1"),
-     *             @OA\Property(property="ssn", type="string", example="2025"),
-     *             @OA\Property(property="trm", type="string", example="2"),
-     *             @OA\Property(property="sbj", type="string", example="Mathematics"),
-     *             @OA\Property(property="no_of_class", type="integer", example=5),
-     *             @OA\Property(property="average_age", type="integer", example=10),
-     *             @OA\Property(property="topic", type="string", example="Multiplication"),
-     *             @OA\Property(property="date", type="string", format="date", example="2025-05-15"),
-     *             @OA\Property(property="sub_topic", type="array", @OA\Items(type="string"), example={"Introduction", "Examples"}),
-     *             @OA\Property(property="time_from", type="string", format="time", example="08:00:00"),
-     *             @OA\Property(property="time_to", type="string", format="time", example="09:00:00"),
-     *             @OA\Property(property="duration", type="string", example="1 hour"),
-     *             @OA\Property(property="learning_materials", type="array", @OA\Items(type="string"), example={"Chalkboard", "Chart"}),
-     *             @OA\Property(property="lesson_objectives", type="array", @OA\Items(type="string"), example={"Understand concept", "Apply in daily life"})
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="Lesson Plan updated successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Lesson Plan updated successfully"),
-     *             @OA\Property(property="data", type="object")
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=400,
-     *         description="No valid fields provided for update",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="No valid fields provided for update")
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=404,
-     *         description="Lesson Plan not found",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Lesson Plan not found")
-     *         )
-     *     )
-     * )
-     */
+/**
+ * @OA\Put(
+ *     path="/api/updateLessonPlan",
+ *     summary="Update a lesson plan",
+ *     tags={"Api"},
+ *      security={{"bearerAuth":{}}},
+ *     description="Update an existing lesson plan. Fields are optional; only provided fields will be updated. Supports updating plan_type (weekly or termly).",
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             type="object",
+ *             required={"schid","clsm","ssn","trm"},
+ *             @OA\Property(property="schid", type="string", example="12", description="School ID"),
+ *             @OA\Property(property="clsm", type="string", example="11", description="Class/grade"),
+ *             @OA\Property(property="ssn", type="string", example="2025", description="Session/academic year"),
+ *             @OA\Property(property="trm", type="integer", example=1, description="Term number"),
+ *             @OA\Property(property="sbj", type="string", example="ENGLISH LANGUAGE", description="Subject name"),
+ *             @OA\Property(property="no_of_class", type="integer", example=35, description="Number of students in class"),
+ *             @OA\Property(property="average_age", type="number", format="float", example=12, description="Average age of students"),
+ *             @OA\Property(property="topic", type="string", example="Parts of Speech", description="Lesson topic"),
+ *             @OA\Property(property="sub_topic", type="array", @OA\Items(type="string"), example={"Nouns","Verbs"}, description="Optional subtopics"),
+ *             @OA\Property(property="date", type="string", format="date", example="2025-09-03", description="Lesson date"),
+ *             @OA\Property(property="time_from", type="string", format="time", example="07:30", description="Lesson start time"),
+ *             @OA\Property(property="time_to", type="string", format="time", example="08:10", description="Lesson end time"),
+ *             @OA\Property(property="duration", type="string", example="40 minutes", description="Lesson duration"),
+ *             @OA\Property(property="learning_materials", type="array", @OA\Items(type="string"), example={"Textbook","Board"}, description="Optional learning materials"),
+ *             @OA\Property(property="lesson_objectives", type="array", @OA\Items(type="string"), example={"Identify nouns","Recognize verbs"}, description="Learning objectives"),
+ *             @OA\Property(property="plan_type", type="string", enum={"weekly","termly"}, example="weekly", description="Plan type: weekly or termly")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Lesson plan updated successfully",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Lesson Plan updated successfully"),
+ *             @OA\Property(property="data", type="object", description="Updated lesson plan object")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=400,
+ *         description="No valid fields provided for update",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="No valid fields provided for update")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="Lesson plan not found",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="Lesson Plan not found")
+ *         )
+ *     )
+ * )
+ */
 
 
-    public function updateLessonPlan(Request $request)
-    {
-        $request->validate([
-            "schid" => "required",
-            "clsm" => "required",
-            "ssn" => "required",
-            "trm" => "required",
 
-            // Optional fields for update
-            "sbj" => "nullable",
-            "no_of_class" => "nullable|integer",
-            "average_age" => "nullable|integer",
-            "topic" => "nullable|string",
-            "date" => "nullable|date",
-            "sub_topic" => "nullable|array",
-            "time_from" => "nullable|date_format:H:i:s",
-            "time_to" => "nullable|date_format:H:i:s",
-            "duration" => "nullable|string",
-            "learning_materials" => "nullable|array",
-            "lesson_objectives" => "nullable|array",
-        ]);
+// public function updateLessonPlan(Request $request)
+// {
+//     $request->validate([
+//         "schid" => "required",
+//         "clsm" => "required",
+//         "ssn" => "required",
+//         "trm" => "required",
 
-        $lessonPlan = lesson_plan::where("schid", $request->schid)
-            ->where("clsm", $request->clsm)
-            ->where("ssn", $request->ssn)
-            ->where("trm", $request->trm)
-            ->first();
+//         // Optional fields for update
+//         "sbj" => "nullable|string",
+//         "no_of_class" => "nullable|integer",
+//         "average_age" => "nullable|numeric",
+//         "topic" => "nullable|string",
+//         "date" => "nullable|date",
+//         "sub_topic" => "nullable|array",
+//         "time_from" => "nullable|date_format:H:i",
+//         "time_to" => "nullable|date_format:H:i|after:time_from",
+//         "duration" => "nullable|string",
+//         "learning_materials" => "nullable|array",
+//         "lesson_objectives" => "nullable|array",
+//         "plan_type" => "nullable|in:weekly,termly", // added plan_type
+//     ]);
 
-        if (!$lessonPlan) {
-            return response()->json([
-                "status" => false,
-                "message" => "Lesson Plan not found",
-            ], 404);
-        }
+//     $lessonPlan = lesson_plan::where("schid", $request->schid)
+//         ->where("clsm", $request->clsm)
+//         ->where("ssn", $request->ssn)
+//         ->where("trm", $request->trm)
+//         ->first();
 
-        // Fields allowed for update
-        $fieldsToUpdate = collect($request->only([
-            "sbj",
-            "no_of_class",
-            "average_age",
-            "topic",
-            "sub_topic",
-            "date",
-            "time_from",
-            "time_to",
-            "duration",
-            "learning_materials",
-            "lesson_objectives"
-        ]))->filter(fn($value) => !is_null($value))->toArray();
+//     if (!$lessonPlan) {
+//         return response()->json([
+//             "status" => false,
+//             "message" => "Lesson Plan not found",
+//         ], 404);
+//     }
 
-        if (empty($fieldsToUpdate)) {
-            return response()->json([
-                "status" => false,
-                "message" => "No valid fields provided for update",
-            ], 400);
-        }
+//     // Fields allowed for update
+//     $fieldsToUpdate = collect($request->only([
+//         "sbj",
+//         "no_of_class",
+//         "average_age",
+//         "topic",
+//         "sub_topic",
+//         "date",
+//         "time_from",
+//         "time_to",
+//         "duration",
+//         "learning_materials",
+//         "lesson_objectives",
+//         "plan_type", // include plan_type
+//     ]))->filter(fn($value) => !is_null($value))->toArray();
 
-        $lessonPlan->update($fieldsToUpdate);
+//     if (empty($fieldsToUpdate)) {
+//         return response()->json([
+//             "status" => false,
+//             "message" => "No valid fields provided for update",
+//         ], 400);
+//     }
 
+//     $lessonPlan->update($fieldsToUpdate);
+
+//     return response()->json([
+//         "status" => true,
+//         "message" => "Lesson Plan updated successfully",
+//         "data" => $lessonPlan
+//     ], 200);
+// }
+
+
+public function updateLessonPlan(Request $request)
+{
+    $request->validate([
+        "schid" => "required",
+        "clsm" => "required",
+        "ssn" => "required",
+        "trm" => "required",
+
+        // Optional fields for update
+        "sbj" => "nullable|string",
+        "no_of_class" => "nullable|integer",
+        "average_age" => "nullable|numeric",
+        "topic" => "nullable|string",
+        "date" => "nullable|date",
+        "sub_topic" => "nullable|array",
+        "time_from" => "nullable|date_format:H:i",
+        "time_to" => "nullable|date_format:H:i|after:time_from",
+        "duration" => "nullable|string",
+        "learning_materials" => "nullable|array",
+        "lesson_objectives" => "nullable|array",
+        "plan_type" => "nullable|in:weekly,termly", // added plan_type
+    ]);
+
+    $lessonPlan = lesson_plan::where("schid", $request->schid)
+        ->where("clsm", $request->clsm)
+        ->where("ssn", $request->ssn)
+        ->where("trm", $request->trm)
+        ->first();
+
+    if (!$lessonPlan) {
         return response()->json([
-            "status" => true,
-            "message" => "Lesson Plan updated successfully",
-            "data" => $lessonPlan
-        ], 200);
+            "status" => false,
+            "message" => "Lesson Plan not found",
+        ], 404);
     }
+
+    // Fields allowed for update
+    $fieldsToUpdate = collect($request->only([
+        "sbj",
+        "no_of_class",
+        "average_age",
+        "topic",
+        "sub_topic",
+        "date",
+        "time_from",
+        "time_to",
+        "duration",
+        "learning_materials",
+        "lesson_objectives",
+        "plan_type", // include plan_type
+    ]))->filter(fn($value) => !is_null($value))->toArray();
+
+    if (empty($fieldsToUpdate)) {
+        return response()->json([
+            "status" => false,
+            "message" => "No valid fields provided for update",
+        ], 400);
+    }
+
+    $lessonPlan->update($fieldsToUpdate);
+
+    return response()->json([
+        "status" => true,
+        "message" => "Lesson Plan updated successfully",
+        "pld" => $lessonPlan
+    ], 200);
+}
 
 
 

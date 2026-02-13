@@ -17846,8 +17846,8 @@
                     "Api"
                 ],
                 "summary": "Update a lesson plan",
-                "description": "Updates an existing lesson plan record based on schid, clsm, ssn, and trm. Only provided fields will be updated.",
-                "operationId": "updateLessonPlan",
+                "description": "Update an existing lesson plan. Fields are optional; only provided fields will be updated. Supports updating plan_type (weekly or termly).",
+                "operationId": "107025c321c6f23ba1b651921ea5e40b",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -17861,85 +17861,110 @@
                                 ],
                                 "properties": {
                                     "schid": {
+                                        "description": "School ID",
                                         "type": "string",
-                                        "example": "SCH001"
+                                        "example": "12"
                                     },
                                     "clsm": {
+                                        "description": "Class/grade",
                                         "type": "string",
-                                        "example": "1"
+                                        "example": "11"
                                     },
                                     "ssn": {
+                                        "description": "Session/academic year",
                                         "type": "string",
                                         "example": "2025"
                                     },
                                     "trm": {
-                                        "type": "string",
-                                        "example": "2"
+                                        "description": "Term number",
+                                        "type": "integer",
+                                        "example": 1
                                     },
                                     "sbj": {
+                                        "description": "Subject name",
                                         "type": "string",
-                                        "example": "Mathematics"
+                                        "example": "ENGLISH LANGUAGE"
                                     },
                                     "no_of_class": {
+                                        "description": "Number of students in class",
                                         "type": "integer",
-                                        "example": 5
+                                        "example": 35
                                     },
                                     "average_age": {
-                                        "type": "integer",
-                                        "example": 10
+                                        "description": "Average age of students",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 12
                                     },
                                     "topic": {
+                                        "description": "Lesson topic",
                                         "type": "string",
-                                        "example": "Multiplication"
-                                    },
-                                    "date": {
-                                        "type": "string",
-                                        "format": "date",
-                                        "example": "2025-05-15"
+                                        "example": "Parts of Speech"
                                     },
                                     "sub_topic": {
+                                        "description": "Optional subtopics",
                                         "type": "array",
                                         "items": {
                                             "type": "string"
                                         },
                                         "example": [
-                                            "Introduction",
-                                            "Examples"
+                                            "Nouns",
+                                            "Verbs"
                                         ]
                                     },
+                                    "date": {
+                                        "description": "Lesson date",
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2025-09-03"
+                                    },
                                     "time_from": {
+                                        "description": "Lesson start time",
                                         "type": "string",
                                         "format": "time",
-                                        "example": "08:00:00"
+                                        "example": "07:30"
                                     },
                                     "time_to": {
+                                        "description": "Lesson end time",
                                         "type": "string",
                                         "format": "time",
-                                        "example": "09:00:00"
+                                        "example": "08:10"
                                     },
                                     "duration": {
+                                        "description": "Lesson duration",
                                         "type": "string",
-                                        "example": "1 hour"
+                                        "example": "40 minutes"
                                     },
                                     "learning_materials": {
+                                        "description": "Optional learning materials",
                                         "type": "array",
                                         "items": {
                                             "type": "string"
                                         },
                                         "example": [
-                                            "Chalkboard",
-                                            "Chart"
+                                            "Textbook",
+                                            "Board"
                                         ]
                                     },
                                     "lesson_objectives": {
+                                        "description": "Learning objectives",
                                         "type": "array",
                                         "items": {
                                             "type": "string"
                                         },
                                         "example": [
-                                            "Understand concept",
-                                            "Apply in daily life"
+                                            "Identify nouns",
+                                            "Recognize verbs"
                                         ]
+                                    },
+                                    "plan_type": {
+                                        "description": "Plan type: weekly or termly",
+                                        "type": "string",
+                                        "enum": [
+                                            "weekly",
+                                            "termly"
+                                        ],
+                                        "example": "weekly"
                                     }
                                 },
                                 "type": "object"
@@ -17949,7 +17974,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Lesson Plan updated successfully",
+                        "description": "Lesson plan updated successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -17963,6 +17988,7 @@
                                             "example": "Lesson Plan updated successfully"
                                         },
                                         "data": {
+                                            "description": "Updated lesson plan object",
                                             "type": "object"
                                         }
                                     },
@@ -17992,7 +18018,7 @@
                         }
                     },
                     "404": {
-                        "description": "Lesson Plan not found",
+                        "description": "Lesson plan not found",
                         "content": {
                             "application/json": {
                                 "schema": {
