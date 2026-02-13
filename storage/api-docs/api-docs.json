@@ -17642,7 +17642,7 @@
         "/api/setLessonPlan": {
             "post": {
                 "tags": [
-                    "Lesson Plan"
+                    "Api"
                 ],
                 "summary": "Create or update a lesson plan",
                 "description": "Allows the user to create or update a lesson plan. Supports weekly or termly planning.",
