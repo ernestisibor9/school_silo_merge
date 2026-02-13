@@ -228,6 +228,7 @@ Route::group([
     Route::post('/students/maintain-previous', [ApiController::class, 'maintainPreviousStudents']);
     Route::post('/staff/maintain-previous', [ApiController::class, 'maintainPreviousStaff']);
 
+    Route::patch('/learners/{userId}/dob', [ApiController::class, 'updateDob']);
 
 
     Route::get('/getSubAccount/{acctid}', [ApiController::class, 'getSubAccount']);

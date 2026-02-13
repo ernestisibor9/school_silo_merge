@@ -21825,7 +21825,7 @@
                         }
                     },
                     "404": {
-                        "description": "No records found"
+                        "description": "No records found."
                     }
                 },
                 "security": [
@@ -30034,6 +30034,118 @@
                         "bearerAuth": []
                     }
                 ]
+            }
+        },
+        "/api/learners/{userId}/dob": {
+            "patch": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Update learner date of birth",
+                "description": "Updates the learner's date of birth (DOB). Only updates when DOB is provided. Date must be before today.",
+                "operationId": "updateLearnerDob",
+                "parameters": [
+                    {
+                        "name": "userId",
+                        "in": "path",
+                        "description": "Learner User ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "1001"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "description": "Date of birth payload",
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "dob": {
+                                        "description": "Learner date of birth in YYYY-MM-DD format",
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2009-12-16"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Date of birth updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Date of birth updated successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "user_id": {
+                                                    "type": "string",
+                                                    "example": "1001"
+                                                },
+                                                "dob": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "example": "2009-12-16"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The dob must be a date before today."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Learner not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No query results for model"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     },

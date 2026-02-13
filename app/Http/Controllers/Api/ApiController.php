@@ -34917,5 +34917,102 @@ class ApiController extends Controller
     }
 
 
+
+
+
+    /**
+     * @OA\Patch(
+     *     path="/api/learners/{userId}/dob",
+     *     operationId="updateLearnerDob",
+     *     tags={"Api"},
+     *     summary="Update learner date of birth",
+     *     description="Updates the learner's date of birth (DOB). Only updates when DOB is provided. Date must be before today.",
+     *
+     *     @OA\Parameter(
+     *         name="userId",
+     *         in="path",
+     *         required=true,
+     *         description="Learner User ID",
+     *         @OA\Schema(
+     *             type="string",
+     *             example="1001"
+     *         )
+     *     ),
+     *
+     *     @OA\RequestBody(
+     *         required=false,
+     *         description="Date of birth payload",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(
+     *                 property="dob",
+     *                 type="string",
+     *                 format="date",
+     *                 example="2009-12-16",
+     *                 description="Learner date of birth in YYYY-MM-DD format"
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Date of birth updated successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Date of birth updated successfully"),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="object",
+     *                 @OA\Property(property="user_id", type="string", example="1001"),
+     *                 @OA\Property(property="dob", type="string", format="date", example="2009-12-16")
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="The dob must be a date before today."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="Learner not found",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="No query results for model")
+     *         )
+     *     )
+     * )
+     */
+    public function updateDob(Request $request, $userId)
+    {
+        $validated = $request->validate([
+            'dob' => ['nullable', 'date', 'before:today'],
+        ]);
+
+        $student = student_basic_data::where('user_id', $userId)->firstOrFail();
+
+        if ($request->has('dob')) {
+            $student->dob = $validated['dob'];
+            $student->save();
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Date of birth updated successfully',
+            'data' => [
+                'user_id' => $student->user_id,
+                'dob' => $student->dob,
+            ],
+        ]);
+    }
+
+
 }
 
