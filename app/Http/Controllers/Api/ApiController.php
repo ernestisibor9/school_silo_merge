@@ -21321,7 +21321,7 @@ public function getOldStudentsAndSubjectScoreSheet($schid, $ssn, $trm, $clsm, $c
  * @OA\Post(
  *     path="/api/setLessonPlan",
  *     summary="Create or update a lesson plan",
- *     tags={"Lesson Plan"},
+ *     tags={"Api"},
  *    security={{"bearerAuth":{}}},
  *     description="Allows the user to create or update a lesson plan. Supports weekly or termly planning.",
  *     @OA\RequestBody(
