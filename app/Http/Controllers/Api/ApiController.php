@@ -30187,110 +30187,223 @@ public function verifyStudent(Request $request)
      */
 
 
+    // public function getStaffId($schid, $ssn, $trm)
+    // {
+    //     $staff = DB::table('old_staff as os')
+    //         ->leftJoin('staff as s', 'os.sid', '=', 's.sid')
+    //         ->leftJoin('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
+    //         ->leftJoin('school as sch', 'os.schid', '=', 'sch.sid')
+    //         ->leftJoin('school_web_data as sw', 'sch.sid', '=', 'sw.user_id') // join to get school phone
+    //         ->leftJoin('staff_role as r1', 'os.role', '=', 'r1.id')
+    //         ->leftJoin('staff_role as r2', 'os.role2', '=', 'r2.id')
+    //         ->where('os.schid', $schid)
+    //         ->where('os.ssn', $ssn)
+    //         ->where('os.trm', $trm)
+    //         ->select(
+    //             'os.sid',
+    //             DB::raw('MIN(os.uid) as uid'),
+    //             DB::raw('MAX(os.status) as status'),
+    //             DB::raw('MAX(os.role) as role'),
+    //             DB::raw('MAX(os.role2) as role2'),
+    //             DB::raw('MAX(r1.name) as role_name'),
+    //             DB::raw('MAX(r2.name) as role2_name'),
+    //             DB::raw('MAX(s.sch3) as sch3'),
+    //             DB::raw('MAX(sb.dob) as dob'),
+    //             DB::raw('MAX(sb.sex) as sex'),
+    //             DB::raw('MAX(sb.phn) as phn'),
+    //             DB::raw('MAX(sb.addr) as addr'),
+    //             DB::raw('MAX(sch.name) as school_name'),
+    //             DB::raw('MAX(sch.sbd) as subdomain'), // include sbd column
+    //             DB::raw('MAX(sw.phn) as school_phone'), // get school phone number
+    //             DB::raw('MAX(os.fname) as fname'),
+    //             DB::raw('MAX(os.mname) as mname'),
+    //             DB::raw('MAX(os.lname) as lname'),
+    //             DB::raw('MAX(os.suid) as suid'),
+    //             DB::raw('MAX(os.created_at) as created_at')
+    //         )
+    //         ->groupBy('os.sid')
+    //         ->orderBy('os.sid', 'asc')
+    //         ->get();
+
+    //     $existingCount = DB::table('old_staff')
+    //         ->where('schid', $schid)
+    //         ->where('ssn', $ssn)
+    //         ->where('trm', $trm)
+    //         ->whereNotNull('suid')
+    //         ->distinct('sid')
+    //         ->count('sid');
+
+    //     $counter = $existingCount + 1;
+
+    //     $pld = $staff->map(function ($stf) use (&$counter, $schid, $ssn, $trm) {
+    //         $schoolCode = $stf->sch3 ?? 'SCH';
+
+    //         // Convert DOB from milliseconds → YYYY-MM-DD
+    //         $dob = null;
+    //         if (!empty($stf->dob) && is_numeric($stf->dob)) {
+    //             try {
+    //                 $dob = \Carbon\Carbon::createFromTimestamp($stf->dob / 1000)->format('Y-m-d');
+    //             } catch (\Exception $e) {
+    //                 $dob = null;
+    //             }
+    //         }
+
+    //         // Check if staff is ex-staff
+    //         $isExStaff = DB::table('ex_staffs')->where('stid', $stf->sid)->exists();
+    //         $status = $isExStaff ? 'Ex Staff' : 'Staff';
+
+    //         // Only assign new suid if missing
+    //         if (empty($stf->suid)) {
+    //             $staffId = sprintf("%s/STAFF/%03d", $schoolCode, $counter);
+    //             DB::table('old_staff')
+    //                 ->where('sid', $stf->sid)
+    //                 ->where('schid', $schid)
+    //                 ->where('ssn', $ssn)
+    //                 ->where('trm', $trm)
+    //                 ->update(['suid' => $staffId]);
+    //             $counter++;
+    //         } else {
+    //             $staffId = $stf->suid;
+    //         }
+
+    //         return [
+    //             "sid" => $stf->sid,
+    //             "full_name" => trim("{$stf->fname} {$stf->mname} {$stf->lname}"),
+    //             "status" => $status,
+    //             "role" => $stf->role_name ?? 'N/A',
+    //             "role2" => $stf->role2_name ?? 'N/A',
+    //             "school_code" => $schoolCode,
+    //             "school_name" => $stf->school_name,
+    //             "school_phone" => $stf->school_phone ?? 'N/A',
+    //             "subdomain" => $stf->subdomain ?? 'N/A', // include sbd in payload
+    //             "staff_id" => $staffId,
+    //             "dob" => $dob ?: 'N/A',
+    //             "sex" => $stf->sex,
+    //             "phone" => $stf->phn,
+    //             "address" => $stf->addr,
+    //             "created_at" => $stf->created_at,
+    //         ];
+    //     });
+
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Unique staff IDs generated successfully",
+    //         "pld" => $pld
+    //     ]);
+    // }
+
+
     public function getStaffId($schid, $ssn, $trm)
-    {
-        $staff = DB::table('old_staff as os')
-            ->leftJoin('staff as s', 'os.sid', '=', 's.sid')
-            ->leftJoin('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
-            ->leftJoin('school as sch', 'os.schid', '=', 'sch.sid')
-            ->leftJoin('school_web_data as sw', 'sch.sid', '=', 'sw.user_id') // join to get school phone
-            ->leftJoin('staff_role as r1', 'os.role', '=', 'r1.id')
-            ->leftJoin('staff_role as r2', 'os.role2', '=', 'r2.id')
-            ->where('os.schid', $schid)
-            ->where('os.ssn', $ssn)
-            ->where('os.trm', $trm)
-            ->select(
-                'os.sid',
-                DB::raw('MIN(os.uid) as uid'),
-                DB::raw('MAX(os.status) as status'),
-                DB::raw('MAX(os.role) as role'),
-                DB::raw('MAX(os.role2) as role2'),
-                DB::raw('MAX(r1.name) as role_name'),
-                DB::raw('MAX(r2.name) as role2_name'),
-                DB::raw('MAX(s.sch3) as sch3'),
-                DB::raw('MAX(sb.dob) as dob'),
-                DB::raw('MAX(sb.sex) as sex'),
-                DB::raw('MAX(sb.phn) as phn'),
-                DB::raw('MAX(sb.addr) as addr'),
-                DB::raw('MAX(sch.name) as school_name'),
-                DB::raw('MAX(sch.sbd) as subdomain'), // include sbd column
-                DB::raw('MAX(sw.phn) as school_phone'), // get school phone number
-                DB::raw('MAX(os.fname) as fname'),
-                DB::raw('MAX(os.mname) as mname'),
-                DB::raw('MAX(os.lname) as lname'),
-                DB::raw('MAX(os.suid) as suid'),
-                DB::raw('MAX(os.created_at) as created_at')
-            )
-            ->groupBy('os.sid')
-            ->orderBy('os.sid', 'asc')
-            ->get();
+{
+    $staff = DB::table('old_staff as os')
+        ->leftJoin('staff as s', 'os.sid', '=', 's.sid')
+        ->leftJoin('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
+        ->leftJoin('school as sch', 'os.schid', '=', 'sch.sid')
+        ->leftJoin('school_web_data as sw', 'sch.sid', '=', 'sw.user_id')
+        ->leftJoin('staff_role as r1', 'os.role', '=', 'r1.id')
+        ->leftJoin('staff_role as r2', 'os.role2', '=', 'r2.id')
+        ->where('os.schid', $schid)
+        ->where('os.ssn', $ssn)
+        ->where('os.trm', $trm)
+        ->select(
+            'os.sid',
+            DB::raw('MIN(os.uid) as uid'),
+            DB::raw('MAX(os.status) as status'),
+            DB::raw('MAX(os.role) as role'),
+            DB::raw('MAX(os.role2) as role2'),
+            DB::raw('MAX(r1.name) as role_name'),
+            DB::raw('MAX(r2.name) as role2_name'),
+            DB::raw('MAX(s.sch3) as sch3'),
+            DB::raw('MAX(sb.dob) as dob'),
+            DB::raw('MAX(sb.sex) as sex'),
+            DB::raw('MAX(sb.phn) as phn'),
+            DB::raw('MAX(sb.addr) as addr'),
+            DB::raw('MAX(sch.name) as school_name'),
+            DB::raw('MAX(sch.sbd) as subdomain'),
+            DB::raw('MAX(sw.phn) as school_phone'),
+            DB::raw('MAX(os.fname) as fname'),
+            DB::raw('MAX(os.mname) as mname'),
+            DB::raw('MAX(os.lname) as lname'),
+            DB::raw('MAX(os.suid) as suid'),
+            DB::raw('MAX(os.created_at) as created_at')
+        )
+        ->groupBy('os.sid')
+        ->orderBy('os.sid', 'asc')
+        ->get();
 
-        $existingCount = DB::table('old_staff')
-            ->where('schid', $schid)
-            ->where('ssn', $ssn)
-            ->where('trm', $trm)
-            ->whereNotNull('suid')
-            ->distinct('sid')
-            ->count('sid');
+    $existingCount = DB::table('old_staff')
+        ->where('schid', $schid)
+        ->where('ssn', $ssn)
+        ->where('trm', $trm)
+        ->whereNotNull('suid')
+        ->distinct('sid')
+        ->count('sid');
 
-        $counter = $existingCount + 1;
+    $counter = $existingCount + 1;
 
-        $pld = $staff->map(function ($stf) use (&$counter, $schid, $ssn, $trm) {
-            $schoolCode = $stf->sch3 ?? 'SCH';
+    $pld = $staff->map(function ($stf) use (&$counter, $schid, $ssn, $trm) {
+        $schoolCode = $stf->sch3 ?? 'SCH';
 
-            // Convert DOB from milliseconds → YYYY-MM-DD
-            $dob = null;
-            if (!empty($stf->dob) && is_numeric($stf->dob)) {
-                try {
-                    $dob = \Carbon\Carbon::createFromTimestamp($stf->dob / 1000)->format('Y-m-d');
-                } catch (\Exception $e) {
-                    $dob = null;
-                }
+        /**
+         * ✅ DOB FIX
+         * Stored as DATE (YYYY-MM-DD)
+         * Do NOT treat as timestamp
+         */
+        $dob = null;
+        if (!empty($stf->dob)) {
+            try {
+                $dob = Carbon::parse($stf->dob)->format('Y-m-d');
+            } catch (\Exception $e) {
+                $dob = null;
             }
+        }
 
-            // Check if staff is ex-staff
-            $isExStaff = DB::table('ex_staffs')->where('stid', $stf->sid)->exists();
-            $status = $isExStaff ? 'Ex Staff' : 'Staff';
+        // Check if staff is ex-staff
+        $isExStaff = DB::table('ex_staffs')->where('stid', $stf->sid)->exists();
+        $status = $isExStaff ? 'Ex Staff' : 'Staff';
 
-            // Only assign new suid if missing
-            if (empty($stf->suid)) {
-                $staffId = sprintf("%s/STAFF/%03d", $schoolCode, $counter);
-                DB::table('old_staff')
-                    ->where('sid', $stf->sid)
-                    ->where('schid', $schid)
-                    ->where('ssn', $ssn)
-                    ->where('trm', $trm)
-                    ->update(['suid' => $staffId]);
-                $counter++;
-            } else {
-                $staffId = $stf->suid;
-            }
+        // Assign Staff ID only if missing
+        if (empty($stf->suid)) {
+            $staffId = sprintf("%s/STAFF/%03d", $schoolCode, $counter);
 
-            return [
-                "sid" => $stf->sid,
-                "full_name" => trim("{$stf->fname} {$stf->mname} {$stf->lname}"),
-                "status" => $status,
-                "role" => $stf->role_name ?? 'N/A',
-                "role2" => $stf->role2_name ?? 'N/A',
-                "school_code" => $schoolCode,
-                "school_name" => $stf->school_name,
-                "school_phone" => $stf->school_phone ?? 'N/A',
-                "subdomain" => $stf->subdomain ?? 'N/A', // include sbd in payload
-                "staff_id" => $staffId,
-                "dob" => $dob ?: 'N/A',
-                "sex" => $stf->sex,
-                "phone" => $stf->phn,
-                "address" => $stf->addr,
-                "created_at" => $stf->created_at,
-            ];
-        });
+            DB::table('old_staff')
+                ->where('sid', $stf->sid)
+                ->where('schid', $schid)
+                ->where('ssn', $ssn)
+                ->where('trm', $trm)
+                ->update(['suid' => $staffId]);
 
-        return response()->json([
-            "status" => true,
-            "message" => "Unique staff IDs generated successfully",
-            "pld" => $pld
-        ]);
-    }
+            $counter++;
+        } else {
+            $staffId = $stf->suid;
+        }
+
+        return [
+            "sid" => $stf->sid,
+            "full_name" => trim("{$stf->fname} {$stf->mname} {$stf->lname}"),
+            "status" => $status,
+            "role" => $stf->role_name ?? 'N/A',
+            "role2" => $stf->role2_name ?? 'N/A',
+            "school_code" => $schoolCode,
+            "school_name" => $stf->school_name,
+            "school_phone" => $stf->school_phone ?? 'N/A',
+            "subdomain" => $stf->subdomain ?? 'N/A',
+            "staff_id" => $staffId,
+            "dob" => $dob ?? 'N/A',
+            "sex" => $stf->sex,
+            "phone" => $stf->phn,
+            "address" => $stf->addr,
+            "created_at" => $stf->created_at,
+        ];
+    });
+
+    return response()->json([
+        "status" => true,
+        "message" => "Unique staff IDs generated successfully",
+        "pld" => $pld
+    ]);
+}
+
 
 
     /**
@@ -30361,98 +30474,193 @@ public function verifyStudent(Request $request)
      */
 
 
-    public function verifyStaff(Request $request)
-    {
-        $staffId = $request->query('staffId'); // ?staffId=SCS/STAFF/003
+    // public function verifyStaff(Request $request)
+    // {
+    //     $staffId = $request->query('staffId'); // ?staffId=SCS/STAFF/003
 
-        if (!$staffId) {
-            return response()->json([
-                "status" => false,
-                "message" => "staffId is required",
-                "pld" => []
-            ], 400);
-        }
+    //     if (!$staffId) {
+    //         return response()->json([
+    //             "status" => false,
+    //             "message" => "staffId is required",
+    //             "pld" => []
+    //         ], 400);
+    //     }
 
-        // 🔹 Join necessary tables
-        $staff = DB::table('old_staff as os')
-            ->leftJoin('staff as s', 'os.sid', '=', 's.sid')
-            ->leftJoin('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
-            ->leftJoin('school as sch', 'os.schid', '=', 'sch.sid')
-            ->leftJoin('school_web_data as sw', 'sch.sid', '=', 'sw.user_id') // join to get school phone
-            ->leftJoin('staff_role as r1', 'os.role', '=', 'r1.id')
-            ->leftJoin('staff_role as r2', 'os.role2', '=', 'r2.id')
-            ->where('os.suid', $staffId) // Filter by unique staff ID
-            ->select(
-                'os.sid',
-                'os.fname',
-                'os.mname',
-                'os.lname',
-                'os.status',
-                'os.suid as staff_id',
-                'sch.name as school_name',
-                'sch.sbd as subdomain',   // include school.sbd here
-                'sw.phn as school_phone',
-                'r1.name as role_name',
-                'r2.name as role2_name',
-                'sb.dob',
-                'sb.sex',
-                'sb.phn as staff_phone',
-                'sb.addr',
-                'os.created_at'
-            )
-            ->first();
+    //     // 🔹 Join necessary tables
+    //     $staff = DB::table('old_staff as os')
+    //         ->leftJoin('staff as s', 'os.sid', '=', 's.sid')
+    //         ->leftJoin('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
+    //         ->leftJoin('school as sch', 'os.schid', '=', 'sch.sid')
+    //         ->leftJoin('school_web_data as sw', 'sch.sid', '=', 'sw.user_id') // join to get school phone
+    //         ->leftJoin('staff_role as r1', 'os.role', '=', 'r1.id')
+    //         ->leftJoin('staff_role as r2', 'os.role2', '=', 'r2.id')
+    //         ->where('os.suid', $staffId) // Filter by unique staff ID
+    //         ->select(
+    //             'os.sid',
+    //             'os.fname',
+    //             'os.mname',
+    //             'os.lname',
+    //             'os.status',
+    //             'os.suid as staff_id',
+    //             'sch.name as school_name',
+    //             'sch.sbd as subdomain',   // include school.sbd here
+    //             'sw.phn as school_phone',
+    //             'r1.name as role_name',
+    //             'r2.name as role2_name',
+    //             'sb.dob',
+    //             'sb.sex',
+    //             'sb.phn as staff_phone',
+    //             'sb.addr',
+    //             'os.created_at'
+    //         )
+    //         ->first();
 
-        // 🔸 Staff not found
-        if (!$staff) {
-            return response()->json([
-                "status" => false,
-                "message" => "Staff not found",
-                "pld" => []
-            ], 404);
-        }
+    //     // 🔸 Staff not found
+    //     if (!$staff) {
+    //         return response()->json([
+    //             "status" => false,
+    //             "message" => "Staff not found",
+    //             "pld" => []
+    //         ], 404);
+    //     }
 
-        // Check if staff is in ex_staffs table
-        $isExStaff = DB::table('ex_staffs')->where('stid', $staff->sid)->exists();
-        $currentStatus = $isExStaff ? 'Ex Staff' : 'Staff';
+    //     // Check if staff is in ex_staffs table
+    //     $isExStaff = DB::table('ex_staffs')->where('stid', $staff->sid)->exists();
+    //     $currentStatus = $isExStaff ? 'Ex Staff' : 'Staff';
 
-        // 🔹 Format date of birth (if numeric milliseconds)
-        $dob = null;
-        if (!empty($staff->dob) && is_numeric($staff->dob)) {
-            try {
-                $dob = \Carbon\Carbon::createFromTimestamp($staff->dob / 1000)->format('Y-m-d');
-            } catch (\Exception $e) {
-                $dob = null;
-            }
-        }
+    //     // 🔹 Format date of birth (if numeric milliseconds)
+    //     $dob = null;
+    //     if (!empty($staff->dob) && is_numeric($staff->dob)) {
+    //         try {
+    //             $dob = Carbon::createFromTimestamp($staff->dob / 1000)->format('Y-m-d');
+    //         } catch (\Exception $e) {
+    //             $dob = null;
+    //         }
+    //     }
 
-        // Combine names
-        $fullName = trim("{$staff->fname} {$staff->mname} {$staff->lname}");
+    //     // Combine names
+    //     $fullName = trim("{$staff->fname} {$staff->mname} {$staff->lname}");
 
-        // Build payload
-        $pld = [
-            "sid" => (string) $staff->sid,
-            "full_name" => $fullName,
-            "status" => $currentStatus,
-            "school_name" => $staff->school_name,
-            "subdomain" => $staff->subdomain, // Added school.sbd to pld
-            "school_phone" => $staff->school_phone ?? 'N/A',
-            "staff_id" => $staff->staff_id,
-            "role" => $staff->role_name ?? 'N/A',
-            "role2" => $staff->role2_name ?? 'N/A',
-            "dob" => $dob ?: 'N/A',
-            "sex" => $staff->sex,
-            "phone" => $staff->staff_phone,
-            "address" => $staff->addr,
-            "created_at" => $staff->created_at,
-        ];
+    //     // Build payload
+    //     $pld = [
+    //         "sid" => (string) $staff->sid,
+    //         "full_name" => $fullName,
+    //         "status" => $currentStatus,
+    //         "school_name" => $staff->school_name,
+    //         "subdomain" => $staff->subdomain, // Added school.sbd to pld
+    //         "school_phone" => $staff->school_phone ?? 'N/A',
+    //         "staff_id" => $staff->staff_id,
+    //         "role" => $staff->role_name ?? 'N/A',
+    //         "role2" => $staff->role2_name ?? 'N/A',
+    //         "dob" => $dob ?: 'N/A',
+    //         "sex" => $staff->sex,
+    //         "phone" => $staff->staff_phone,
+    //         "address" => $staff->addr,
+    //         "created_at" => $staff->created_at,
+    //     ];
 
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Staff verified successfully",
+    //         "pld" => [$pld],
+    //     ]);
+    // }
+
+public function verifyStaff(Request $request)
+{
+    $staffId = $request->query('staffId'); // ?staffId=SCS/STAFF/003
+
+    if (!$staffId) {
         return response()->json([
-            "status" => true,
-            "message" => "Staff verified successfully",
-            "pld" => [$pld],
-        ]);
+            "status" => false,
+            "message" => "staffId is required",
+            "pld" => []
+        ], 400);
     }
 
+    // 🔹 Join necessary tables
+    $staff = DB::table('old_staff as os')
+        ->leftJoin('staff as s', 'os.sid', '=', 's.sid')
+        ->leftJoin('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
+        ->leftJoin('school as sch', 'os.schid', '=', 'sch.sid')
+        ->leftJoin('school_web_data as sw', 'sch.sid', '=', 'sw.user_id')
+        ->leftJoin('staff_role as r1', 'os.role', '=', 'r1.id')
+        ->leftJoin('staff_role as r2', 'os.role2', '=', 'r2.id')
+        ->where('os.suid', $staffId)
+        ->select(
+            'os.sid',
+            'os.fname',
+            'os.mname',
+            'os.lname',
+            'os.status',
+            'os.suid as staff_id',
+            'sch.name as school_name',
+            'sch.sbd as subdomain',
+            'sw.phn as school_phone',
+            'r1.name as role_name',
+            'r2.name as role2_name',
+            'sb.dob',
+            'sb.sex',
+            'sb.phn as staff_phone',
+            'sb.addr',
+            'os.created_at'
+        )
+        ->first();
+
+    // 🔸 Staff not found
+    if (!$staff) {
+        return response()->json([
+            "status" => false,
+            "message" => "Staff not found",
+            "pld" => []
+        ], 404);
+    }
+
+    // Check if staff is in ex_staffs table
+    $isExStaff = DB::table('ex_staffs')->where('stid', $staff->sid)->exists();
+    $currentStatus = $isExStaff ? 'Ex Staff' : 'Staff';
+
+    /**
+     * ✅ DOB FIX
+     * Stored as DATE (YYYY-MM-DD)
+     * DO NOT treat as timestamp
+     */
+    $dob = null;
+    if (!empty($staff->dob)) {
+        try {
+            $dob = \Carbon\Carbon::parse($staff->dob)->format('Y-m-d');
+        } catch (\Exception $e) {
+            $dob = null;
+        }
+    }
+
+    // Combine names
+    $fullName = trim("{$staff->fname} {$staff->mname} {$staff->lname}");
+
+    // Build payload
+    $pld = [
+        "sid" => (string) $staff->sid,
+        "full_name" => $fullName,
+        "status" => $currentStatus,
+        "school_name" => $staff->school_name,
+        "subdomain" => $staff->subdomain,
+        "school_phone" => $staff->school_phone ?? 'N/A',
+        "staff_id" => $staff->staff_id,
+        "role" => $staff->role_name ?? 'N/A',
+        "role2" => $staff->role2_name ?? 'N/A',
+        "dob" => $dob ?? 'N/A',
+        "sex" => $staff->sex,
+        "phone" => $staff->staff_phone,
+        "address" => $staff->addr,
+        "created_at" => $staff->created_at,
+    ];
+
+    return response()->json([
+        "status" => true,
+        "message" => "Staff verified successfully",
+        "pld" => [$pld],
+    ]);
+}
 
 
 
@@ -31112,91 +31320,183 @@ public function verifyStudent(Request $request)
      *     )
      * )
      */
-    public function getLearnersEnrollmentInfoGender(Request $request)
-    {
-        $start = $request->input('start', 0);
-        $count = $request->input('count', 20);
-        $state = $request->input('state');
-        $lga = $request->input('lga');
-        $gender = $request->input('gender');
-        $schid = $request->input('schid');
+    // public function getLearnersEnrollmentInfoGender(Request $request)
+    // {
+    //     $start = $request->input('start', 0);
+    //     $count = $request->input('count', 20);
+    //     $state = $request->input('state');
+    //     $lga = $request->input('lga');
+    //     $gender = $request->input('gender');
+    //     $schid = $request->input('schid');
 
-        // Subquery: get latest unique record for each student by uid
-        $latestStudents = DB::table('old_student as os2')
-            ->select(DB::raw('MAX(os2.uid) as latest_uid'))
-            ->where('os2.status', 'active')
-            ->groupBy('os2.sid');
+    //     // Subquery: get latest unique record for each student by uid
+    //     $latestStudents = DB::table('old_student as os2')
+    //         ->select(DB::raw('MAX(os2.uid) as latest_uid'))
+    //         ->where('os2.status', 'active')
+    //         ->groupBy('os2.sid');
 
-        // Join with main table on latest uid (ensures one record per student)
-        $query = DB::table('old_student as os')
-            ->joinSub($latestStudents, 'latest', function ($join) {
-                $join->on('os.uid', '=', 'latest.latest_uid');
-            })
-            ->join('student_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
-            ->join('school as sc', 'os.schid', '=', 'sc.sid')
-            ->join('school_web_data as swd', 'sc.sid', '=', 'swd.user_id')
-            ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')
-            ->leftJoin('sch_cls as scl', 'os.clsa', '=', 'scl.id')
-            ->select(
-                'os.sid as student_id',
-                'os.fname',
-                'os.mname',
-                'os.lname',
-                'sbd.dob',
-                'sbd.sex as gender',
-                'sbd.state as student_state',
-                'sbd.lga as student_lga',
-                'swd.country as school_country',
-                'swd.state as school_state',
-                'swd.lga as school_lga',
-                'c.name as class_name',
-                'scl.name as class_arm_name',
-                'sc.name as school_name'
-            )
-            ->where('os.status', 'active');
+    //     // Join with main table on latest uid (ensures one record per student)
+    //     $query = DB::table('old_student as os')
+    //         ->joinSub($latestStudents, 'latest', function ($join) {
+    //             $join->on('os.uid', '=', 'latest.latest_uid');
+    //         })
+    //         ->join('student_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
+    //         ->join('school as sc', 'os.schid', '=', 'sc.sid')
+    //         ->join('school_web_data as swd', 'sc.sid', '=', 'swd.user_id')
+    //         ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')
+    //         ->leftJoin('sch_cls as scl', 'os.clsa', '=', 'scl.id')
+    //         ->select(
+    //             'os.sid as student_id',
+    //             'os.fname',
+    //             'os.mname',
+    //             'os.lname',
+    //             'sbd.dob',
+    //             'sbd.sex as gender',
+    //             'sbd.state as student_state',
+    //             'sbd.lga as student_lga',
+    //             'swd.country as school_country',
+    //             'swd.state as school_state',
+    //             'swd.lga as school_lga',
+    //             'c.name as class_name',
+    //             'scl.name as class_arm_name',
+    //             'sc.name as school_name'
+    //         )
+    //         ->where('os.status', 'active');
 
-        // Apply filters dynamically
-        if (!empty($state))
-            $query->where('swd.state', $state);
-        if (!empty($lga))
-            $query->where('swd.lga', $lga);
-        if (!empty($gender))
-            $query->where('sbd.sex', $gender);
-        if (!empty($schid))
-            $query->where('os.schid', $schid);
+    //     // Apply filters dynamically
+    //     if (!empty($state))
+    //         $query->where('swd.state', $state);
+    //     if (!empty($lga))
+    //         $query->where('swd.lga', $lga);
+    //     if (!empty($gender))
+    //         $query->where('sbd.sex', $gender);
+    //     if (!empty($schid))
+    //         $query->where('os.schid', $schid);
 
-        // Count unique students
-        $totalRecords = $query->count();
+    //     // Count unique students
+    //     $totalRecords = $query->count();
 
-        // Fetch paginated data
-        $students = $query
-            ->orderBy('os.lname', 'asc')
-            ->skip($start)
-            ->take($count)
-            ->get();
+    //     // Fetch paginated data
+    //     $students = $query
+    //         ->orderBy('os.lname', 'asc')
+    //         ->skip($start)
+    //         ->take($count)
+    //         ->get();
 
-        // Format date of birth properly
-        foreach ($students as $student) {
-            if (!empty($student->dob)) {
-                try {
-                    $student->dob = is_numeric($student->dob)
-                        ? \Carbon\Carbon::createFromTimestamp($student->dob / 1000)->format('Y-m-d')
-                        : \Carbon\Carbon::parse($student->dob)->format('Y-m-d');
-                } catch (\Exception $e) {
-                    $student->dob = null;
-                }
-            } else {
+    //     // Format date of birth properly
+    //     foreach ($students as $student) {
+    //         if (!empty($student->dob)) {
+    //             try {
+    //                 $student->dob = is_numeric($student->dob)
+    //                     ? \Carbon\Carbon::createFromTimestamp($student->dob / 1000)->format('Y-m-d')
+    //                     : \Carbon\Carbon::parse($student->dob)->format('Y-m-d');
+    //             } catch (\Exception $e) {
+    //                 $student->dob = null;
+    //             }
+    //         } else {
+    //             $student->dob = null;
+    //         }
+    //     }
+
+    //     return response()->json([
+    //         'status' => true,
+    //         'message' => 'Success',
+    //         'total_records' => $totalRecords,
+    //         'pld' => $students,
+    //     ]);
+    // }
+
+    public function getLearnersEnrollmentInfoGender(Request $request) 
+{
+    $start = $request->input('start', 0);
+    $count = $request->input('count', 20);
+    $state = $request->input('state');
+    $lga = $request->input('lga');
+    $gender = $request->input('gender');
+    $schid = $request->input('schid');
+
+    // Subquery: get latest unique record for each student by uid
+    $latestStudents = DB::table('old_student as os2')
+        ->select(DB::raw('MAX(os2.uid) as latest_uid'))
+        ->where('os2.status', 'active')
+        ->groupBy('os2.sid');
+
+    // Join with main table on latest uid (ensures one record per student)
+    $query = DB::table('old_student as os')
+        ->joinSub($latestStudents, 'latest', function ($join) {
+            $join->on('os.uid', '=', 'latest.latest_uid');
+        })
+        ->join('student_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
+        ->join('school as sc', 'os.schid', '=', 'sc.sid')
+        ->join('school_web_data as swd', 'sc.sid', '=', 'swd.user_id')
+        ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')
+        ->leftJoin('sch_cls as scl', 'os.clsa', '=', 'scl.id')
+        ->select(
+            'os.sid as student_id',
+            'os.fname',
+            'os.mname',
+            'os.lname',
+            'sbd.dob',
+            'sbd.sex as gender',
+            'sbd.state as student_state',
+            'sbd.lga as student_lga',
+            'swd.country as school_country',
+            'swd.state as school_state',
+            'swd.lga as school_lga',
+            'c.name as class_name',
+            'scl.name as class_arm_name',
+            'sc.name as school_name'
+        )
+        ->where('os.status', 'active');
+
+    // Apply filters dynamically
+    if (!empty($state))
+        $query->where('swd.state', $state);
+
+    if (!empty($lga))
+        $query->where('swd.lga', $lga);
+
+    if (!empty($gender))
+        $query->where('sbd.sex', $gender);
+
+    if (!empty($schid))
+        $query->where('os.schid', $schid);
+
+    // Count unique students
+    $totalRecords = $query->count();
+
+    // Fetch paginated data
+    $students = $query
+        ->orderBy('os.lname', 'asc')
+        ->skip($start)
+        ->take($count)
+        ->get();
+
+    /**
+     * ✅ DOB FIX
+     * Stored as DATE (YYYY-MM-DD)
+     * Do NOT treat as timestamp
+     */
+    foreach ($students as $student) {
+        if (!empty($student->dob)) {
+            try {
+                $student->dob = Carbon::parse($student->dob)->format('Y-m-d');
+            } catch (\Exception $e) {
                 $student->dob = null;
             }
+        } else {
+            $student->dob = null;
         }
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Success',
-            'total_records' => $totalRecords,
-            'pld' => $students,
-        ]);
     }
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Success',
+        'total_records' => $totalRecords,
+        'pld' => $students,
+    ]);
+}
+
 
 
 
@@ -31554,118 +31854,231 @@ public function verifyStudent(Request $request)
      * )
      */
 
-    public function getStaffsEnrollmentInfoGender(Request $request)
-    {
-        $start = $request->input('start', 0);
-        $count = $request->input('count', 20);
-        $state = $request->input('state');
-        $lga = $request->input('lga');
-        $gender = $request->input('gender'); // 'M' or 'F'
-        $schid = $request->input('schid');  // School ID filter
+    // public function getStaffsEnrollmentInfoGender(Request $request)
+    // {
+    //     $start = $request->input('start', 0);
+    //     $count = $request->input('count', 20);
+    //     $state = $request->input('state');
+    //     $lga = $request->input('lga');
+    //     $gender = $request->input('gender'); // 'M' or 'F'
+    //     $schid = $request->input('schid');  // School ID filter
 
-        // Build query
-        $query = DB::table('old_staff as os')
-            ->join('staff_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
-            ->join('school_web_data as swd', 'os.schid', '=', 'swd.user_id')
-            // Join for role1 and role2
-            ->leftJoin('staff_role as sr1', DB::raw('REPLACE(os.role, "*", "")'), '=', 'sr1.id')
-            ->leftJoin('staff_role as sr2', DB::raw('REPLACE(os.role2, "*", "")'), '=', 'sr2.id')
-            ->select(
-                'os.sid',
-                'os.suid as staff_id',
-                'os.fname',
-                'os.mname',
-                'os.lname',
-                'os.status',
-                'os.role',
-                'os.role2',
-                DB::raw('REPLACE(os.role, "*", "") as role1_clean'),
-                DB::raw('REPLACE(os.role2, "*", "") as role2_clean'),
-                'sr1.name as role1_name',
-                'sr2.name as role2_name',
-                'sbd.dob',
-                'sbd.sex as gender',
-                'sbd.state as staff_state',
-                'sbd.lga as staff_lga',
-                'swd.country as school_country',
-                'swd.state as school_state',
-                DB::raw('TRIM(swd.lga) as school_lga'),
-                'swd.sname as school_name'
-            )
-            ->where('os.status', 'active');
+    //     // Build query
+    //     $query = DB::table('old_staff as os')
+    //         ->join('staff_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
+    //         ->join('school_web_data as swd', 'os.schid', '=', 'swd.user_id')
+    //         // Join for role1 and role2
+    //         ->leftJoin('staff_role as sr1', DB::raw('REPLACE(os.role, "*", "")'), '=', 'sr1.id')
+    //         ->leftJoin('staff_role as sr2', DB::raw('REPLACE(os.role2, "*", "")'), '=', 'sr2.id')
+    //         ->select(
+    //             'os.sid',
+    //             'os.suid as staff_id',
+    //             'os.fname',
+    //             'os.mname',
+    //             'os.lname',
+    //             'os.status',
+    //             'os.role',
+    //             'os.role2',
+    //             DB::raw('REPLACE(os.role, "*", "") as role1_clean'),
+    //             DB::raw('REPLACE(os.role2, "*", "") as role2_clean'),
+    //             'sr1.name as role1_name',
+    //             'sr2.name as role2_name',
+    //             'sbd.dob',
+    //             'sbd.sex as gender',
+    //             'sbd.state as staff_state',
+    //             'sbd.lga as staff_lga',
+    //             'swd.country as school_country',
+    //             'swd.state as school_state',
+    //             DB::raw('TRIM(swd.lga) as school_lga'),
+    //             'swd.sname as school_name'
+    //         )
+    //         ->where('os.status', 'active');
 
-        // Apply filters
-        if (!empty($schid)) {
-            $query->where('os.schid', $schid); // 🔹 Filter by specific school
-        }
+    //     // Apply filters
+    //     if (!empty($schid)) {
+    //         $query->where('os.schid', $schid); // 🔹 Filter by specific school
+    //     }
 
-        if (!empty($state)) {
-            $query->where('swd.state', $state);
-        }
+    //     if (!empty($state)) {
+    //         $query->where('swd.state', $state);
+    //     }
 
-        if (!empty($lga)) {
-            $query->whereRaw('TRIM(swd.lga) = ?', [$lga]);
-        }
+    //     if (!empty($lga)) {
+    //         $query->whereRaw('TRIM(swd.lga) = ?', [$lga]);
+    //     }
 
-        if (!empty($gender)) {
-            $query->where('sbd.sex', $gender);
-        }
+    //     if (!empty($gender)) {
+    //         $query->where('sbd.sex', $gender);
+    //     }
 
-        // Avoid duplicates
-        $query->groupBy(
+    //     // Avoid duplicates
+    //     $query->groupBy(
+    //         'os.sid',
+    //         'os.suid',
+    //         'os.fname',
+    //         'os.mname',
+    //         'os.lname',
+    //         'os.role',
+    //         'os.role2',
+    //         'os.status',
+    //         'sbd.dob',
+    //         'sbd.sex',
+    //         'sbd.state',
+    //         'sbd.lga',
+    //         'swd.country',
+    //         'swd.state',
+    //         'swd.lga',
+    //         'swd.sname',
+    //         'sr1.name',
+    //         'sr2.name'
+    //     );
+
+    //     // Count total records
+    //     $totalRecords = $query->count(DB::raw('distinct os.sid'));
+
+    //     // Fetch paginated results
+    //     $staff = $query->orderBy('os.lname', 'asc')
+    //         ->skip($start)
+    //         ->take($count)
+    //         ->get();
+
+    //     // Format DOBs
+    //     foreach ($staff as $member) {
+    //         $dob = null;
+    //         if (!empty($member->dob)) {
+    //             try {
+    //                 $dob = is_numeric($member->dob)
+    //                     ? \Carbon\Carbon::createFromTimestamp($member->dob / 1000)->format('Y-m-d')
+    //                     : \Carbon\Carbon::parse($member->dob)->format('Y-m-d');
+    //             } catch (\Exception $e) {
+    //                 $dob = null;
+    //             }
+    //         }
+    //         $member->dob = $dob;
+    //     }
+
+    //     // Return response
+    //     return response()->json([
+    //         'status' => true,
+    //         'message' => 'Success',
+    //         'total_records' => $totalRecords,
+    //         'pld' => $staff->unique('sid')->values()
+    //     ]);
+    // }
+
+public function getStaffsEnrollmentInfoGender(Request $request) 
+{
+    $start = $request->input('start', 0);
+    $count = $request->input('count', 20);
+    $state = $request->input('state');
+    $lga = $request->input('lga');
+    $gender = $request->input('gender'); // 'M' or 'F'
+    $schid = $request->input('schid');  // School ID filter
+
+    // Build query
+    $query = DB::table('old_staff as os')
+        ->join('staff_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
+        ->join('school_web_data as swd', 'os.schid', '=', 'swd.user_id')
+        // Join for role1 and role2
+        ->leftJoin('staff_role as sr1', DB::raw('REPLACE(os.role, "*", "")'), '=', 'sr1.id')
+        ->leftJoin('staff_role as sr2', DB::raw('REPLACE(os.role2, "*", "")'), '=', 'sr2.id')
+        ->select(
             'os.sid',
-            'os.suid',
+            'os.suid as staff_id',
             'os.fname',
             'os.mname',
             'os.lname',
+            'os.status',
             'os.role',
             'os.role2',
-            'os.status',
+            DB::raw('REPLACE(os.role, "*", "") as role1_clean'),
+            DB::raw('REPLACE(os.role2, "*", "") as role2_clean'),
+            'sr1.name as role1_name',
+            'sr2.name as role2_name',
             'sbd.dob',
-            'sbd.sex',
-            'sbd.state',
-            'sbd.lga',
-            'swd.country',
-            'swd.state',
-            'swd.lga',
-            'swd.sname',
-            'sr1.name',
-            'sr2.name'
-        );
+            'sbd.sex as gender',
+            'sbd.state as staff_state',
+            'sbd.lga as staff_lga',
+            'swd.country as school_country',
+            'swd.state as school_state',
+            DB::raw('TRIM(swd.lga) as school_lga'),
+            'swd.sname as school_name'
+        )
+        ->where('os.status', 'active');
 
-        // Count total records
-        $totalRecords = $query->count(DB::raw('distinct os.sid'));
-
-        // Fetch paginated results
-        $staff = $query->orderBy('os.lname', 'asc')
-            ->skip($start)
-            ->take($count)
-            ->get();
-
-        // Format DOBs
-        foreach ($staff as $member) {
-            $dob = null;
-            if (!empty($member->dob)) {
-                try {
-                    $dob = is_numeric($member->dob)
-                        ? \Carbon\Carbon::createFromTimestamp($member->dob / 1000)->format('Y-m-d')
-                        : \Carbon\Carbon::parse($member->dob)->format('Y-m-d');
-                } catch (\Exception $e) {
-                    $dob = null;
-                }
-            }
-            $member->dob = $dob;
-        }
-
-        // Return response
-        return response()->json([
-            'status' => true,
-            'message' => 'Success',
-            'total_records' => $totalRecords,
-            'pld' => $staff->unique('sid')->values()
-        ]);
+    // Apply filters
+    if (!empty($schid)) {
+        $query->where('os.schid', $schid);
     }
 
+    if (!empty($state)) {
+        $query->where('swd.state', $state);
+    }
+
+    if (!empty($lga)) {
+        $query->whereRaw('TRIM(swd.lga) = ?', [$lga]);
+    }
+
+    if (!empty($gender)) {
+        $query->where('sbd.sex', $gender);
+    }
+
+    // Avoid duplicates
+    $query->groupBy(
+        'os.sid',
+        'os.suid',
+        'os.fname',
+        'os.mname',
+        'os.lname',
+        'os.role',
+        'os.role2',
+        'os.status',
+        'sbd.dob',
+        'sbd.sex',
+        'sbd.state',
+        'sbd.lga',
+        'swd.country',
+        'swd.state',
+        'swd.lga',
+        'swd.sname',
+        'sr1.name',
+        'sr2.name'
+    );
+
+    // Count total records
+    $totalRecords = $query->count(DB::raw('distinct os.sid'));
+
+    // Fetch paginated results
+    $staff = $query->orderBy('os.lname', 'asc')
+        ->skip($start)
+        ->take($count)
+        ->get();
+
+    /**
+     * ✅ DOB FIX
+     * Stored as DATE (YYYY-MM-DD)
+     * Do NOT treat as timestamp
+     */
+    foreach ($staff as $member) {
+        if (!empty($member->dob)) {
+            try {
+                $member->dob = \Carbon\Carbon::parse($member->dob)->format('Y-m-d');
+            } catch (\Exception $e) {
+                $member->dob = null;
+            }
+        } else {
+            $member->dob = null;
+        }
+    }
+
+    // Return response
+    return response()->json([
+        'status' => true,
+        'message' => 'Success',
+        'total_records' => $totalRecords,
+        'pld' => $staff->unique('sid')->values()
+    ]);
+}
 
 
 
@@ -32300,64 +32713,141 @@ public function verifyStudent(Request $request)
      *     @OA\Response(response=400, description="Missing parameters")
      * )
      */
-    public function getStudentGenderDetails(Request $request)
-    {
-        $schid = $request->input('schid');   // school_id
-        $ssn = $request->input('ssn');     // session
-        $class = $request->input('class');   // cls_id
-        $gender = $request->input('gender');  // 'M' or 'F'
+    // public function getStudentGenderDetails(Request $request)
+    // {
+    //     $schid = $request->input('schid');   // school_id
+    //     $ssn = $request->input('ssn');     // session
+    //     $class = $request->input('class');   // cls_id
+    //     $gender = $request->input('gender');  // 'M' or 'F'
 
-        if (!$schid || !$ssn || !$class || !$gender) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Missing parameters: schid, ssn, class, gender'
-            ], 400);
-        }
+    //     if (!$schid || !$ssn || !$class || !$gender) {
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'Missing parameters: schid, ssn, class, gender'
+    //         ], 400);
+    //     }
 
-        $records = DB::table('old_student as os')
-            ->join('student_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
-            ->join('sch_cls as sc', function ($join) {
-                $join->on('os.clsa', '=', 'sc.id')  // Join class arms
-                    ->on('os.schid', '=', 'sc.schid');
-            })
-            ->join('cls as c', 'os.clsm', '=', 'c.id') // Join main class table
-            ->select(
-                'os.sid as student_id',
-                'os.suid',
-                'os.fname',
-                'os.mname',
-                'os.lname',
-                'sbd.sex',
-                DB::raw("DATE(FROM_UNIXTIME(sbd.dob / 1000)) as date_of_birth"),
-                'c.name as class_name',
-                'sc.name as class_arm'
-            )
-            ->where('os.schid', $schid)
-            ->where('os.ssn', $ssn)
-            ->where('c.id', $class)
-            ->where('sbd.sex', $gender)
-            ->where('os.status', 'active')
-            ->groupBy(
-                'os.sid',
-                'os.suid',
-                'os.fname',
-                'os.mname',
-                'os.lname',
-                'sbd.sex',
-                'sbd.dob',
-                'c.name',
-                'sc.name'
-            )
-            ->orderBy('os.lname', 'asc')
-            ->get();
+    //     $records = DB::table('old_student as os')
+    //         ->join('student_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
+    //         ->join('sch_cls as sc', function ($join) {
+    //             $join->on('os.clsa', '=', 'sc.id')  // Join class arms
+    //                 ->on('os.schid', '=', 'sc.schid');
+    //         })
+    //         ->join('cls as c', 'os.clsm', '=', 'c.id') // Join main class table
+    //         ->select(
+    //             'os.sid as student_id',
+    //             'os.suid',
+    //             'os.fname',
+    //             'os.mname',
+    //             'os.lname',
+    //             'sbd.sex',
+    //             DB::raw("DATE(FROM_UNIXTIME(sbd.dob / 1000)) as date_of_birth"),
+    //             'c.name as class_name',
+    //             'sc.name as class_arm'
+    //         )
+    //         ->where('os.schid', $schid)
+    //         ->where('os.ssn', $ssn)
+    //         ->where('c.id', $class)
+    //         ->where('sbd.sex', $gender)
+    //         ->where('os.status', 'active')
+    //         ->groupBy(
+    //             'os.sid',
+    //             'os.suid',
+    //             'os.fname',
+    //             'os.mname',
+    //             'os.lname',
+    //             'sbd.sex',
+    //             'sbd.dob',
+    //             'c.name',
+    //             'sc.name'
+    //         )
+    //         ->orderBy('os.lname', 'asc')
+    //         ->get();
 
+    //     return response()->json([
+    //         'status' => true,
+    //         'message' => 'Student list fetched successfully',
+    //         'count' => $records->count(),
+    //         'pld' => $records
+    //     ], 200, [], JSON_PRETTY_PRINT);
+    // }
+
+
+    public function getStudentGenderDetails(Request $request) 
+{
+    $schid = $request->input('schid');   // school_id
+    $ssn = $request->input('ssn');       // session
+    $class = $request->input('class');   // cls_id
+    $gender = $request->input('gender'); // 'M' or 'F'
+
+    if (!$schid || !$ssn || !$class || !$gender) {
         return response()->json([
-            'status' => true,
-            'message' => 'Student list fetched successfully',
-            'count' => $records->count(),
-            'pld' => $records
-        ], 200, [], JSON_PRETTY_PRINT);
+            'status' => false,
+            'message' => 'Missing parameters: schid, ssn, class, gender'
+        ], 400);
     }
+
+    $records = DB::table('old_student as os')
+        ->join('student_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
+        ->join('sch_cls as sc', function ($join) {
+            $join->on('os.clsa', '=', 'sc.id')  // Join class arms
+                ->on('os.schid', '=', 'sc.schid');
+        })
+        ->join('cls as c', 'os.clsm', '=', 'c.id') // Join main class table
+        ->select(
+            'os.sid as student_id',
+            'os.suid',
+            'os.fname',
+            'os.mname',
+            'os.lname',
+            'sbd.sex',
+            'sbd.dob', // fetch raw dob
+            'c.name as class_name',
+            'sc.name as class_arm'
+        )
+        ->where('os.schid', $schid)
+        ->where('os.ssn', $ssn)
+        ->where('c.id', $class)
+        ->where('sbd.sex', $gender)
+        ->where('os.status', 'active')
+        ->groupBy(
+            'os.sid',
+            'os.suid',
+            'os.fname',
+            'os.mname',
+            'os.lname',
+            'sbd.sex',
+            'sbd.dob',
+            'c.name',
+            'sc.name'
+        )
+        ->orderBy('os.lname', 'asc')
+        ->get();
+
+    // ✅ Format DOB properly as YYYY-MM-DD
+    foreach ($records as $record) {
+        if (!empty($record->dob)) {
+            try {
+                // If numeric (milliseconds), convert; else parse normally
+                $record->dob = is_numeric($record->dob)
+                    ? \Carbon\Carbon::createFromTimestamp($record->dob / 1000)->format('Y-m-d')
+                    : \Carbon\Carbon::parse($record->dob)->format('Y-m-d');
+            } catch (\Exception $e) {
+                $record->dob = null;
+            }
+        } else {
+            $record->dob = null;
+        }
+    }
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Student list fetched successfully',
+        'count' => $records->count(),
+        'pld' => $records
+    ], 200, [], JSON_PRETTY_PRINT);
+}
+
 
 
 
@@ -32423,48 +32913,106 @@ public function verifyStudent(Request $request)
      *     )
      * )
      */
-    public function getStaffGenderDetails(Request $request)
-    {
-        $schoolId = $request->input('school_id');
-        $session = $request->input('ssn'); // academic session
-        $class = $request->input('clsm'); // class ID
-        $gender = $request->input('gender'); // 'M' or 'F'
+    // public function getStaffGenderDetails(Request $request)
+    // {
+    //     $schoolId = $request->input('school_id');
+    //     $session = $request->input('ssn'); // academic session
+    //     $class = $request->input('clsm'); // class ID
+    //     $gender = $request->input('gender'); // 'M' or 'F'
 
-        if (!$schoolId || !$session || !$class || !$gender) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Missing parameters: school_id, ssn, clsm, gender'
-            ], 400);
-        }
+    //     if (!$schoolId || !$session || !$class || !$gender) {
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'Missing parameters: school_id, ssn, clsm, gender'
+    //         ], 400);
+    //     }
 
-        $records = DB::table('old_staff as os')
-            ->join('staff_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
-            ->join('cls as c', 'os.clsm', '=', 'c.id')
-            ->select(
-                'os.sid as staff_id',
-                'os.suid',
-                DB::raw("CONCAT(os.fname, ' ', os.mname, ' ', os.lname) as full_name"),
-                'sbd.sex',
-                'c.name as class_name',
-                // Convert dob from milliseconds timestamp to readable date
-                DB::raw("FROM_UNIXTIME(sbd.dob / 1000, '%Y-%m-%d') as dob")
-            )
-            ->where('os.schid', $schoolId)
-            ->where('os.ssn', $session)
-            ->where('os.clsm', $class)
-            ->where('sbd.sex', $gender)
-            ->where('os.status', 'active')
-            ->groupBy('os.sid', 'os.suid', 'os.fname', 'os.mname', 'os.lname', 'sbd.sex', 'c.name', 'sbd.dob')
-            ->orderBy('full_name', 'asc')
-            ->get();
+    //     $records = DB::table('old_staff as os')
+    //         ->join('staff_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
+    //         ->join('cls as c', 'os.clsm', '=', 'c.id')
+    //         ->select(
+    //             'os.sid as staff_id',
+    //             'os.suid',
+    //             DB::raw("CONCAT(os.fname, ' ', os.mname, ' ', os.lname) as full_name"),
+    //             'sbd.sex',
+    //             'c.name as class_name',
+    //             // Convert dob from milliseconds timestamp to readable date
+    //             DB::raw("FROM_UNIXTIME(sbd.dob / 1000, '%Y-%m-%d') as dob")
+    //         )
+    //         ->where('os.schid', $schoolId)
+    //         ->where('os.ssn', $session)
+    //         ->where('os.clsm', $class)
+    //         ->where('sbd.sex', $gender)
+    //         ->where('os.status', 'active')
+    //         ->groupBy('os.sid', 'os.suid', 'os.fname', 'os.mname', 'os.lname', 'sbd.sex', 'c.name', 'sbd.dob')
+    //         ->orderBy('full_name', 'asc')
+    //         ->get();
 
+    //     return response()->json([
+    //         'status' => true,
+    //         'message' => 'Staff list fetched successfully',
+    //         'count' => $records->count(),
+    //         'pld' => $records
+    //     ]);
+    // }
+
+
+    public function getStaffGenderDetails(Request $request) 
+{
+    $schoolId = $request->input('school_id');
+    $session = $request->input('ssn'); // academic session
+    $class = $request->input('clsm'); // class ID
+    $gender = $request->input('gender'); // 'M' or 'F'
+
+    if (!$schoolId || !$session || !$class || !$gender) {
         return response()->json([
-            'status' => true,
-            'message' => 'Staff list fetched successfully',
-            'count' => $records->count(),
-            'pld' => $records
-        ]);
+            'status' => false,
+            'message' => 'Missing parameters: school_id, ssn, clsm, gender'
+        ], 400);
     }
+
+    $records = DB::table('old_staff as os')
+        ->join('staff_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
+        ->join('cls as c', 'os.clsm', '=', 'c.id')
+        ->select(
+            'os.sid as staff_id',
+            'os.suid',
+            DB::raw("CONCAT(os.fname, ' ', os.mname, ' ', os.lname) as full_name"),
+            'sbd.sex',
+            'c.name as class_name',
+            'sbd.dob' // fetch raw dob
+        )
+        ->where('os.schid', $schoolId)
+        ->where('os.ssn', $session)
+        ->where('os.clsm', $class)
+        ->where('sbd.sex', $gender)
+        ->where('os.status', 'active')
+        ->groupBy('os.sid', 'os.suid', 'os.fname', 'os.mname', 'os.lname', 'sbd.sex', 'c.name', 'sbd.dob')
+        ->orderBy('full_name', 'asc')
+        ->get();
+
+    // ✅ Format DOB consistently as YYYY-MM-DD
+    foreach ($records as $record) {
+        if (!empty($record->dob)) {
+            try {
+                $record->dob = is_numeric($record->dob)
+                    ? \Carbon\Carbon::createFromTimestamp($record->dob / 1000)->format('Y-m-d')
+                    : \Carbon\Carbon::parse($record->dob)->format('Y-m-d');
+            } catch (\Exception $e) {
+                $record->dob = null;
+            }
+        } else {
+            $record->dob = null;
+        }
+    }
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Staff list fetched successfully',
+        'count' => $records->count(),
+        'pld' => $records
+    ]);
+}
 
 
 
@@ -35349,220 +35897,428 @@ public function verifyStudent(Request $request)
      */
 
 
-    public function maintainPreviousStaff(Request $request)
-    {
-        $request->validate([
-            'schid' => 'required|integer',
-            'new_trm' => 'required|integer', // 1, 2, 3
-            'ssn' => 'required|integer',     // current session
-        ]);
+    // public function maintainPreviousStaff(Request $request)
+    // {
+    //     $request->validate([
+    //         'schid' => 'required|integer',
+    //         'new_trm' => 'required|integer', // 1, 2, 3
+    //         'ssn' => 'required|integer',     // current session
+    //     ]);
 
-        $schid = $request->schid;
-        $new_trm = $request->new_trm;
-        $ssn = $request->ssn;
+    //     $schid = $request->schid;
+    //     $new_trm = $request->new_trm;
+    //     $ssn = $request->ssn;
 
-        // ---- Determine previous term & session ----
-        if ($new_trm == 1) {
-            $prev_trm = 3;
-            $prev_ssn = $ssn - 1;
-        } else {
-            $prev_trm = $new_trm - 1;
-            $prev_ssn = $ssn;
-        }
+    //     // ---- Determine previous term & session ----
+    //     if ($new_trm == 1) {
+    //         $prev_trm = 3;
+    //         $prev_ssn = $ssn - 1;
+    //     } else {
+    //         $prev_trm = $new_trm - 1;
+    //         $prev_ssn = $ssn;
+    //     }
 
-        DB::beginTransaction();
+    //     DB::beginTransaction();
 
-        try {
-            // ------------------------------------------------
-            // 1. Bring staff forward (old_staff)
-            // uid = ssn + trm + sid + clsm + timestamp + random
-            // suid MUST be preserved
-            // ------------------------------------------------
-            DB::insert(
-                "INSERT INTO old_staff
-            (uid, suid, sid, schid, fname, mname, lname, clsm, role, role2, status, ssn, trm, created_at, updated_at)
-            SELECT
-                CONCAT(
-                    ?, ?,
-                    IFNULL(sid, 0),
-                    IFNULL(clsm, 0),
-                    '-',
-                    UNIX_TIMESTAMP(),
-                    FLOOR(RAND() * 1000)
-                ) AS uid,
-                suid,
-                sid,
-                schid,
-                fname,
-                mname,
-                lname,
-                clsm,
-                role,
-                role2,
-                'active',
-                ?, ?,
-                NOW(), NOW()
-            FROM old_staff
-            WHERE schid = ?
-              AND trm = ?
-              AND ssn = ?
-              AND status = 'active'",
-                [
-                    $ssn,
-                    $new_trm,
-                    $ssn,
-                    $new_trm,
-                    $schid,
-                    $prev_trm,
-                    $prev_ssn
-                ]
-            );
+    //     try {
+    //         // ------------------------------------------------
+    //         // 1. Bring staff forward (old_staff)
+    //         // uid = ssn + trm + sid + clsm + timestamp + random
+    //         // suid MUST be preserved
+    //         // ------------------------------------------------
+    //         DB::insert(
+    //             "INSERT INTO old_staff
+    //         (uid, suid, sid, schid, fname, mname, lname, clsm, role, role2, status, ssn, trm, created_at, updated_at)
+    //         SELECT
+    //             CONCAT(
+    //                 ?, ?,
+    //                 IFNULL(sid, 0),
+    //                 IFNULL(clsm, 0),
+    //                 '-',
+    //                 UNIX_TIMESTAMP(),
+    //                 FLOOR(RAND() * 1000)
+    //             ) AS uid,
+    //             suid,
+    //             sid,
+    //             schid,
+    //             fname,
+    //             mname,
+    //             lname,
+    //             clsm,
+    //             role,
+    //             role2,
+    //             'active',
+    //             ?, ?,
+    //             NOW(), NOW()
+    //         FROM old_staff
+    //         WHERE schid = ?
+    //           AND trm = ?
+    //           AND ssn = ?
+    //           AND status = 'active'",
+    //             [
+    //                 $ssn,
+    //                 $new_trm,
+    //                 $ssn,
+    //                 $new_trm,
+    //                 $schid,
+    //                 $prev_trm,
+    //                 $prev_ssn
+    //             ]
+    //         );
 
-            // ------------------------------------------------
-            // 2. Bring staff classes forward
-            // uid = ssn + trm + stid + cls + timestamp + random
-            // ------------------------------------------------
-            DB::insert(
-                "INSERT INTO staff_class
-            (uid, stid, cls, schid, ssn, trm, created_at, updated_at)
-            SELECT
-                CONCAT(
-                    ?, ?,
-                    IFNULL(stid, 0),
-                    IFNULL(cls, 0),
-                    '-',
-                    UNIX_TIMESTAMP(),
-                    FLOOR(RAND() * 1000)
-                ) AS uid,
-                stid,
-                cls,
-                schid,
-                ?, ?,
-                NOW(), NOW()
-            FROM staff_class
-            WHERE schid = ?
-              AND trm = ?
-              AND ssn = ?",
-                [
-                    $ssn,
-                    $new_trm,
-                    $ssn,
-                    $new_trm,
-                    $schid,
-                    $prev_trm,
-                    $prev_ssn
-                ]
-            );
+    //         // ------------------------------------------------
+    //         // 2. Bring staff classes forward
+    //         // uid = ssn + trm + stid + cls + timestamp + random
+    //         // ------------------------------------------------
+    //         DB::insert(
+    //             "INSERT INTO staff_class
+    //         (uid, stid, cls, schid, ssn, trm, created_at, updated_at)
+    //         SELECT
+    //             CONCAT(
+    //                 ?, ?,
+    //                 IFNULL(stid, 0),
+    //                 IFNULL(cls, 0),
+    //                 '-',
+    //                 UNIX_TIMESTAMP(),
+    //                 FLOOR(RAND() * 1000)
+    //             ) AS uid,
+    //             stid,
+    //             cls,
+    //             schid,
+    //             ?, ?,
+    //             NOW(), NOW()
+    //         FROM staff_class
+    //         WHERE schid = ?
+    //           AND trm = ?
+    //           AND ssn = ?",
+    //             [
+    //                 $ssn,
+    //                 $new_trm,
+    //                 $ssn,
+    //                 $new_trm,
+    //                 $schid,
+    //                 $prev_trm,
+    //                 $prev_ssn
+    //             ]
+    //         );
 
-            // ------------------------------------------------
-            // 3. Bring staff class arms forward
-            // uid = ssn + trm + stid + cls + arm + timestamp + random
-            // ------------------------------------------------
-            DB::insert(
-                "INSERT INTO staff_class_arm
-            (uid, stid, cls, arm, schid, sesn, trm, created_at, updated_at)
-            SELECT
-                CONCAT(
-                    ?, ?,
-                    IFNULL(stid, 0),
-                    IFNULL(cls, 0),
-                    IFNULL(arm, 0),
-                    '-',
-                    UNIX_TIMESTAMP(),
-                    FLOOR(RAND() * 1000)
-                ) AS uid,
-                stid,
-                cls,
-                arm,
-                schid,
-                ?, ?,
-                NOW(), NOW()
-            FROM staff_class_arm
-            WHERE schid = ?
-              AND trm = ?
-              AND sesn = ?",
-                [
-                    $ssn,
-                    $new_trm,
-                    $ssn,
-                    $new_trm,
-                    $schid,
-                    $prev_trm,
-                    $prev_ssn
-                ]
-            );
+    //         // ------------------------------------------------
+    //         // 3. Bring staff class arms forward
+    //         // uid = ssn + trm + stid + cls + arm + timestamp + random
+    //         // ------------------------------------------------
+    //         DB::insert(
+    //             "INSERT INTO staff_class_arm
+    //         (uid, stid, cls, arm, schid, sesn, trm, created_at, updated_at)
+    //         SELECT
+    //             CONCAT(
+    //                 ?, ?,
+    //                 IFNULL(stid, 0),
+    //                 IFNULL(cls, 0),
+    //                 IFNULL(arm, 0),
+    //                 '-',
+    //                 UNIX_TIMESTAMP(),
+    //                 FLOOR(RAND() * 1000)
+    //             ) AS uid,
+    //             stid,
+    //             cls,
+    //             arm,
+    //             schid,
+    //             ?, ?,
+    //             NOW(), NOW()
+    //         FROM staff_class_arm
+    //         WHERE schid = ?
+    //           AND trm = ?
+    //           AND sesn = ?",
+    //             [
+    //                 $ssn,
+    //                 $new_trm,
+    //                 $ssn,
+    //                 $new_trm,
+    //                 $schid,
+    //                 $prev_trm,
+    //                 $prev_ssn
+    //             ]
+    //         );
 
-            // ------------------------------------------------
-            // 4. Bring staff subjects forward
-            // uid = ssn + trm + stid + sbj + timestamp + random
-            // ------------------------------------------------
-            DB::insert(
-                "INSERT INTO staff_subj
-            (uid, stid, sbj, schid, sesn, trm, created_at, updated_at)
-            SELECT
-                CONCAT(
-                    ?, ?,
-                    IFNULL(stid, 0),
-                    IFNULL(sbj, 0),
-                    '-',
-                    UNIX_TIMESTAMP(),
-                    FLOOR(RAND() * 1000)
-                ) AS uid,
-                stid,
-                sbj,
-                schid,
-                ?, ?,
-                NOW(), NOW()
-            FROM staff_subj
-            WHERE schid = ?
-              AND trm = ?
-              AND sesn = ?",
-                [
-                    $ssn,
-                    $new_trm,
-                    $ssn,
-                    $new_trm,
-                    $schid,
-                    $prev_trm,
-                    $prev_ssn
-                ]
-            );
+    //         // ------------------------------------------------
+    //         // 4. Bring staff subjects forward
+    //         // uid = ssn + trm + stid + sbj + timestamp + random
+    //         // ------------------------------------------------
+    //         DB::insert(
+    //             "INSERT INTO staff_subj
+    //         (uid, stid, sbj, schid, sesn, trm, created_at, updated_at)
+    //         SELECT
+    //             CONCAT(
+    //                 ?, ?,
+    //                 IFNULL(stid, 0),
+    //                 IFNULL(sbj, 0),
+    //                 '-',
+    //                 UNIX_TIMESTAMP(),
+    //                 FLOOR(RAND() * 1000)
+    //             ) AS uid,
+    //             stid,
+    //             sbj,
+    //             schid,
+    //             ?, ?,
+    //             NOW(), NOW()
+    //         FROM staff_subj
+    //         WHERE schid = ?
+    //           AND trm = ?
+    //           AND sesn = ?",
+    //             [
+    //                 $ssn,
+    //                 $new_trm,
+    //                 $ssn,
+    //                 $new_trm,
+    //                 $schid,
+    //                 $prev_trm,
+    //                 $prev_ssn
+    //             ]
+    //         );
 
-            DB::commit();
+    //         DB::commit();
 
-            // Payload for the response
-            $pld = [
-                'schid' => $schid,
-                'new_trm' => $new_trm,
-                'ssn' => $ssn,
-                'prev_trm' => $prev_trm,
-                'prev_ssn' => $prev_ssn
-            ];
+    //         // Payload for the response
+    //         $pld = [
+    //             'schid' => $schid,
+    //             'new_trm' => $new_trm,
+    //             'ssn' => $ssn,
+    //             'prev_trm' => $prev_trm,
+    //             'prev_ssn' => $prev_ssn
+    //         ];
 
-            return response()->json([
-                "status" => true,
-                "message" => "Success",
-                "pld" => $pld,
-            ]);
+    //         return response()->json([
+    //             "status" => true,
+    //             "message" => "Success",
+    //             "pld" => $pld,
+    //         ]);
 
-        } catch (\Throwable $e) {
-            DB::rollBack();
+    //     } catch (\Throwable $e) {
+    //         DB::rollBack();
 
-            Log::error('Maintain Previous Staff Failed', [
-                'schid' => $schid,
-                'new_trm' => $new_trm,
-                'ssn' => $ssn,
-                'error' => $e->getMessage()
-            ]);
+    //         Log::error('Maintain Previous Staff Failed', [
+    //             'schid' => $schid,
+    //             'new_trm' => $new_trm,
+    //             'ssn' => $ssn,
+    //             'error' => $e->getMessage()
+    //         ]);
 
-            return response()->json([
-                "status" => false,
-                "message" => "Failed to maintain previous term staff data",
-                "error" => $e->getMessage()
-            ], 500);
-        }
+    //         return response()->json([
+    //             "status" => false,
+    //             "message" => "Failed to maintain previous term staff data",
+    //             "error" => $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
+
+public function maintainPreviousStaff(Request $request) 
+{
+    $request->validate([
+        'schid' => 'required|integer',
+        'new_trm' => 'required|integer', // 1, 2, 3
+        'ssn' => 'required|integer',     // current session
+    ]);
+
+    $schid = $request->schid;
+    $new_trm = $request->new_trm;
+    $ssn = $request->ssn;
+
+    // ---- Determine previous term & session ----
+    if ($new_trm == 1) {
+        $prev_trm = 3;
+        $prev_ssn = $ssn - 1;
+    } else {
+        $prev_trm = $new_trm - 1;
+        $prev_ssn = $ssn;
     }
 
+    DB::beginTransaction();
+
+    try {
+        // ------------------------------------------------
+        // 1. Bring staff forward (old_staff) - preserve DOB
+        // ------------------------------------------------
+        DB::insert(
+            "INSERT INTO old_staff
+        (uid, suid, sid, schid, fname, mname, lname, clsm, role, role2, status, ssn, trm, created_at, updated_at)
+        SELECT
+            CONCAT(
+                ?, ?,
+                IFNULL(sid, 0),
+                IFNULL(clsm, 0),
+                '-',
+                UNIX_TIMESTAMP(),
+                FLOOR(RAND() * 1000)
+            ) AS uid,
+            suid,
+            sid,
+            schid,
+            fname,
+            mname,
+            lname,
+            clsm,
+            role,
+            role2,
+            'active',
+            ?, ?,
+            NOW(), NOW()
+        FROM old_staff
+        WHERE schid = ?
+          AND trm = ?
+          AND ssn = ?
+          AND status = 'active'",
+            [
+                $ssn,
+                $new_trm,
+                $ssn,
+                $new_trm,
+                $schid,
+                $prev_trm,
+                $prev_ssn
+            ]
+        );
+
+        // ------------------------------------------------
+        // 2. Bring staff classes forward
+        // ------------------------------------------------
+        DB::insert(
+            "INSERT INTO staff_class
+        (uid, stid, cls, schid, ssn, trm, created_at, updated_at)
+        SELECT
+            CONCAT(
+                ?, ?,
+                IFNULL(stid, 0),
+                IFNULL(cls, 0),
+                '-',
+                UNIX_TIMESTAMP(),
+                FLOOR(RAND() * 1000)
+            ) AS uid,
+            stid,
+            cls,
+            schid,
+            ?, ?,
+            NOW(), NOW()
+        FROM staff_class
+        WHERE schid = ?
+          AND trm = ?
+          AND ssn = ?",
+            [
+                $ssn,
+                $new_trm,
+                $ssn,
+                $new_trm,
+                $schid,
+                $prev_trm,
+                $prev_ssn
+            ]
+        );
+
+        // ------------------------------------------------
+        // 3. Bring staff class arms forward
+        // ------------------------------------------------
+        DB::insert(
+            "INSERT INTO staff_class_arm
+        (uid, stid, cls, arm, schid, sesn, trm, created_at, updated_at)
+        SELECT
+            CONCAT(
+                ?, ?,
+                IFNULL(stid, 0),
+                IFNULL(cls, 0),
+                IFNULL(arm, 0),
+                '-',
+                UNIX_TIMESTAMP(),
+                FLOOR(RAND() * 1000)
+            ) AS uid,
+            stid,
+            cls,
+            arm,
+            schid,
+            ?, ?,
+            NOW(), NOW()
+        FROM staff_class_arm
+        WHERE schid = ?
+          AND trm = ?
+          AND sesn = ?",
+            [
+                $ssn,
+                $new_trm,
+                $ssn,
+                $new_trm,
+                $schid,
+                $prev_trm,
+                $prev_ssn
+            ]
+        );
+
+        // ------------------------------------------------
+        // 4. Bring staff subjects forward
+        // ------------------------------------------------
+        DB::insert(
+            "INSERT INTO staff_subj
+        (uid, stid, sbj, schid, sesn, trm, created_at, updated_at)
+        SELECT
+            CONCAT(
+                ?, ?,
+                IFNULL(stid, 0),
+                IFNULL(sbj, 0),
+                '-',
+                UNIX_TIMESTAMP(),
+                FLOOR(RAND() * 1000)
+            ) AS uid,
+            stid,
+            sbj,
+            schid,
+            ?, ?,
+            NOW(), NOW()
+        FROM staff_subj
+        WHERE schid = ?
+          AND trm = ?
+          AND sesn = ?",
+            [
+                $ssn,
+                $new_trm,
+                $ssn,
+                $new_trm,
+                $schid,
+                $prev_trm,
+                $prev_ssn
+            ]
+        );
+
+        DB::commit();
+
+        // Payload for the response
+        $pld = [
+            'schid' => $schid,
+            'new_trm' => $new_trm,
+            'ssn' => $ssn,
+            'prev_trm' => $prev_trm,
+            'prev_ssn' => $prev_ssn
+        ];
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld,
+        ]);
+
+    } catch (\Throwable $e) {
+        DB::rollBack();
+
+        Log::error('Maintain Previous Staff Failed', [
+            'schid' => $schid,
+            'new_trm' => $new_trm,
+            'ssn' => $ssn,
+            'error' => $e->getMessage()
+        ]);
+
+        return response()->json([
+            "status" => false,
+            "message" => "Failed to maintain previous term staff data",
+            "error" => $e->getMessage()
+        ], 500);
+    }
+}
 
 
 
