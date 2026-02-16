@@ -98,6 +98,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Carbon\Carbon;
+use Illuminate\Validation\ValidationException;
 
 
 
@@ -35370,45 +35371,52 @@ public function getWeeklyLessonPlan($schid, $ssn, $trm, $clsm)
      */
 
 
-    public function updateDob(Request $request, $userId)
-    {
+
+public function updateDob(Request $request, $userId)
+{
+    try {
         $validated = $request->validate([
-            'dob' => ['nullable', 'date', 'before:today'],
+            'dob'   => ['nullable', 'date', 'before:today'],
             'schid' => ['required', 'integer', 'exists:student,schid'],
         ]);
-
-        // Check if the student belongs to the school
-        $exists = DB::table('student_basic_data as sb')
-            ->join('student as s', 's.sid', '=', 'sb.user_id')
-            ->where('sb.user_id', $userId)
-            ->where('s.schid', $validated['schid'])
-            ->exists();
-
-        if (!$exists) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Student does not belong to this school.',
-            ], 404);
-        }
-
-        // Only update dob if provided
-        if ($request->has('dob')) {
-            DB::table('student_basic_data')
-                ->where('user_id', $userId)
-                ->update(['dob' => $validated['dob']]);
-        }
-
+    } catch (ValidationException $e) {
         return response()->json([
-            'status' => true,
-            'message' => 'Date of birth updated successfully',
-            'pld' => [
-                'user_id' => $userId,
-                'dob' => $validated['dob'] ?? null,
-                'schid' => $validated['schid'],
-            ],
-        ]);
+            'status'  => false,
+            'message' => 'Invalid input. Please provide a valid school ID and a correct date of birth.',
+        ], 422);
     }
 
+    // Check if the student belongs to the school
+    $exists = DB::table('student_basic_data as sb')
+        ->join('student as s', 's.sid', '=', 'sb.user_id')
+        ->where('sb.user_id', $userId)
+        ->where('s.schid', $validated['schid'])
+        ->exists();
+
+    if (!$exists) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'Student does not belong to this school.',
+        ], 404);
+    }
+
+    // Update DOB only if provided
+    if ($request->has('dob')) {
+        DB::table('student_basic_data')
+            ->where('user_id', $userId)
+            ->update(['dob' => $validated['dob']]);
+    }
+
+    return response()->json([
+        'status'  => true,
+        'message' => 'Date of birth updated successfully.',
+        'pld' => [
+            'user_id' => $userId,
+            'dob'     => $validated['dob'] ?? null,
+            'schid'   => $validated['schid'],
+        ],
+    ]);
+}
 
 }
 
