@@ -4805,104 +4805,104 @@ class ApiController extends Controller
     // }
 
 
-public function getStudent()
-{
-    $combined = false;
-    if (request()->has('combined')) {
-        $combined = request()->input('combined');
-    }
-
-    $uid = request()->input('uid', '');
-    $schid = request()->input('schid', '');
-
-    if ($uid === '' || $schid === '') {
-        return response()->json([
-            "status" => false,
-            "message" => "No UID/School ID provided",
-        ], 400);
-    }
-
-    if ($combined) {
-        $pld = [];
-        $compo = explode("/", $uid);
-        $members = [];
-
-        if (count($compo) == 4) {
-            [$sch3, $year, $term, $count] = $compo;
-            $members = student::where("schid", $schid)
-                ->where("stat", "1")
-                ->where("sch3", $sch3)
-                ->where("year", $year)
-                ->where("term", $term)
-                ->where("count", $count)
-                ->get();
-        } else {
-            $members = student::where("schid", $schid)
-                ->where("stat", "1")
-                ->where("cuid", $uid)
-                ->get();
+    public function getStudent()
+    {
+        $combined = false;
+        if (request()->has('combined')) {
+            $combined = request()->input('combined');
         }
 
-        foreach ($members as $member) {
-            $user_id = $member->sid;
-            $academicData = student_academic_data::where('user_id', $user_id)->first();
-            $basicData = student_basic_data::where('user_id', $user_id)->first();
+        $uid = request()->input('uid', '');
+        $schid = request()->input('schid', '');
 
-            // ✅ DOB FIX (DATE → Y-m-d, NO timestamp logic)
-            if ($basicData && !empty($basicData->dob)) {
-                $basicData->dob = Carbon::parse($basicData->dob)->format('Y-m-d');
+        if ($uid === '' || $schid === '') {
+            return response()->json([
+                "status" => false,
+                "message" => "No UID/School ID provided",
+            ], 400);
+        }
+
+        if ($combined) {
+            $pld = [];
+            $compo = explode("/", $uid);
+            $members = [];
+
+            if (count($compo) == 4) {
+                [$sch3, $year, $term, $count] = $compo;
+                $members = student::where("schid", $schid)
+                    ->where("stat", "1")
+                    ->where("sch3", $sch3)
+                    ->where("year", $year)
+                    ->where("term", $term)
+                    ->where("count", $count)
+                    ->get();
+            } else {
+                $members = student::where("schid", $schid)
+                    ->where("stat", "1")
+                    ->where("cuid", $uid)
+                    ->get();
             }
 
-            $oldStudent = old_student::where('sid', $user_id)
+            foreach ($members as $member) {
+                $user_id = $member->sid;
+                $academicData = student_academic_data::where('user_id', $user_id)->first();
+                $basicData = student_basic_data::where('user_id', $user_id)->first();
+
+                // ✅ DOB FIX (DATE → Y-m-d, NO timestamp logic)
+                if ($basicData && !empty($basicData->dob)) {
+                    $basicData->dob = Carbon::parse($basicData->dob)->format('Y-m-d');
+                }
+
+                $oldStudent = old_student::where('sid', $user_id)
+                    ->where('schid', $schid)
+                    ->first();
+                $suid = $oldStudent ? $oldStudent->suid : null;
+
+                $pld[] = [
+                    's' => $member,
+                    'b' => $basicData,
+                    'a' => $academicData,
+                    'suid' => $suid,
+                ];
+            }
+        } else {
+            $student = student::where("schid", $schid)
+                ->where("stat", "1")
+                ->where("sid", $uid)
+                ->first();
+
+            $academicData = null;
+            $basicData = null;
+
+            if ($student) {
+                $academicData = student_academic_data::where('user_id', $student->sid)->first();
+                $basicData = student_basic_data::where('user_id', $student->sid)->first();
+
+                // ✅ DOB FIX (DATE → Y-m-d, NO timestamp logic)
+                if ($basicData && !empty($basicData->dob)) {
+                    $basicData->dob = Carbon::parse($basicData->dob)->format('Y-m-d');
+                }
+            }
+
+            $oldStudent = old_student::where('sid', $uid)
                 ->where('schid', $schid)
                 ->first();
             $suid = $oldStudent ? $oldStudent->suid : null;
 
-            $pld[] = [
-                's' => $member,
-                'b' => $basicData,
-                'a' => $academicData,
-                'suid' => $suid,
-            ];
-        }
-    } else {
-        $student = student::where("schid", $schid)
-            ->where("stat", "1")
-            ->where("sid", $uid)
-            ->first();
-
-        $academicData = null;
-        $basicData = null;
-
-        if ($student) {
-            $academicData = student_academic_data::where('user_id', $student->sid)->first();
-            $basicData = student_basic_data::where('user_id', $student->sid)->first();
-
-            // ✅ DOB FIX (DATE → Y-m-d, NO timestamp logic)
-            if ($basicData && !empty($basicData->dob)) {
-                $basicData->dob = Carbon::parse($basicData->dob)->format('Y-m-d');
+            $pld = $student ? $student->toArray() : [];
+            if ($student) {
+                $pld['b'] = $basicData;
+                $pld['a'] = $academicData;
+                $pld['suid'] = $suid;
             }
         }
 
-        $oldStudent = old_student::where('sid', $uid)
-            ->where('schid', $schid)
-            ->first();
-        $suid = $oldStudent ? $oldStudent->suid : null;
-
-        $pld = $student ? $student->toArray() : [];
-        if ($student) {
-            $pld['b'] = $basicData;
-            $pld['a'] = $academicData;
-            $pld['suid'] = $suid;
-        }
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld,
+        ]);
     }
-
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => $pld,
-    ]);
-}
 
 
 
@@ -7587,138 +7587,140 @@ public function getStudent()
     //     ]);
     // }
 
-public function getOldStudentsAndSubjectScoreSheet($schid, $ssn, $trm, $clsm, $clsa, $stf)
-{
-    // 1. Fetch only students that match EXACTLY the session, term, class, and arm
-    $ostd = old_student::where("schid", $schid)
-        ->where("status", "active")
-        ->where("ssn", $ssn)
-        ->where("trm", $trm)
-        ->where("clsm", $clsm)
-        ->when($clsa != "-1", function ($q) use ($clsa) {
-            $q->where("clsa", $clsa);
-        })
-        ->distinct("sid") // prevent duplicate rows for same student
-        ->get();
-
-    // 2. Fetch relevant subjects
-    if ($stf == "-1" || $stf == "-2") {
-        // No staff filter
-        $relevantSubjects = class_subj::where('class_subj.schid', $schid)
-            ->where('class_subj.clsid', $clsm)
-            ->where('sesn', $ssn)
-            ->distinct()
-            ->pluck('subj_id');
-    } else {
-        // Staff-specific subjects
-        $relevantSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
-            ->where('class_subj.schid', $schid)
-            ->where('class_subj.clsid', $clsm)
-            ->where('class_subj.sesn', $ssn)
-            ->where('staff_subj.stid', $stf)
-            ->distinct()
-            ->pluck('sbj');
-    }
-
-    $stdPld = [];
-
-    foreach ($ostd as $std) {
-        $user_id = $std->sid;
-
-        // 3. Fetch unique subjects for the student
-        $studentSubjects = student_subj::where('stid', $user_id)
-            ->whereIn('sbj', $relevantSubjects)
-            ->where('ssn', $ssn) // filter by session
-            ->distinct('sbj')
+    public function getOldStudentsAndSubjectScoreSheet($schid, $ssn, $trm, $clsm, $clsa, $stf)
+    {
+        // 1. Fetch only students that match EXACTLY the session, term, class, and arm
+        $ostd = old_student::where("schid", $schid)
+            ->where("status", "active")
+            ->where("ssn", $ssn)
+            ->where("trm", $trm)
+            ->where("clsm", $clsm)
+            ->when($clsa != "-1", function ($q) use ($clsa) {
+                $q->where("clsa", $clsa);
+            })
+            ->distinct("sid") // prevent duplicate rows for same student
             ->get();
 
-        $mySbjs = [];
-        $scores = [];
+        // 2. Fetch relevant subjects
+        if ($stf == "-1" || $stf == "-2") {
+            // No staff filter
+            $relevantSubjects = class_subj::where('class_subj.schid', $schid)
+                ->where('class_subj.clsid', $clsm)
+                ->where('sesn', $ssn)
+                ->distinct()
+                ->pluck('subj_id');
+        } else {
+            // Staff-specific subjects
+            $relevantSubjects = class_subj::join('staff_subj', 'class_subj.subj_id', '=', 'staff_subj.sbj')
+                ->where('class_subj.schid', $schid)
+                ->where('class_subj.clsid', $clsm)
+                ->where('class_subj.sesn', $ssn)
+                ->where('staff_subj.stid', $stf)
+                ->distinct()
+                ->pluck('sbj');
+        }
 
-        foreach ($studentSubjects as $sbj) {
-            $sbid = (string) $sbj->sbj;
-            $mySbjs[] = $sbid;
+        $stdPld = [];
 
-            // 4. Fetch scores (filtered by session, term, class)
-            $subjectScores = std_score::where('stid', $user_id)
-                ->where('sbj', $sbid)
-                ->where("schid", $schid)
-                ->where("ssn", $ssn)
-                ->where("trm", $trm)
-                ->where("clsid", $clsm)
+        foreach ($ostd as $std) {
+            $user_id = $std->sid;
+
+            // 3. Fetch unique subjects for the student
+            $studentSubjects = student_subj::where('stid', $user_id)
+                ->whereIn('sbj', $relevantSubjects)
+                ->where('ssn', $ssn) // filter by session
+                ->distinct('sbj')
                 ->get();
 
-            // If no score record exists, assign scr = 0
-            if ($subjectScores->isEmpty()) {
-                $subjectScores = collect([[
-                    "stid" => $user_id,
-                    "sbj" => $sbid,
-                    "scr" => 0,
-                    "schid" => $schid,
-                    "clsid" => $clsm,
-                    "ssn" => $ssn,
-                    "trm" => $trm,
-                ]]);
+            $mySbjs = [];
+            $scores = [];
+
+            foreach ($studentSubjects as $sbj) {
+                $sbid = (string) $sbj->sbj;
+                $mySbjs[] = $sbid;
+
+                // 4. Fetch scores (filtered by session, term, class)
+                $subjectScores = std_score::where('stid', $user_id)
+                    ->where('sbj', $sbid)
+                    ->where("schid", $schid)
+                    ->where("ssn", $ssn)
+                    ->where("trm", $trm)
+                    ->where("clsid", $clsm)
+                    ->get();
+
+                // If no score record exists, assign scr = 0
+                if ($subjectScores->isEmpty()) {
+                    $subjectScores = collect([
+                        [
+                            "stid" => $user_id,
+                            "sbj" => $sbid,
+                            "scr" => 0,
+                            "schid" => $schid,
+                            "clsid" => $clsm,
+                            "ssn" => $ssn,
+                            "trm" => $trm,
+                        ]
+                    ]);
+                }
+
+                // Calculate total for this subject
+                $subjectTotal = $subjectScores->sum('scr');
+
+                $scores[] = [
+                    'sbid' => $sbid,
+                    'scores' => $subjectScores,
+                    'total' => $subjectTotal // <-- TOTAL per subject
+                ];
             }
 
-            // Calculate total for this subject
-            $subjectTotal = $subjectScores->sum('scr');
+            // 5. Extra info for staff = -2
+            $psy = false;
+            $res = "0";
+            $rinfo = [];
 
-            $scores[] = [
-                'sbid' => $sbid,
-                'scores' => $subjectScores,
-                'total' => $subjectTotal // <-- TOTAL per subject
+            if ($stf == "-2") {
+                $psy = student_psy::where("schid", $schid)
+                    ->where("ssn", $ssn)
+                    ->where("trm", $trm)
+                    ->where("clsm", $clsm)
+                    ->where("stid", $user_id)
+                    ->exists();
+
+                $rinfo = student_res::where("schid", $schid)
+                    ->where("ssn", $ssn)
+                    ->where("trm", $trm)
+                    ->where("clsm", $clsm)
+                    ->where("stid", $user_id)
+                    ->first();
+
+                if ($rinfo) {
+                    $res = $rinfo->stat;
+                }
+            }
+
+            // 6. Push result (per subject total included)
+            $stdPld[] = [
+                'std' => $std,
+                'sbj' => array_values(array_unique($mySbjs)),
+                'scr' => collect($scores)->unique('sbid')->values(),
+                'psy' => $psy,
+                'res' => $res,
+                'rinfo' => $rinfo ?: []
             ];
         }
 
-        // 5. Extra info for staff = -2
-        $psy = false;
-        $res = "0";
-        $rinfo = [];
+        // 7. Build unique class subjects using subj model
+        $clsSbj = subj::whereIn('id', $relevantSubjects)->get();
 
-        if ($stf == "-2") {
-            $psy = student_psy::where("schid", $schid)
-                ->where("ssn", $ssn)
-                ->where("trm", $trm)
-                ->where("clsm", $clsm)
-                ->where("stid", $user_id)
-                ->exists();
-
-            $rinfo = student_res::where("schid", $schid)
-                ->where("ssn", $ssn)
-                ->where("trm", $trm)
-                ->where("clsm", $clsm)
-                ->where("stid", $user_id)
-                ->first();
-
-            if ($rinfo) {
-                $res = $rinfo->stat;
-            }
-        }
-
-        // 6. Push result (per subject total included)
-        $stdPld[] = [
-            'std' => $std,
-            'sbj' => array_values(array_unique($mySbjs)),
-            'scr' => collect($scores)->unique('sbid')->values(),
-            'psy' => $psy,
-            'res' => $res,
-            'rinfo' => $rinfo ?: []
-        ];
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => [
+                'std-pld' => $stdPld,
+                'cls-sbj' => $clsSbj
+            ],
+        ]);
     }
-
-    // 7. Build unique class subjects using subj model
-    $clsSbj = subj::whereIn('id', $relevantSubjects)->get();
-
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => [
-            'std-pld' => $stdPld,
-            'cls-sbj' => $clsSbj
-        ],
-    ]);
-}
 
 
 
@@ -21418,57 +21420,57 @@ public function getOldStudentsAndSubjectScoreSheet($schid, $ssn, $trm, $clsm, $c
 
     ///////////////////////////////////////////////////
 
-/**
- * @OA\Post(
- *     path="/api/setLessonPlan",
- *     summary="Create or update a lesson plan",
- *     tags={"Api"},
- *    security={{"bearerAuth":{}}},
- *     description="Allows the user to create or update a lesson plan. Supports weekly or termly planning.",
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             type="object",
- *             required={"schid","clsm","date","ssn","trm","sbj","no_of_class","average_age","topic","time_from","time_to","duration","lesson_objectives","plan_type"},
- *             @OA\Property(property="schid", type="string", example="12", description="School ID"),
- *             @OA\Property(property="clsm", type="string", example="11", description="Class/grade"),
- *             @OA\Property(property="date", type="string", format="date", example="2025-09-03", description="Date of the lesson plan"),
- *             @OA\Property(property="ssn", type="string", example="2025", description="Session/academic year"),
- *             @OA\Property(property="trm", type="integer", example=1, description="Term number"),
- *             @OA\Property(property="sbj", type="string", example="ENGLISH LANGUAGE", description="Subject name"),
- *             @OA\Property(property="no_of_class", type="integer", example=35, description="Number of students in class"),
- *             @OA\Property(property="average_age", type="number", format="float", example=12, description="Average age of students"),
- *             @OA\Property(property="topic", type="string", example="Parts of Speech", description="Lesson topic"),
- *             @OA\Property(property="sub_topic", type="array", @OA\Items(type="string"), example={"Nouns", "Verbs"}, description="Optional subtopics"),
- *             @OA\Property(property="time_from", type="string", format="time", example="07:30", description="Lesson start time"),
- *             @OA\Property(property="time_to", type="string", format="time", example="08:10", description="Lesson end time"),
- *             @OA\Property(property="duration", type="string", example="40 minutes", description="Lesson duration"),
- *             @OA\Property(property="learning_materials", type="array", @OA\Items(type="string"), example={"Textbook", "Board"}, description="Optional list of learning materials"),
- *             @OA\Property(property="lesson_objectives", type="array", @OA\Items(type="string"), example={"Identify nouns", "Recognize verbs"}, description="Learning objectives"),
- *             @OA\Property(property="plan_type", type="string", enum={"weekly","termly"}, example="weekly", description="Plan type: weekly or termly")
- *         )
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Lesson plan saved successfully",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Lesson plan saved successfully"),
- *             @OA\Property(property="pld", type="object", description="Saved lesson plan object")
- *         )
- *     ),
- *     @OA\Response(
- *         response=422,
- *         description="Validation error",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="message", type="string", example="The given data was invalid."),
- *             @OA\Property(property="errors", type="object", additionalProperties=@OA\Property(type="array", @OA\Items(type="string")))
- *         )
- *     )
- * )
- */
+    /**
+     * @OA\Post(
+     *     path="/api/setLessonPlan",
+     *     summary="Create or update a lesson plan",
+     *     tags={"Api"},
+     *    security={{"bearerAuth":{}}},
+     *     description="Allows the user to create or update a lesson plan. Supports weekly or termly planning.",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             required={"schid","clsm","date","ssn","trm","sbj","no_of_class","average_age","topic","time_from","time_to","duration","lesson_objectives","plan_type"},
+     *             @OA\Property(property="schid", type="string", example="12", description="School ID"),
+     *             @OA\Property(property="clsm", type="string", example="11", description="Class/grade"),
+     *             @OA\Property(property="date", type="string", format="date", example="2025-09-03", description="Date of the lesson plan"),
+     *             @OA\Property(property="ssn", type="string", example="2025", description="Session/academic year"),
+     *             @OA\Property(property="trm", type="integer", example=1, description="Term number"),
+     *             @OA\Property(property="sbj", type="string", example="ENGLISH LANGUAGE", description="Subject name"),
+     *             @OA\Property(property="no_of_class", type="integer", example=35, description="Number of students in class"),
+     *             @OA\Property(property="average_age", type="number", format="float", example=12, description="Average age of students"),
+     *             @OA\Property(property="topic", type="string", example="Parts of Speech", description="Lesson topic"),
+     *             @OA\Property(property="sub_topic", type="array", @OA\Items(type="string"), example={"Nouns", "Verbs"}, description="Optional subtopics"),
+     *             @OA\Property(property="time_from", type="string", format="time", example="07:30", description="Lesson start time"),
+     *             @OA\Property(property="time_to", type="string", format="time", example="08:10", description="Lesson end time"),
+     *             @OA\Property(property="duration", type="string", example="40 minutes", description="Lesson duration"),
+     *             @OA\Property(property="learning_materials", type="array", @OA\Items(type="string"), example={"Textbook", "Board"}, description="Optional list of learning materials"),
+     *             @OA\Property(property="lesson_objectives", type="array", @OA\Items(type="string"), example={"Identify nouns", "Recognize verbs"}, description="Learning objectives"),
+     *             @OA\Property(property="plan_type", type="string", enum={"weekly","termly"}, example="weekly", description="Plan type: weekly or termly")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Lesson plan saved successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Lesson plan saved successfully"),
+     *             @OA\Property(property="pld", type="object", description="Saved lesson plan object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+     *             @OA\Property(property="errors", type="object", additionalProperties=@OA\Property(type="array", @OA\Items(type="string")))
+     *         )
+     *     )
+     * )
+     */
 
 
 
@@ -21536,138 +21538,138 @@ public function getOldStudentsAndSubjectScoreSheet($schid, $ssn, $trm, $clsm, $c
     // }
 
     public function setLessonPlan(Request $request)
-{
-    $request->validate([
-        "schid" => "required|string",
-        "clsm" => "required|string",
-        'date' => 'required|date',
-        "ssn" => "required|string",
-        "trm" => "required",
-        "sbj" => "required|string",
-        'no_of_class' => 'required|integer',
-        'average_age' => 'required|numeric',
-        'topic' => 'required|string',
-        'sub_topic' => 'nullable|array',
-        'time_from' => 'required|date_format:H:i',
-        'time_to' => 'required|date_format:H:i|after:time_from',
-        'duration' => 'required|string',
-        'learning_materials' => 'nullable|array',
-        'lesson_objectives' => 'required|array',
-        'plan_type' => 'required|in:weekly,termly', // new
-    ]);
+    {
+        $request->validate([
+            "schid" => "required|string",
+            "clsm" => "required|string",
+            'date' => 'required|date',
+            "ssn" => "required|string",
+            "trm" => "required",
+            "sbj" => "required|string",
+            'no_of_class' => 'required|integer',
+            'average_age' => 'required|numeric',
+            'topic' => 'required|string',
+            'sub_topic' => 'nullable|array',
+            'time_from' => 'required|date_format:H:i',
+            'time_to' => 'required|date_format:H:i|after:time_from',
+            'duration' => 'required|string',
+            'learning_materials' => 'nullable|array',
+            'lesson_objectives' => 'required|array',
+            'plan_type' => 'required|in:weekly,termly', // new
+        ]);
 
-    $data = $request->only([
-        'date',
-        'no_of_class',
-        'average_age',
-        'topic',
-        'time_from',
-        'time_to',
-        'duration',
-        "ssn",
-        "trm",
-        "sbj",
-        "schid",
-        "clsm",
-        'plan_type', // new
-    ]);
+        $data = $request->only([
+            'date',
+            'no_of_class',
+            'average_age',
+            'topic',
+            'time_from',
+            'time_to',
+            'duration',
+            "ssn",
+            "trm",
+            "sbj",
+            "schid",
+            "clsm",
+            'plan_type', // new
+        ]);
 
-    $data['sub_topic'] = $request->sub_topic;
-    $data['learning_materials'] = $request->learning_materials;
-    $data['lesson_objectives'] = $request->lesson_objectives;
+        $data['sub_topic'] = $request->sub_topic;
+        $data['learning_materials'] = $request->learning_materials;
+        $data['lesson_objectives'] = $request->lesson_objectives;
 
-    $lessonPlan = lesson_plan::updateOrCreate(
-        [
-            'date' => $request->date,
-            "schid" => $request->schid,
-            "clsm" => $request->clsm,
-            "ssn" => $request->ssn,
-            "trm" => $request->trm,
-            "sbj" => $request->sbj,
-            "no_of_class" => $request->no_of_class,
-            "time_from" => $request->time_from,
-            "time_to" => $request->time_to,
-            "topic" => $request->topic,
-            "average_age" => $request->average_age
-        ],
-        $data
-    );
+        $lessonPlan = lesson_plan::updateOrCreate(
+            [
+                'date' => $request->date,
+                "schid" => $request->schid,
+                "clsm" => $request->clsm,
+                "ssn" => $request->ssn,
+                "trm" => $request->trm,
+                "sbj" => $request->sbj,
+                "no_of_class" => $request->no_of_class,
+                "time_from" => $request->time_from,
+                "time_to" => $request->time_to,
+                "topic" => $request->topic,
+                "average_age" => $request->average_age
+            ],
+            $data
+        );
 
-    return response()->json([
-        'status' => true,
-        'message' => 'Lesson plan saved successfully',
-        'pld' => $lessonPlan,
-    ], 200);
-}
+        return response()->json([
+            'status' => true,
+            'message' => 'Lesson plan saved successfully',
+            'pld' => $lessonPlan,
+        ], 200);
+    }
 
 
 
 
     //////////////////////////////////////////////////
-/**
- * @OA\Put(
- *     path="/api/updateLessonPlan",
- *     summary="Update a lesson plan",
- *     tags={"Api"},
- *      security={{"bearerAuth":{}}},
- *     description="Update an existing lesson plan. Fields are optional; only provided fields will be updated. Supports updating plan_type (weekly or termly).",
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             type="object",
- *             required={"schid","clsm","ssn","trm"},
- *             @OA\Property(property="schid", type="string", example="12", description="School ID"),
- *             @OA\Property(property="clsm", type="string", example="11", description="Class/grade"),
- *             @OA\Property(property="ssn", type="string", example="2025", description="Session/academic year"),
- *             @OA\Property(property="trm", type="integer", example=1, description="Term number"),
- *             @OA\Property(property="sbj", type="string", example="ENGLISH LANGUAGE", description="Subject name"),
- *             @OA\Property(property="no_of_class", type="integer", example=35, description="Number of students in class"),
- *             @OA\Property(property="average_age", type="number", format="float", example=12, description="Average age of students"),
- *             @OA\Property(property="topic", type="string", example="Parts of Speech", description="Lesson topic"),
- *             @OA\Property(property="sub_topic", type="array", @OA\Items(type="string"), example={"Nouns","Verbs"}, description="Optional subtopics"),
- *             @OA\Property(property="date", type="string", format="date", example="2025-09-03", description="Lesson date"),
- *             @OA\Property(property="time_from", type="string", format="time", example="07:30", description="Lesson start time"),
- *             @OA\Property(property="time_to", type="string", format="time", example="08:10", description="Lesson end time"),
- *             @OA\Property(property="duration", type="string", example="40 minutes", description="Lesson duration"),
- *             @OA\Property(property="learning_materials", type="array", @OA\Items(type="string"), example={"Textbook","Board"}, description="Optional learning materials"),
- *             @OA\Property(property="lesson_objectives", type="array", @OA\Items(type="string"), example={"Identify nouns","Recognize verbs"}, description="Learning objectives"),
- *             @OA\Property(property="plan_type", type="string", enum={"weekly","termly"}, example="weekly", description="Plan type: weekly or termly")
- *         )
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Lesson plan updated successfully",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Lesson Plan updated successfully"),
- *             @OA\Property(property="data", type="object", description="Updated lesson plan object")
- *         )
- *     ),
- *     @OA\Response(
- *         response=400,
- *         description="No valid fields provided for update",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="No valid fields provided for update")
- *         )
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="Lesson plan not found",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="Lesson Plan not found")
- *         )
- *     )
- * )
- */
+    /**
+     * @OA\Put(
+     *     path="/api/updateLessonPlan",
+     *     summary="Update a lesson plan",
+     *     tags={"Api"},
+     *      security={{"bearerAuth":{}}},
+     *     description="Update an existing lesson plan. Fields are optional; only provided fields will be updated. Supports updating plan_type (weekly or termly).",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             required={"schid","clsm","ssn","trm"},
+     *             @OA\Property(property="schid", type="string", example="12", description="School ID"),
+     *             @OA\Property(property="clsm", type="string", example="11", description="Class/grade"),
+     *             @OA\Property(property="ssn", type="string", example="2025", description="Session/academic year"),
+     *             @OA\Property(property="trm", type="integer", example=1, description="Term number"),
+     *             @OA\Property(property="sbj", type="string", example="ENGLISH LANGUAGE", description="Subject name"),
+     *             @OA\Property(property="no_of_class", type="integer", example=35, description="Number of students in class"),
+     *             @OA\Property(property="average_age", type="number", format="float", example=12, description="Average age of students"),
+     *             @OA\Property(property="topic", type="string", example="Parts of Speech", description="Lesson topic"),
+     *             @OA\Property(property="sub_topic", type="array", @OA\Items(type="string"), example={"Nouns","Verbs"}, description="Optional subtopics"),
+     *             @OA\Property(property="date", type="string", format="date", example="2025-09-03", description="Lesson date"),
+     *             @OA\Property(property="time_from", type="string", format="time", example="07:30", description="Lesson start time"),
+     *             @OA\Property(property="time_to", type="string", format="time", example="08:10", description="Lesson end time"),
+     *             @OA\Property(property="duration", type="string", example="40 minutes", description="Lesson duration"),
+     *             @OA\Property(property="learning_materials", type="array", @OA\Items(type="string"), example={"Textbook","Board"}, description="Optional learning materials"),
+     *             @OA\Property(property="lesson_objectives", type="array", @OA\Items(type="string"), example={"Identify nouns","Recognize verbs"}, description="Learning objectives"),
+     *             @OA\Property(property="plan_type", type="string", enum={"weekly","termly"}, example="weekly", description="Plan type: weekly or termly")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Lesson plan updated successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Lesson Plan updated successfully"),
+     *             @OA\Property(property="data", type="object", description="Updated lesson plan object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="No valid fields provided for update",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="No valid fields provided for update")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Lesson plan not found",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Lesson Plan not found")
+     *         )
+     *     )
+     * )
+     */
 
 
 
-// public function updateLessonPlan(Request $request)
+    // public function updateLessonPlan(Request $request)
 // {
 //     $request->validate([
 //         "schid" => "required",
@@ -21675,7 +21677,7 @@ public function getOldStudentsAndSubjectScoreSheet($schid, $ssn, $trm, $clsm, $c
 //         "ssn" => "required",
 //         "trm" => "required",
 
-//         // Optional fields for update
+    //         // Optional fields for update
 //         "sbj" => "nullable|string",
 //         "no_of_class" => "nullable|integer",
 //         "average_age" => "nullable|numeric",
@@ -21690,20 +21692,20 @@ public function getOldStudentsAndSubjectScoreSheet($schid, $ssn, $trm, $clsm, $c
 //         "plan_type" => "nullable|in:weekly,termly", // added plan_type
 //     ]);
 
-//     $lessonPlan = lesson_plan::where("schid", $request->schid)
+    //     $lessonPlan = lesson_plan::where("schid", $request->schid)
 //         ->where("clsm", $request->clsm)
 //         ->where("ssn", $request->ssn)
 //         ->where("trm", $request->trm)
 //         ->first();
 
-//     if (!$lessonPlan) {
+    //     if (!$lessonPlan) {
 //         return response()->json([
 //             "status" => false,
 //             "message" => "Lesson Plan not found",
 //         ], 404);
 //     }
 
-//     // Fields allowed for update
+    //     // Fields allowed for update
 //     $fieldsToUpdate = collect($request->only([
 //         "sbj",
 //         "no_of_class",
@@ -21719,16 +21721,16 @@ public function getOldStudentsAndSubjectScoreSheet($schid, $ssn, $trm, $clsm, $c
 //         "plan_type", // include plan_type
 //     ]))->filter(fn($value) => !is_null($value))->toArray();
 
-//     if (empty($fieldsToUpdate)) {
+    //     if (empty($fieldsToUpdate)) {
 //         return response()->json([
 //             "status" => false,
 //             "message" => "No valid fields provided for update",
 //         ], 400);
 //     }
 
-//     $lessonPlan->update($fieldsToUpdate);
+    //     $lessonPlan->update($fieldsToUpdate);
 
-//     return response()->json([
+    //     return response()->json([
 //         "status" => true,
 //         "message" => "Lesson Plan updated successfully",
 //         "data" => $lessonPlan
@@ -21736,73 +21738,73 @@ public function getOldStudentsAndSubjectScoreSheet($schid, $ssn, $trm, $clsm, $c
 // }
 
 
-public function updateLessonPlan(Request $request)
-{
-    $request->validate([
-        "schid" => "required",
-        "clsm" => "required",
-        "ssn" => "required",
-        "trm" => "required",
+    public function updateLessonPlan(Request $request)
+    {
+        $request->validate([
+            "schid" => "required",
+            "clsm" => "required",
+            "ssn" => "required",
+            "trm" => "required",
 
-        // Optional fields for update
-        "sbj" => "nullable|string",
-        "no_of_class" => "nullable|integer",
-        "average_age" => "nullable|numeric",
-        "topic" => "nullable|string",
-        "date" => "nullable|date",
-        "sub_topic" => "nullable|array",
-        "time_from" => "nullable|date_format:H:i",
-        "time_to" => "nullable|date_format:H:i|after:time_from",
-        "duration" => "nullable|string",
-        "learning_materials" => "nullable|array",
-        "lesson_objectives" => "nullable|array",
-        "plan_type" => "nullable|in:weekly,termly", // added plan_type
-    ]);
+            // Optional fields for update
+            "sbj" => "nullable|string",
+            "no_of_class" => "nullable|integer",
+            "average_age" => "nullable|numeric",
+            "topic" => "nullable|string",
+            "date" => "nullable|date",
+            "sub_topic" => "nullable|array",
+            "time_from" => "nullable|date_format:H:i",
+            "time_to" => "nullable|date_format:H:i|after:time_from",
+            "duration" => "nullable|string",
+            "learning_materials" => "nullable|array",
+            "lesson_objectives" => "nullable|array",
+            "plan_type" => "nullable|in:weekly,termly", // added plan_type
+        ]);
 
-    $lessonPlan = lesson_plan::where("schid", $request->schid)
-        ->where("clsm", $request->clsm)
-        ->where("ssn", $request->ssn)
-        ->where("trm", $request->trm)
-        ->first();
+        $lessonPlan = lesson_plan::where("schid", $request->schid)
+            ->where("clsm", $request->clsm)
+            ->where("ssn", $request->ssn)
+            ->where("trm", $request->trm)
+            ->first();
 
-    if (!$lessonPlan) {
+        if (!$lessonPlan) {
+            return response()->json([
+                "status" => false,
+                "message" => "Lesson Plan not found",
+            ], 404);
+        }
+
+        // Fields allowed for update
+        $fieldsToUpdate = collect($request->only([
+            "sbj",
+            "no_of_class",
+            "average_age",
+            "topic",
+            "sub_topic",
+            "date",
+            "time_from",
+            "time_to",
+            "duration",
+            "learning_materials",
+            "lesson_objectives",
+            "plan_type", // include plan_type
+        ]))->filter(fn($value) => !is_null($value))->toArray();
+
+        if (empty($fieldsToUpdate)) {
+            return response()->json([
+                "status" => false,
+                "message" => "No valid fields provided for update",
+            ], 400);
+        }
+
+        $lessonPlan->update($fieldsToUpdate);
+
         return response()->json([
-            "status" => false,
-            "message" => "Lesson Plan not found",
-        ], 404);
+            "status" => true,
+            "message" => "Lesson Plan updated successfully",
+            "pld" => $lessonPlan
+        ], 200);
     }
-
-    // Fields allowed for update
-    $fieldsToUpdate = collect($request->only([
-        "sbj",
-        "no_of_class",
-        "average_age",
-        "topic",
-        "sub_topic",
-        "date",
-        "time_from",
-        "time_to",
-        "duration",
-        "learning_materials",
-        "lesson_objectives",
-        "plan_type", // include plan_type
-    ]))->filter(fn($value) => !is_null($value))->toArray();
-
-    if (empty($fieldsToUpdate)) {
-        return response()->json([
-            "status" => false,
-            "message" => "No valid fields provided for update",
-        ], 400);
-    }
-
-    $lessonPlan->update($fieldsToUpdate);
-
-    return response()->json([
-        "status" => true,
-        "message" => "Lesson Plan updated successfully",
-        "pld" => $lessonPlan
-    ], 200);
-}
 
 
 
@@ -21901,131 +21903,131 @@ public function updateLessonPlan(Request $request)
 
 
 
-/**
- * @OA\Get(
- *     path="/api/lesson-plan/weekly/{schid}/{ssn}/{trm}/{clsm}",
- *     summary="Get weekly lesson plans",
- *     tags={"Api"},
- *      security={{"bearerAuth": {}}},
- *     description="Fetch weekly lesson plans for a specific school, class, session, and term. Optionally filter by week_start date.",
- *     @OA\Parameter(
- *         name="schid",
- *         in="path",
- *         required=true,
- *         description="School ID",
- *         @OA\Schema(type="string", example="12")
- *     ),
- *     @OA\Parameter(
- *         name="ssn",
- *         in="path",
- *         required=true,
- *         description="Session/academic year",
- *         @OA\Schema(type="string", example="2025")
- *     ),
- *     @OA\Parameter(
- *         name="trm",
- *         in="path",
- *         required=true,
- *         description="Term number",
- *         @OA\Schema(type="integer", example=1)
- *     ),
- *     @OA\Parameter(
- *         name="clsm",
- *         in="path",
- *         required=true,
- *         description="Class/grade",
- *         @OA\Schema(type="string", example="11")
- *     ),
- *     @OA\Parameter(
- *         name="week_start",
- *         in="query",
- *         required=false,
- *         description="Start date of the week (YYYY-MM-DD) to filter lesson plans",
- *         @OA\Schema(type="string", format="date", example="2026-02-09")
- *     ),
- *     @OA\Parameter(
- *         name="start",
- *         in="query",
- *         required=false,
- *         description="Pagination start index",
- *         @OA\Schema(type="integer", example=0)
- *     ),
- *     @OA\Parameter(
- *         name="count",
- *         in="query",
- *         required=false,
- *         description="Number of lesson plans to return",
- *         @OA\Schema(type="integer", example=20)
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Weekly lesson plans retrieved successfully",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Success"),
- *             @OA\Property(
- *                 property="pld",
- *                 type="array",
- *                 @OA\Items(
- *                     type="object",
- *                     @OA\Property(property="id", type="integer", example=5),
- *                     @OA\Property(property="schid", type="string", example="12"),
- *                     @OA\Property(property="clsm", type="string", example="11"),
- *                     @OA\Property(property="ssn", type="string", example="2025"),
- *                     @OA\Property(property="trm", type="integer", example=1),
- *                     @OA\Property(property="plan_type", type="string", example="weekly"),
- *                     @OA\Property(property="sbj", type="string", example="ENGLISH LANGUAGE"),
- *                     @OA\Property(property="topic", type="string", example="Parts of Speech"),
- *                     @OA\Property(property="sub_topic", type="array", @OA\Items(type="string"), example={"Nouns","Verbs"}),
- *                     @OA\Property(property="date", type="string", format="date", example="2025-09-03"),
- *                     @OA\Property(property="no_of_class", type="integer", example=35),
- *                     @OA\Property(property="average_age", type="number", example=12),
- *                     @OA\Property(property="time_from", type="string", format="time", example="07:30"),
- *                     @OA\Property(property="time_to", type="string", format="time", example="08:10"),
- *                     @OA\Property(property="duration", type="string", example="40 minutes"),
- *                     @OA\Property(property="learning_materials", type="array", @OA\Items(type="string"), example={"Textbook","Board"}),
- *                     @OA\Property(property="lesson_objectives", type="array", @OA\Items(type="string"), example={"Identify nouns","Recognize verbs"})
- *                 )
- *             )
- *         )
- *     )
- * )
- */
+    /**
+     * @OA\Get(
+     *     path="/api/lesson-plan/weekly/{schid}/{ssn}/{trm}/{clsm}",
+     *     summary="Get weekly lesson plans",
+     *     tags={"Api"},
+     *      security={{"bearerAuth": {}}},
+     *     description="Fetch weekly lesson plans for a specific school, class, session, and term. Optionally filter by week_start date.",
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="path",
+     *         required=true,
+     *         description="School ID",
+     *         @OA\Schema(type="string", example="12")
+     *     ),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="path",
+     *         required=true,
+     *         description="Session/academic year",
+     *         @OA\Schema(type="string", example="2025")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Term number",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Parameter(
+     *         name="clsm",
+     *         in="path",
+     *         required=true,
+     *         description="Class/grade",
+     *         @OA\Schema(type="string", example="11")
+     *     ),
+     *     @OA\Parameter(
+     *         name="week_start",
+     *         in="query",
+     *         required=false,
+     *         description="Start date of the week (YYYY-MM-DD) to filter lesson plans",
+     *         @OA\Schema(type="string", format="date", example="2026-02-09")
+     *     ),
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         required=false,
+     *         description="Pagination start index",
+     *         @OA\Schema(type="integer", example=0)
+     *     ),
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         required=false,
+     *         description="Number of lesson plans to return",
+     *         @OA\Schema(type="integer", example=20)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Weekly lesson plans retrieved successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="id", type="integer", example=5),
+     *                     @OA\Property(property="schid", type="string", example="12"),
+     *                     @OA\Property(property="clsm", type="string", example="11"),
+     *                     @OA\Property(property="ssn", type="string", example="2025"),
+     *                     @OA\Property(property="trm", type="integer", example=1),
+     *                     @OA\Property(property="plan_type", type="string", example="weekly"),
+     *                     @OA\Property(property="sbj", type="string", example="ENGLISH LANGUAGE"),
+     *                     @OA\Property(property="topic", type="string", example="Parts of Speech"),
+     *                     @OA\Property(property="sub_topic", type="array", @OA\Items(type="string"), example={"Nouns","Verbs"}),
+     *                     @OA\Property(property="date", type="string", format="date", example="2025-09-03"),
+     *                     @OA\Property(property="no_of_class", type="integer", example=35),
+     *                     @OA\Property(property="average_age", type="number", example=12),
+     *                     @OA\Property(property="time_from", type="string", format="time", example="07:30"),
+     *                     @OA\Property(property="time_to", type="string", format="time", example="08:10"),
+     *                     @OA\Property(property="duration", type="string", example="40 minutes"),
+     *                     @OA\Property(property="learning_materials", type="array", @OA\Items(type="string"), example={"Textbook","Board"}),
+     *                     @OA\Property(property="lesson_objectives", type="array", @OA\Items(type="string"), example={"Identify nouns","Recognize verbs"})
+     *                 )
+     *             )
+     *         )
+     *     )
+     * )
+     */
 
-public function getWeeklyLessonPlan($schid, $ssn, $trm, $clsm)
-{
-    $start = request()->input('start', 0);
-    $count = request()->input('count', 20);
+    public function getWeeklyLessonPlan($schid, $ssn, $trm, $clsm)
+    {
+        $start = request()->input('start', 0);
+        $count = request()->input('count', 20);
 
-    $query = lesson_plan::where('schid', $schid)
-        ->where('clsm', $clsm)
-        ->where('ssn', $ssn)
-        ->where('trm', $trm)
-        ->where('plan_type', 'weekly'); // filter only weekly plans
+        $query = lesson_plan::where('schid', $schid)
+            ->where('clsm', $clsm)
+            ->where('ssn', $ssn)
+            ->where('trm', $trm)
+            ->where('plan_type', 'weekly'); // filter only weekly plans
 
-    // Optional: filter by week_start (YYYY-MM-DD)
-    if (request()->has('week_start')) {
-        try {
-            // Parse the week_start date and get start and end of the week
-            $weekStart = Carbon::parse(request()->input('week_start'))->startOfWeek();
-            $weekEnd = Carbon::parse(request()->input('week_start'))->endOfWeek();
+        // Optional: filter by week_start (YYYY-MM-DD)
+        if (request()->has('week_start')) {
+            try {
+                // Parse the week_start date and get start and end of the week
+                $weekStart = Carbon::parse(request()->input('week_start'))->startOfWeek();
+                $weekEnd = Carbon::parse(request()->input('week_start'))->endOfWeek();
 
-            // Filter lesson plans whose 'date' falls within that week
-            $query->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()]);
-        } catch (\Exception $e) {
-            // Invalid date provided, ignore week filter
+                // Filter lesson plans whose 'date' falls within that week
+                $query->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()]);
+            } catch (\Exception $e) {
+                // Invalid date provided, ignore week filter
+            }
         }
+
+        $lessonPlan = $query->skip($start)->take($count)->get();
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $lessonPlan,
+        ]);
     }
-
-    $lessonPlan = $query->skip($start)->take($count)->get();
-
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => $lessonPlan,
-    ]);
-}
     //////////////////////////////////////////
     /**
      * @OA\Get(
@@ -29783,78 +29785,78 @@ public function getWeeklyLessonPlan($schid, $ssn, $trm, $clsm)
     // }
 
     public function getStudentsId($schid, $ssn, $trm, $clsm, $clsa)
-{
-    $query = DB::table('old_student as os')
-        ->leftJoin('school as s', 'os.schid', '=', 's.sid')
-        ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')              // main class
-        ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')        // class arm
-        ->leftJoin('student_basic_data as bd', 'os.sid', '=', 'bd.user_id') // join by sid
-        ->leftJoin('school_web_data as swd', 'os.schid', '=', 'swd.user_id') // join school_web_data
-        ->where("os.schid", $schid)
-        ->where("os.ssn", $ssn)
-        ->where("os.trm", $trm)
-        ->where("os.clsm", $clsm);
+    {
+        $query = DB::table('old_student as os')
+            ->leftJoin('school as s', 'os.schid', '=', 's.sid')
+            ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')              // main class
+            ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')        // class arm
+            ->leftJoin('student_basic_data as bd', 'os.sid', '=', 'bd.user_id') // join by sid
+            ->leftJoin('school_web_data as swd', 'os.schid', '=', 'swd.user_id') // join school_web_data
+            ->where("os.schid", $schid)
+            ->where("os.ssn", $ssn)
+            ->where("os.trm", $trm)
+            ->where("os.clsm", $clsm);
 
-    if ($clsa != '-1') {
-        $query->where("os.clsa", $clsa);
-    }
-
-    $students = $query->select(
-        'os.sid',
-        'os.fname',
-        'os.lname',
-        'os.status',
-        'os.suid as student_id',
-        's.name as school_name',
-        's.sbd as subdomain',
-        'swd.phn as school_phone',
-        'c.id as class_id',
-        'c.name as class_name',
-        'sc.id as class_arm_id',
-        'sc.name as class_arm',
-        'bd.dob'
-    )
-        ->distinct('os.sid')
-        ->get();
-
-    $pld = $students->map(function ($student) {
-        $status = $student->status === 'inactive' ? 'Alumni' : $student->status;
-        $currentClass = $student->status === 'inactive' ? 'Alumni' : $student->class_name;
-
-        // ✅ DOB FIX (DATE → Y-m-d)
-        $dob = null;
-        if (!empty($student->dob)) {
-            try {
-                $dob = Carbon::parse($student->dob)->format('Y-m-d');
-            } catch (\Exception $e) {
-                $dob = null;
-            }
+        if ($clsa != '-1') {
+            $query->where("os.clsa", $clsa);
         }
 
-        return [
-            "sid" => $student->sid,
-            "fname" => $student->fname,
-            "lname" => $student->lname,
-            "dob" => $dob,
-            "status" => $status,
-            "school_name" => $student->school_name,
-            "subdomain" => $student->subdomain,
-            "school_phone" => $student->school_phone ?? 'N/A',
-            "student_id" => $student->student_id,
-            "class_id" => $student->class_id,
-            "class_name" => $student->class_name,
-            "class_arm_id" => $student->class_arm_id,
-            "class_arm" => $student->class_arm,
-            "current_class" => $currentClass
-        ];
-    });
+        $students = $query->select(
+            'os.sid',
+            'os.fname',
+            'os.lname',
+            'os.status',
+            'os.suid as student_id',
+            's.name as school_name',
+            's.sbd as subdomain',
+            'swd.phn as school_phone',
+            'c.id as class_id',
+            'c.name as class_name',
+            'sc.id as class_arm_id',
+            'sc.name as class_arm',
+            'bd.dob'
+        )
+            ->distinct('os.sid')
+            ->get();
 
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => $pld,
-    ]);
-}
+        $pld = $students->map(function ($student) {
+            $status = $student->status === 'inactive' ? 'Alumni' : $student->status;
+            $currentClass = $student->status === 'inactive' ? 'Alumni' : $student->class_name;
+
+            // ✅ DOB FIX (DATE → Y-m-d)
+            $dob = null;
+            if (!empty($student->dob)) {
+                try {
+                    $dob = Carbon::parse($student->dob)->format('Y-m-d');
+                } catch (\Exception $e) {
+                    $dob = null;
+                }
+            }
+
+            return [
+                "sid" => $student->sid,
+                "fname" => $student->fname,
+                "lname" => $student->lname,
+                "dob" => $dob,
+                "status" => $status,
+                "school_name" => $student->school_name,
+                "subdomain" => $student->subdomain,
+                "school_phone" => $student->school_phone ?? 'N/A',
+                "student_id" => $student->student_id,
+                "class_id" => $student->class_id,
+                "class_name" => $student->class_name,
+                "class_arm_id" => $student->class_arm_id,
+                "class_arm" => $student->class_arm,
+                "current_class" => $currentClass
+            ];
+        });
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld,
+        ]);
+    }
 
     /**
      * @OA\Get(
@@ -30013,94 +30015,94 @@ public function getWeeklyLessonPlan($schid, $ssn, $trm, $clsm)
     //     ]);
     // }
 
-    
-public function verifyStudent(Request $request) 
-{
-    $studentId = $request->query('studentId'); // use query param instead of path param
 
-    if (!$studentId) {
-        return response()->json([
-            "status" => false,
-            "message" => "studentId is required",
-            "pld" => []
-        ], 400);
-    }
+    public function verifyStudent(Request $request)
+    {
+        $studentId = $request->query('studentId'); // use query param instead of path param
 
-    $student = DB::table('old_student as os')
-        ->leftJoin('school as s', 'os.schid', '=', 's.sid')
-        ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id') // join to get school phone
-        ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')                  // main class
-        ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')            // class arm
-        ->leftJoin('student_basic_data as sb', 'os.sid', '=', 'sb.user_id') // join with basic data
-        ->where("os.suid", $studentId) // filter by unique student ID
-        ->select(
-            'os.sid',
-            'os.fname',
-            'os.lname',
-            'os.status',
-            'os.suid as student_id',
-            's.name as school_name',
-            's.sbd as subdomain',
-            'c.id as class_id',
-            'c.name as class_name',
-            'sc.id as class_arm_id',
-            'sc.name as class_arm',
-            'sb.dob',
-            'sb.sex',
-            'sb.addr',
-            'sw.phn as school_phone'
-        )
-        ->first();
-
-    // 🔸 Student not found
-    if (!$student) {
-        return response()->json([
-            "status" => false,
-            "message" => "Student not found",
-            "pld" => []
-        ], 404);
-    }
-
-    // ✅ DOB FIX (DATE → Y-m-d)
-    $dob = null;
-    if (!empty($student->dob)) {
-        try {
-            $dob = Carbon::parse($student->dob)->format('Y-m-d');
-        } catch (\Exception $e) {
-            $dob = null;
+        if (!$studentId) {
+            return response()->json([
+                "status" => false,
+                "message" => "studentId is required",
+                "pld" => []
+            ], 400);
         }
+
+        $student = DB::table('old_student as os')
+            ->leftJoin('school as s', 'os.schid', '=', 's.sid')
+            ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id') // join to get school phone
+            ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')                  // main class
+            ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')            // class arm
+            ->leftJoin('student_basic_data as sb', 'os.sid', '=', 'sb.user_id') // join with basic data
+            ->where("os.suid", $studentId) // filter by unique student ID
+            ->select(
+                'os.sid',
+                'os.fname',
+                'os.lname',
+                'os.status',
+                'os.suid as student_id',
+                's.name as school_name',
+                's.sbd as subdomain',
+                'c.id as class_id',
+                'c.name as class_name',
+                'sc.id as class_arm_id',
+                'sc.name as class_arm',
+                'sb.dob',
+                'sb.sex',
+                'sb.addr',
+                'sw.phn as school_phone'
+            )
+            ->first();
+
+        // 🔸 Student not found
+        if (!$student) {
+            return response()->json([
+                "status" => false,
+                "message" => "Student not found",
+                "pld" => []
+            ], 404);
+        }
+
+        // ✅ DOB FIX (DATE → Y-m-d)
+        $dob = null;
+        if (!empty($student->dob)) {
+            try {
+                $dob = Carbon::parse($student->dob)->format('Y-m-d');
+            } catch (\Exception $e) {
+                $dob = null;
+            }
+        }
+
+        // Alumni handling
+        $status = $student->status === 'inactive' ? 'Alumni' : $student->status;
+        $currentClass = $student->status === 'inactive' ? 'Alumni' : $student->class_name;
+
+        // Build payload
+        $pld = [
+            "sid" => (string) $student->sid,
+            "fname" => $student->fname,
+            "lname" => $student->lname,
+            "status" => $status,
+            "school_name" => $student->school_name,
+            "subdomain" => $student->subdomain,
+            "school_phone" => $student->school_phone ?? 'N/A',
+            "student_id" => $student->student_id,
+            "class_id" => $student->class_id,
+            "class_name" => $student->class_name,
+            "class_arm_id" => $student->class_arm_id,
+            "class_arm" => $student->class_arm,
+            "current_class" => $currentClass,
+            "dob" => $dob ?? 'N/A',
+            "sex" => $student->sex ?? 'N/A',
+            "address" => $student->addr ?? 'N/A'
+        ];
+
+        return response()->json([
+            "status" => true,
+            "message" => "Student verified successfully",
+            "pld" => [$pld],
+        ]);
     }
-
-    // Alumni handling
-    $status = $student->status === 'inactive' ? 'Alumni' : $student->status;
-    $currentClass = $student->status === 'inactive' ? 'Alumni' : $student->class_name;
-
-    // Build payload
-    $pld = [
-        "sid" => (string) $student->sid,
-        "fname" => $student->fname,
-        "lname" => $student->lname,
-        "status" => $status,
-        "school_name" => $student->school_name,
-        "subdomain" => $student->subdomain,
-        "school_phone" => $student->school_phone ?? 'N/A',
-        "student_id" => $student->student_id,
-        "class_id" => $student->class_id,
-        "class_name" => $student->class_name,
-        "class_arm_id" => $student->class_arm_id,
-        "class_arm" => $student->class_arm,
-        "current_class" => $currentClass,
-        "dob" => $dob ?? 'N/A',
-        "sex" => $student->sex ?? 'N/A',
-        "address" => $student->addr ?? 'N/A'
-    ];
-
-    return response()->json([
-        "status" => true,
-        "message" => "Student verified successfully",
-        "pld" => [$pld],
-    ]);
-}
 
 
 
@@ -30294,115 +30296,115 @@ public function verifyStudent(Request $request)
 
 
     public function getStaffId($schid, $ssn, $trm)
-{
-    $staff = DB::table('old_staff as os')
-        ->leftJoin('staff as s', 'os.sid', '=', 's.sid')
-        ->leftJoin('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
-        ->leftJoin('school as sch', 'os.schid', '=', 'sch.sid')
-        ->leftJoin('school_web_data as sw', 'sch.sid', '=', 'sw.user_id')
-        ->leftJoin('staff_role as r1', 'os.role', '=', 'r1.id')
-        ->leftJoin('staff_role as r2', 'os.role2', '=', 'r2.id')
-        ->where('os.schid', $schid)
-        ->where('os.ssn', $ssn)
-        ->where('os.trm', $trm)
-        ->select(
-            'os.sid',
-            DB::raw('MIN(os.uid) as uid'),
-            DB::raw('MAX(os.status) as status'),
-            DB::raw('MAX(os.role) as role'),
-            DB::raw('MAX(os.role2) as role2'),
-            DB::raw('MAX(r1.name) as role_name'),
-            DB::raw('MAX(r2.name) as role2_name'),
-            DB::raw('MAX(s.sch3) as sch3'),
-            DB::raw('MAX(sb.dob) as dob'),
-            DB::raw('MAX(sb.sex) as sex'),
-            DB::raw('MAX(sb.phn) as phn'),
-            DB::raw('MAX(sb.addr) as addr'),
-            DB::raw('MAX(sch.name) as school_name'),
-            DB::raw('MAX(sch.sbd) as subdomain'),
-            DB::raw('MAX(sw.phn) as school_phone'),
-            DB::raw('MAX(os.fname) as fname'),
-            DB::raw('MAX(os.mname) as mname'),
-            DB::raw('MAX(os.lname) as lname'),
-            DB::raw('MAX(os.suid) as suid'),
-            DB::raw('MAX(os.created_at) as created_at')
-        )
-        ->groupBy('os.sid')
-        ->orderBy('os.sid', 'asc')
-        ->get();
+    {
+        $staff = DB::table('old_staff as os')
+            ->leftJoin('staff as s', 'os.sid', '=', 's.sid')
+            ->leftJoin('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
+            ->leftJoin('school as sch', 'os.schid', '=', 'sch.sid')
+            ->leftJoin('school_web_data as sw', 'sch.sid', '=', 'sw.user_id')
+            ->leftJoin('staff_role as r1', 'os.role', '=', 'r1.id')
+            ->leftJoin('staff_role as r2', 'os.role2', '=', 'r2.id')
+            ->where('os.schid', $schid)
+            ->where('os.ssn', $ssn)
+            ->where('os.trm', $trm)
+            ->select(
+                'os.sid',
+                DB::raw('MIN(os.uid) as uid'),
+                DB::raw('MAX(os.status) as status'),
+                DB::raw('MAX(os.role) as role'),
+                DB::raw('MAX(os.role2) as role2'),
+                DB::raw('MAX(r1.name) as role_name'),
+                DB::raw('MAX(r2.name) as role2_name'),
+                DB::raw('MAX(s.sch3) as sch3'),
+                DB::raw('MAX(sb.dob) as dob'),
+                DB::raw('MAX(sb.sex) as sex'),
+                DB::raw('MAX(sb.phn) as phn'),
+                DB::raw('MAX(sb.addr) as addr'),
+                DB::raw('MAX(sch.name) as school_name'),
+                DB::raw('MAX(sch.sbd) as subdomain'),
+                DB::raw('MAX(sw.phn) as school_phone'),
+                DB::raw('MAX(os.fname) as fname'),
+                DB::raw('MAX(os.mname) as mname'),
+                DB::raw('MAX(os.lname) as lname'),
+                DB::raw('MAX(os.suid) as suid'),
+                DB::raw('MAX(os.created_at) as created_at')
+            )
+            ->groupBy('os.sid')
+            ->orderBy('os.sid', 'asc')
+            ->get();
 
-    $existingCount = DB::table('old_staff')
-        ->where('schid', $schid)
-        ->where('ssn', $ssn)
-        ->where('trm', $trm)
-        ->whereNotNull('suid')
-        ->distinct('sid')
-        ->count('sid');
+        $existingCount = DB::table('old_staff')
+            ->where('schid', $schid)
+            ->where('ssn', $ssn)
+            ->where('trm', $trm)
+            ->whereNotNull('suid')
+            ->distinct('sid')
+            ->count('sid');
 
-    $counter = $existingCount + 1;
+        $counter = $existingCount + 1;
 
-    $pld = $staff->map(function ($stf) use (&$counter, $schid, $ssn, $trm) {
-        $schoolCode = $stf->sch3 ?? 'SCH';
+        $pld = $staff->map(function ($stf) use (&$counter, $schid, $ssn, $trm) {
+            $schoolCode = $stf->sch3 ?? 'SCH';
 
-        /**
-         * ✅ DOB FIX
-         * Stored as DATE (YYYY-MM-DD)
-         * Do NOT treat as timestamp
-         */
-        $dob = null;
-        if (!empty($stf->dob)) {
-            try {
-                $dob = Carbon::parse($stf->dob)->format('Y-m-d');
-            } catch (\Exception $e) {
-                $dob = null;
+            /**
+             * ✅ DOB FIX
+             * Stored as DATE (YYYY-MM-DD)
+             * Do NOT treat as timestamp
+             */
+            $dob = null;
+            if (!empty($stf->dob)) {
+                try {
+                    $dob = Carbon::parse($stf->dob)->format('Y-m-d');
+                } catch (\Exception $e) {
+                    $dob = null;
+                }
             }
-        }
 
-        // Check if staff is ex-staff
-        $isExStaff = DB::table('ex_staffs')->where('stid', $stf->sid)->exists();
-        $status = $isExStaff ? 'Ex Staff' : 'Staff';
+            // Check if staff is ex-staff
+            $isExStaff = DB::table('ex_staffs')->where('stid', $stf->sid)->exists();
+            $status = $isExStaff ? 'Ex Staff' : 'Staff';
 
-        // Assign Staff ID only if missing
-        if (empty($stf->suid)) {
-            $staffId = sprintf("%s/STAFF/%03d", $schoolCode, $counter);
+            // Assign Staff ID only if missing
+            if (empty($stf->suid)) {
+                $staffId = sprintf("%s/STAFF/%03d", $schoolCode, $counter);
 
-            DB::table('old_staff')
-                ->where('sid', $stf->sid)
-                ->where('schid', $schid)
-                ->where('ssn', $ssn)
-                ->where('trm', $trm)
-                ->update(['suid' => $staffId]);
+                DB::table('old_staff')
+                    ->where('sid', $stf->sid)
+                    ->where('schid', $schid)
+                    ->where('ssn', $ssn)
+                    ->where('trm', $trm)
+                    ->update(['suid' => $staffId]);
 
-            $counter++;
-        } else {
-            $staffId = $stf->suid;
-        }
+                $counter++;
+            } else {
+                $staffId = $stf->suid;
+            }
 
-        return [
-            "sid" => $stf->sid,
-            "full_name" => trim("{$stf->fname} {$stf->mname} {$stf->lname}"),
-            "status" => $status,
-            "role" => $stf->role_name ?? 'N/A',
-            "role2" => $stf->role2_name ?? 'N/A',
-            "school_code" => $schoolCode,
-            "school_name" => $stf->school_name,
-            "school_phone" => $stf->school_phone ?? 'N/A',
-            "subdomain" => $stf->subdomain ?? 'N/A',
-            "staff_id" => $staffId,
-            "dob" => $dob ?? 'N/A',
-            "sex" => $stf->sex,
-            "phone" => $stf->phn,
-            "address" => $stf->addr,
-            "created_at" => $stf->created_at,
-        ];
-    });
+            return [
+                "sid" => $stf->sid,
+                "full_name" => trim("{$stf->fname} {$stf->mname} {$stf->lname}"),
+                "status" => $status,
+                "role" => $stf->role_name ?? 'N/A',
+                "role2" => $stf->role2_name ?? 'N/A',
+                "school_code" => $schoolCode,
+                "school_name" => $stf->school_name,
+                "school_phone" => $stf->school_phone ?? 'N/A',
+                "subdomain" => $stf->subdomain ?? 'N/A',
+                "staff_id" => $staffId,
+                "dob" => $dob ?? 'N/A',
+                "sex" => $stf->sex,
+                "phone" => $stf->phn,
+                "address" => $stf->addr,
+                "created_at" => $stf->created_at,
+            ];
+        });
 
-    return response()->json([
-        "status" => true,
-        "message" => "Unique staff IDs generated successfully",
-        "pld" => $pld
-    ]);
-}
+        return response()->json([
+            "status" => true,
+            "message" => "Unique staff IDs generated successfully",
+            "pld" => $pld
+        ]);
+    }
 
 
 
@@ -30566,101 +30568,101 @@ public function verifyStudent(Request $request)
     //     ]);
     // }
 
-public function verifyStaff(Request $request)
-{
-    $staffId = $request->query('staffId'); // ?staffId=SCS/STAFF/003
+    public function verifyStaff(Request $request)
+    {
+        $staffId = $request->query('staffId'); // ?staffId=SCS/STAFF/003
 
-    if (!$staffId) {
-        return response()->json([
-            "status" => false,
-            "message" => "staffId is required",
-            "pld" => []
-        ], 400);
-    }
-
-    // 🔹 Join necessary tables
-    $staff = DB::table('old_staff as os')
-        ->leftJoin('staff as s', 'os.sid', '=', 's.sid')
-        ->leftJoin('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
-        ->leftJoin('school as sch', 'os.schid', '=', 'sch.sid')
-        ->leftJoin('school_web_data as sw', 'sch.sid', '=', 'sw.user_id')
-        ->leftJoin('staff_role as r1', 'os.role', '=', 'r1.id')
-        ->leftJoin('staff_role as r2', 'os.role2', '=', 'r2.id')
-        ->where('os.suid', $staffId)
-        ->select(
-            'os.sid',
-            'os.fname',
-            'os.mname',
-            'os.lname',
-            'os.status',
-            'os.suid as staff_id',
-            'sch.name as school_name',
-            'sch.sbd as subdomain',
-            'sw.phn as school_phone',
-            'r1.name as role_name',
-            'r2.name as role2_name',
-            'sb.dob',
-            'sb.sex',
-            'sb.phn as staff_phone',
-            'sb.addr',
-            'os.created_at'
-        )
-        ->first();
-
-    // 🔸 Staff not found
-    if (!$staff) {
-        return response()->json([
-            "status" => false,
-            "message" => "Staff not found",
-            "pld" => []
-        ], 404);
-    }
-
-    // Check if staff is in ex_staffs table
-    $isExStaff = DB::table('ex_staffs')->where('stid', $staff->sid)->exists();
-    $currentStatus = $isExStaff ? 'Ex Staff' : 'Staff';
-
-    /**
-     * ✅ DOB FIX
-     * Stored as DATE (YYYY-MM-DD)
-     * DO NOT treat as timestamp
-     */
-    $dob = null;
-    if (!empty($staff->dob)) {
-        try {
-            $dob = \Carbon\Carbon::parse($staff->dob)->format('Y-m-d');
-        } catch (\Exception $e) {
-            $dob = null;
+        if (!$staffId) {
+            return response()->json([
+                "status" => false,
+                "message" => "staffId is required",
+                "pld" => []
+            ], 400);
         }
+
+        // 🔹 Join necessary tables
+        $staff = DB::table('old_staff as os')
+            ->leftJoin('staff as s', 'os.sid', '=', 's.sid')
+            ->leftJoin('staff_basic_data as sb', 'os.sid', '=', 'sb.user_id')
+            ->leftJoin('school as sch', 'os.schid', '=', 'sch.sid')
+            ->leftJoin('school_web_data as sw', 'sch.sid', '=', 'sw.user_id')
+            ->leftJoin('staff_role as r1', 'os.role', '=', 'r1.id')
+            ->leftJoin('staff_role as r2', 'os.role2', '=', 'r2.id')
+            ->where('os.suid', $staffId)
+            ->select(
+                'os.sid',
+                'os.fname',
+                'os.mname',
+                'os.lname',
+                'os.status',
+                'os.suid as staff_id',
+                'sch.name as school_name',
+                'sch.sbd as subdomain',
+                'sw.phn as school_phone',
+                'r1.name as role_name',
+                'r2.name as role2_name',
+                'sb.dob',
+                'sb.sex',
+                'sb.phn as staff_phone',
+                'sb.addr',
+                'os.created_at'
+            )
+            ->first();
+
+        // 🔸 Staff not found
+        if (!$staff) {
+            return response()->json([
+                "status" => false,
+                "message" => "Staff not found",
+                "pld" => []
+            ], 404);
+        }
+
+        // Check if staff is in ex_staffs table
+        $isExStaff = DB::table('ex_staffs')->where('stid', $staff->sid)->exists();
+        $currentStatus = $isExStaff ? 'Ex Staff' : 'Staff';
+
+        /**
+         * ✅ DOB FIX
+         * Stored as DATE (YYYY-MM-DD)
+         * DO NOT treat as timestamp
+         */
+        $dob = null;
+        if (!empty($staff->dob)) {
+            try {
+                $dob = \Carbon\Carbon::parse($staff->dob)->format('Y-m-d');
+            } catch (\Exception $e) {
+                $dob = null;
+            }
+        }
+
+        // Combine names
+        $fullName = trim("{$staff->fname} {$staff->mname} {$staff->lname}");
+
+        // Build payload
+        $pld = [
+            "sid" => (string) $staff->sid,
+            "full_name" => $fullName,
+            "status" => $currentStatus,
+            "school_name" => $staff->school_name,
+            "subdomain" => $staff->subdomain,
+            "school_phone" => $staff->school_phone ?? 'N/A',
+            "staff_id" => $staff->staff_id,
+            "role" => $staff->role_name ?? 'N/A',
+            "role2" => $staff->role2_name ?? 'N/A',
+            "dob" => $dob ?? 'N/A',
+            "sex" => $staff->sex,
+            "phone" => $staff->staff_phone,
+            "address" => $staff->addr,
+            "created_at" => $staff->created_at,
+        ];
+
+        return response()->json([
+            "status" => true,
+            "message" => "Staff verified successfully",
+            "pld" => [$pld],
+        ]);
     }
-
-    // Combine names
-    $fullName = trim("{$staff->fname} {$staff->mname} {$staff->lname}");
-
-    // Build payload
-    $pld = [
-        "sid" => (string) $staff->sid,
-        "full_name" => $fullName,
-        "status" => $currentStatus,
-        "school_name" => $staff->school_name,
-        "subdomain" => $staff->subdomain,
-        "school_phone" => $staff->school_phone ?? 'N/A',
-        "staff_id" => $staff->staff_id,
-        "role" => $staff->role_name ?? 'N/A',
-        "role2" => $staff->role2_name ?? 'N/A',
-        "dob" => $dob ?? 'N/A',
-        "sex" => $staff->sex,
-        "phone" => $staff->staff_phone,
-        "address" => $staff->addr,
-        "created_at" => $staff->created_at,
-    ];
-
-    return response()->json([
-        "status" => true,
-        "message" => "Staff verified successfully",
-        "pld" => [$pld],
-    ]);
-}
 
 
 
@@ -31406,96 +31408,96 @@ public function verifyStaff(Request $request)
     //     ]);
     // }
 
-    public function getLearnersEnrollmentInfoGender(Request $request) 
-{
-    $start = $request->input('start', 0);
-    $count = $request->input('count', 20);
-    $state = $request->input('state');
-    $lga = $request->input('lga');
-    $gender = $request->input('gender');
-    $schid = $request->input('schid');
+    public function getLearnersEnrollmentInfoGender(Request $request)
+    {
+        $start = $request->input('start', 0);
+        $count = $request->input('count', 20);
+        $state = $request->input('state');
+        $lga = $request->input('lga');
+        $gender = $request->input('gender');
+        $schid = $request->input('schid');
 
-    // Subquery: get latest unique record for each student by uid
-    $latestStudents = DB::table('old_student as os2')
-        ->select(DB::raw('MAX(os2.uid) as latest_uid'))
-        ->where('os2.status', 'active')
-        ->groupBy('os2.sid');
+        // Subquery: get latest unique record for each student by uid
+        $latestStudents = DB::table('old_student as os2')
+            ->select(DB::raw('MAX(os2.uid) as latest_uid'))
+            ->where('os2.status', 'active')
+            ->groupBy('os2.sid');
 
-    // Join with main table on latest uid (ensures one record per student)
-    $query = DB::table('old_student as os')
-        ->joinSub($latestStudents, 'latest', function ($join) {
-            $join->on('os.uid', '=', 'latest.latest_uid');
-        })
-        ->join('student_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
-        ->join('school as sc', 'os.schid', '=', 'sc.sid')
-        ->join('school_web_data as swd', 'sc.sid', '=', 'swd.user_id')
-        ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')
-        ->leftJoin('sch_cls as scl', 'os.clsa', '=', 'scl.id')
-        ->select(
-            'os.sid as student_id',
-            'os.fname',
-            'os.mname',
-            'os.lname',
-            'sbd.dob',
-            'sbd.sex as gender',
-            'sbd.state as student_state',
-            'sbd.lga as student_lga',
-            'swd.country as school_country',
-            'swd.state as school_state',
-            'swd.lga as school_lga',
-            'c.name as class_name',
-            'scl.name as class_arm_name',
-            'sc.name as school_name'
-        )
-        ->where('os.status', 'active');
+        // Join with main table on latest uid (ensures one record per student)
+        $query = DB::table('old_student as os')
+            ->joinSub($latestStudents, 'latest', function ($join) {
+                $join->on('os.uid', '=', 'latest.latest_uid');
+            })
+            ->join('student_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
+            ->join('school as sc', 'os.schid', '=', 'sc.sid')
+            ->join('school_web_data as swd', 'sc.sid', '=', 'swd.user_id')
+            ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')
+            ->leftJoin('sch_cls as scl', 'os.clsa', '=', 'scl.id')
+            ->select(
+                'os.sid as student_id',
+                'os.fname',
+                'os.mname',
+                'os.lname',
+                'sbd.dob',
+                'sbd.sex as gender',
+                'sbd.state as student_state',
+                'sbd.lga as student_lga',
+                'swd.country as school_country',
+                'swd.state as school_state',
+                'swd.lga as school_lga',
+                'c.name as class_name',
+                'scl.name as class_arm_name',
+                'sc.name as school_name'
+            )
+            ->where('os.status', 'active');
 
-    // Apply filters dynamically
-    if (!empty($state))
-        $query->where('swd.state', $state);
+        // Apply filters dynamically
+        if (!empty($state))
+            $query->where('swd.state', $state);
 
-    if (!empty($lga))
-        $query->where('swd.lga', $lga);
+        if (!empty($lga))
+            $query->where('swd.lga', $lga);
 
-    if (!empty($gender))
-        $query->where('sbd.sex', $gender);
+        if (!empty($gender))
+            $query->where('sbd.sex', $gender);
 
-    if (!empty($schid))
-        $query->where('os.schid', $schid);
+        if (!empty($schid))
+            $query->where('os.schid', $schid);
 
-    // Count unique students
-    $totalRecords = $query->count();
+        // Count unique students
+        $totalRecords = $query->count();
 
-    // Fetch paginated data
-    $students = $query
-        ->orderBy('os.lname', 'asc')
-        ->skip($start)
-        ->take($count)
-        ->get();
+        // Fetch paginated data
+        $students = $query
+            ->orderBy('os.lname', 'asc')
+            ->skip($start)
+            ->take($count)
+            ->get();
 
-    /**
-     * ✅ DOB FIX
-     * Stored as DATE (YYYY-MM-DD)
-     * Do NOT treat as timestamp
-     */
-    foreach ($students as $student) {
-        if (!empty($student->dob)) {
-            try {
-                $student->dob = Carbon::parse($student->dob)->format('Y-m-d');
-            } catch (\Exception $e) {
+        /**
+         * ✅ DOB FIX
+         * Stored as DATE (YYYY-MM-DD)
+         * Do NOT treat as timestamp
+         */
+        foreach ($students as $student) {
+            if (!empty($student->dob)) {
+                try {
+                    $student->dob = Carbon::parse($student->dob)->format('Y-m-d');
+                } catch (\Exception $e) {
+                    $student->dob = null;
+                }
+            } else {
                 $student->dob = null;
             }
-        } else {
-            $student->dob = null;
         }
-    }
 
-    return response()->json([
-        'status' => true,
-        'message' => 'Success',
-        'total_records' => $totalRecords,
-        'pld' => $students,
-    ]);
-}
+        return response()->json([
+            'status' => true,
+            'message' => 'Success',
+            'total_records' => $totalRecords,
+            'pld' => $students,
+        ]);
+    }
 
 
 
@@ -31966,119 +31968,119 @@ public function verifyStaff(Request $request)
     //     ]);
     // }
 
-public function getStaffsEnrollmentInfoGender(Request $request) 
-{
-    $start = $request->input('start', 0);
-    $count = $request->input('count', 20);
-    $state = $request->input('state');
-    $lga = $request->input('lga');
-    $gender = $request->input('gender'); // 'M' or 'F'
-    $schid = $request->input('schid');  // School ID filter
+    public function getStaffsEnrollmentInfoGender(Request $request)
+    {
+        $start = $request->input('start', 0);
+        $count = $request->input('count', 20);
+        $state = $request->input('state');
+        $lga = $request->input('lga');
+        $gender = $request->input('gender'); // 'M' or 'F'
+        $schid = $request->input('schid');  // School ID filter
 
-    // Build query
-    $query = DB::table('old_staff as os')
-        ->join('staff_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
-        ->join('school_web_data as swd', 'os.schid', '=', 'swd.user_id')
-        // Join for role1 and role2
-        ->leftJoin('staff_role as sr1', DB::raw('REPLACE(os.role, "*", "")'), '=', 'sr1.id')
-        ->leftJoin('staff_role as sr2', DB::raw('REPLACE(os.role2, "*", "")'), '=', 'sr2.id')
-        ->select(
+        // Build query
+        $query = DB::table('old_staff as os')
+            ->join('staff_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
+            ->join('school_web_data as swd', 'os.schid', '=', 'swd.user_id')
+            // Join for role1 and role2
+            ->leftJoin('staff_role as sr1', DB::raw('REPLACE(os.role, "*", "")'), '=', 'sr1.id')
+            ->leftJoin('staff_role as sr2', DB::raw('REPLACE(os.role2, "*", "")'), '=', 'sr2.id')
+            ->select(
+                'os.sid',
+                'os.suid as staff_id',
+                'os.fname',
+                'os.mname',
+                'os.lname',
+                'os.status',
+                'os.role',
+                'os.role2',
+                DB::raw('REPLACE(os.role, "*", "") as role1_clean'),
+                DB::raw('REPLACE(os.role2, "*", "") as role2_clean'),
+                'sr1.name as role1_name',
+                'sr2.name as role2_name',
+                'sbd.dob',
+                'sbd.sex as gender',
+                'sbd.state as staff_state',
+                'sbd.lga as staff_lga',
+                'swd.country as school_country',
+                'swd.state as school_state',
+                DB::raw('TRIM(swd.lga) as school_lga'),
+                'swd.sname as school_name'
+            )
+            ->where('os.status', 'active');
+
+        // Apply filters
+        if (!empty($schid)) {
+            $query->where('os.schid', $schid);
+        }
+
+        if (!empty($state)) {
+            $query->where('swd.state', $state);
+        }
+
+        if (!empty($lga)) {
+            $query->whereRaw('TRIM(swd.lga) = ?', [$lga]);
+        }
+
+        if (!empty($gender)) {
+            $query->where('sbd.sex', $gender);
+        }
+
+        // Avoid duplicates
+        $query->groupBy(
             'os.sid',
-            'os.suid as staff_id',
+            'os.suid',
             'os.fname',
             'os.mname',
             'os.lname',
-            'os.status',
             'os.role',
             'os.role2',
-            DB::raw('REPLACE(os.role, "*", "") as role1_clean'),
-            DB::raw('REPLACE(os.role2, "*", "") as role2_clean'),
-            'sr1.name as role1_name',
-            'sr2.name as role2_name',
+            'os.status',
             'sbd.dob',
-            'sbd.sex as gender',
-            'sbd.state as staff_state',
-            'sbd.lga as staff_lga',
-            'swd.country as school_country',
-            'swd.state as school_state',
-            DB::raw('TRIM(swd.lga) as school_lga'),
-            'swd.sname as school_name'
-        )
-        ->where('os.status', 'active');
+            'sbd.sex',
+            'sbd.state',
+            'sbd.lga',
+            'swd.country',
+            'swd.state',
+            'swd.lga',
+            'swd.sname',
+            'sr1.name',
+            'sr2.name'
+        );
 
-    // Apply filters
-    if (!empty($schid)) {
-        $query->where('os.schid', $schid);
-    }
+        // Count total records
+        $totalRecords = $query->count(DB::raw('distinct os.sid'));
 
-    if (!empty($state)) {
-        $query->where('swd.state', $state);
-    }
+        // Fetch paginated results
+        $staff = $query->orderBy('os.lname', 'asc')
+            ->skip($start)
+            ->take($count)
+            ->get();
 
-    if (!empty($lga)) {
-        $query->whereRaw('TRIM(swd.lga) = ?', [$lga]);
-    }
-
-    if (!empty($gender)) {
-        $query->where('sbd.sex', $gender);
-    }
-
-    // Avoid duplicates
-    $query->groupBy(
-        'os.sid',
-        'os.suid',
-        'os.fname',
-        'os.mname',
-        'os.lname',
-        'os.role',
-        'os.role2',
-        'os.status',
-        'sbd.dob',
-        'sbd.sex',
-        'sbd.state',
-        'sbd.lga',
-        'swd.country',
-        'swd.state',
-        'swd.lga',
-        'swd.sname',
-        'sr1.name',
-        'sr2.name'
-    );
-
-    // Count total records
-    $totalRecords = $query->count(DB::raw('distinct os.sid'));
-
-    // Fetch paginated results
-    $staff = $query->orderBy('os.lname', 'asc')
-        ->skip($start)
-        ->take($count)
-        ->get();
-
-    /**
-     * ✅ DOB FIX
-     * Stored as DATE (YYYY-MM-DD)
-     * Do NOT treat as timestamp
-     */
-    foreach ($staff as $member) {
-        if (!empty($member->dob)) {
-            try {
-                $member->dob = \Carbon\Carbon::parse($member->dob)->format('Y-m-d');
-            } catch (\Exception $e) {
+        /**
+         * ✅ DOB FIX
+         * Stored as DATE (YYYY-MM-DD)
+         * Do NOT treat as timestamp
+         */
+        foreach ($staff as $member) {
+            if (!empty($member->dob)) {
+                try {
+                    $member->dob = \Carbon\Carbon::parse($member->dob)->format('Y-m-d');
+                } catch (\Exception $e) {
+                    $member->dob = null;
+                }
+            } else {
                 $member->dob = null;
             }
-        } else {
-            $member->dob = null;
         }
-    }
 
-    // Return response
-    return response()->json([
-        'status' => true,
-        'message' => 'Success',
-        'total_records' => $totalRecords,
-        'pld' => $staff->unique('sid')->values()
-    ]);
-}
+        // Return response
+        return response()->json([
+            'status' => true,
+            'message' => 'Success',
+            'total_records' => $totalRecords,
+            'pld' => $staff->unique('sid')->values()
+        ]);
+    }
 
 
 
@@ -32773,80 +32775,80 @@ public function getStaffsEnrollmentInfoGender(Request $request)
     // }
 
 
-    public function getStudentGenderDetails(Request $request) 
-{
-    $schid = $request->input('schid');   // school_id
-    $ssn = $request->input('ssn');       // session
-    $class = $request->input('class');   // cls_id
-    $gender = $request->input('gender'); // 'M' or 'F'
+    public function getStudentGenderDetails(Request $request)
+    {
+        $schid = $request->input('schid');   // school_id
+        $ssn = $request->input('ssn');       // session
+        $class = $request->input('class');   // cls_id
+        $gender = $request->input('gender'); // 'M' or 'F'
 
-    if (!$schid || !$ssn || !$class || !$gender) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Missing parameters: schid, ssn, class, gender'
-        ], 400);
-    }
+        if (!$schid || !$ssn || !$class || !$gender) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Missing parameters: schid, ssn, class, gender'
+            ], 400);
+        }
 
-    $records = DB::table('old_student as os')
-        ->join('student_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
-        ->join('sch_cls as sc', function ($join) {
-            $join->on('os.clsa', '=', 'sc.id')  // Join class arms
-                ->on('os.schid', '=', 'sc.schid');
-        })
-        ->join('cls as c', 'os.clsm', '=', 'c.id') // Join main class table
-        ->select(
-            'os.sid as student_id',
-            'os.suid',
-            'os.fname',
-            'os.mname',
-            'os.lname',
-            'sbd.sex',
-            'sbd.dob', // fetch raw dob
-            'c.name as class_name',
-            'sc.name as class_arm'
-        )
-        ->where('os.schid', $schid)
-        ->where('os.ssn', $ssn)
-        ->where('c.id', $class)
-        ->where('sbd.sex', $gender)
-        ->where('os.status', 'active')
-        ->groupBy(
-            'os.sid',
-            'os.suid',
-            'os.fname',
-            'os.mname',
-            'os.lname',
-            'sbd.sex',
-            'sbd.dob',
-            'c.name',
-            'sc.name'
-        )
-        ->orderBy('os.lname', 'asc')
-        ->get();
+        $records = DB::table('old_student as os')
+            ->join('student_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
+            ->join('sch_cls as sc', function ($join) {
+                $join->on('os.clsa', '=', 'sc.id')  // Join class arms
+                    ->on('os.schid', '=', 'sc.schid');
+            })
+            ->join('cls as c', 'os.clsm', '=', 'c.id') // Join main class table
+            ->select(
+                'os.sid as student_id',
+                'os.suid',
+                'os.fname',
+                'os.mname',
+                'os.lname',
+                'sbd.sex',
+                'sbd.dob', // fetch raw dob
+                'c.name as class_name',
+                'sc.name as class_arm'
+            )
+            ->where('os.schid', $schid)
+            ->where('os.ssn', $ssn)
+            ->where('c.id', $class)
+            ->where('sbd.sex', $gender)
+            ->where('os.status', 'active')
+            ->groupBy(
+                'os.sid',
+                'os.suid',
+                'os.fname',
+                'os.mname',
+                'os.lname',
+                'sbd.sex',
+                'sbd.dob',
+                'c.name',
+                'sc.name'
+            )
+            ->orderBy('os.lname', 'asc')
+            ->get();
 
-    // ✅ Format DOB properly as YYYY-MM-DD
-    foreach ($records as $record) {
-        if (!empty($record->dob)) {
-            try {
-                // If numeric (milliseconds), convert; else parse normally
-                $record->dob = is_numeric($record->dob)
-                    ? \Carbon\Carbon::createFromTimestamp($record->dob / 1000)->format('Y-m-d')
-                    : \Carbon\Carbon::parse($record->dob)->format('Y-m-d');
-            } catch (\Exception $e) {
+        // ✅ Format DOB properly as YYYY-MM-DD
+        foreach ($records as $record) {
+            if (!empty($record->dob)) {
+                try {
+                    // If numeric (milliseconds), convert; else parse normally
+                    $record->dob = is_numeric($record->dob)
+                        ? \Carbon\Carbon::createFromTimestamp($record->dob / 1000)->format('Y-m-d')
+                        : \Carbon\Carbon::parse($record->dob)->format('Y-m-d');
+                } catch (\Exception $e) {
+                    $record->dob = null;
+                }
+            } else {
                 $record->dob = null;
             }
-        } else {
-            $record->dob = null;
         }
-    }
 
-    return response()->json([
-        'status' => true,
-        'message' => 'Student list fetched successfully',
-        'count' => $records->count(),
-        'pld' => $records
-    ], 200, [], JSON_PRETTY_PRINT);
-}
+        return response()->json([
+            'status' => true,
+            'message' => 'Student list fetched successfully',
+            'count' => $records->count(),
+            'pld' => $records
+        ], 200, [], JSON_PRETTY_PRINT);
+    }
 
 
 
@@ -32957,62 +32959,62 @@ public function getStaffsEnrollmentInfoGender(Request $request)
     // }
 
 
-    public function getStaffGenderDetails(Request $request) 
-{
-    $schoolId = $request->input('school_id');
-    $session = $request->input('ssn'); // academic session
-    $class = $request->input('clsm'); // class ID
-    $gender = $request->input('gender'); // 'M' or 'F'
+    public function getStaffGenderDetails(Request $request)
+    {
+        $schoolId = $request->input('school_id');
+        $session = $request->input('ssn'); // academic session
+        $class = $request->input('clsm'); // class ID
+        $gender = $request->input('gender'); // 'M' or 'F'
 
-    if (!$schoolId || !$session || !$class || !$gender) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Missing parameters: school_id, ssn, clsm, gender'
-        ], 400);
-    }
+        if (!$schoolId || !$session || !$class || !$gender) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Missing parameters: school_id, ssn, clsm, gender'
+            ], 400);
+        }
 
-    $records = DB::table('old_staff as os')
-        ->join('staff_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
-        ->join('cls as c', 'os.clsm', '=', 'c.id')
-        ->select(
-            'os.sid as staff_id',
-            'os.suid',
-            DB::raw("CONCAT(os.fname, ' ', os.mname, ' ', os.lname) as full_name"),
-            'sbd.sex',
-            'c.name as class_name',
-            'sbd.dob' // fetch raw dob
-        )
-        ->where('os.schid', $schoolId)
-        ->where('os.ssn', $session)
-        ->where('os.clsm', $class)
-        ->where('sbd.sex', $gender)
-        ->where('os.status', 'active')
-        ->groupBy('os.sid', 'os.suid', 'os.fname', 'os.mname', 'os.lname', 'sbd.sex', 'c.name', 'sbd.dob')
-        ->orderBy('full_name', 'asc')
-        ->get();
+        $records = DB::table('old_staff as os')
+            ->join('staff_basic_data as sbd', 'os.sid', '=', 'sbd.user_id')
+            ->join('cls as c', 'os.clsm', '=', 'c.id')
+            ->select(
+                'os.sid as staff_id',
+                'os.suid',
+                DB::raw("CONCAT(os.fname, ' ', os.mname, ' ', os.lname) as full_name"),
+                'sbd.sex',
+                'c.name as class_name',
+                'sbd.dob' // fetch raw dob
+            )
+            ->where('os.schid', $schoolId)
+            ->where('os.ssn', $session)
+            ->where('os.clsm', $class)
+            ->where('sbd.sex', $gender)
+            ->where('os.status', 'active')
+            ->groupBy('os.sid', 'os.suid', 'os.fname', 'os.mname', 'os.lname', 'sbd.sex', 'c.name', 'sbd.dob')
+            ->orderBy('full_name', 'asc')
+            ->get();
 
-    // ✅ Format DOB consistently as YYYY-MM-DD
-    foreach ($records as $record) {
-        if (!empty($record->dob)) {
-            try {
-                $record->dob = is_numeric($record->dob)
-                    ? \Carbon\Carbon::createFromTimestamp($record->dob / 1000)->format('Y-m-d')
-                    : \Carbon\Carbon::parse($record->dob)->format('Y-m-d');
-            } catch (\Exception $e) {
+        // ✅ Format DOB consistently as YYYY-MM-DD
+        foreach ($records as $record) {
+            if (!empty($record->dob)) {
+                try {
+                    $record->dob = is_numeric($record->dob)
+                        ? \Carbon\Carbon::createFromTimestamp($record->dob / 1000)->format('Y-m-d')
+                        : \Carbon\Carbon::parse($record->dob)->format('Y-m-d');
+                } catch (\Exception $e) {
+                    $record->dob = null;
+                }
+            } else {
                 $record->dob = null;
             }
-        } else {
-            $record->dob = null;
         }
-    }
 
-    return response()->json([
-        'status' => true,
-        'message' => 'Staff list fetched successfully',
-        'count' => $records->count(),
-        'pld' => $records
-    ]);
-}
+        return response()->json([
+            'status' => true,
+            'message' => 'Staff list fetched successfully',
+            'count' => $records->count(),
+            'pld' => $records
+        ]);
+    }
 
 
 
@@ -36111,214 +36113,185 @@ public function getStaffsEnrollmentInfoGender(Request $request)
     //     }
     // }
 
-public function maintainPreviousStaff(Request $request) 
-{
-    $request->validate([
-        'schid' => 'required|integer',
-        'new_trm' => 'required|integer', // 1, 2, 3
-        'ssn' => 'required|integer',     // current session
-    ]);
-
-    $schid = $request->schid;
-    $new_trm = $request->new_trm;
-    $ssn = $request->ssn;
-
-    // ---- Determine previous term & session ----
-    if ($new_trm == 1) {
-        $prev_trm = 3;
-        $prev_ssn = $ssn - 1;
-    } else {
-        $prev_trm = $new_trm - 1;
-        $prev_ssn = $ssn;
-    }
-
-    DB::beginTransaction();
-
-    try {
-        // ------------------------------------------------
-        // 1. Bring staff forward (old_staff) - preserve DOB
-        // ------------------------------------------------
-        DB::insert(
-            "INSERT INTO old_staff
-        (uid, suid, sid, schid, fname, mname, lname, clsm, role, role2, status, ssn, trm, created_at, updated_at)
-        SELECT
-            CONCAT(
-                ?, ?,
-                IFNULL(sid, 0),
-                IFNULL(clsm, 0),
-                '-',
-                UNIX_TIMESTAMP(),
-                FLOOR(RAND() * 1000)
-            ) AS uid,
-            suid,
-            sid,
-            schid,
-            fname,
-            mname,
-            lname,
-            clsm,
-            role,
-            role2,
-            'active',
-            ?, ?,
-            NOW(), NOW()
-        FROM old_staff
-        WHERE schid = ?
-          AND trm = ?
-          AND ssn = ?
-          AND status = 'active'",
-            [
-                $ssn,
-                $new_trm,
-                $ssn,
-                $new_trm,
-                $schid,
-                $prev_trm,
-                $prev_ssn
-            ]
-        );
-
-        // ------------------------------------------------
-        // 2. Bring staff classes forward
-        // ------------------------------------------------
-        DB::insert(
-            "INSERT INTO staff_class
-        (uid, stid, cls, schid, ssn, trm, created_at, updated_at)
-        SELECT
-            CONCAT(
-                ?, ?,
-                IFNULL(stid, 0),
-                IFNULL(cls, 0),
-                '-',
-                UNIX_TIMESTAMP(),
-                FLOOR(RAND() * 1000)
-            ) AS uid,
-            stid,
-            cls,
-            schid,
-            ?, ?,
-            NOW(), NOW()
-        FROM staff_class
-        WHERE schid = ?
-          AND trm = ?
-          AND ssn = ?",
-            [
-                $ssn,
-                $new_trm,
-                $ssn,
-                $new_trm,
-                $schid,
-                $prev_trm,
-                $prev_ssn
-            ]
-        );
-
-        // ------------------------------------------------
-        // 3. Bring staff class arms forward
-        // ------------------------------------------------
-        DB::insert(
-            "INSERT INTO staff_class_arm
-        (uid, stid, cls, arm, schid, sesn, trm, created_at, updated_at)
-        SELECT
-            CONCAT(
-                ?, ?,
-                IFNULL(stid, 0),
-                IFNULL(cls, 0),
-                IFNULL(arm, 0),
-                '-',
-                UNIX_TIMESTAMP(),
-                FLOOR(RAND() * 1000)
-            ) AS uid,
-            stid,
-            cls,
-            arm,
-            schid,
-            ?, ?,
-            NOW(), NOW()
-        FROM staff_class_arm
-        WHERE schid = ?
-          AND trm = ?
-          AND sesn = ?",
-            [
-                $ssn,
-                $new_trm,
-                $ssn,
-                $new_trm,
-                $schid,
-                $prev_trm,
-                $prev_ssn
-            ]
-        );
-
-        // ------------------------------------------------
-        // 4. Bring staff subjects forward
-        // ------------------------------------------------
-        DB::insert(
-            "INSERT INTO staff_subj
-        (uid, stid, sbj, schid, sesn, trm, created_at, updated_at)
-        SELECT
-            CONCAT(
-                ?, ?,
-                IFNULL(stid, 0),
-                IFNULL(sbj, 0),
-                '-',
-                UNIX_TIMESTAMP(),
-                FLOOR(RAND() * 1000)
-            ) AS uid,
-            stid,
-            sbj,
-            schid,
-            ?, ?,
-            NOW(), NOW()
-        FROM staff_subj
-        WHERE schid = ?
-          AND trm = ?
-          AND sesn = ?",
-            [
-                $ssn,
-                $new_trm,
-                $ssn,
-                $new_trm,
-                $schid,
-                $prev_trm,
-                $prev_ssn
-            ]
-        );
-
-        DB::commit();
-
-        // Payload for the response
-        $pld = [
-            'schid' => $schid,
-            'new_trm' => $new_trm,
-            'ssn' => $ssn,
-            'prev_trm' => $prev_trm,
-            'prev_ssn' => $prev_ssn
-        ];
-
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $pld,
+    public function maintainPreviousStaff(Request $request)
+    {
+        $request->validate([
+            'schid' => 'required|integer',
+            'new_trm' => 'required|integer', // 1, 2, 3
+            'ssn' => 'required|integer',     // current session
         ]);
 
-    } catch (\Throwable $e) {
-        DB::rollBack();
+        $schid = $request->schid;
+        $new_trm = $request->new_trm;
+        $ssn = $request->ssn;
 
-        Log::error('Maintain Previous Staff Failed', [
-            'schid' => $schid,
-            'new_trm' => $new_trm,
-            'ssn' => $ssn,
-            'error' => $e->getMessage()
-        ]);
+        // ---- Determine previous term & session ----
+        if ($new_trm == 1) {
+            $prev_trm = 3;
+            $prev_ssn = $ssn - 1;
+        } else {
+            $prev_trm = $new_trm - 1;
+            $prev_ssn = $ssn;
+        }
 
-        return response()->json([
-            "status" => false,
-            "message" => "Failed to maintain previous term staff data",
-            "error" => $e->getMessage()
-        ], 500);
+        DB::beginTransaction();
+
+        try {
+            // ------------------------------------------------
+            // 1. Bring staff forward (old_staff) - preserve DOB
+            // ------------------------------------------------
+            DB::insert(
+                "INSERT INTO old_staff
+            (uid, suid, sid, schid, fname, mname, lname, clsm, role, role2, status, ssn, trm, created_at, updated_at)
+            SELECT
+                CONCAT(?, ?, IFNULL(sid, 0), IFNULL(clsm, 0)) AS uid,
+                suid,
+                sid,
+                schid,
+                fname,
+                mname,
+                lname,
+                clsm,
+                role,
+                role2,
+                'active',
+                ?, ?,
+                NOW(), NOW()
+            FROM old_staff
+            WHERE schid = ?
+              AND trm = ?
+              AND ssn = ?
+              AND status = 'active'",
+                [
+                    $ssn,
+                    $new_trm,
+                    $ssn,
+                    $new_trm,
+                    $schid,
+                    $prev_trm,
+                    $prev_ssn
+                ]
+            );
+
+            // ------------------------------------------------
+            // 2. Bring staff classes forward
+            // ------------------------------------------------
+            DB::insert(
+                "INSERT INTO staff_class
+            (uid, stid, cls, schid, ssn, trm, created_at, updated_at)
+            SELECT
+                CONCAT(stid, IFNULL(cls, 0), ?, ?) AS uid,
+                stid,
+                cls,
+                schid,
+                ?, ?,
+                NOW(), NOW()
+            FROM staff_class
+            WHERE schid = ?
+              AND trm = ?
+              AND ssn = ?",
+                [
+                    $new_trm,
+                    $ssn,
+                    $ssn,
+                    $new_trm,
+                    $schid,
+                    $prev_trm,
+                    $prev_ssn
+                ]
+            );
+
+            // ------------------------------------------------
+            // 3. Bring staff class arms forward
+            // ------------------------------------------------
+            DB::insert(
+                "INSERT INTO staff_class_arm
+            (uid, stid, cls, arm, schid, sesn, trm, created_at, updated_at)
+            SELECT
+                CONCAT(stid, IFNULL(cls, 0), IFNULL(arm, 0), ?, ?) AS uid,
+                stid,
+                cls,
+                arm,
+                schid,
+                ?, ?,
+                NOW(), NOW()
+            FROM staff_class_arm
+            WHERE schid = ?
+              AND trm = ?
+              AND sesn = ?",
+                [
+                    $new_trm,
+                    $ssn,
+                    $ssn,
+                    $new_trm,
+                    $schid,
+                    $prev_trm,
+                    $prev_ssn
+                ]
+            );
+
+            // ------------------------------------------------
+            // 4. Bring staff subjects forward
+            // ------------------------------------------------
+            DB::insert(
+                "INSERT INTO staff_subj
+            (uid, stid, sbj, schid, sesn, trm, created_at, updated_at)
+            SELECT
+                CONCAT(stid, IFNULL(sbj, 0), ?, ?) AS uid,
+                stid,
+                sbj,
+                schid,
+                ?, ?,
+                NOW(), NOW()
+            FROM staff_subj
+            WHERE schid = ?
+              AND trm = ?
+              AND sesn = ?",
+                [
+                    $new_trm,
+                    $ssn,
+                    $ssn,
+                    $new_trm,
+                    $schid,
+                    $prev_trm,
+                    $prev_ssn
+                ]
+            );
+
+            DB::commit();
+
+            // Payload for the response
+            $pld = [
+                'schid' => $schid,
+                'new_trm' => $new_trm,
+                'ssn' => $ssn,
+                'prev_trm' => $prev_trm,
+                'prev_ssn' => $prev_ssn
+            ];
+
+            return response()->json([
+                "status" => true,
+                "message" => "Success",
+                "pld" => $pld,
+            ]);
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            Log::error('Maintain Previous Staff Failed', [
+                'schid' => $schid,
+                'new_trm' => $new_trm,
+                'ssn' => $ssn,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                "status" => false,
+                "message" => "Failed to maintain previous term staff data",
+                "error" => $e->getMessage()
+            ], 500);
+        }
     }
-}
 
 
 
@@ -36389,51 +36362,155 @@ public function maintainPreviousStaff(Request $request)
 
 
 
-public function updateDob(Request $request, $userId)
-{
-    try {
-        $validated = $request->validate([
-            'dob'   => ['nullable', 'date', 'before:today'],
-            'schid' => ['required', 'integer', 'exists:student,schid'],
+    public function updateDob(Request $request, $userId)
+    {
+        try {
+            $validated = $request->validate([
+                'dob' => ['nullable', 'date', 'before:today'],
+                'schid' => ['required', 'integer', 'exists:student,schid'],
+            ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Invalid input. Please provide a valid school ID and a correct date of birth.',
+            ], 422);
+        }
+
+        // Check if the student belongs to the school
+        $exists = DB::table('student_basic_data as sb')
+            ->join('student as s', 's.sid', '=', 'sb.user_id')
+            ->where('sb.user_id', $userId)
+            ->where('s.schid', $validated['schid'])
+            ->exists();
+
+        if (!$exists) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Student does not belong to this school.',
+            ], 404);
+        }
+
+        // Update DOB only if provided
+        if ($request->has('dob')) {
+            DB::table('student_basic_data')
+                ->where('user_id', $userId)
+                ->update(['dob' => $validated['dob']]);
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Date of birth updated successfully.',
+            'pld' => [
+                'user_id' => $userId,
+                'dob' => $validated['dob'] ?? null,
+                'schid' => $validated['schid'],
+            ],
         ]);
-    } catch (ValidationException $e) {
+    }
+
+
+
+    /**
+     * @OA\Put(
+     *     path="/api/staff/{userId}/dob",
+     *     summary="Update staff date of birth",
+     *     description="Updates the date of birth for a staff member in a given school.",
+     *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="userId",
+     *         in="path",
+     *         description="ID of the staff member",
+     *         required=true,
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"schid"},
+     *             @OA\Property(property="dob", type="string", format="date", example="1985-08-15", description="New date of birth (optional)"),
+     *             @OA\Property(property="schid", type="integer", example=13, description="School ID of the staff")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Date of birth updated successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Date of birth updated successfully."),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 @OA\Property(property="user_id", type="string", example="1926"),
+     *                 @OA\Property(property="dob", type="string", example="1985-08-15"),
+     *                 @OA\Property(property="schid", type="integer", example=13)
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Staff does not belong to this school",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Staff does not belong to this school.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Invalid input",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Invalid input. Please provide a valid school ID and a correct date of birth.")
+     *         )
+     *     )
+     * )
+     */
+    public function updateStaffDob(Request $request, $userId)
+    {
+        try {
+            $validated = $request->validate([
+                'dob' => ['nullable', 'date', 'before:today'],
+                'schid' => ['required', 'integer', 'exists:staff,schid'],
+            ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Invalid input. Please provide a valid school ID and a correct date of birth.',
+            ], 422);
+        }
+
+        // Check if the staff belongs to the school
+        $exists = DB::table('staff_basic_data as sb')
+            ->join('staff as s', 's.sid', '=', 'sb.user_id')
+            ->where('sb.user_id', $userId)
+            ->where('s.schid', $validated['schid'])
+            ->exists();
+
+        if (!$exists) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Staff does not belong to this school.',
+            ], 404);
+        }
+
+        // Update DOB only if provided
+        if ($request->has('dob')) {
+            DB::table('staff_basic_data')
+                ->where('user_id', $userId)
+                ->update(['dob' => $validated['dob']]);
+        }
+
         return response()->json([
-            'status'  => false,
-            'message' => 'Invalid input. Please provide a valid school ID and a correct date of birth.',
-        ], 422);
+            'status' => true,
+            'message' => 'Date of birth updated successfully.',
+            'pld' => [
+                'user_id' => $userId,
+                'dob' => $validated['dob'] ?? null,
+                'schid' => $validated['schid'],
+            ],
+        ]);
     }
 
-    // Check if the student belongs to the school
-    $exists = DB::table('student_basic_data as sb')
-        ->join('student as s', 's.sid', '=', 'sb.user_id')
-        ->where('sb.user_id', $userId)
-        ->where('s.schid', $validated['schid'])
-        ->exists();
-
-    if (!$exists) {
-        return response()->json([
-            'status'  => false,
-            'message' => 'Student does not belong to this school.',
-        ], 404);
-    }
-
-    // Update DOB only if provided
-    if ($request->has('dob')) {
-        DB::table('student_basic_data')
-            ->where('user_id', $userId)
-            ->update(['dob' => $validated['dob']]);
-    }
-
-    return response()->json([
-        'status'  => true,
-        'message' => 'Date of birth updated successfully.',
-        'pld' => [
-            'user_id' => $userId,
-            'dob'     => $validated['dob'] ?? null,
-            'schid'   => $validated['schid'],
-        ],
-    ]);
-}
 
 }
 
