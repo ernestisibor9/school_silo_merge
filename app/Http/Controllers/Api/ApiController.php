@@ -4804,7 +4804,7 @@ class ApiController extends Controller
     //     ]);
     // }
 
-    
+
 public function getStudent()
 {
     $combined = false;
@@ -29708,80 +29708,153 @@ public function getWeeklyLessonPlan($schid, $ssn, $trm, $clsm)
      * )
      */
 
+    // public function getStudentsId($schid, $ssn, $trm, $clsm, $clsa)
+    // {
+    //     $query = DB::table('old_student as os')
+    //         ->leftJoin('school as s', 'os.schid', '=', 's.sid')
+    //         ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')              // main class
+    //         ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')        // class arm
+    //         ->leftJoin('student_basic_data as bd', 'os.sid', '=', 'bd.user_id') // join by sid
+    //         ->leftJoin('school_web_data as swd', 'os.schid', '=', 'swd.user_id') // join school_web_data
+    //         ->where("os.schid", $schid)
+    //         ->where("os.ssn", $ssn)
+    //         ->where("os.trm", $trm)
+    //         ->where("os.clsm", $clsm);
+
+    //     if ($clsa != '-1') {
+    //         $query->where("os.clsa", $clsa);
+    //     }
+
+    //     $students = $query->select(
+    //         'os.sid',
+    //         'os.fname',
+    //         'os.lname',
+    //         'os.status',
+    //         'os.suid as student_id',
+    //         's.name as school_name',
+    //         's.sbd as subdomain',
+    //         'swd.phn as school_phone', // get school phone
+    //         'c.id as class_id',
+    //         'c.name as class_name',
+    //         'sc.id as class_arm_id',
+    //         'sc.name as class_arm',
+    //         'bd.dob' // added date of birth
+    //     )
+    //         ->distinct('os.sid')
+    //         ->get();
+
+    //     $pld = $students->map(function ($student) {
+    //         $status = $student->status === 'inactive' ? 'Alumni' : $student->status;
+    //         $currentClass = $student->status === 'inactive' ? 'Alumni' : $student->class_name;
+
+    //         // Convert numeric dob (milliseconds) to YYYY-MM-DD
+    //         $dob = null;
+    //         if (!empty($student->dob) && is_numeric($student->dob)) {
+    //             try {
+    //                 $dob = date('Y-m-d', $student->dob / 1000);
+    //             } catch (\Exception $e) {
+    //                 $dob = null;
+    //             }
+    //         }
+
+    //         return [
+    //             "sid" => $student->sid,
+    //             "fname" => $student->fname,
+    //             "lname" => $student->lname,
+    //             "dob" => $dob,
+    //             "status" => $status,
+    //             "school_name" => $student->school_name,
+    //             "subdomain" => $student->subdomain,
+    //             "school_phone" => $student->school_phone ?? 'N/A', // added to response
+    //             "student_id" => $student->student_id,
+    //             "class_id" => $student->class_id,
+    //             "class_name" => $student->class_name,
+    //             "class_arm_id" => $student->class_arm_id,
+    //             "class_arm" => $student->class_arm,
+    //             "current_class" => $currentClass
+    //         ];
+    //     });
+
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => $pld,
+    //     ]);
+    // }
+
     public function getStudentsId($schid, $ssn, $trm, $clsm, $clsa)
-    {
-        $query = DB::table('old_student as os')
-            ->leftJoin('school as s', 'os.schid', '=', 's.sid')
-            ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')              // main class
-            ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')        // class arm
-            ->leftJoin('student_basic_data as bd', 'os.sid', '=', 'bd.user_id') // join by sid
-            ->leftJoin('school_web_data as swd', 'os.schid', '=', 'swd.user_id') // join school_web_data
-            ->where("os.schid", $schid)
-            ->where("os.ssn", $ssn)
-            ->where("os.trm", $trm)
-            ->where("os.clsm", $clsm);
+{
+    $query = DB::table('old_student as os')
+        ->leftJoin('school as s', 'os.schid', '=', 's.sid')
+        ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')              // main class
+        ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')        // class arm
+        ->leftJoin('student_basic_data as bd', 'os.sid', '=', 'bd.user_id') // join by sid
+        ->leftJoin('school_web_data as swd', 'os.schid', '=', 'swd.user_id') // join school_web_data
+        ->where("os.schid", $schid)
+        ->where("os.ssn", $ssn)
+        ->where("os.trm", $trm)
+        ->where("os.clsm", $clsm);
 
-        if ($clsa != '-1') {
-            $query->where("os.clsa", $clsa);
-        }
-
-        $students = $query->select(
-            'os.sid',
-            'os.fname',
-            'os.lname',
-            'os.status',
-            'os.suid as student_id',
-            's.name as school_name',
-            's.sbd as subdomain',
-            'swd.phn as school_phone', // get school phone
-            'c.id as class_id',
-            'c.name as class_name',
-            'sc.id as class_arm_id',
-            'sc.name as class_arm',
-            'bd.dob' // added date of birth
-        )
-            ->distinct('os.sid')
-            ->get();
-
-        $pld = $students->map(function ($student) {
-            $status = $student->status === 'inactive' ? 'Alumni' : $student->status;
-            $currentClass = $student->status === 'inactive' ? 'Alumni' : $student->class_name;
-
-            // Convert numeric dob (milliseconds) to YYYY-MM-DD
-            $dob = null;
-            if (!empty($student->dob) && is_numeric($student->dob)) {
-                try {
-                    $dob = date('Y-m-d', $student->dob / 1000);
-                } catch (\Exception $e) {
-                    $dob = null;
-                }
-            }
-
-            return [
-                "sid" => $student->sid,
-                "fname" => $student->fname,
-                "lname" => $student->lname,
-                "dob" => $dob,
-                "status" => $status,
-                "school_name" => $student->school_name,
-                "subdomain" => $student->subdomain,
-                "school_phone" => $student->school_phone ?? 'N/A', // added to response
-                "student_id" => $student->student_id,
-                "class_id" => $student->class_id,
-                "class_name" => $student->class_name,
-                "class_arm_id" => $student->class_arm_id,
-                "class_arm" => $student->class_arm,
-                "current_class" => $currentClass
-            ];
-        });
-
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $pld,
-        ]);
+    if ($clsa != '-1') {
+        $query->where("os.clsa", $clsa);
     }
 
+    $students = $query->select(
+        'os.sid',
+        'os.fname',
+        'os.lname',
+        'os.status',
+        'os.suid as student_id',
+        's.name as school_name',
+        's.sbd as subdomain',
+        'swd.phn as school_phone',
+        'c.id as class_id',
+        'c.name as class_name',
+        'sc.id as class_arm_id',
+        'sc.name as class_arm',
+        'bd.dob'
+    )
+        ->distinct('os.sid')
+        ->get();
+
+    $pld = $students->map(function ($student) {
+        $status = $student->status === 'inactive' ? 'Alumni' : $student->status;
+        $currentClass = $student->status === 'inactive' ? 'Alumni' : $student->class_name;
+
+        // ✅ DOB FIX (DATE → Y-m-d)
+        $dob = null;
+        if (!empty($student->dob)) {
+            try {
+                $dob = Carbon::parse($student->dob)->format('Y-m-d');
+            } catch (\Exception $e) {
+                $dob = null;
+            }
+        }
+
+        return [
+            "sid" => $student->sid,
+            "fname" => $student->fname,
+            "lname" => $student->lname,
+            "dob" => $dob,
+            "status" => $status,
+            "school_name" => $student->school_name,
+            "subdomain" => $student->subdomain,
+            "school_phone" => $student->school_phone ?? 'N/A',
+            "student_id" => $student->student_id,
+            "class_id" => $student->class_id,
+            "class_name" => $student->class_name,
+            "class_arm_id" => $student->class_arm_id,
+            "class_arm" => $student->class_arm,
+            "current_class" => $currentClass
+        ];
+    });
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => $pld,
+    ]);
+}
 
     /**
      * @OA\Get(
@@ -29852,94 +29925,182 @@ public function getWeeklyLessonPlan($schid, $ssn, $trm, $clsm)
      * )
      */
 
-    public function verifyStudent(Request $request)
-    {
-        $studentId = $request->query('studentId'); // use query param instead of path param
+    // public function verifyStudent(Request $request)
+    // {
+    //     $studentId = $request->query('studentId'); // use query param instead of path param
 
-        if (!$studentId) {
-            return response()->json([
-                "status" => false,
-                "message" => "studentId is required",
-                "pld" => []
-            ], 400);
-        }
+    //     if (!$studentId) {
+    //         return response()->json([
+    //             "status" => false,
+    //             "message" => "studentId is required",
+    //             "pld" => []
+    //         ], 400);
+    //     }
 
-        $student = DB::table('old_student as os')
-            ->leftJoin('school as s', 'os.schid', '=', 's.sid')
-            ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id') // join to get school phone
-            ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')                  // main class
-            ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')            // class arm
-            ->leftJoin('student_basic_data as sb', 'os.sid', '=', 'sb.user_id') // join with basic data
-            ->where("os.suid", $studentId) // filter by unique student ID
-            ->select(
-                'os.sid',
-                'os.fname',
-                'os.lname',
-                'os.status',
-                'os.suid as student_id',
-                's.name as school_name',
-                's.sbd as subdomain',
-                'c.id as class_id',
-                'c.name as class_name',
-                'sc.id as class_arm_id',
-                'sc.name as class_arm',
-                'sb.dob',
-                'sb.sex',
-                'sb.addr',
-                'sw.phn as school_phone' // added school phone
-            )
-            ->first();
+    //     $student = DB::table('old_student as os')
+    //         ->leftJoin('school as s', 'os.schid', '=', 's.sid')
+    //         ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id') // join to get school phone
+    //         ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')                  // main class
+    //         ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')            // class arm
+    //         ->leftJoin('student_basic_data as sb', 'os.sid', '=', 'sb.user_id') // join with basic data
+    //         ->where("os.suid", $studentId) // filter by unique student ID
+    //         ->select(
+    //             'os.sid',
+    //             'os.fname',
+    //             'os.lname',
+    //             'os.status',
+    //             'os.suid as student_id',
+    //             's.name as school_name',
+    //             's.sbd as subdomain',
+    //             'c.id as class_id',
+    //             'c.name as class_name',
+    //             'sc.id as class_arm_id',
+    //             'sc.name as class_arm',
+    //             'sb.dob',
+    //             'sb.sex',
+    //             'sb.addr',
+    //             'sw.phn as school_phone' // added school phone
+    //         )
+    //         ->first();
 
-        // 🔸 Student not found
-        if (!$student) {
-            return response()->json([
-                "status" => false,
-                "message" => "Student not found",
-                "pld" => []
-            ], 404);
-        }
+    //     // 🔸 Student not found
+    //     if (!$student) {
+    //         return response()->json([
+    //             "status" => false,
+    //             "message" => "Student not found",
+    //             "pld" => []
+    //         ], 404);
+    //     }
 
-        // 🔹 Convert DOB (milliseconds → YYYY-MM-DD)
-        $dob = null;
-        if (!empty($student->dob) && is_numeric($student->dob)) {
-            try {
-                $dob = \Carbon\Carbon::createFromTimestamp($student->dob / 1000)->format('Y-m-d');
-            } catch (\Exception $e) {
-                $dob = null;
-            }
-        }
+    //     // 🔹 Convert DOB (milliseconds → YYYY-MM-DD)
+    //     $dob = null;
+    //     if (!empty($student->dob) && is_numeric($student->dob)) {
+    //         try {
+    //             $dob = \Carbon\Carbon::createFromTimestamp($student->dob / 1000)->format('Y-m-d');
+    //         } catch (\Exception $e) {
+    //             $dob = null;
+    //         }
+    //     }
 
-        // Alumni handling
-        $status = $student->status === 'inactive' ? 'Alumni' : $student->status;
-        $currentClass = $student->status === 'inactive' ? 'Alumni' : $student->class_name;
+    //     // Alumni handling
+    //     $status = $student->status === 'inactive' ? 'Alumni' : $student->status;
+    //     $currentClass = $student->status === 'inactive' ? 'Alumni' : $student->class_name;
 
-        // Build payload
-        $pld = [
-            "sid" => (string) $student->sid,
-            "fname" => $student->fname,
-            "lname" => $student->lname,
-            "status" => $status,
-            "school_name" => $student->school_name,
-            "subdomain" => $student->subdomain,
-            "school_phone" => $student->school_phone ?? 'N/A', // display phone number
-            "student_id" => $student->student_id,
-            "class_id" => $student->class_id,
-            "class_name" => $student->class_name,
-            "class_arm_id" => $student->class_arm_id,
-            "class_arm" => $student->class_arm,
-            "current_class" => $currentClass,
-            "dob" => $dob ?: 'N/A',
-            "sex" => $student->sex ?? 'N/A',
-            "address" => $student->addr ?? 'N/A'
-        ];
+    //     // Build payload
+    //     $pld = [
+    //         "sid" => (string) $student->sid,
+    //         "fname" => $student->fname,
+    //         "lname" => $student->lname,
+    //         "status" => $status,
+    //         "school_name" => $student->school_name,
+    //         "subdomain" => $student->subdomain,
+    //         "school_phone" => $student->school_phone ?? 'N/A', // display phone number
+    //         "student_id" => $student->student_id,
+    //         "class_id" => $student->class_id,
+    //         "class_name" => $student->class_name,
+    //         "class_arm_id" => $student->class_arm_id,
+    //         "class_arm" => $student->class_arm,
+    //         "current_class" => $currentClass,
+    //         "dob" => $dob ?: 'N/A',
+    //         "sex" => $student->sex ?? 'N/A',
+    //         "address" => $student->addr ?? 'N/A'
+    //     ];
 
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Student verified successfully",
+    //         "pld" => [$pld],
+    //     ]);
+    // }
+
+    
+public function verifyStudent(Request $request) 
+{
+    $studentId = $request->query('studentId'); // use query param instead of path param
+
+    if (!$studentId) {
         return response()->json([
-            "status" => true,
-            "message" => "Student verified successfully",
-            "pld" => [$pld],
-        ]);
+            "status" => false,
+            "message" => "studentId is required",
+            "pld" => []
+        ], 400);
     }
 
+    $student = DB::table('old_student as os')
+        ->leftJoin('school as s', 'os.schid', '=', 's.sid')
+        ->leftJoin('school_web_data as sw', 's.sid', '=', 'sw.user_id') // join to get school phone
+        ->leftJoin('cls as c', 'os.clsm', '=', 'c.id')                  // main class
+        ->leftJoin('sch_cls as sc', 'os.clsa', '=', 'sc.id')            // class arm
+        ->leftJoin('student_basic_data as sb', 'os.sid', '=', 'sb.user_id') // join with basic data
+        ->where("os.suid", $studentId) // filter by unique student ID
+        ->select(
+            'os.sid',
+            'os.fname',
+            'os.lname',
+            'os.status',
+            'os.suid as student_id',
+            's.name as school_name',
+            's.sbd as subdomain',
+            'c.id as class_id',
+            'c.name as class_name',
+            'sc.id as class_arm_id',
+            'sc.name as class_arm',
+            'sb.dob',
+            'sb.sex',
+            'sb.addr',
+            'sw.phn as school_phone'
+        )
+        ->first();
+
+    // 🔸 Student not found
+    if (!$student) {
+        return response()->json([
+            "status" => false,
+            "message" => "Student not found",
+            "pld" => []
+        ], 404);
+    }
+
+    // ✅ DOB FIX (DATE → Y-m-d)
+    $dob = null;
+    if (!empty($student->dob)) {
+        try {
+            $dob = Carbon::parse($student->dob)->format('Y-m-d');
+        } catch (\Exception $e) {
+            $dob = null;
+        }
+    }
+
+    // Alumni handling
+    $status = $student->status === 'inactive' ? 'Alumni' : $student->status;
+    $currentClass = $student->status === 'inactive' ? 'Alumni' : $student->class_name;
+
+    // Build payload
+    $pld = [
+        "sid" => (string) $student->sid,
+        "fname" => $student->fname,
+        "lname" => $student->lname,
+        "status" => $status,
+        "school_name" => $student->school_name,
+        "subdomain" => $student->subdomain,
+        "school_phone" => $student->school_phone ?? 'N/A',
+        "student_id" => $student->student_id,
+        "class_id" => $student->class_id,
+        "class_name" => $student->class_name,
+        "class_arm_id" => $student->class_arm_id,
+        "class_arm" => $student->class_arm,
+        "current_class" => $currentClass,
+        "dob" => $dob ?? 'N/A',
+        "sex" => $student->sex ?? 'N/A',
+        "address" => $student->addr ?? 'N/A'
+    ];
+
+    return response()->json([
+        "status" => true,
+        "message" => "Student verified successfully",
+        "pld" => [$pld],
+    ]);
+}
 
 
 
