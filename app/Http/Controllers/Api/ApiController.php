@@ -36373,7 +36373,7 @@ class ApiController extends Controller
             return response()->json([
                 'status' => false,
                 'message' => 'Invalid input. Please provide a valid school ID and a correct date of birth.',
-            ], 422);
+            ]);
         }
 
         // Check if the student belongs to the school
@@ -36387,7 +36387,7 @@ class ApiController extends Controller
             return response()->json([
                 'status' => false,
                 'message' => 'Student does not belong to this school.',
-            ], 404);
+            ]);
         }
 
         // Update DOB only if provided
@@ -36476,7 +36476,7 @@ class ApiController extends Controller
             return response()->json([
                 'status' => false,
                 'message' => 'Invalid input. Please provide a valid school ID and a correct date of birth.',
-            ], 422);
+            ]);
         }
 
         // Check if the staff belongs to the school
@@ -36490,7 +36490,7 @@ class ApiController extends Controller
             return response()->json([
                 'status' => false,
                 'message' => 'Staff does not belong to this school.',
-            ], 404);
+            ]);
         }
 
         // Update DOB only if provided
