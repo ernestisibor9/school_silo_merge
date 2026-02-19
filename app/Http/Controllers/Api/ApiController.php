@@ -21685,7 +21685,7 @@ public function setLessonPlan(Request $request)
         'plan_type' => 'required|in:weekly,termly',
 
         // 👇 Weekly is required ONLY when plan_type = weekly
-        'weekly' => 'required_if:plan_type,weekly|string|max:100',
+        'weekly' => 'nullable|required_if:plan_type,weekly|string|max:100',
     ]);
 
     // ✅ DATA TO SAVE
