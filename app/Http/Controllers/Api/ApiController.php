@@ -21420,57 +21420,181 @@ class ApiController extends Controller
 
     ///////////////////////////////////////////////////
 
-    /**
-     * @OA\Post(
-     *     path="/api/setLessonPlan",
-     *     summary="Create or update a lesson plan",
-     *     tags={"Api"},
-     *    security={{"bearerAuth":{}}},
-     *     description="Allows the user to create or update a lesson plan. Supports weekly or termly planning.",
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             type="object",
-     *             required={"schid","clsm","date","ssn","trm","sbj","no_of_class","average_age","topic","time_from","time_to","duration","lesson_objectives","plan_type"},
-     *             @OA\Property(property="schid", type="string", example="12", description="School ID"),
-     *             @OA\Property(property="clsm", type="string", example="11", description="Class/grade"),
-     *             @OA\Property(property="date", type="string", format="date", example="2025-09-03", description="Date of the lesson plan"),
-     *             @OA\Property(property="ssn", type="string", example="2025", description="Session/academic year"),
-     *             @OA\Property(property="trm", type="integer", example=1, description="Term number"),
-     *             @OA\Property(property="sbj", type="string", example="ENGLISH LANGUAGE", description="Subject name"),
-     *             @OA\Property(property="no_of_class", type="integer", example=35, description="Number of students in class"),
-     *             @OA\Property(property="average_age", type="number", format="float", example=12, description="Average age of students"),
-     *             @OA\Property(property="topic", type="string", example="Parts of Speech", description="Lesson topic"),
-     *             @OA\Property(property="sub_topic", type="array", @OA\Items(type="string"), example={"Nouns", "Verbs"}, description="Optional subtopics"),
-     *             @OA\Property(property="time_from", type="string", format="time", example="07:30", description="Lesson start time"),
-     *             @OA\Property(property="time_to", type="string", format="time", example="08:10", description="Lesson end time"),
-     *             @OA\Property(property="duration", type="string", example="40 minutes", description="Lesson duration"),
-     *             @OA\Property(property="learning_materials", type="array", @OA\Items(type="string"), example={"Textbook", "Board"}, description="Optional list of learning materials"),
-     *             @OA\Property(property="lesson_objectives", type="array", @OA\Items(type="string"), example={"Identify nouns", "Recognize verbs"}, description="Learning objectives"),
-     *             @OA\Property(property="plan_type", type="string", enum={"weekly","termly"}, example="weekly", description="Plan type: weekly or termly")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Lesson plan saved successfully",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Lesson plan saved successfully"),
-     *             @OA\Property(property="pld", type="object", description="Saved lesson plan object")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=422,
-     *         description="Validation error",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
-     *             @OA\Property(property="errors", type="object", additionalProperties=@OA\Property(type="array", @OA\Items(type="string")))
-     *         )
-     *     )
-     * )
-     */
+/**
+ * @OA\Post(
+ *     path="/api/setLessonPlan",
+ *     summary="Create or update a lesson plan",
+ *     tags={"Api"},
+ *     security={{"bearerAuth":{}}},
+ *     description="Creates or updates a lesson plan. If plan_type is 'weekly', the weekly field is required. If plan_type is 'termly', weekly is ignored.",
+ *
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             type="object",
+ *             required={
+ *                 "schid",
+ *                 "clsm",
+ *                 "date",
+ *                 "ssn",
+ *                 "trm",
+ *                 "sbj",
+ *                 "no_of_class",
+ *                 "average_age",
+ *                 "topic",
+ *                 "time_from",
+ *                 "time_to",
+ *                 "duration",
+ *                 "lesson_objectives",
+ *                 "plan_type"
+ *             },
+ *
+ *             @OA\Property(
+ *                 property="schid",
+ *                 type="string",
+ *                 example="12",
+ *                 description="School ID"
+ *             ),
+ *             @OA\Property(
+ *                 property="clsm",
+ *                 type="string",
+ *                 example="11",
+ *                 description="Class or grade"
+ *             ),
+ *             @OA\Property(
+ *                 property="date",
+ *                 type="string",
+ *                 format="date",
+ *                 example="2025-09-03",
+ *                 description="Lesson plan date"
+ *             ),
+ *             @OA\Property(
+ *                 property="ssn",
+ *                 type="string",
+ *                 example="2025",
+ *                 description="Academic session"
+ *             ),
+ *             @OA\Property(
+ *                 property="trm",
+ *                 type="integer",
+ *                 example=1,
+ *                 description="Term number"
+ *             ),
+ *             @OA\Property(
+ *                 property="sbj",
+ *                 type="string",
+ *                 example="ENGLISH LANGUAGE",
+ *                 description="Subject name"
+ *             ),
+ *             @OA\Property(
+ *                 property="no_of_class",
+ *                 type="integer",
+ *                 example=35,
+ *                 description="Number of students"
+ *             ),
+ *             @OA\Property(
+ *                 property="average_age",
+ *                 type="number",
+ *                 format="float",
+ *                 example=12,
+ *                 description="Average age of students"
+ *             ),
+ *             @OA\Property(
+ *                 property="topic",
+ *                 type="string",
+ *                 example="Parts of Speech",
+ *                 description="Lesson topic"
+ *             ),
+ *             @OA\Property(
+ *                 property="sub_topic",
+ *                 type="array",
+ *                 nullable=true,
+ *                 @OA\Items(type="string"),
+ *                 example={"Nouns", "Verbs"},
+ *                 description="Optional lesson sub-topics"
+ *             ),
+ *             @OA\Property(
+ *                 property="time_from",
+ *                 type="string",
+ *                 format="time",
+ *                 example="07:30",
+ *                 description="Lesson start time (HH:mm)"
+ *             ),
+ *             @OA\Property(
+ *                 property="time_to",
+ *                 type="string",
+ *                 format="time",
+ *                 example="08:10",
+ *                 description="Lesson end time (HH:mm)"
+ *             ),
+ *             @OA\Property(
+ *                 property="duration",
+ *                 type="string",
+ *                 example="40 minutes",
+ *                 description="Lesson duration"
+ *             ),
+ *             @OA\Property(
+ *                 property="learning_materials",
+ *                 type="array",
+ *                 nullable=true,
+ *                 @OA\Items(type="string"),
+ *                 example={"Textbook", "Board"},
+ *                 description="Optional learning materials"
+ *             ),
+ *             @OA\Property(
+ *                 property="lesson_objectives",
+ *                 type="array",
+ *                 @OA\Items(type="string"),
+ *                 example={"Identify nouns", "Recognize verbs"},
+ *                 description="Lesson objectives"
+ *             ),
+ *             @OA\Property(
+ *                 property="plan_type",
+ *                 type="string",
+ *                 enum={"weekly","termly"},
+ *                 example="weekly",
+ *                 description="Lesson plan type"
+ *             ),
+ *             @OA\Property(
+ *                 property="weekly",
+ *                 type="string",
+ *                 nullable=true,
+ *                 example="Week 1",
+ *                 description="Required ONLY when plan_type is 'weekly'. Ignored for termly plans."
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Lesson plan saved successfully",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Lesson plan saved successfully"),
+ *             @OA\Property(property="pld", type="object", description="Saved lesson plan data")
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation error",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+ *             @OA\Property(
+ *                 property="errors",
+ *                 type="object",
+ *                 additionalProperties=@OA\Property(
+ *                     type="array",
+ *                     @OA\Items(type="string")
+ *                 )
+ *             )
+ *         )
+ *     )
+ * )
+ */
+
 
 
 
@@ -21537,70 +21661,86 @@ class ApiController extends Controller
     //     ], 200);
     // }
 
-    public function setLessonPlan(Request $request)
-    {
-        $request->validate([
-            "schid" => "required|string",
-            "clsm" => "required|string",
-            'date' => 'required|date',
-            "ssn" => "required|string",
-            "trm" => "required",
-            "sbj" => "required|string",
-            'no_of_class' => 'required|integer',
-            'average_age' => 'required|numeric',
-            'topic' => 'required|string',
-            'sub_topic' => 'nullable|array',
-            'time_from' => 'required|date_format:H:i',
-            'time_to' => 'required|date_format:H:i|after:time_from',
-            'duration' => 'required|string',
-            'learning_materials' => 'nullable|array',
-            'lesson_objectives' => 'required|array',
-            'plan_type' => 'required|in:weekly,termly', // new
-        ]);
+public function setLessonPlan(Request $request)
+{
+    // ✅ VALIDATION
+    $request->validate([
+        "schid" => "required|string",
+        "clsm" => "required|string",
+        'date' => 'required|date',
+        "ssn" => "required|string",
+        "trm" => "required",
+        "sbj" => "required|string",
+        'no_of_class' => 'required|integer',
+        'average_age' => 'required|numeric',
+        'topic' => 'required|string',
+        'sub_topic' => 'nullable|array',
+        'time_from' => 'required|date_format:H:i',
+        'time_to' => 'required|date_format:H:i|after:time_from',
+        'duration' => 'required|string',
+        'learning_materials' => 'nullable|array',
+        'lesson_objectives' => 'required|array',
 
-        $data = $request->only([
-            'date',
-            'no_of_class',
-            'average_age',
-            'topic',
-            'time_from',
-            'time_to',
-            'duration',
-            "ssn",
-            "trm",
-            "sbj",
-            "schid",
-            "clsm",
-            'plan_type', // new
-        ]);
+        // 👇 Plan Type
+        'plan_type' => 'required|in:weekly,termly',
 
-        $data['sub_topic'] = $request->sub_topic;
-        $data['learning_materials'] = $request->learning_materials;
-        $data['lesson_objectives'] = $request->lesson_objectives;
+        // 👇 Weekly is required ONLY when plan_type = weekly
+        'weekly' => 'required_if:plan_type,weekly|string|max:100',
+    ]);
 
-        $lessonPlan = lesson_plan::updateOrCreate(
-            [
-                'date' => $request->date,
-                "schid" => $request->schid,
-                "clsm" => $request->clsm,
-                "ssn" => $request->ssn,
-                "trm" => $request->trm,
-                "sbj" => $request->sbj,
-                "no_of_class" => $request->no_of_class,
-                "time_from" => $request->time_from,
-                "time_to" => $request->time_to,
-                "topic" => $request->topic,
-                "average_age" => $request->average_age
-            ],
-            $data
-        );
+    // ✅ DATA TO SAVE
+    $data = $request->only([
+        'date',
+        'no_of_class',
+        'average_age',
+        'topic',
+        'time_from',
+        'time_to',
+        'duration',
+        "ssn",
+        "trm",
+        "sbj",
+        "schid",
+        "clsm",
+        'plan_type',
+        'weekly', // 👈 INCLUDED
+    ]);
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Lesson plan saved successfully',
-            'pld' => $lessonPlan,
-        ], 200);
+    // JSON fields
+    $data['sub_topic'] = $request->sub_topic;
+    $data['learning_materials'] = $request->learning_materials;
+    $data['lesson_objectives'] = $request->lesson_objectives;
+
+    // ✅ Ensure weekly is NULL for termly plans
+    if ($request->plan_type === 'termly') {
+        $data['weekly'] = null;
     }
+
+    // ✅ UPDATE OR CREATE
+    $lessonPlan = lesson_plan::updateOrCreate(
+        [
+            'date' => $request->date,
+            "schid" => $request->schid,
+            "clsm" => $request->clsm,
+            "ssn" => $request->ssn,
+            "trm" => $request->trm,
+            "sbj" => $request->sbj,
+            "no_of_class" => $request->no_of_class,
+            "time_from" => $request->time_from,
+            "time_to" => $request->time_to,
+            "topic" => $request->topic,
+            "average_age" => $request->average_age
+        ],
+        $data
+    );
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Lesson plan saved successfully',
+        'pld' => $lessonPlan,
+    ], 200);
+}
+
 
 
     //////////////////////////////////////////////////

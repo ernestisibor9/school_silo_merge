@@ -8,12 +8,12 @@ use Illuminate\Database\Eloquent\Model;
 class lesson_plan extends Model
 {
     use HasFactory;
-    
+
     protected $fillable = [
         'schid',
         'clsm',
         'date',
-        'ssn', 
+        'ssn',
         'trm',
         'sbj',
         'no_of_class',
@@ -25,7 +25,8 @@ class lesson_plan extends Model
         'duration',
         'learning_materials',
         'lesson_objectives',
-        'plan_type', // new field
+        'plan_type',
+        'weekly',
     ];
 
     protected $casts = [

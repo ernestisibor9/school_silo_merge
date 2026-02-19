@@ -17645,7 +17645,7 @@
                     "Api"
                 ],
                 "summary": "Create or update a lesson plan",
-                "description": "Allows the user to create or update a lesson plan. Supports weekly or termly planning.",
+                "description": "Creates or updates a lesson plan. If plan_type is 'weekly', the weekly field is required. If plan_type is 'termly', weekly is ignored.",
                 "operationId": "81de71484ab37ac27a9aa86b1ba5024b",
                 "requestBody": {
                     "required": true,
@@ -17675,18 +17675,18 @@
                                         "example": "12"
                                     },
                                     "clsm": {
-                                        "description": "Class/grade",
+                                        "description": "Class or grade",
                                         "type": "string",
                                         "example": "11"
                                     },
                                     "date": {
-                                        "description": "Date of the lesson plan",
+                                        "description": "Lesson plan date",
                                         "type": "string",
                                         "format": "date",
                                         "example": "2025-09-03"
                                     },
                                     "ssn": {
-                                        "description": "Session/academic year",
+                                        "description": "Academic session",
                                         "type": "string",
                                         "example": "2025"
                                     },
@@ -17701,7 +17701,7 @@
                                         "example": "ENGLISH LANGUAGE"
                                     },
                                     "no_of_class": {
-                                        "description": "Number of students in class",
+                                        "description": "Number of students",
                                         "type": "integer",
                                         "example": 35
                                     },
@@ -17717,7 +17717,7 @@
                                         "example": "Parts of Speech"
                                     },
                                     "sub_topic": {
-                                        "description": "Optional subtopics",
+                                        "description": "Optional lesson sub-topics",
                                         "type": "array",
                                         "items": {
                                             "type": "string"
@@ -17725,16 +17725,17 @@
                                         "example": [
                                             "Nouns",
                                             "Verbs"
-                                        ]
+                                        ],
+                                        "nullable": true
                                     },
                                     "time_from": {
-                                        "description": "Lesson start time",
+                                        "description": "Lesson start time (HH:mm)",
                                         "type": "string",
                                         "format": "time",
                                         "example": "07:30"
                                     },
                                     "time_to": {
-                                        "description": "Lesson end time",
+                                        "description": "Lesson end time (HH:mm)",
                                         "type": "string",
                                         "format": "time",
                                         "example": "08:10"
@@ -17745,7 +17746,7 @@
                                         "example": "40 minutes"
                                     },
                                     "learning_materials": {
-                                        "description": "Optional list of learning materials",
+                                        "description": "Optional learning materials",
                                         "type": "array",
                                         "items": {
                                             "type": "string"
@@ -17753,10 +17754,11 @@
                                         "example": [
                                             "Textbook",
                                             "Board"
-                                        ]
+                                        ],
+                                        "nullable": true
                                     },
                                     "lesson_objectives": {
-                                        "description": "Learning objectives",
+                                        "description": "Lesson objectives",
                                         "type": "array",
                                         "items": {
                                             "type": "string"
@@ -17767,13 +17769,19 @@
                                         ]
                                     },
                                     "plan_type": {
-                                        "description": "Plan type: weekly or termly",
+                                        "description": "Lesson plan type",
                                         "type": "string",
                                         "enum": [
                                             "weekly",
                                             "termly"
                                         ],
                                         "example": "weekly"
+                                    },
+                                    "weekly": {
+                                        "description": "Required ONLY when plan_type is 'weekly'. Ignored for termly plans.",
+                                        "type": "string",
+                                        "example": "Week 1",
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -17797,7 +17805,7 @@
                                             "example": "Lesson plan saved successfully"
                                         },
                                         "pld": {
-                                            "description": "Saved lesson plan object",
+                                            "description": "Saved lesson plan data",
                                             "type": "object"
                                         }
                                     },
