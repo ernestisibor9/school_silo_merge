@@ -30552,6 +30552,182 @@
                     }
                 ]
             }
+        },
+        "/api/lesson-plans/weekly/{schid}/{ssn}/{trm}/{week}": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Fetch weekly lesson plans by week, session, term and school",
+                "description": "Returns all weekly lesson plans filtered by school ID, session, term, and selected week (e.g Week 1).",
+                "operationId": "getLessonPlansByWeekFilter",
+                "parameters": [
+                    {
+                        "name": "schid",
+                        "in": "path",
+                        "description": "School ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "12"
+                        }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "path",
+                        "description": "Academic session (year)",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "2025"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "path",
+                        "description": "Term number",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "week",
+                        "in": "path",
+                        "description": "Week name (URL encoded, e.g Week%201)",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "Week 1"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lesson plans fetched successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Lesson plans fetched successfully"
+                                        },
+                                        "filters": {
+                                            "properties": {
+                                                "week": {
+                                                    "type": "string",
+                                                    "example": "Week 1"
+                                                },
+                                                "ssn": {
+                                                    "type": "string",
+                                                    "example": "2025"
+                                                },
+                                                "trm": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "schid": {
+                                                    "type": "string",
+                                                    "example": "12"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "count": {
+                                            "type": "integer",
+                                            "example": 3
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 7
+                                                    },
+                                                    "schid": {
+                                                        "type": "string",
+                                                        "example": "12"
+                                                    },
+                                                    "clsm": {
+                                                        "type": "string",
+                                                        "example": "11"
+                                                    },
+                                                    "ssn": {
+                                                        "type": "string",
+                                                        "example": "2025"
+                                                    },
+                                                    "trm": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "plan_type": {
+                                                        "type": "string",
+                                                        "example": "weekly"
+                                                    },
+                                                    "weekly": {
+                                                        "type": "string",
+                                                        "example": "Week 1"
+                                                    },
+                                                    "sbj": {
+                                                        "type": "string",
+                                                        "example": "ENGLISH LANGUAGE"
+                                                    },
+                                                    "topic": {
+                                                        "type": "string",
+                                                        "example": "Parts of Speech"
+                                                    },
+                                                    "date": {
+                                                        "type": "string",
+                                                        "format": "date",
+                                                        "example": "2025-09-03"
+                                                    },
+                                                    "time_from": {
+                                                        "type": "string",
+                                                        "example": "07:30:00"
+                                                    },
+                                                    "time_to": {
+                                                        "type": "string",
+                                                        "example": "08:10:00"
+                                                    },
+                                                    "duration": {
+                                                        "type": "string",
+                                                        "example": "40 minutes"
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "example": "2026-02-19 09:57:18"
+                                                    },
+                                                    "updated_at": {
+                                                        "type": "string",
+                                                        "example": "2026-02-19 09:58:42"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No lesson plans found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
