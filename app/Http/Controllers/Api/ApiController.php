@@ -21603,8 +21603,6 @@ class ApiController extends Controller
     }
 
 
-
-
     //////////////////////////////////////////////////
     /**
      * @OA\Put(
@@ -21738,6 +21736,8 @@ class ApiController extends Controller
 // }
 
 
+
+
     public function updateLessonPlan(Request $request)
     {
         $request->validate([
@@ -21805,6 +21805,7 @@ class ApiController extends Controller
             "pld" => $lessonPlan
         ], 200);
     }
+
 
 
 
