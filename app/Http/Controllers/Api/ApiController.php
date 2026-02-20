@@ -36307,22 +36307,26 @@ public function maintainPreviousStaff(Request $request)
 {
     $request->validate([
         'schid' => 'required|integer',
-        'new_trm' => 'required|integer',
-        'ssn' => 'required|integer',
+        'current_trm' => 'required|integer', // pass current term explicitly
+        'current_ssn' => 'required|integer', // pass current session explicitly
     ]);
 
     $schid = $request->schid;
-    $new_trm = $request->new_trm;
-    $ssn = $request->ssn;
+    $current_trm = $request->current_trm;
+    $current_ssn = $request->current_ssn;
 
-    // Determine previous term & session
-    if ($new_trm == 1) {
-        $prev_trm = 3;
-        $prev_ssn = $ssn - 1;
+    // ---- Determine next term & session ----
+    if ($current_trm === 3) {
+        $new_trm = 1;
+        $new_ssn = $current_ssn + 1;
     } else {
-        $prev_trm = $new_trm - 1;
-        $prev_ssn = $ssn;
+        $new_trm = $current_trm + 1;
+        $new_ssn = $current_ssn;
     }
+
+    // ---- Previous term/session is the current one ----
+    $prev_trm = $current_trm;
+    $prev_ssn = $current_ssn;
 
     DB::beginTransaction();
 
@@ -36336,7 +36340,7 @@ public function maintainPreviousStaff(Request $request)
             ->get();
 
         foreach ($prevStaff as $staff) {
-            $uid = $ssn . $new_trm . $staff->sid . $staff->clsm;
+            $uid = $new_ssn . $new_trm . $staff->sid . $staff->clsm;
 
             DB::table('old_staff')->updateOrInsert(
                 ['uid' => $uid], // unique key
@@ -36351,7 +36355,7 @@ public function maintainPreviousStaff(Request $request)
                     'role' => $staff->role,
                     'role2' => $staff->role2,
                     'status' => 'active',
-                    'ssn' => $ssn,
+                    'ssn' => $new_ssn,
                     'trm' => $new_trm,
                     'created_at' => now(),
                     'updated_at' => now()
@@ -36367,7 +36371,7 @@ public function maintainPreviousStaff(Request $request)
             ->get();
 
         foreach ($prevClasses as $cls) {
-            $uid = $cls->stid . $cls->cls . $new_trm . $ssn;
+            $uid = $cls->stid . $cls->cls . $new_trm . $new_ssn;
 
             DB::table('staff_class')->updateOrInsert(
                 ['uid' => $uid],
@@ -36375,7 +36379,7 @@ public function maintainPreviousStaff(Request $request)
                     'stid' => $cls->stid,
                     'cls' => $cls->cls,
                     'schid' => $cls->schid,
-                    'ssn' => $ssn,
+                    'ssn' => $new_ssn,
                     'trm' => $new_trm,
                     'created_at' => now(),
                     'updated_at' => now()
@@ -36391,7 +36395,7 @@ public function maintainPreviousStaff(Request $request)
             ->get();
 
         foreach ($prevArms as $arm) {
-            $uid = $arm->stid . $arm->cls . $arm->arm . $new_trm . $ssn;
+            $uid = $arm->stid . $arm->cls . $arm->arm . $new_trm . $new_ssn;
 
             DB::table('staff_class_arm')->updateOrInsert(
                 ['uid' => $uid],
@@ -36400,7 +36404,7 @@ public function maintainPreviousStaff(Request $request)
                     'cls' => $arm->cls,
                     'arm' => $arm->arm,
                     'schid' => $arm->schid,
-                    'sesn' => $ssn,
+                    'sesn' => $new_ssn,
                     'trm' => $new_trm,
                     'created_at' => now(),
                     'updated_at' => now()
@@ -36416,7 +36420,7 @@ public function maintainPreviousStaff(Request $request)
             ->get();
 
         foreach ($prevSubj as $subj) {
-            $uid = $subj->stid . $subj->sbj . $new_trm . $ssn;
+            $uid = $subj->stid . $subj->sbj . $new_trm . $new_ssn;
 
             DB::table('staff_subj')->updateOrInsert(
                 ['uid' => $uid],
@@ -36424,7 +36428,7 @@ public function maintainPreviousStaff(Request $request)
                     'stid' => $subj->stid,
                     'sbj' => $subj->sbj,
                     'schid' => $subj->schid,
-                    'sesn' => $ssn,
+                    'sesn' => $new_ssn,
                     'trm' => $new_trm,
                     'created_at' => now(),
                     'updated_at' => now()
@@ -36440,7 +36444,7 @@ public function maintainPreviousStaff(Request $request)
             "pld" => [
                 'schid' => $schid,
                 'new_trm' => $new_trm,
-                'ssn' => $ssn,
+                'new_ssn' => $new_ssn,
                 'prev_trm' => $prev_trm,
                 'prev_ssn' => $prev_ssn
             ]
@@ -36452,7 +36456,7 @@ public function maintainPreviousStaff(Request $request)
         Log::error('Maintain Previous Staff Failed', [
             'schid' => $schid,
             'new_trm' => $new_trm,
-            'ssn' => $ssn,
+            'new_ssn' => $new_ssn,
             'error' => $e->getMessage()
         ]);
 
