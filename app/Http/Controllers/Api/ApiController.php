@@ -7081,40 +7081,40 @@ class ApiController extends Controller
      * )
      */
 
-    public function setStaffSubject(Request $request)
-    {
-        // Data validation
-        $request->validate([
-            "stid" => "required",
-            "sbj" => "required",
-            "schid" => "required",
-            "sesn" => "required",
-            "trm" => "required",
-        ]);
+public function setStaffSubject(Request $request)
+{
+    // Data validation
+    $request->validate([
+        "stid"  => "required|integer",
+        "sbj"   => "required|integer",
+        "schid" => "required|integer",
+        "sesn"  => "required|integer",
+        "trm"   => "required|integer",
+    ]);
 
-        // Generate unique UID
-        $uid = $request->sesn . $request->trm . $request->stid . $request->sbj;
+    // Generate UID (can stay as-is)
+    $uid = $request->sesn . $request->trm . $request->stid . $request->sbj;
 
-        // Update or create based on UID only
-        $pld = staff_subj::updateOrCreate(
-            ["uid" => $uid],
-            [
-                "stid" => $request->stid,
-                "sbj" => $request->sbj,
-                "schid" => $request->schid,
-                "sesn" => $request->sesn,
-                "trm" => $request->trm,
-            ]
-        );
+    // ✅ Match DB unique constraint
+    $pld = staff_subj::updateOrCreate(
+        [
+            "sbj"   => $request->sbj,
+            "schid" => $request->schid,
+            "sesn"  => $request->sesn,
+            "trm"   => $request->trm,
+        ],
+        [
+            "uid"  => $uid,
+            "stid" => $request->stid,
+        ]
+    );
 
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $pld
-        ]);
-    }
-
-
+    return response()->json([
+        "status"  => true,
+        "message" => "Success",
+        "pld"     => $pld
+    ]);
+}
 
     /**
      * @OA\Get(
@@ -9826,40 +9826,89 @@ class ApiController extends Controller
      */
 
 
+    // public function getOldStaff($schid, $ssn, $trm, $clsm, $role)
+    // {
+    //     $query = DB::table('old_staff')
+    //         ->where('old_staff.schid', $schid)
+    //         ->where('old_staff.ssn', $ssn)
+    //         ->where('old_staff.trm', $trm)
+    //         ->where('old_staff.status', 'active')
+    //         ->where('old_staff.clsm', $clsm);
+
+    //     // Clean "*" when filtering
+    //     if ($role != '-1') {
+    //         $query->where(function ($q) use ($role) {
+    //             $q->whereRaw("REPLACE(old_staff.role, '*', '') = ?", [$role])
+    //                 ->orWhereRaw("REPLACE(old_staff.role2, '*', '') = ?", [$role]);
+    //         });
+    //     }
+
+    //     // Join to get role names
+    //     $pld = $query
+    //         ->leftJoin('staff_role as r1', DB::raw("REPLACE(old_staff.role, '*', '')"), '=', 'r1.id')
+    //         ->leftJoin('staff_role as r2', DB::raw("REPLACE(old_staff.role2, '*', '')"), '=', 'r2.id')
+    //         ->select(
+    //             'old_staff.*',
+    //             'r1.name as role_name',
+    //             'r2.name as role2_name'
+    //         )
+    //         ->get();
+
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => $pld,
+    //     ]);
+    // }
+
     public function getOldStaff($schid, $ssn, $trm, $clsm, $role)
-    {
-        $query = DB::table('old_staff')
-            ->where('old_staff.schid', $schid)
-            ->where('old_staff.ssn', $ssn)
-            ->where('old_staff.trm', $trm)
-            ->where('old_staff.status', 'active')
-            ->where('old_staff.clsm', $clsm);
+{
+    $query = DB::table('old_staff')
+        ->where('old_staff.schid', $schid)
+        ->where('old_staff.ssn', $ssn)
+        ->where('old_staff.trm', $trm)
+        ->where('old_staff.status', 'active')
+        ->where('old_staff.clsm', $clsm)
 
-        // Clean "*" when filtering
-        if ($role != '-1') {
-            $query->where(function ($q) use ($role) {
-                $q->whereRaw("REPLACE(old_staff.role, '*', '') = ?", [$role])
-                    ->orWhereRaw("REPLACE(old_staff.role2, '*', '') = ?", [$role]);
-            });
-        }
-
-        // Join to get role names
-        $pld = $query
-            ->leftJoin('staff_role as r1', DB::raw("REPLACE(old_staff.role, '*', '')"), '=', 'r1.id')
-            ->leftJoin('staff_role as r2', DB::raw("REPLACE(old_staff.role2, '*', '')"), '=', 'r2.id')
-            ->select(
-                'old_staff.*',
-                'r1.name as role_name',
-                'r2.name as role2_name'
+        // ✅ PREVENT DUPLICATES: keep only latest record per staff
+        ->whereRaw("
+            old_staff.created_at = (
+                SELECT MAX(os2.created_at)
+                FROM old_staff os2
+                WHERE os2.sid = old_staff.sid
+                  AND os2.schid = old_staff.schid
+                  AND os2.ssn = old_staff.ssn
+                  AND os2.trm = old_staff.trm
+                  AND os2.clsm = old_staff.clsm
             )
-            ->get();
+        ");
 
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $pld,
-        ]);
+    // Clean "*" when filtering
+    if ($role != '-1') {
+        $query->where(function ($q) use ($role) {
+            $q->whereRaw("REPLACE(old_staff.role, '*', '') = ?", [$role])
+              ->orWhereRaw("REPLACE(old_staff.role2, '*', '') = ?", [$role]);
+        });
     }
+
+    // Join to get role names
+    $pld = $query
+        ->leftJoin('staff_role as r1', DB::raw("REPLACE(old_staff.role, '*', '')"), '=', 'r1.id')
+        ->leftJoin('staff_role as r2', DB::raw("REPLACE(old_staff.role2, '*', '')"), '=', 'r2.id')
+        ->select(
+            'old_staff.*',
+            'r1.name as role_name',
+            'r2.name as role2_name'
+        )
+        ->orderBy('old_staff.lname')
+        ->get();
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => $pld,
+    ]);
+}
 
 
     /**
@@ -36254,188 +36303,172 @@ class ApiController extends Controller
     //     }
     // }
 
-    public function maintainPreviousStaff(Request $request)
-    {
-        $request->validate([
-            'schid' => 'required|integer',
-            'new_trm' => 'required|integer', // 1, 2, 3
-            'ssn' => 'required|integer',     // current session
+public function maintainPreviousStaff(Request $request)
+{
+    $request->validate([
+        'schid' => 'required|integer',
+        'new_trm' => 'required|integer',
+        'ssn' => 'required|integer',
+    ]);
+
+    $schid = $request->schid;
+    $new_trm = $request->new_trm;
+    $ssn = $request->ssn;
+
+    // Determine previous term & session
+    if ($new_trm == 1) {
+        $prev_trm = 3;
+        $prev_ssn = $ssn - 1;
+    } else {
+        $prev_trm = $new_trm - 1;
+        $prev_ssn = $ssn;
+    }
+
+    // ---- FRIENDLY DUPLICATE CHECK ----
+    $exists = DB::table('old_staff')
+        ->where('schid', $schid)
+        ->where('trm', $new_trm)
+        ->where('ssn', $ssn)
+        ->exists();
+
+    if ($exists) {
+        return response()->json([
+            "status" => false,
+            "pld" => "Staff data for this session and term already exists. No duplicates were uploaded.",
         ]);
+    }
 
-        $schid = $request->schid;
-        $new_trm = $request->new_trm;
-        $ssn = $request->ssn;
+    DB::beginTransaction();
 
-        // ---- Determine previous term & session ----
-        if ($new_trm == 1) {
-            $prev_trm = 3;
-            $prev_ssn = $ssn - 1;
-        } else {
-            $prev_trm = $new_trm - 1;
-            $prev_ssn = $ssn;
+    try {
+        // ---- 1. Bring staff forward (old_staff) ----
+        $prevStaff = DB::table('old_staff')
+            ->where('schid', $schid)
+            ->where('trm', $prev_trm)
+            ->where('ssn', $prev_ssn)
+            ->where('status', 'active')
+            ->get();
+
+        foreach ($prevStaff as $staff) {
+            $uid = $ssn . $new_trm . $staff->sid . $staff->clsm;
+
+            DB::table('old_staff')->insert([
+                'uid' => $uid,
+                'suid' => $staff->suid,
+                'sid' => $staff->sid,
+                'schid' => $staff->schid,
+                'fname' => $staff->fname,
+                'mname' => $staff->mname,
+                'lname' => $staff->lname,
+                'clsm' => $staff->clsm,
+                'role' => $staff->role,
+                'role2' => $staff->role2,
+                'status' => 'active',
+                'ssn' => $ssn,
+                'trm' => $new_trm,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
         }
 
-        DB::beginTransaction();
+        // ---- 2. Bring staff_class forward ----
+        $prevClasses = DB::table('staff_class')
+            ->where('schid', $schid)
+            ->where('trm', $prev_trm)
+            ->where('ssn', $prev_ssn)
+            ->get();
 
-        try {
-            // ------------------------------------------------
-            // 1. Bring staff forward (old_staff) - preserve DOB
-            // ------------------------------------------------
-            DB::insert(
-                "INSERT INTO old_staff
-            (uid, suid, sid, schid, fname, mname, lname, clsm, role, role2, status, ssn, trm, created_at, updated_at)
-            SELECT
-                CONCAT(?, ?, IFNULL(sid, 0), IFNULL(clsm, 0)) AS uid,
-                suid,
-                sid,
-                schid,
-                fname,
-                mname,
-                lname,
-                clsm,
-                role,
-                role2,
-                'active',
-                ?, ?,
-                NOW(), NOW()
-            FROM old_staff
-            WHERE schid = ?
-              AND trm = ?
-              AND ssn = ?
-              AND status = 'active'",
-                [
-                    $ssn,
-                    $new_trm,
-                    $ssn,
-                    $new_trm,
-                    $schid,
-                    $prev_trm,
-                    $prev_ssn
-                ]
-            );
+        foreach ($prevClasses as $cls) {
+            $uid = $cls->stid . $cls->cls . $new_trm . $ssn;
 
-            // ------------------------------------------------
-            // 2. Bring staff classes forward
-            // ------------------------------------------------
-            DB::insert(
-                "INSERT INTO staff_class
-            (uid, stid, cls, schid, ssn, trm, created_at, updated_at)
-            SELECT
-                CONCAT(stid, IFNULL(cls, 0), ?, ?) AS uid,
-                stid,
-                cls,
-                schid,
-                ?, ?,
-                NOW(), NOW()
-            FROM staff_class
-            WHERE schid = ?
-              AND trm = ?
-              AND ssn = ?",
-                [
-                    $new_trm,
-                    $ssn,
-                    $ssn,
-                    $new_trm,
-                    $schid,
-                    $prev_trm,
-                    $prev_ssn
-                ]
-            );
+            DB::table('staff_class')->insert([
+                'uid' => $uid,
+                'stid' => $cls->stid,
+                'cls' => $cls->cls,
+                'schid' => $cls->schid,
+                'ssn' => $ssn,
+                'trm' => $new_trm,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+        }
 
-            // ------------------------------------------------
-            // 3. Bring staff class arms forward
-            // ------------------------------------------------
-            DB::insert(
-                "INSERT INTO staff_class_arm
-            (uid, stid, cls, arm, schid, sesn, trm, created_at, updated_at)
-            SELECT
-                CONCAT(stid, IFNULL(cls, 0), IFNULL(arm, 0), ?, ?) AS uid,
-                stid,
-                cls,
-                arm,
-                schid,
-                ?, ?,
-                NOW(), NOW()
-            FROM staff_class_arm
-            WHERE schid = ?
-              AND trm = ?
-              AND sesn = ?",
-                [
-                    $new_trm,
-                    $ssn,
-                    $ssn,
-                    $new_trm,
-                    $schid,
-                    $prev_trm,
-                    $prev_ssn
-                ]
-            );
+        // ---- 3. Bring staff_class_arm forward ----
+        $prevArms = DB::table('staff_class_arm')
+            ->where('schid', $schid)
+            ->where('trm', $prev_trm)
+            ->where('sesn', $prev_ssn)
+            ->get();
 
-            // ------------------------------------------------
-            // 4. Bring staff subjects forward
-            // ------------------------------------------------
-            DB::insert(
-                "INSERT INTO staff_subj
-            (uid, stid, sbj, schid, sesn, trm, created_at, updated_at)
-            SELECT
-                CONCAT(stid, IFNULL(sbj, 0), ?, ?) AS uid,
-                stid,
-                sbj,
-                schid,
-                ?, ?,
-                NOW(), NOW()
-            FROM staff_subj
-            WHERE schid = ?
-              AND trm = ?
-              AND sesn = ?",
-                [
-                    $new_trm,
-                    $ssn,
-                    $ssn,
-                    $new_trm,
-                    $schid,
-                    $prev_trm,
-                    $prev_ssn
-                ]
-            );
+        foreach ($prevArms as $arm) {
+            $uid = $arm->stid . $arm->cls . $arm->arm . $new_trm . $ssn;
 
-            DB::commit();
+            DB::table('staff_class_arm')->insert([
+                'uid' => $uid,
+                'stid' => $arm->stid,
+                'cls' => $arm->cls,
+                'arm' => $arm->arm,
+                'schid' => $arm->schid,
+                'sesn' => $ssn,
+                'trm' => $new_trm,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+        }
 
-            // Payload for the response
-            $pld = [
+        // ---- 4. Bring staff_subj forward ----
+        $prevSubj = DB::table('staff_subj')
+            ->where('schid', $schid)
+            ->where('trm', $prev_trm)
+            ->where('sesn', $prev_ssn)
+            ->get();
+
+        foreach ($prevSubj as $subj) {
+            $uid = $subj->stid . $subj->sbj . $new_trm . $ssn;
+
+            DB::table('staff_subj')->insert([
+                'uid' => $uid,
+                'stid' => $subj->stid,
+                'sbj' => $subj->sbj,
+                'schid' => $subj->schid,
+                'sesn' => $ssn,
+                'trm' => $new_trm,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+        }
+
+        DB::commit();
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => [
                 'schid' => $schid,
                 'new_trm' => $new_trm,
                 'ssn' => $ssn,
                 'prev_trm' => $prev_trm,
                 'prev_ssn' => $prev_ssn
-            ];
+            ]
+        ]);
 
-            return response()->json([
-                "status" => true,
-                "message" => "Success",
-                "pld" => $pld,
-            ]);
+    } catch (\Throwable $e) {
+        DB::rollBack();
 
-        } catch (\Throwable $e) {
-            DB::rollBack();
+        Log::error('Maintain Previous Staff Failed', [
+            'schid' => $schid,
+            'new_trm' => $new_trm,
+            'ssn' => $ssn,
+            'error' => $e->getMessage()
+        ]);
 
-            Log::error('Maintain Previous Staff Failed', [
-                'schid' => $schid,
-                'new_trm' => $new_trm,
-                'ssn' => $ssn,
-                'error' => $e->getMessage()
-            ]);
-
-            return response()->json([
-                "status" => false,
-                "message" => "Failed to maintain previous term staff data",
-                "error" => $e->getMessage()
-            ], 500);
-        }
+        return response()->json([
+            "status" => false,
+            "message" => "Failed to maintain previous term staff data",
+            "error" => $e->getMessage()
+        ], 500);
     }
-
-
-
+}
 
     /**
      * @OA\Put(
@@ -36524,12 +36557,12 @@ class ApiController extends Controller
             ->where('s.schid', $validated['schid'])
             ->exists();
 
-        if (!$exists) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Student does not belong to this school.',
-            ]);
-        }
+        // if (!$exists) {
+        //     return response()->json([
+        //         'status' => false,
+        //         'message' => 'Student does not belong to this school.',
+        //     ]);
+        // }
 
         // Update DOB only if provided
         if ($request->has('dob')) {
