@@ -36342,21 +36342,24 @@ public function maintainPreviousStaff(Request $request)
         foreach ($prevStaff as $staff) {
             $uid = $new_ssn . $new_trm . $staff->sid . $staff->clsm;
 
+            // Use the unique index columns for updateOrInsert
             DB::table('old_staff')->updateOrInsert(
-                ['uid' => $uid], // unique key
                 [
-                    'suid' => $staff->suid,
                     'sid' => $staff->sid,
                     'schid' => $staff->schid,
+                    'ssn' => $new_ssn,
+                    'trm' => $new_trm,
+                    'clsm' => $staff->clsm
+                ],
+                [
+                    'uid' => $uid,
+                    'suid' => $staff->suid,
                     'fname' => $staff->fname,
                     'mname' => $staff->mname,
                     'lname' => $staff->lname,
-                    'clsm' => $staff->clsm,
                     'role' => $staff->role,
                     'role2' => $staff->role2,
                     'status' => 'active',
-                    'ssn' => $new_ssn,
-                    'trm' => $new_trm,
                     'created_at' => now(),
                     'updated_at' => now()
                 ]
@@ -36374,13 +36377,15 @@ public function maintainPreviousStaff(Request $request)
             $uid = $cls->stid . $cls->cls . $new_trm . $new_ssn;
 
             DB::table('staff_class')->updateOrInsert(
-                ['uid' => $uid],
                 [
                     'stid' => $cls->stid,
                     'cls' => $cls->cls,
                     'schid' => $cls->schid,
                     'ssn' => $new_ssn,
-                    'trm' => $new_trm,
+                    'trm' => $new_trm
+                ],
+                [
+                    'uid' => $uid,
                     'created_at' => now(),
                     'updated_at' => now()
                 ]
@@ -36398,14 +36403,16 @@ public function maintainPreviousStaff(Request $request)
             $uid = $arm->stid . $arm->cls . $arm->arm . $new_trm . $new_ssn;
 
             DB::table('staff_class_arm')->updateOrInsert(
-                ['uid' => $uid],
                 [
                     'stid' => $arm->stid,
                     'cls' => $arm->cls,
                     'arm' => $arm->arm,
                     'schid' => $arm->schid,
                     'sesn' => $new_ssn,
-                    'trm' => $new_trm,
+                    'trm' => $new_trm
+                ],
+                [
+                    'uid' => $uid,
                     'created_at' => now(),
                     'updated_at' => now()
                 ]
@@ -36423,13 +36430,15 @@ public function maintainPreviousStaff(Request $request)
             $uid = $subj->stid . $subj->sbj . $new_trm . $new_ssn;
 
             DB::table('staff_subj')->updateOrInsert(
-                ['uid' => $uid],
                 [
                     'stid' => $subj->stid,
                     'sbj' => $subj->sbj,
                     'schid' => $subj->schid,
                     'sesn' => $new_ssn,
-                    'trm' => $new_trm,
+                    'trm' => $new_trm
+                ],
+                [
+                    'uid' => $uid,
                     'created_at' => now(),
                     'updated_at' => now()
                 ]
@@ -36467,7 +36476,6 @@ public function maintainPreviousStaff(Request $request)
         ], 500);
     }
 }
-
     /**
      * @OA\Put(
      *     path="/api/learners/{userId}/dob",
