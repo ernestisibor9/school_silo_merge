@@ -30728,6 +30728,109 @@
                     }
                 ]
             }
+        },
+        "/api/lesson-plans/termly/{schid}/{ssn}/{trm}": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get termly lesson plans",
+                "description": "Fetch all termly lesson plans filtered by school ID, session, and term. Weekly lesson plans are excluded.",
+                "operationId": "getTermlyLessonPlans",
+                "parameters": [
+                    {
+                        "name": "schid",
+                        "in": "path",
+                        "description": "School ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "12"
+                        }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "path",
+                        "description": "Academic session",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "2025"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "path",
+                        "description": "Academic term",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Termly lesson plans fetched successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Termly lesson plans fetched successfully"
+                                        },
+                                        "filters": {
+                                            "properties": {
+                                                "plan_type": {
+                                                    "type": "string",
+                                                    "example": "termly"
+                                                },
+                                                "schid": {
+                                                    "type": "string",
+                                                    "example": "12"
+                                                },
+                                                "ssn": {
+                                                    "type": "string",
+                                                    "example": "2025"
+                                                },
+                                                "trm": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "count": {
+                                            "type": "integer",
+                                            "example": 3
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No lesson plans found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {

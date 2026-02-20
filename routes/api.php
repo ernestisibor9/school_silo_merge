@@ -401,6 +401,8 @@ Route::group([
 
     Route::get('lesson-plans/weekly/{schid}/{ssn}/{trm}/{week}',[ApiController::class, 'getLessonPlansByWeekFilter']);
 
+    Route::get('lesson-plans/termly/{schid}/{ssn}/{trm}',[ApiController::class, 'getLessonPlansByTerm']);
+
 
     Route::get('getLessonNote/{sch_id}/{session}/{term}/{class}/{week}', [ApiController::class, 'getLessonNote']);
     Route::get('getSingleLessonNote/{sch_id}/{session}/{term}/{class}/{week}/{lessonNoteId}', [ApiController::class, 'getSingleLessonNote']);

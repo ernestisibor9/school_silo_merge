@@ -36743,12 +36743,8 @@ class ApiController extends Controller
      * )
      */
 
-    public function getLessonPlansByWeekFilter(
-        $schid,
-        $ssn,
-        $trm,
-        $week
-    ) {
+    public function getLessonPlansByWeekFilter($schid, $ssn, $trm, $week)
+    {
         // Normalize week value (important)
         $week = trim(urldecode($week));
 
@@ -36764,14 +36760,106 @@ class ApiController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'Lesson plans fetched successfully',
-            'filters' => [
+            'pld' => [
+                'plan_type' => 'weekly',
                 'week' => $week,
                 'ssn' => $ssn,
                 'trm' => (int) $trm,
                 'schid' => $schid,
+                'count' => $lessonPlans->count(),
+                'lesson_plans' => $lessonPlans,
             ],
-            'count' => $lessonPlans->count(),
-            'data' => $lessonPlans,
+        ], 200);
+    }
+
+
+
+
+    /**
+     * @OA\Get(
+     *     path="/api/lesson-plans/termly/{schid}/{ssn}/{trm}",
+     *     operationId="getTermlyLessonPlans",
+     *     tags={"Api"},
+     *    security={{"bearerAuth": {}}},
+     *     summary="Get termly lesson plans",
+     *     description="Fetch all termly lesson plans filtered by school ID, session, and term. Weekly lesson plans are excluded.",
+     *
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="path",
+     *         required=true,
+     *         description="School ID",
+     *         @OA\Schema(type="string", example="12")
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="path",
+     *         required=true,
+     *         description="Academic session",
+     *         @OA\Schema(type="string", example="2025")
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Academic term",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Termly lesson plans fetched successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Termly lesson plans fetched successfully"),
+     *             @OA\Property(
+     *                 property="filters",
+     *                 type="object",
+     *                 @OA\Property(property="plan_type", type="string", example="termly"),
+     *                 @OA\Property(property="schid", type="string", example="12"),
+     *                 @OA\Property(property="ssn", type="string", example="2025"),
+     *                 @OA\Property(property="trm", type="integer", example=1)
+     *             ),
+     *             @OA\Property(property="count", type="integer", example=3),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="array",
+     *                 @OA\Items(type="object")
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="No lesson plans found"
+     *     )
+     * )
+     */
+
+    public function getLessonPlansByTerm($schid, $ssn, $trm)
+    {
+        $lessonPlans = lesson_plan::where('plan_type', 'termly')
+            ->whereNull('weekly') // important for data integrity
+            ->where('schid', $schid)
+            ->where('ssn', $ssn)
+            ->where('trm', $trm)
+            ->orderBy('date', 'asc')
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Termly lesson plans fetched successfully',
+            'pld' => [
+                'plan_type' => 'termly',
+                'schid' => $schid,
+                'ssn' => $ssn,
+                'trm' => (int) $trm,
+                'count' => $lessonPlans->count(),
+                'lesson_plans' => $lessonPlans,
+            ],
         ], 200);
     }
 
