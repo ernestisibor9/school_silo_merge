@@ -36307,13 +36307,13 @@ public function maintainPreviousStaff(Request $request)
 {
     $request->validate([
         'schid' => 'required|integer',
-        'current_trm' => 'required|integer', // pass current term explicitly
-        'current_ssn' => 'required|integer', // pass current session explicitly
+        'new_trm' => 'required|integer', // pass current term explicitly
+        'ssn' => 'required|integer', // pass current session explicitly
     ]);
 
     $schid = $request->schid;
-    $current_trm = $request->current_trm;
-    $current_ssn = $request->current_ssn;
+    $current_trm = $request->new_trm;
+    $current_ssn = $request->ssn;
 
     // ---- Determine next term & session ----
     if ($current_trm === 3) {
