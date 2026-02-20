@@ -36324,20 +36324,6 @@ public function maintainPreviousStaff(Request $request)
         $prev_ssn = $ssn;
     }
 
-    // ---- FRIENDLY DUPLICATE CHECK ----
-    $exists = DB::table('old_staff')
-        ->where('schid', $schid)
-        ->where('trm', $new_trm)
-        ->where('ssn', $ssn)
-        ->exists();
-
-    if ($exists) {
-        return response()->json([
-            "status" => false,
-            "message" => "Staff data for this session and term already exists. No duplicates were uploaded.",
-        ]);
-    }
-
     DB::beginTransaction();
 
     try {
@@ -36352,23 +36338,25 @@ public function maintainPreviousStaff(Request $request)
         foreach ($prevStaff as $staff) {
             $uid = $ssn . $new_trm . $staff->sid . $staff->clsm;
 
-            DB::table('old_staff')->insert([
-                'uid' => $uid,
-                'suid' => $staff->suid,
-                'sid' => $staff->sid,
-                'schid' => $staff->schid,
-                'fname' => $staff->fname,
-                'mname' => $staff->mname,
-                'lname' => $staff->lname,
-                'clsm' => $staff->clsm,
-                'role' => $staff->role,
-                'role2' => $staff->role2,
-                'status' => 'active',
-                'ssn' => $ssn,
-                'trm' => $new_trm,
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
+            DB::table('old_staff')->updateOrInsert(
+                ['uid' => $uid], // unique key
+                [
+                    'suid' => $staff->suid,
+                    'sid' => $staff->sid,
+                    'schid' => $staff->schid,
+                    'fname' => $staff->fname,
+                    'mname' => $staff->mname,
+                    'lname' => $staff->lname,
+                    'clsm' => $staff->clsm,
+                    'role' => $staff->role,
+                    'role2' => $staff->role2,
+                    'status' => 'active',
+                    'ssn' => $ssn,
+                    'trm' => $new_trm,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]
+            );
         }
 
         // ---- 2. Bring staff_class forward ----
@@ -36381,16 +36369,18 @@ public function maintainPreviousStaff(Request $request)
         foreach ($prevClasses as $cls) {
             $uid = $cls->stid . $cls->cls . $new_trm . $ssn;
 
-            DB::table('staff_class')->insert([
-                'uid' => $uid,
-                'stid' => $cls->stid,
-                'cls' => $cls->cls,
-                'schid' => $cls->schid,
-                'ssn' => $ssn,
-                'trm' => $new_trm,
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
+            DB::table('staff_class')->updateOrInsert(
+                ['uid' => $uid],
+                [
+                    'stid' => $cls->stid,
+                    'cls' => $cls->cls,
+                    'schid' => $cls->schid,
+                    'ssn' => $ssn,
+                    'trm' => $new_trm,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]
+            );
         }
 
         // ---- 3. Bring staff_class_arm forward ----
@@ -36403,17 +36393,19 @@ public function maintainPreviousStaff(Request $request)
         foreach ($prevArms as $arm) {
             $uid = $arm->stid . $arm->cls . $arm->arm . $new_trm . $ssn;
 
-            DB::table('staff_class_arm')->insert([
-                'uid' => $uid,
-                'stid' => $arm->stid,
-                'cls' => $arm->cls,
-                'arm' => $arm->arm,
-                'schid' => $arm->schid,
-                'sesn' => $ssn,
-                'trm' => $new_trm,
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
+            DB::table('staff_class_arm')->updateOrInsert(
+                ['uid' => $uid],
+                [
+                    'stid' => $arm->stid,
+                    'cls' => $arm->cls,
+                    'arm' => $arm->arm,
+                    'schid' => $arm->schid,
+                    'sesn' => $ssn,
+                    'trm' => $new_trm,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]
+            );
         }
 
         // ---- 4. Bring staff_subj forward ----
@@ -36426,16 +36418,18 @@ public function maintainPreviousStaff(Request $request)
         foreach ($prevSubj as $subj) {
             $uid = $subj->stid . $subj->sbj . $new_trm . $ssn;
 
-            DB::table('staff_subj')->insert([
-                'uid' => $uid,
-                'stid' => $subj->stid,
-                'sbj' => $subj->sbj,
-                'schid' => $subj->schid,
-                'sesn' => $ssn,
-                'trm' => $new_trm,
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
+            DB::table('staff_subj')->updateOrInsert(
+                ['uid' => $uid],
+                [
+                    'stid' => $subj->stid,
+                    'sbj' => $subj->sbj,
+                    'schid' => $subj->schid,
+                    'sesn' => $ssn,
+                    'trm' => $new_trm,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]
+            );
         }
 
         DB::commit();
