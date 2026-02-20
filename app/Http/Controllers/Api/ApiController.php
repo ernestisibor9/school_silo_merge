@@ -36334,7 +36334,7 @@ public function maintainPreviousStaff(Request $request)
     if ($exists) {
         return response()->json([
             "status" => false,
-            "pld" => "Staff data for this session and term already exists. No duplicates were uploaded.",
+            "message" => "Staff data for this session and term already exists. No duplicates were uploaded.",
         ]);
     }
 
