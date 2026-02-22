@@ -5203,7 +5203,7 @@ class ApiController extends Controller
 //                 return response()->json([
 //                     'status' => false,
 //                     'message' => 'This student already exists in the selected session, term, and class arm.',
-//                 ], 409); // 409 Conflict
+//                 ], ); //  Conflict
 //             }
 
     //             // Create or update the new record
@@ -5309,7 +5309,7 @@ class ApiController extends Controller
                 return response()->json([
                     'status' => false,
                     'message' => 'This student already exists in the selected session, term, and class arm.',
-                ], 409);
+                ], );
             }
 
             // 🔹 Insert ONLY (no update, no overwrite, no corruption)
@@ -7081,40 +7081,93 @@ class ApiController extends Controller
      * )
      */
 
-public function setStaffSubject(Request $request)
-{
-    // Data validation
-    $request->validate([
-        "stid"  => "required|integer",
-        "sbj"   => "required|integer",
-        "schid" => "required|integer",
-        "sesn"  => "required|integer",
-        "trm"   => "required|integer",
-    ]);
+    // public function setStaffSubject(Request $request)
+// {
+//     // Data validation
+//     $request->validate([
+//         "stid"  => "required|integer",
+//         "sbj"   => "required|integer",
+//         "schid" => "required|integer",
+//         "sesn"  => "required|integer",
+//         "trm"   => "required|integer",
+//     ]);
 
-    // Generate UID (can stay as-is)
-    $uid = $request->sesn . $request->trm . $request->stid . $request->sbj;
+    //     // Generate UID (can stay as-is)
+//     $uid = $request->sesn . $request->trm . $request->stid . $request->sbj;
 
-    // ✅ Match DB unique constraint
-    $pld = staff_subj::updateOrCreate(
-        [
-            "sbj"   => $request->sbj,
-            "schid" => $request->schid,
-            "sesn"  => $request->sesn,
-            "trm"   => $request->trm,
-        ],
-        [
-            "uid"  => $uid,
-            "stid" => $request->stid,
-        ]
-    );
+    //     // ✅ Match DB unique constraint
+//     $pld = staff_subj::updateOrCreate(
+//         [
+//             "sbj"   => $request->sbj,
+//             "schid" => $request->schid,
+//             "sesn"  => $request->sesn,
+//             "trm"   => $request->trm,
+//         ],
+//         [
+//             "uid"  => $uid,
+//             "stid" => $request->stid,
+//         ]
+//     );
 
-    return response()->json([
-        "status"  => true,
-        "message" => "Success",
-        "pld"     => $pld
-    ]);
-}
+    //     return response()->json([
+//         "status"  => true,
+//         "message" => "Success",
+//         "pld"     => $pld
+//     ]);
+// }
+
+    public function setStaffSubject(Request $request)
+    {
+        $request->validate([
+            "stid" => "required|integer",
+            "sbj" => "required|integer",
+            "schid" => "required|integer",
+            "sesn" => "required|integer",
+            "trm" => "required|integer",
+        ]);
+
+        // 🔎 Check duplicate FIRST (clean UX)
+        $exists = staff_subj::where([
+            'stid' => $request->stid,
+            'sbj' => $request->sbj,
+            'schid' => $request->schid,
+            'sesn' => $request->sesn,
+            'trm' => $request->trm,
+        ])->exists();
+
+        if ($exists) {
+            return response()->json([
+                "status" => false,
+                "message" => "This staff is already assigned to this subject for the selected term and session."
+            ], ); // Conflict
+        }
+
+        // Generate UID (keep as you designed)
+        $uid = $request->sesn . $request->trm . $request->schid . $request->stid . $request->sbj;
+
+        try {
+            $pld = staff_subj::create([
+                "uid" => $uid,
+                "stid" => $request->stid,
+                "sbj" => $request->sbj,
+                "schid" => $request->schid,
+                "sesn" => $request->sesn,
+                "trm" => $request->trm,
+            ]);
+        } catch (\Illuminate\Database\QueryException $e) {
+            // 🛡 Final safety net (race conditions)
+            return response()->json([
+                "status" => false,
+                "message" => "Duplicate staff subject detected."
+            ]);
+        }
+
+        return response()->json([
+            "status" => true,
+            "message" => "Staff subject assigned successfully",
+            "pld" => $pld
+        ]);
+    }
 
     /**
      * @OA\Get(
@@ -9128,6 +9181,8 @@ public function setStaffSubject(Request $request)
             "ssn" => $request->ssn,
             "trm" => $request->trm,
             "clsm" => $request->cls,
+            "role" => $request->role,
+            "role2" => $request->role2,
         ])->exists();
 
         if (!$exists) {
@@ -9151,7 +9206,7 @@ public function setStaffSubject(Request $request)
 
         } else {
             // Do NOT insert
-            $old = "Old staff exists already — no insert!";
+            $old = "Staff exists already — no insert!";
         }
 
         return response()->json([
@@ -9387,42 +9442,98 @@ public function setStaffSubject(Request $request)
      */
 
 
+    // public function setStaffClassArm(Request $request)
+    // {
+    //     // Data validation
+    //     $request->validate([
+    //         "stid" => "required",
+    //         "cls" => "required",
+    //         "arm" => "required",
+    //         "schid" => "required",
+    //         "sesn" => "required",
+    //         "trm" => "required",
+    //     ]);
+
+    //     // Generate deterministic UID (no random numbers)
+    //     $uid = $request->sesn . $request->trm . $request->stid . $request->cls . $request->arm;
+
+    //     // Update or create staff class arm record
+    //     $pld = staff_class_arm::updateOrCreate(
+    //         ["uid" => $uid],
+    //         [
+    //             "stid" => $request->stid,
+    //             "cls" => $request->cls,
+    //             "arm" => $request->arm,
+    //             "schid" => $request->schid,
+    //             "sesn" => $request->sesn,
+    //             "trm" => $request->trm,
+    //         ]
+    //     );
+
+    //     // Return JSON response
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => $pld
+    //     ]);
+    // }
+
+
     public function setStaffClassArm(Request $request)
     {
-        // Data validation
         $request->validate([
-            "stid" => "required",
-            "cls" => "required",
-            "arm" => "required",
-            "schid" => "required",
-            "sesn" => "required",
-            "trm" => "required",
+            "stid" => "required|integer",
+            "cls" => "required|integer",
+            "arm" => "required|integer",
+            "schid" => "required|integer",
+            "sesn" => "required|integer",
+            "trm" => "required|integer",
         ]);
 
-        // Generate deterministic UID (no random numbers)
-        $uid = $request->sesn . $request->trm . $request->stid . $request->cls . $request->arm;
+        // 🔎 Friendly duplicate check
+        $exists = staff_class_arm::where([
+            'stid' => $request->stid,
+            'cls' => $request->cls,
+            'arm' => $request->arm,
+            'schid' => $request->schid,
+            'sesn' => $request->sesn,
+            'trm' => $request->trm,
+        ])->exists();
 
-        // Update or create staff class arm record
-        $pld = staff_class_arm::updateOrCreate(
-            ["uid" => $uid],
-            [
+        if ($exists) {
+            return response()->json([
+                "status" => false,
+                "message" => "This staff is already assigned to this class and arm for the selected term and session."
+            ]); // Conflict
+        }
+
+        // Deterministic UID (fine to keep)
+        $uid = $request->sesn . $request->trm . $request->schid . $request->stid . $request->cls . $request->arm;
+
+        try {
+            $pld = staff_class_arm::create([
+                "uid" => $uid,
                 "stid" => $request->stid,
                 "cls" => $request->cls,
                 "arm" => $request->arm,
                 "schid" => $request->schid,
                 "sesn" => $request->sesn,
                 "trm" => $request->trm,
-            ]
-        );
+            ]);
+        } catch (\Illuminate\Database\QueryException $e) {
+            // 🛡 Safety net for race conditions
+            return response()->json([
+                "status" => false,
+                "message" => "Duplicate staff class-arm assignment detected."
+            ]);
+        }
 
-        // Return JSON response
         return response()->json([
             "status" => true,
-            "message" => "Success",
+            "message" => "Staff class-arm assigned successfully",
             "pld" => $pld
         ]);
     }
-
 
 
     /**
@@ -9862,16 +9973,16 @@ public function setStaffSubject(Request $request)
     // }
 
     public function getOldStaff($schid, $ssn, $trm, $clsm, $role)
-{
-    $query = DB::table('old_staff')
-        ->where('old_staff.schid', $schid)
-        ->where('old_staff.ssn', $ssn)
-        ->where('old_staff.trm', $trm)
-        ->where('old_staff.status', 'active')
-        ->where('old_staff.clsm', $clsm)
+    {
+        $query = DB::table('old_staff')
+            ->where('old_staff.schid', $schid)
+            ->where('old_staff.ssn', $ssn)
+            ->where('old_staff.trm', $trm)
+            ->where('old_staff.status', 'active')
+            ->where('old_staff.clsm', $clsm)
 
-        // ✅ PREVENT DUPLICATES: keep only latest record per staff
-        ->whereRaw("
+            // ✅ PREVENT DUPLICATES: keep only latest record per staff
+            ->whereRaw("
             old_staff.created_at = (
                 SELECT MAX(os2.created_at)
                 FROM old_staff os2
@@ -9883,32 +9994,32 @@ public function setStaffSubject(Request $request)
             )
         ");
 
-    // Clean "*" when filtering
-    if ($role != '-1') {
-        $query->where(function ($q) use ($role) {
-            $q->whereRaw("REPLACE(old_staff.role, '*', '') = ?", [$role])
-              ->orWhereRaw("REPLACE(old_staff.role2, '*', '') = ?", [$role]);
-        });
+        // Clean "*" when filtering
+        if ($role != '-1') {
+            $query->where(function ($q) use ($role) {
+                $q->whereRaw("REPLACE(old_staff.role, '*', '') = ?", [$role])
+                    ->orWhereRaw("REPLACE(old_staff.role2, '*', '') = ?", [$role]);
+            });
+        }
+
+        // Join to get role names
+        $pld = $query
+            ->leftJoin('staff_role as r1', DB::raw("REPLACE(old_staff.role, '*', '')"), '=', 'r1.id')
+            ->leftJoin('staff_role as r2', DB::raw("REPLACE(old_staff.role2, '*', '')"), '=', 'r2.id')
+            ->select(
+                'old_staff.*',
+                'r1.name as role_name',
+                'r2.name as role2_name'
+            )
+            ->orderBy('old_staff.lname')
+            ->get();
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $pld,
+        ]);
     }
-
-    // Join to get role names
-    $pld = $query
-        ->leftJoin('staff_role as r1', DB::raw("REPLACE(old_staff.role, '*', '')"), '=', 'r1.id')
-        ->leftJoin('staff_role as r2', DB::raw("REPLACE(old_staff.role2, '*', '')"), '=', 'r2.id')
-        ->select(
-            'old_staff.*',
-            'r1.name as role_name',
-            'r2.name as role2_name'
-        )
-        ->orderBy('old_staff.lname')
-        ->get();
-
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => $pld,
-    ]);
-}
 
 
     /**
@@ -11999,7 +12110,7 @@ public function setStaffSubject(Request $request)
     //         return response()->json([
     //             "status" => false,
     //             "message" => "A subaccount already exists for this school and class.",
-    //         ], 409);
+    //         ], );
     //     }
 
     //     // Create main account
@@ -12096,7 +12207,7 @@ public function setStaffSubject(Request $request)
             return response()->json([
                 'status' => false,
                 'message' => 'This pay head has already been assigned to this class.'
-            ], 409);
+            ], );
         }
 
         /*
@@ -27123,7 +27234,7 @@ public function setStaffSubject(Request $request)
     //         return response()->json([
     //             'status' => false,
     //             'message' => 'This student has already been promoted for the selected session and term',
-    //         ], 409); // conflict
+    //         ], ); // conflict
     //     }
 
     //     // 4. Generate deterministic UID (no random numbers)
@@ -27142,7 +27253,7 @@ public function setStaffSubject(Request $request)
     //         return response()->json([
     //             'status' => false,
     //             'message' => 'This student has already been promoted for the selected session, term, and class.',
-    //         ], 409); // 409 Conflict
+    //         ], ); //  Conflict
     //     }
 
     //     // 5. Create promotion record
@@ -27427,7 +27538,7 @@ public function setStaffSubject(Request $request)
             return response()->json([
                 'status' => false,
                 'message' => 'This student has already been repeated for the selected session, term, and class.',
-            ], 409); // 409 Conflict
+            ]); //  Conflict
         }
 
         old_student::updateOrCreate(
@@ -28107,7 +28218,7 @@ public function setStaffSubject(Request $request)
             return response()->json([
                 'status' => false,
                 'message' => 'This student has already been reposted for the selected session, term, and class.',
-            ], 409);
+            ]);
         }
 
         // ✅ Create or update promotion record
@@ -35223,7 +35334,7 @@ public function setStaffSubject(Request $request)
                             return response()->json([
                                 'status' => false,
                                 'message' => 'Duplicate record of students for the specified session, term, and class.',
-                            ], 409); // 409 Conflict
+                            ]); //  Conflict
                         }
 
                         // UID includes term to prevent duplicates
@@ -36303,181 +36414,181 @@ public function setStaffSubject(Request $request)
     //     }
     // }
 
-public function maintainPreviousStaff(Request $request)
-{
-    $request->validate([
-        'schid' => 'required|integer',
-        'new_trm' => 'required|integer', // pass current term explicitly
-        'ssn' => 'required|integer', // pass current session explicitly
-    ]);
+    public function maintainPreviousStaff(Request $request)
+    {
+        $request->validate([
+            'schid' => 'required|integer',
+            'new_trm' => 'required|integer', // pass current term explicitly
+            'ssn' => 'required|integer', // pass current session explicitly
+        ]);
 
-    $schid = $request->schid;
-    $current_trm = $request->new_trm;
-    $current_ssn = $request->ssn;
+        $schid = $request->schid;
+        $current_trm = $request->new_trm;
+        $current_ssn = $request->ssn;
 
-    // ---- Determine next term & session ----
-    if ($current_trm === 3) {
-        $new_trm = 1;
-        $new_ssn = $current_ssn + 1;
-    } else {
-        $new_trm = $current_trm + 1;
-        $new_ssn = $current_ssn;
-    }
-
-    // ---- Previous term/session is the current one ----
-    $prev_trm = $current_trm;
-    $prev_ssn = $current_ssn;
-
-    DB::beginTransaction();
-
-    try {
-        // ---- 1. Bring staff forward (old_staff) ----
-        $prevStaff = DB::table('old_staff')
-            ->where('schid', $schid)
-            ->where('trm', $prev_trm)
-            ->where('ssn', $prev_ssn)
-            ->where('status', 'active')
-            ->get();
-
-        foreach ($prevStaff as $staff) {
-            $uid = $new_ssn . $new_trm . $staff->sid . $staff->clsm;
-
-            // Use the unique index columns for updateOrInsert
-            DB::table('old_staff')->updateOrInsert(
-                [
-                    'sid' => $staff->sid,
-                    'schid' => $staff->schid,
-                    'ssn' => $new_ssn,
-                    'trm' => $new_trm,
-                    'clsm' => $staff->clsm
-                ],
-                [
-                    'uid' => $uid,
-                    'suid' => $staff->suid,
-                    'fname' => $staff->fname,
-                    'mname' => $staff->mname,
-                    'lname' => $staff->lname,
-                    'role' => $staff->role,
-                    'role2' => $staff->role2,
-                    'status' => 'active',
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]
-            );
+        // ---- Determine next term & session ----
+        if ($current_trm === 3) {
+            $new_trm = 1;
+            $new_ssn = $current_ssn + 1;
+        } else {
+            $new_trm = $current_trm + 1;
+            $new_ssn = $current_ssn;
         }
 
-        // ---- 2. Bring staff_class forward ----
-        $prevClasses = DB::table('staff_class')
-            ->where('schid', $schid)
-            ->where('trm', $prev_trm)
-            ->where('ssn', $prev_ssn)
-            ->get();
+        // ---- Previous term/session is the current one ----
+        $prev_trm = $current_trm;
+        $prev_ssn = $current_ssn;
 
-        foreach ($prevClasses as $cls) {
-            $uid = $cls->stid . $cls->cls . $new_trm . $new_ssn;
+        DB::beginTransaction();
 
-            DB::table('staff_class')->updateOrInsert(
-                [
-                    'stid' => $cls->stid,
-                    'cls' => $cls->cls,
-                    'schid' => $cls->schid,
-                    'ssn' => $new_ssn,
-                    'trm' => $new_trm
-                ],
-                [
-                    'uid' => $uid,
-                    'created_at' => now(),
-                    'updated_at' => now()
+        try {
+            // ---- 1. Bring staff forward (old_staff) ----
+            $prevStaff = DB::table('old_staff')
+                ->where('schid', $schid)
+                ->where('trm', $prev_trm)
+                ->where('ssn', $prev_ssn)
+                ->where('status', 'active')
+                ->get();
+
+            foreach ($prevStaff as $staff) {
+                $uid = $new_ssn . $new_trm . $staff->sid . $staff->clsm;
+
+                // Use the unique index columns for updateOrInsert
+                DB::table('old_staff')->updateOrInsert(
+                    [
+                        'sid' => $staff->sid,
+                        'schid' => $staff->schid,
+                        'ssn' => $new_ssn,
+                        'trm' => $new_trm,
+                        'clsm' => $staff->clsm
+                    ],
+                    [
+                        'uid' => $uid,
+                        'suid' => $staff->suid,
+                        'fname' => $staff->fname,
+                        'mname' => $staff->mname,
+                        'lname' => $staff->lname,
+                        'role' => $staff->role,
+                        'role2' => $staff->role2,
+                        'status' => 'active',
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]
+                );
+            }
+
+            // ---- 2. Bring staff_class forward ----
+            $prevClasses = DB::table('staff_class')
+                ->where('schid', $schid)
+                ->where('trm', $prev_trm)
+                ->where('ssn', $prev_ssn)
+                ->get();
+
+            foreach ($prevClasses as $cls) {
+                $uid = $cls->stid . $cls->cls . $new_trm . $new_ssn;
+
+                DB::table('staff_class')->updateOrInsert(
+                    [
+                        'stid' => $cls->stid,
+                        'cls' => $cls->cls,
+                        'schid' => $cls->schid,
+                        'ssn' => $new_ssn,
+                        'trm' => $new_trm
+                    ],
+                    [
+                        'uid' => $uid,
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]
+                );
+            }
+
+            // ---- 3. Bring staff_class_arm forward ----
+            $prevArms = DB::table('staff_class_arm')
+                ->where('schid', $schid)
+                ->where('trm', $prev_trm)
+                ->where('sesn', $prev_ssn)
+                ->get();
+
+            foreach ($prevArms as $arm) {
+                $uid = $arm->stid . $arm->cls . $arm->arm . $new_trm . $new_ssn;
+
+                DB::table('staff_class_arm')->updateOrInsert(
+                    [
+                        'stid' => $arm->stid,
+                        'cls' => $arm->cls,
+                        'arm' => $arm->arm,
+                        'schid' => $arm->schid,
+                        'sesn' => $new_ssn,
+                        'trm' => $new_trm
+                    ],
+                    [
+                        'uid' => $uid,
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]
+                );
+            }
+
+            // ---- 4. Bring staff_subj forward ----
+            $prevSubj = DB::table('staff_subj')
+                ->where('schid', $schid)
+                ->where('trm', $prev_trm)
+                ->where('sesn', $prev_ssn)
+                ->get();
+
+            foreach ($prevSubj as $subj) {
+                $uid = $subj->stid . $subj->sbj . $new_trm . $new_ssn;
+
+                DB::table('staff_subj')->updateOrInsert(
+                    [
+                        'stid' => $subj->stid,
+                        'sbj' => $subj->sbj,
+                        'schid' => $subj->schid,
+                        'sesn' => $new_ssn,
+                        'trm' => $new_trm
+                    ],
+                    [
+                        'uid' => $uid,
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]
+                );
+            }
+
+            DB::commit();
+
+            return response()->json([
+                "status" => true,
+                "message" => "Success",
+                "pld" => [
+                    'schid' => $schid,
+                    'new_trm' => $new_trm,
+                    'new_ssn' => $new_ssn,
+                    'prev_trm' => $prev_trm,
+                    'prev_ssn' => $prev_ssn
                 ]
-            );
-        }
+            ]);
 
-        // ---- 3. Bring staff_class_arm forward ----
-        $prevArms = DB::table('staff_class_arm')
-            ->where('schid', $schid)
-            ->where('trm', $prev_trm)
-            ->where('sesn', $prev_ssn)
-            ->get();
+        } catch (\Throwable $e) {
+            DB::rollBack();
 
-        foreach ($prevArms as $arm) {
-            $uid = $arm->stid . $arm->cls . $arm->arm . $new_trm . $new_ssn;
-
-            DB::table('staff_class_arm')->updateOrInsert(
-                [
-                    'stid' => $arm->stid,
-                    'cls' => $arm->cls,
-                    'arm' => $arm->arm,
-                    'schid' => $arm->schid,
-                    'sesn' => $new_ssn,
-                    'trm' => $new_trm
-                ],
-                [
-                    'uid' => $uid,
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]
-            );
-        }
-
-        // ---- 4. Bring staff_subj forward ----
-        $prevSubj = DB::table('staff_subj')
-            ->where('schid', $schid)
-            ->where('trm', $prev_trm)
-            ->where('sesn', $prev_ssn)
-            ->get();
-
-        foreach ($prevSubj as $subj) {
-            $uid = $subj->stid . $subj->sbj . $new_trm . $new_ssn;
-
-            DB::table('staff_subj')->updateOrInsert(
-                [
-                    'stid' => $subj->stid,
-                    'sbj' => $subj->sbj,
-                    'schid' => $subj->schid,
-                    'sesn' => $new_ssn,
-                    'trm' => $new_trm
-                ],
-                [
-                    'uid' => $uid,
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]
-            );
-        }
-
-        DB::commit();
-
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => [
+            Log::error('Maintain Previous Staff Failed', [
                 'schid' => $schid,
                 'new_trm' => $new_trm,
                 'new_ssn' => $new_ssn,
-                'prev_trm' => $prev_trm,
-                'prev_ssn' => $prev_ssn
-            ]
-        ]);
+                'error' => $e->getMessage()
+            ]);
 
-    } catch (\Throwable $e) {
-        DB::rollBack();
-
-        Log::error('Maintain Previous Staff Failed', [
-            'schid' => $schid,
-            'new_trm' => $new_trm,
-            'new_ssn' => $new_ssn,
-            'error' => $e->getMessage()
-        ]);
-
-        return response()->json([
-            "status" => false,
-            "message" => "Failed to maintain previous term staff data",
-            "error" => $e->getMessage()
-        ], 500);
+            return response()->json([
+                "status" => false,
+                "message" => "Failed to maintain previous term staff data",
+                "error" => $e->getMessage()
+            ], 500);
+        }
     }
-}
 
-/////////////////////////////////////
+    /////////////////////////////////////
 
 
 
@@ -36908,6 +37019,131 @@ public function maintainPreviousStaff(Request $request)
     }
 
 
+
+
+    /**
+     * @OA\Get(
+     *     path="/lesson-plans/{schid}/{ssn}/{trm}/{clsm}/{sbj}",
+     *     summary="Get lesson plans by subject",
+     *     description="Fetches lesson plans for a specific school, session, term, class, and subject with optional pagination.",
+     *     operationId="getLessonPlanBySubj",
+     *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="path",
+     *         required=true,
+     *         description="School ID",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="path",
+     *         required=true,
+     *         description="Academic session (e.g., 2025)",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Term number",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="clsm",
+     *         in="path",
+     *         required=true,
+     *         description="Class ID",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="sbj",
+     *         in="path",
+     *         required=true,
+     *         description="Subject name",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         required=false,
+     *         description="Start index for pagination (default 0)",
+     *         @OA\Schema(type="integer", default=0)
+     *     ),
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         required=false,
+     *         description="Number of lesson plans to fetch (default 20)",
+     *         @OA\Schema(type="integer", default=20)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Lesson plans fetched successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Lesson plans fetched successfully"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 @OA\Property(property="schid", type="string", example="12"),
+     *                 @OA\Property(property="ssn", type="string", example="2025"),
+     *                 @OA\Property(property="trm", type="integer", example=1),
+     *                 @OA\Property(property="clsm", type="string", example="11"),
+     *                 @OA\Property(property="sbj", type="string", example="ENGLISH LANGUAGE"),
+     *                 @OA\Property(property="count", type="integer", example=3),
+     *                 @OA\Property(
+     *                     property="lesson_plans",
+     *                     type="array",
+     *                     @OA\Items(
+     *                         type="object",
+     *                         @OA\Property(property="id", type="integer", example=5),
+     *                         @OA\Property(property="plan_type", type="string", example="weekly"),
+     *                         @OA\Property(property="weekly", type="string", example="Week 1"),
+     *                         @OA\Property(property="sbj", type="string", example="ENGLISH LANGUAGE"),
+     *                         @OA\Property(property="topic", type="string", example="Parts of Speech"),
+     *                         @OA\Property(property="date", type="string", format="date", example="2026-02-01"),
+     *                         @OA\Property(property="no_of_class", type="integer", example=35)
+     *                     )
+     *                 )
+     *             )
+     *         )
+     *     )
+     * )
+     */
+    public function getLessonPlanBySubj($schid, $ssn, $trm, $clsm, $sbj)
+    {
+        // Pagination defaults
+        $start = request()->query('start', 0);
+        $count = request()->query('count', 20);
+
+        // Fetch lesson plans
+        $lessonPlans = lesson_plan::where('schid', $schid)
+            ->where('clsm', $clsm)
+            ->where('ssn', $ssn)
+            ->where('trm', $trm)
+            ->where('sbj', $sbj)
+            ->orderBy('date', 'asc')
+            ->skip($start)
+            ->take($count)
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Lesson plans fetched successfully',
+            'pld' => [
+                'schid' => $schid,
+                'ssn' => $ssn,
+                'trm' => (int) $trm,
+                'clsm' => $clsm,
+                'sbj' => $sbj,
+                'count' => $lessonPlans->count(),
+                'lesson_plans' => $lessonPlans,
+            ],
+        ], 200);
+    }
 
 }
 
