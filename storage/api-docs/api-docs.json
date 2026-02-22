@@ -30832,7 +30832,7 @@
                 ]
             }
         },
-        "/lesson-plans/{schid}/{ssn}/{trm}/{clsm}/{sbj}": {
+        "/api/lesson-plans/{schid}/{ssn}/{trm}/{clsm}/{sbj}": {
             "get": {
                 "tags": [
                     "Api"

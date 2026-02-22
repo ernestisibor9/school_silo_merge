@@ -37023,7 +37023,7 @@ class ApiController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/lesson-plans/{schid}/{ssn}/{trm}/{clsm}/{sbj}",
+     *     path="/api/lesson-plans/{schid}/{ssn}/{trm}/{clsm}/{sbj}",
      *     summary="Get lesson plans by subject",
      *     description="Fetches lesson plans for a specific school, session, term, class, and subject with optional pagination.",
      *     operationId="getLessonPlanBySubj",
