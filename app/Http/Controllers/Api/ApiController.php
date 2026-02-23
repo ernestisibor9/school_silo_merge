@@ -37170,37 +37170,37 @@ public function getLessonPlansByTerm($schid, $ssn, $trm, $sbj)
      *     )
      * )
      */
-    public function getLessonPlanBySubj($schid, $ssn, $trm, $clsm, $sbj)
-    {
-        // Pagination defaults
-        $start = request()->query('start', 0);
-        $count = request()->query('count', 20);
+    // public function getLessonPlanBySubj($schid, $ssn, $trm, $clsm, $sbj)
+    // {
+    //     // Pagination defaults
+    //     $start = request()->query('start', 0);
+    //     $count = request()->query('count', 20);
 
-        // Fetch lesson plans
-        $lessonPlans = lesson_plan::where('schid', $schid)
-            ->where('clsm', $clsm)
-            ->where('ssn', $ssn)
-            ->where('trm', $trm)
-            ->where('sbj', $sbj)
-            ->orderBy('date', 'asc')
-            ->skip($start)
-            ->take($count)
-            ->get();
+    //     // Fetch lesson plans
+    //     $lessonPlans = lesson_plan::where('schid', $schid)
+    //         ->where('clsm', $clsm)
+    //         ->where('ssn', $ssn)
+    //         ->where('trm', $trm)
+    //         ->where('sbj', $sbj)
+    //         ->orderBy('date', 'asc')
+    //         ->skip($start)
+    //         ->take($count)
+    //         ->get();
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Lesson plans fetched successfully',
-            'pld' => [
-                'schid' => $schid,
-                'ssn' => $ssn,
-                'trm' => (int) $trm,
-                'clsm' => $clsm,
-                'sbj' => $sbj,
-                'count' => $lessonPlans->count(),
-                'lesson_plans' => $lessonPlans,
-            ],
-        ], 200);
-    }
+    //     return response()->json([
+    //         'status' => true,
+    //         'message' => 'Lesson plans fetched successfully',
+    //         'pld' => [
+    //             'schid' => $schid,
+    //             'ssn' => $ssn,
+    //             'trm' => (int) $trm,
+    //             'clsm' => $clsm,
+    //             'sbj' => $sbj,
+    //             'count' => $lessonPlans->count(),
+    //             'lesson_plans' => $lessonPlans,
+    //         ],
+    //     ], 200);
+    // }
 
 }
 
