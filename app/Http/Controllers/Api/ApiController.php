@@ -22210,7 +22210,8 @@ class ApiController extends Controller
  *     summary="Get weekly lesson plans",
  *     tags={"Api"},
  *     security={{"bearerAuth": {}}},
- *     description="Fetch weekly lesson plans for a specific school, class, session, term, and optionally a subject. You can also filter by week_start date.",
+ *     description="Fetch weekly lesson plans for a specific school, class, session, and term. Optionally filter by subject and week_start date.",
+ *
  *     @OA\Parameter(
  *         name="schid",
  *         in="path",
@@ -22281,18 +22282,14 @@ class ApiController extends Controller
  *                 @OA\Property(property="ssn", type="string", example="2025"),
  *                 @OA\Property(property="trm", type="integer", example=1),
  *                 @OA\Property(property="clsm", type="string", example="11"),
- *                 @OA\Property(property="sbj", type="string", example="ENGLISH LANGUAGE"),
- *                 @OA\Property(property="count", type="integer", example=5),
+ *                 @OA\Property(property="sbj", type="string", nullable=true, example="ENGLISH LANGUAGE"),
+ *                 @OA\Property(property="count", type="integer", example=3),
  *                 @OA\Property(
  *                     property="lesson_plans",
  *                     type="array",
  *                     @OA\Items(
  *                         type="object",
  *                         @OA\Property(property="id", type="integer", example=5),
- *                         @OA\Property(property="schid", type="string", example="12"),
- *                         @OA\Property(property="clsm", type="string", example="11"),
- *                         @OA\Property(property="ssn", type="string", example="2025"),
- *                         @OA\Property(property="trm", type="integer", example=1),
  *                         @OA\Property(property="plan_type", type="string", example="weekly"),
  *                         @OA\Property(property="sbj", type="string", example="ENGLISH LANGUAGE"),
  *                         @OA\Property(property="topic", type="string", example="Parts of Speech"),
@@ -37170,37 +37167,37 @@ public function getLessonPlansByTerm($schid, $ssn, $trm, $sbj)
      *     )
      * )
      */
-    // public function getLessonPlanBySubj($schid, $ssn, $trm, $clsm, $sbj)
-    // {
-    //     // Pagination defaults
-    //     $start = request()->query('start', 0);
-    //     $count = request()->query('count', 20);
+    public function getLessonPlanBySubj($schid, $ssn, $trm, $clsm, $sbj)
+    {
+        // Pagination defaults
+        $start = request()->query('start', 0);
+        $count = request()->query('count', 20);
 
-    //     // Fetch lesson plans
-    //     $lessonPlans = lesson_plan::where('schid', $schid)
-    //         ->where('clsm', $clsm)
-    //         ->where('ssn', $ssn)
-    //         ->where('trm', $trm)
-    //         ->where('sbj', $sbj)
-    //         ->orderBy('date', 'asc')
-    //         ->skip($start)
-    //         ->take($count)
-    //         ->get();
+        // Fetch lesson plans
+        $lessonPlans = lesson_plan::where('schid', $schid)
+            ->where('clsm', $clsm)
+            ->where('ssn', $ssn)
+            ->where('trm', $trm)
+            ->where('sbj', $sbj)
+            ->orderBy('date', 'asc')
+            ->skip($start)
+            ->take($count)
+            ->get();
 
-    //     return response()->json([
-    //         'status' => true,
-    //         'message' => 'Lesson plans fetched successfully',
-    //         'pld' => [
-    //             'schid' => $schid,
-    //             'ssn' => $ssn,
-    //             'trm' => (int) $trm,
-    //             'clsm' => $clsm,
-    //             'sbj' => $sbj,
-    //             'count' => $lessonPlans->count(),
-    //             'lesson_plans' => $lessonPlans,
-    //         ],
-    //     ], 200);
-    // }
+        return response()->json([
+            'status' => true,
+            'message' => 'Lesson plans fetched successfully',
+            'pld' => [
+                'schid' => $schid,
+                'ssn' => $ssn,
+                'trm' => (int) $trm,
+                'clsm' => $clsm,
+                'sbj' => $sbj,
+                'count' => $lessonPlans->count(),
+                'lesson_plans' => $lessonPlans,
+            ],
+        ], 200);
+    }
 
 }
 

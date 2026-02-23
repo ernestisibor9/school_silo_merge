@@ -391,7 +391,7 @@ Route::group([
     Route::get('getCurriculumBySubject/{schid}/{ssn}/{trm}/{clsm}/{sbj}', [ApiController::class, 'getCurriculumBySubject']);
 
     Route::get('getLessonPlan/{schid}/{ssn}/{trm}/{clsm}', [ApiController::class, 'getLessonPlan']);
-    // Route::get('getLessonPlanBySubject/{schid}/{ssn}/{trm}/{clsm}/{sbj}', [ApiController::class, 'getLessonPlanBySubject']);
+    Route::get('getLessonPlanBySubject/{schid}/{ssn}/{trm}/{clsm}/{sbj}', [ApiController::class, 'getLessonPlanBySubject']);
 
     Route::get('getAllSubjectPositions/{schid}/{ssn}/{trm}/{clsm}/{clsa}', [ApiController::class, 'getAllSubjectPositions']);
     Route::get('getStudentSubjectPositions/{schid}/{ssn}/{trm}/{clsm}/{clsa}/{stid}', [ApiController::class, 'getStudentSubjectPositions']);

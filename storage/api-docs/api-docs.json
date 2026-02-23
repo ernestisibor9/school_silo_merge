@@ -18164,7 +18164,7 @@
                     "Api"
                 ],
                 "summary": "Get weekly lesson plans",
-                "description": "Fetch weekly lesson plans for a specific school, class, session, term, and optionally a subject. You can also filter by week_start date.",
+                "description": "Fetch weekly lesson plans for a specific school, class, session, and term. Optionally filter by subject and week_start date.",
                 "operationId": "c4e58d5266bc3912a7381f4235ad0035",
                 "parameters": [
                     {
@@ -18284,11 +18284,12 @@
                                                 },
                                                 "sbj": {
                                                     "type": "string",
-                                                    "example": "ENGLISH LANGUAGE"
+                                                    "example": "ENGLISH LANGUAGE",
+                                                    "nullable": true
                                                 },
                                                 "count": {
                                                     "type": "integer",
-                                                    "example": 5
+                                                    "example": 3
                                                 },
                                                 "lesson_plans": {
                                                     "type": "array",
@@ -18297,22 +18298,6 @@
                                                             "id": {
                                                                 "type": "integer",
                                                                 "example": 5
-                                                            },
-                                                            "schid": {
-                                                                "type": "string",
-                                                                "example": "12"
-                                                            },
-                                                            "clsm": {
-                                                                "type": "string",
-                                                                "example": "11"
-                                                            },
-                                                            "ssn": {
-                                                                "type": "string",
-                                                                "example": "2025"
-                                                            },
-                                                            "trm": {
-                                                                "type": "integer",
-                                                                "example": 1
                                                             },
                                                             "plan_type": {
                                                                 "type": "string",
@@ -30967,6 +30952,176 @@
                     },
                     "404": {
                         "description": "No lesson plans found for the specified filters"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/lesson-plans/{schid}/{ssn}/{trm}/{clsm}/{sbj}": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get lesson plans by subject",
+                "description": "Fetches lesson plans for a specific school, session, term, class, and subject with optional pagination.",
+                "operationId": "getLessonPlanBySubj",
+                "parameters": [
+                    {
+                        "name": "schid",
+                        "in": "path",
+                        "description": "School ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "path",
+                        "description": "Academic session (e.g., 2025)",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "path",
+                        "description": "Term number",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "clsm",
+                        "in": "path",
+                        "description": "Class ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "sbj",
+                        "in": "path",
+                        "description": "Subject name",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Start index for pagination (default 0)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 0
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "Number of lesson plans to fetch (default 20)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 20
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lesson plans fetched successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Lesson plans fetched successfully"
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "schid": {
+                                                    "type": "string",
+                                                    "example": "12"
+                                                },
+                                                "ssn": {
+                                                    "type": "string",
+                                                    "example": "2025"
+                                                },
+                                                "trm": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "clsm": {
+                                                    "type": "string",
+                                                    "example": "11"
+                                                },
+                                                "sbj": {
+                                                    "type": "string",
+                                                    "example": "ENGLISH LANGUAGE"
+                                                },
+                                                "count": {
+                                                    "type": "integer",
+                                                    "example": 3
+                                                },
+                                                "lesson_plans": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer",
+                                                                "example": 5
+                                                            },
+                                                            "plan_type": {
+                                                                "type": "string",
+                                                                "example": "weekly"
+                                                            },
+                                                            "weekly": {
+                                                                "type": "string",
+                                                                "example": "Week 1"
+                                                            },
+                                                            "sbj": {
+                                                                "type": "string",
+                                                                "example": "ENGLISH LANGUAGE"
+                                                            },
+                                                            "topic": {
+                                                                "type": "string",
+                                                                "example": "Parts of Speech"
+                                                            },
+                                                            "date": {
+                                                                "type": "string",
+                                                                "format": "date",
+                                                                "example": "2026-02-01"
+                                                            },
+                                                            "no_of_class": {
+                                                                "type": "integer",
+                                                                "example": 35
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
