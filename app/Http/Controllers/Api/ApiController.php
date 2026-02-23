@@ -22206,7 +22206,7 @@ class ApiController extends Controller
 
 /**
  * @OA\Get(
- *     path="/api/lesson-plan/weekly/{schid}/{ssn}/{trm}/{clsm}/{sbj?}",
+ *     path="/api/lesson-plan/weekly/{schid}/{ssn}/{trm}/{clsm}",
  *     summary="Get weekly lesson plans",
  *     tags={"Api"},
  *     security={{"bearerAuth": {}}},
@@ -22242,7 +22242,7 @@ class ApiController extends Controller
  *     ),
  *     @OA\Parameter(
  *         name="sbj",
- *         in="path",
+ *         in="query",
  *         required=false,
  *         description="Subject name (optional). Leave empty to fetch all subjects",
  *         @OA\Schema(type="string", example="ENGLISH LANGUAGE")
@@ -22287,54 +22287,36 @@ class ApiController extends Controller
  *                 @OA\Property(
  *                     property="lesson_plans",
  *                     type="array",
- *                     @OA\Items(
- *                         type="object",
- *                         @OA\Property(property="id", type="integer", example=5),
- *                         @OA\Property(property="plan_type", type="string", example="weekly"),
- *                         @OA\Property(property="sbj", type="string", example="ENGLISH LANGUAGE"),
- *                         @OA\Property(property="topic", type="string", example="Parts of Speech"),
- *                         @OA\Property(property="sub_topic", type="array", @OA\Items(type="string"), example={"Nouns","Verbs"}),
- *                         @OA\Property(property="date", type="string", format="date", example="2025-09-03"),
- *                         @OA\Property(property="no_of_class", type="integer", example=35),
- *                         @OA\Property(property="average_age", type="number", example=12),
- *                         @OA\Property(property="time_from", type="string", format="time", example="07:30"),
- *                         @OA\Property(property="time_to", type="string", format="time", example="08:10"),
- *                         @OA\Property(property="duration", type="string", example="40 minutes"),
- *                         @OA\Property(property="learning_materials", type="array", @OA\Items(type="string"), example={"Textbook","Board"}),
- *                         @OA\Property(property="lesson_objectives", type="array", @OA\Items(type="string"), example={"Identify nouns","Recognize verbs"})
- *                     )
+ *                     @OA\Items(type="object")
  *                 )
  *             )
  *         )
  *     )
  * )
  */
-
-public function getWeeklyLessonPlan($schid, $ssn, $trm, $clsm, $sbj = null)
+public function getWeeklyLessonPlan($schid, $ssn, $trm, $clsm)
 {
     $start = request()->input('start', 0);
     $count = request()->input('count', 20);
+    $sbj   = request()->input('sbj', null); // subject from query
 
     $query = lesson_plan::where('schid', $schid)
         ->where('clsm', $clsm)
         ->where('ssn', $ssn)
         ->where('trm', $trm)
-        ->where('plan_type', 'weekly'); // only weekly plans
+        ->where('plan_type', 'weekly');
 
-    // Filter by subject if provided
     if ($sbj !== null) {
         $query->where('sbj', trim(urldecode($sbj)));
     }
 
-    // Optional: filter by week_start (YYYY-MM-DD)
     if (request()->has('week_start')) {
         try {
             $weekStart = Carbon::parse(request()->input('week_start'))->startOfWeek();
             $weekEnd   = Carbon::parse(request()->input('week_start'))->endOfWeek();
-
             $query->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()]);
         } catch (\Exception $e) {
-            // Invalid date, ignore week filter
+            // ignore invalid week_start
         }
     }
 

@@ -18158,14 +18158,14 @@
                 ]
             }
         },
-        "/api/lesson-plan/weekly/{schid}/{ssn}/{trm}/{clsm}/{sbj?}": {
+        "/api/lesson-plan/weekly/{schid}/{ssn}/{trm}/{clsm}": {
             "get": {
                 "tags": [
                     "Api"
                 ],
                 "summary": "Get weekly lesson plans",
                 "description": "Fetch weekly lesson plans for a specific school, class, session, and term. Optionally filter by subject and week_start date.",
-                "operationId": "c4e58d5266bc3912a7381f4235ad0035",
+                "operationId": "a9decdf5c8683c61d97eb953707c2967",
                 "parameters": [
                     {
                         "name": "schid",
@@ -18209,7 +18209,7 @@
                     },
                     {
                         "name": "sbj",
-                        "in": "path",
+                        "in": "query",
                         "description": "Subject name (optional). Leave empty to fetch all subjects",
                         "required": false,
                         "schema": {
@@ -18294,81 +18294,6 @@
                                                 "lesson_plans": {
                                                     "type": "array",
                                                     "items": {
-                                                        "properties": {
-                                                            "id": {
-                                                                "type": "integer",
-                                                                "example": 5
-                                                            },
-                                                            "plan_type": {
-                                                                "type": "string",
-                                                                "example": "weekly"
-                                                            },
-                                                            "sbj": {
-                                                                "type": "string",
-                                                                "example": "ENGLISH LANGUAGE"
-                                                            },
-                                                            "topic": {
-                                                                "type": "string",
-                                                                "example": "Parts of Speech"
-                                                            },
-                                                            "sub_topic": {
-                                                                "type": "array",
-                                                                "items": {
-                                                                    "type": "string"
-                                                                },
-                                                                "example": [
-                                                                    "Nouns",
-                                                                    "Verbs"
-                                                                ]
-                                                            },
-                                                            "date": {
-                                                                "type": "string",
-                                                                "format": "date",
-                                                                "example": "2025-09-03"
-                                                            },
-                                                            "no_of_class": {
-                                                                "type": "integer",
-                                                                "example": 35
-                                                            },
-                                                            "average_age": {
-                                                                "type": "number",
-                                                                "example": 12
-                                                            },
-                                                            "time_from": {
-                                                                "type": "string",
-                                                                "format": "time",
-                                                                "example": "07:30"
-                                                            },
-                                                            "time_to": {
-                                                                "type": "string",
-                                                                "format": "time",
-                                                                "example": "08:10"
-                                                            },
-                                                            "duration": {
-                                                                "type": "string",
-                                                                "example": "40 minutes"
-                                                            },
-                                                            "learning_materials": {
-                                                                "type": "array",
-                                                                "items": {
-                                                                    "type": "string"
-                                                                },
-                                                                "example": [
-                                                                    "Textbook",
-                                                                    "Board"
-                                                                ]
-                                                            },
-                                                            "lesson_objectives": {
-                                                                "type": "array",
-                                                                "items": {
-                                                                    "type": "string"
-                                                                },
-                                                                "example": [
-                                                                    "Identify nouns",
-                                                                    "Recognize verbs"
-                                                                ]
-                                                            }
-                                                        },
                                                         "type": "object"
                                                     }
                                                 }
