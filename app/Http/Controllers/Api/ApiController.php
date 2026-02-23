@@ -22204,131 +22204,159 @@ class ApiController extends Controller
 
 
 
-    /**
-     * @OA\Get(
-     *     path="/api/lesson-plan/weekly/{schid}/{ssn}/{trm}/{clsm}",
-     *     summary="Get weekly lesson plans",
-     *     tags={"Api"},
-     *      security={{"bearerAuth": {}}},
-     *     description="Fetch weekly lesson plans for a specific school, class, session, and term. Optionally filter by week_start date.",
-     *     @OA\Parameter(
-     *         name="schid",
-     *         in="path",
-     *         required=true,
-     *         description="School ID",
-     *         @OA\Schema(type="string", example="12")
-     *     ),
-     *     @OA\Parameter(
-     *         name="ssn",
-     *         in="path",
-     *         required=true,
-     *         description="Session/academic year",
-     *         @OA\Schema(type="string", example="2025")
-     *     ),
-     *     @OA\Parameter(
-     *         name="trm",
-     *         in="path",
-     *         required=true,
-     *         description="Term number",
-     *         @OA\Schema(type="integer", example=1)
-     *     ),
-     *     @OA\Parameter(
-     *         name="clsm",
-     *         in="path",
-     *         required=true,
-     *         description="Class/grade",
-     *         @OA\Schema(type="string", example="11")
-     *     ),
-     *     @OA\Parameter(
-     *         name="week_start",
-     *         in="query",
-     *         required=false,
-     *         description="Start date of the week (YYYY-MM-DD) to filter lesson plans",
-     *         @OA\Schema(type="string", format="date", example="2026-02-09")
-     *     ),
-     *     @OA\Parameter(
-     *         name="start",
-     *         in="query",
-     *         required=false,
-     *         description="Pagination start index",
-     *         @OA\Schema(type="integer", example=0)
-     *     ),
-     *     @OA\Parameter(
-     *         name="count",
-     *         in="query",
-     *         required=false,
-     *         description="Number of lesson plans to return",
-     *         @OA\Schema(type="integer", example=20)
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Weekly lesson plans retrieved successfully",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Success"),
-     *             @OA\Property(
-     *                 property="pld",
-     *                 type="array",
-     *                 @OA\Items(
-     *                     type="object",
-     *                     @OA\Property(property="id", type="integer", example=5),
-     *                     @OA\Property(property="schid", type="string", example="12"),
-     *                     @OA\Property(property="clsm", type="string", example="11"),
-     *                     @OA\Property(property="ssn", type="string", example="2025"),
-     *                     @OA\Property(property="trm", type="integer", example=1),
-     *                     @OA\Property(property="plan_type", type="string", example="weekly"),
-     *                     @OA\Property(property="sbj", type="string", example="ENGLISH LANGUAGE"),
-     *                     @OA\Property(property="topic", type="string", example="Parts of Speech"),
-     *                     @OA\Property(property="sub_topic", type="array", @OA\Items(type="string"), example={"Nouns","Verbs"}),
-     *                     @OA\Property(property="date", type="string", format="date", example="2025-09-03"),
-     *                     @OA\Property(property="no_of_class", type="integer", example=35),
-     *                     @OA\Property(property="average_age", type="number", example=12),
-     *                     @OA\Property(property="time_from", type="string", format="time", example="07:30"),
-     *                     @OA\Property(property="time_to", type="string", format="time", example="08:10"),
-     *                     @OA\Property(property="duration", type="string", example="40 minutes"),
-     *                     @OA\Property(property="learning_materials", type="array", @OA\Items(type="string"), example={"Textbook","Board"}),
-     *                     @OA\Property(property="lesson_objectives", type="array", @OA\Items(type="string"), example={"Identify nouns","Recognize verbs"})
-     *                 )
-     *             )
-     *         )
-     *     )
-     * )
-     */
+/**
+ * @OA\Get(
+ *     path="/api/lesson-plan/weekly/{schid}/{ssn}/{trm}/{clsm}/{sbj?}",
+ *     summary="Get weekly lesson plans",
+ *     tags={"Api"},
+ *     security={{"bearerAuth": {}}},
+ *     description="Fetch weekly lesson plans for a specific school, class, session, term, and optionally a subject. You can also filter by week_start date.",
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="path",
+ *         required=true,
+ *         description="School ID",
+ *         @OA\Schema(type="string", example="12")
+ *     ),
+ *     @OA\Parameter(
+ *         name="ssn",
+ *         in="path",
+ *         required=true,
+ *         description="Session/academic year",
+ *         @OA\Schema(type="string", example="2025")
+ *     ),
+ *     @OA\Parameter(
+ *         name="trm",
+ *         in="path",
+ *         required=true,
+ *         description="Term number",
+ *         @OA\Schema(type="integer", example=1)
+ *     ),
+ *     @OA\Parameter(
+ *         name="clsm",
+ *         in="path",
+ *         required=true,
+ *         description="Class/grade",
+ *         @OA\Schema(type="string", example="11")
+ *     ),
+ *     @OA\Parameter(
+ *         name="sbj",
+ *         in="path",
+ *         required=false,
+ *         description="Subject name (optional). Leave empty to fetch all subjects",
+ *         @OA\Schema(type="string", example="ENGLISH LANGUAGE")
+ *     ),
+ *     @OA\Parameter(
+ *         name="week_start",
+ *         in="query",
+ *         required=false,
+ *         description="Start date of the week (YYYY-MM-DD) to filter lesson plans",
+ *         @OA\Schema(type="string", format="date", example="2026-02-09")
+ *     ),
+ *     @OA\Parameter(
+ *         name="start",
+ *         in="query",
+ *         required=false,
+ *         description="Pagination start index",
+ *         @OA\Schema(type="integer", example=0)
+ *     ),
+ *     @OA\Parameter(
+ *         name="count",
+ *         in="query",
+ *         required=false,
+ *         description="Number of lesson plans to return",
+ *         @OA\Schema(type="integer", example=20)
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Weekly lesson plans retrieved successfully",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="object",
+ *                 @OA\Property(property="schid", type="string", example="12"),
+ *                 @OA\Property(property="ssn", type="string", example="2025"),
+ *                 @OA\Property(property="trm", type="integer", example=1),
+ *                 @OA\Property(property="clsm", type="string", example="11"),
+ *                 @OA\Property(property="sbj", type="string", example="ENGLISH LANGUAGE"),
+ *                 @OA\Property(property="count", type="integer", example=5),
+ *                 @OA\Property(
+ *                     property="lesson_plans",
+ *                     type="array",
+ *                     @OA\Items(
+ *                         type="object",
+ *                         @OA\Property(property="id", type="integer", example=5),
+ *                         @OA\Property(property="schid", type="string", example="12"),
+ *                         @OA\Property(property="clsm", type="string", example="11"),
+ *                         @OA\Property(property="ssn", type="string", example="2025"),
+ *                         @OA\Property(property="trm", type="integer", example=1),
+ *                         @OA\Property(property="plan_type", type="string", example="weekly"),
+ *                         @OA\Property(property="sbj", type="string", example="ENGLISH LANGUAGE"),
+ *                         @OA\Property(property="topic", type="string", example="Parts of Speech"),
+ *                         @OA\Property(property="sub_topic", type="array", @OA\Items(type="string"), example={"Nouns","Verbs"}),
+ *                         @OA\Property(property="date", type="string", format="date", example="2025-09-03"),
+ *                         @OA\Property(property="no_of_class", type="integer", example=35),
+ *                         @OA\Property(property="average_age", type="number", example=12),
+ *                         @OA\Property(property="time_from", type="string", format="time", example="07:30"),
+ *                         @OA\Property(property="time_to", type="string", format="time", example="08:10"),
+ *                         @OA\Property(property="duration", type="string", example="40 minutes"),
+ *                         @OA\Property(property="learning_materials", type="array", @OA\Items(type="string"), example={"Textbook","Board"}),
+ *                         @OA\Property(property="lesson_objectives", type="array", @OA\Items(type="string"), example={"Identify nouns","Recognize verbs"})
+ *                     )
+ *                 )
+ *             )
+ *         )
+ *     )
+ * )
+ */
 
-    public function getWeeklyLessonPlan($schid, $ssn, $trm, $clsm)
-    {
-        $start = request()->input('start', 0);
-        $count = request()->input('count', 20);
+public function getWeeklyLessonPlan($schid, $ssn, $trm, $clsm, $sbj = null)
+{
+    $start = request()->input('start', 0);
+    $count = request()->input('count', 20);
 
-        $query = lesson_plan::where('schid', $schid)
-            ->where('clsm', $clsm)
-            ->where('ssn', $ssn)
-            ->where('trm', $trm)
-            ->where('plan_type', 'weekly'); // filter only weekly plans
+    $query = lesson_plan::where('schid', $schid)
+        ->where('clsm', $clsm)
+        ->where('ssn', $ssn)
+        ->where('trm', $trm)
+        ->where('plan_type', 'weekly'); // only weekly plans
 
-        // Optional: filter by week_start (YYYY-MM-DD)
-        if (request()->has('week_start')) {
-            try {
-                // Parse the week_start date and get start and end of the week
-                $weekStart = Carbon::parse(request()->input('week_start'))->startOfWeek();
-                $weekEnd = Carbon::parse(request()->input('week_start'))->endOfWeek();
-
-                // Filter lesson plans whose 'date' falls within that week
-                $query->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()]);
-            } catch (\Exception $e) {
-                // Invalid date provided, ignore week filter
-            }
-        }
-
-        $lessonPlan = $query->skip($start)->take($count)->get();
-
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $lessonPlan,
-        ]);
+    // Filter by subject if provided
+    if ($sbj !== null) {
+        $query->where('sbj', trim(urldecode($sbj)));
     }
+
+    // Optional: filter by week_start (YYYY-MM-DD)
+    if (request()->has('week_start')) {
+        try {
+            $weekStart = Carbon::parse(request()->input('week_start'))->startOfWeek();
+            $weekEnd   = Carbon::parse(request()->input('week_start'))->endOfWeek();
+
+            $query->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()]);
+        } catch (\Exception $e) {
+            // Invalid date, ignore week filter
+        }
+    }
+
+    $lessonPlan = $query->skip($start)->take($count)->get();
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => [
+            'schid' => $schid,
+            'ssn'   => $ssn,
+            'trm'   => (int) $trm,
+            'clsm'  => $clsm,
+            'sbj'   => $sbj,
+            'count' => $lessonPlan->count(),
+            'lesson_plans' => $lessonPlan,
+        ],
+    ]);
+}
     //////////////////////////////////////////
     /**
      * @OA\Get(
@@ -36930,94 +36958,123 @@ class ApiController extends Controller
 
 
 
-    /**
-     * @OA\Get(
-     *     path="/api/lesson-plans/termly/{schid}/{ssn}/{trm}",
-     *     operationId="getTermlyLessonPlans",
-     *     tags={"Api"},
-     *    security={{"bearerAuth": {}}},
-     *     summary="Get termly lesson plans",
-     *     description="Fetch all termly lesson plans filtered by school ID, session, and term. Weekly lesson plans are excluded.",
-     *
-     *     @OA\Parameter(
-     *         name="schid",
-     *         in="path",
-     *         required=true,
-     *         description="School ID",
-     *         @OA\Schema(type="string", example="12")
-     *     ),
-     *
-     *     @OA\Parameter(
-     *         name="ssn",
-     *         in="path",
-     *         required=true,
-     *         description="Academic session",
-     *         @OA\Schema(type="string", example="2025")
-     *     ),
-     *
-     *     @OA\Parameter(
-     *         name="trm",
-     *         in="path",
-     *         required=true,
-     *         description="Academic term",
-     *         @OA\Schema(type="integer", example=1)
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="Termly lesson plans fetched successfully",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Termly lesson plans fetched successfully"),
-     *             @OA\Property(
-     *                 property="filters",
-     *                 type="object",
-     *                 @OA\Property(property="plan_type", type="string", example="termly"),
-     *                 @OA\Property(property="schid", type="string", example="12"),
-     *                 @OA\Property(property="ssn", type="string", example="2025"),
-     *                 @OA\Property(property="trm", type="integer", example=1)
-     *             ),
-     *             @OA\Property(property="count", type="integer", example=3),
-     *             @OA\Property(
-     *                 property="data",
-     *                 type="array",
-     *                 @OA\Items(type="object")
-     *             )
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=404,
-     *         description="No lesson plans found"
-     *     )
-     * )
-     */
+/**
+ * @OA\Get(
+ *     path="/api/lesson-plans/termly/{schid}/{ssn}/{trm}/{sbj}",
+ *     operationId="getTermlyLessonPlans",
+ *     tags={"Api"},
+ *     security={{"bearerAuth": {}}},
+ *     summary="Get termly lesson plans by subject",
+ *     description="Fetch all termly lesson plans for a specific school, session, term, and subject. Weekly lesson plans are excluded.",
+ *
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="path",
+ *         required=true,
+ *         description="School ID",
+ *         @OA\Schema(type="string", example="12")
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="ssn",
+ *         in="path",
+ *         required=true,
+ *         description="Academic session",
+ *         @OA\Schema(type="string", example="2025")
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="trm",
+ *         in="path",
+ *         required=true,
+ *         description="Academic term",
+ *         @OA\Schema(type="integer", example=1)
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="sbj",
+ *         in="path",
+ *         required=true,
+ *         description="Subject name to filter lesson plans",
+ *         @OA\Schema(type="string", example="ENGLISH LANGUAGE")
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Termly lesson plans fetched successfully",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Termly lesson plans fetched successfully"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="object",
+ *                 @OA\Property(property="plan_type", type="string", example="termly"),
+ *                 @OA\Property(property="schid", type="string", example="12"),
+ *                 @OA\Property(property="ssn", type="string", example="2025"),
+ *                 @OA\Property(property="trm", type="integer", example=1),
+ *                 @OA\Property(property="sbj", type="string", example="ENGLISH LANGUAGE"),
+ *                 @OA\Property(property="count", type="integer", example=3),
+ *                 @OA\Property(
+ *                     property="lesson_plans",
+ *                     type="array",
+ *                     @OA\Items(
+ *                         type="object",
+ *                         @OA\Property(property="id", type="integer", example=1),
+ *                         @OA\Property(property="schid", type="string", example="12"),
+ *                         @OA\Property(property="clsm", type="string", example="11"),
+ *                         @OA\Property(property="ssn", type="string", example="2025"),
+ *                         @OA\Property(property="trm", type="integer", example=1),
+ *                         @OA\Property(property="plan_type", type="string", example="termly"),
+ *                         @OA\Property(property="sbj", type="string", example="ENGLISH LANGUAGE"),
+ *                         @OA\Property(property="topic", type="string", example="Parts of Speech"),
+ *                         @OA\Property(property="sub_topic", type="array", @OA\Items(type="string"), example={"Nouns","Verbs"}),
+ *                         @OA\Property(property="date", type="string", format="date", example="2025-09-03"),
+ *                         @OA\Property(property="no_of_class", type="integer", example=35),
+ *                         @OA\Property(property="average_age", type="number", example=12),
+ *                         @OA\Property(property="time_from", type="string", format="time", example="07:30"),
+ *                         @OA\Property(property="time_to", type="string", format="time", example="08:10"),
+ *                         @OA\Property(property="duration", type="string", example="40 minutes"),
+ *                         @OA\Property(property="learning_materials", type="array", @OA\Items(type="string"), example={"Textbook","Board"}),
+ *                         @OA\Property(property="lesson_objectives", type="array", @OA\Items(type="string"), example={"Identify nouns","Recognize verbs"})
+ *                     )
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=404,
+ *         description="No lesson plans found for the specified filters"
+ *     )
+ * )
+ */
+public function getLessonPlansByTerm($schid, $ssn, $trm, $sbj)
+{
+    // Fetch termly lesson plans for the specific subject
+    $lessonPlans = lesson_plan::where('plan_type', 'termly')
+        ->whereNull('weekly') // termly plans only
+        ->where('schid', $schid)
+        ->where('ssn', $ssn)
+        ->where('trm', $trm)
+        ->where('sbj', $sbj) // filter by subject
+        ->orderBy('date', 'asc')
+        ->get();
 
-    public function getLessonPlansByTerm($schid, $ssn, $trm)
-    {
-        $lessonPlans = lesson_plan::where('plan_type', 'termly')
-            ->whereNull('weekly') // important for data integrity
-            ->where('schid', $schid)
-            ->where('ssn', $ssn)
-            ->where('trm', $trm)
-            ->orderBy('date', 'asc')
-            ->get();
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Termly lesson plans fetched successfully',
-            'pld' => [
-                'plan_type' => 'termly',
-                'schid' => $schid,
-                'ssn' => $ssn,
-                'trm' => (int) $trm,
-                'count' => $lessonPlans->count(),
-                'lesson_plans' => $lessonPlans,
-            ],
-        ], 200);
-    }
-
+    return response()->json([
+        'status' => true,
+        'message' => 'Termly lesson plans fetched successfully',
+        'pld' => [
+            'plan_type' => 'termly',
+            'schid' => $schid,
+            'ssn'   => $ssn,
+            'trm'   => (int) $trm,
+            'sbj'   => $sbj,
+            'count' => $lessonPlans->count(),
+            'lesson_plans' => $lessonPlans,
+        ],
+    ], 200);
+}
 
 
 
