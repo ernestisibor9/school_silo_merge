@@ -2674,57 +2674,75 @@ class ApiController extends Controller
      */
 
 
-    public function setStudentBasicInfo(Request $request)
-    {
-        // Data validation
-        $request->validate([
-            "user_id" => "required",
-            "dob" => "required",
-            "sex" => "required",
-            "height" => "required",
-            "country" => "required",
-            "state" => "required",
-            "lga" => "required",
-            "addr" => "required",
-            "fname" => "required",
-            "lname" => "required",
-        ]);
+public function setStudentBasicInfo(Request $request)
+{
+    // Data validation
+    $request->validate([
+        "user_id" => "required",
+        "dob" => "required",
+        "sex" => "required",
+        "height" => "required",
+        "country" => "required",
+        "state" => "required",
+        "lga" => "required",
+        "addr" => "required",
+        "fname" => "required",
+        "lname" => "required",
+    ]);
 
-        // Update or Create student_basic_data
-        student_basic_data::updateOrCreate(
-            ["user_id" => $request->user_id],
-            [
-                "dob" => $request->dob,
-                "sex" => $request->sex,
-                "height" => $request->height,
-                "country" => $request->country,
-                "state" => $request->state,
-                "lga" => $request->lga,
-                "addr" => $request->addr,
-            ]
-        );
+    /*
+     |--------------------------------------------------------------------------
+     | Normalize DOB (fix timestamp issue)
+     |--------------------------------------------------------------------------
+     | Handles:
+     | - YYYY-MM-DD
+     | - ISO date strings
+     | - Unix timestamp in milliseconds (e.g. 1205794800000)
+     */
+    $dob = $request->dob;
 
-        // Update student table
-        student::where('sid', $request->user_id)->update([
-            "s_basic" => '1',
-            "fname" => $request->fname,
-            "lname" => $request->lname,
-            "mname" => $request->mname,
-        ]);
-
-        // Update old_student table
-        old_student::where('sid', $request->user_id)->update([
-            "fname" => $request->fname,
-            "mname" => $request->mname,
-            "lname" => $request->lname,
-        ]);
-
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-        ]);
+    if (is_numeric($dob)) {
+        // Timestamp in milliseconds
+        $dob = Carbon::createFromTimestampMs($dob)->format('Y-m-d');
+    } else {
+        // Normal date string
+        $dob = Carbon::parse($dob)->format('Y-m-d');
     }
 
+    // Update or Create student_basic_data
+    student_basic_data::updateOrCreate(
+        ["user_id" => $request->user_id],
+        [
+            "dob" => $dob,
+            "sex" => $request->sex,
+            "height" => $request->height,
+            "country" => $request->country,
+            "state" => $request->state,
+            "lga" => $request->lga,
+            "addr" => $request->addr,
+        ]
+    );
+
+    // Update student table
+    student::where('sid', $request->user_id)->update([
+        "s_basic" => '1',
+        "fname" => $request->fname,
+        "lname" => $request->lname,
+        "mname" => $request->mname,
+    ]);
+
+    // Update old_student table
+    old_student::where('sid', $request->user_id)->update([
+        "fname" => $request->fname,
+        "mname" => $request->mname,
+        "lname" => $request->lname,
+    ]);
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+    ]);
+}
 
 
 
