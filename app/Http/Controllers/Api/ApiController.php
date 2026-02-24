@@ -2502,6 +2502,23 @@ class ApiController extends Controller
             "lga" => "required",
             "addr" => "required",
         ]);
+
+        /*
+ |----------------------------------------------------------------------
+ | Normalize DOB (same logic as setStudentBasicInfo)
+ |----------------------------------------------------------------------
+ */
+        $dob = $request->dob;
+
+        if (is_numeric($dob)) {
+            // Timestamp in milliseconds
+            $dob = Carbon::createFromTimestampMs($dob)->format('Y-m-d');
+        } else {
+            // Normal date string
+            $dob = Carbon::parse($dob)->format('Y-m-d');
+        }
+
+
         if (strlen($request->password) < 6) {
             return response()->json([
                 "status" => false,
@@ -2608,7 +2625,7 @@ class ApiController extends Controller
             student_basic_data::updateOrCreate(
                 ["user_id" => $user_id,],
                 [
-                    "dob" => $request->dob,
+                    "dob" => $dob,
                     "sex" => $request->sex,
                     "height" => $request->height,
                     "country" => $request->country,
@@ -2674,75 +2691,75 @@ class ApiController extends Controller
      */
 
 
-public function setStudentBasicInfo(Request $request)
-{
-    // Data validation
-    $request->validate([
-        "user_id" => "required",
-        "dob" => "required",
-        "sex" => "required",
-        "height" => "required",
-        "country" => "required",
-        "state" => "required",
-        "lga" => "required",
-        "addr" => "required",
-        "fname" => "required",
-        "lname" => "required",
-    ]);
+    public function setStudentBasicInfo(Request $request)
+    {
+        // Data validation
+        $request->validate([
+            "user_id" => "required",
+            "dob" => "required",
+            "sex" => "required",
+            "height" => "required",
+            "country" => "required",
+            "state" => "required",
+            "lga" => "required",
+            "addr" => "required",
+            "fname" => "required",
+            "lname" => "required",
+        ]);
 
-    /*
-     |--------------------------------------------------------------------------
-     | Normalize DOB (fix timestamp issue)
-     |--------------------------------------------------------------------------
-     | Handles:
-     | - YYYY-MM-DD
-     | - ISO date strings
-     | - Unix timestamp in milliseconds (e.g. 1205794800000)
-     */
-    $dob = $request->dob;
+        /*
+         |--------------------------------------------------------------------------
+         | Normalize DOB (fix timestamp issue)
+         |--------------------------------------------------------------------------
+         | Handles:
+         | - YYYY-MM-DD
+         | - ISO date strings
+         | - Unix timestamp in milliseconds (e.g. 1205794800000)
+         */
+        $dob = $request->dob;
 
-    if (is_numeric($dob)) {
-        // Timestamp in milliseconds
-        $dob = Carbon::createFromTimestampMs($dob)->format('Y-m-d');
-    } else {
-        // Normal date string
-        $dob = Carbon::parse($dob)->format('Y-m-d');
+        if (is_numeric($dob)) {
+            // Timestamp in milliseconds
+            $dob = Carbon::createFromTimestampMs($dob)->format('Y-m-d');
+        } else {
+            // Normal date string
+            $dob = Carbon::parse($dob)->format('Y-m-d');
+        }
+
+        // Update or Create student_basic_data
+        student_basic_data::updateOrCreate(
+            ["user_id" => $request->user_id],
+            [
+                "dob" => $dob,
+                "sex" => $request->sex,
+                "height" => $request->height,
+                "country" => $request->country,
+                "state" => $request->state,
+                "lga" => $request->lga,
+                "addr" => $request->addr,
+            ]
+        );
+
+        // Update student table
+        student::where('sid', $request->user_id)->update([
+            "s_basic" => '1',
+            "fname" => $request->fname,
+            "lname" => $request->lname,
+            "mname" => $request->mname,
+        ]);
+
+        // Update old_student table
+        old_student::where('sid', $request->user_id)->update([
+            "fname" => $request->fname,
+            "mname" => $request->mname,
+            "lname" => $request->lname,
+        ]);
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+        ]);
     }
-
-    // Update or Create student_basic_data
-    student_basic_data::updateOrCreate(
-        ["user_id" => $request->user_id],
-        [
-            "dob" => $dob,
-            "sex" => $request->sex,
-            "height" => $request->height,
-            "country" => $request->country,
-            "state" => $request->state,
-            "lga" => $request->lga,
-            "addr" => $request->addr,
-        ]
-    );
-
-    // Update student table
-    student::where('sid', $request->user_id)->update([
-        "s_basic" => '1',
-        "fname" => $request->fname,
-        "lname" => $request->lname,
-        "mname" => $request->mname,
-    ]);
-
-    // Update old_student table
-    old_student::where('sid', $request->user_id)->update([
-        "fname" => $request->fname,
-        "mname" => $request->mname,
-        "lname" => $request->lname,
-    ]);
-
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-    ]);
-}
 
 
 
@@ -6908,10 +6925,30 @@ public function setStudentBasicInfo(Request $request)
             "kin_phn" => "required",
             "kin_relation" => "required",
         ]);
+
+        /*
+         |----------------------------------------------------------------------
+         | Normalize DOB (same logic used everywhere else)
+         |----------------------------------------------------------------------
+         | Handles:
+         | - YYYY-MM-DD
+         | - ISO date strings
+         | - Unix timestamp in milliseconds
+         */
+        $dob = $request->dob;
+
+        if (is_numeric($dob)) {
+            // Timestamp in milliseconds
+            $dob = Carbon::createFromTimestampMs($dob)->format('Y-m-d');
+        } else {
+            // Normal date string
+            $dob = Carbon::parse($dob)->format('Y-m-d');
+        }
+
         staff_basic_data::updateOrCreate(
             ["user_id" => $request->user_id,],
             [
-                "dob" => $request->dob,
+                "dob" => $dob,
                 "sex" => $request->sex,
                 "town" => $request->town,
                 "country" => $request->country,
@@ -22222,138 +22259,138 @@ public function setStudentBasicInfo(Request $request)
 
 
 
-/**
- * @OA\Get(
- *     path="/api/lesson-plan/weekly/{schid}/{ssn}/{trm}/{clsm}",
- *     summary="Get weekly lesson plans",
- *     tags={"Api"},
- *     security={{"bearerAuth": {}}},
- *     description="Fetch weekly lesson plans for a specific school, class, session, and term. Optionally filter by subject and week_start date.",
- *
- *     @OA\Parameter(
- *         name="schid",
- *         in="path",
- *         required=true,
- *         description="School ID",
- *         @OA\Schema(type="string", example="12")
- *     ),
- *     @OA\Parameter(
- *         name="ssn",
- *         in="path",
- *         required=true,
- *         description="Session/academic year",
- *         @OA\Schema(type="string", example="2025")
- *     ),
- *     @OA\Parameter(
- *         name="trm",
- *         in="path",
- *         required=true,
- *         description="Term number",
- *         @OA\Schema(type="integer", example=1)
- *     ),
- *     @OA\Parameter(
- *         name="clsm",
- *         in="path",
- *         required=true,
- *         description="Class/grade",
- *         @OA\Schema(type="string", example="11")
- *     ),
- *     @OA\Parameter(
- *         name="sbj",
- *         in="query",
- *         required=false,
- *         description="Subject name (optional). Leave empty to fetch all subjects",
- *         @OA\Schema(type="string", example="ENGLISH LANGUAGE")
- *     ),
- *     @OA\Parameter(
- *         name="week_start",
- *         in="query",
- *         required=false,
- *         description="Start date of the week (YYYY-MM-DD) to filter lesson plans",
- *         @OA\Schema(type="string", format="date", example="2026-02-09")
- *     ),
- *     @OA\Parameter(
- *         name="start",
- *         in="query",
- *         required=false,
- *         description="Pagination start index",
- *         @OA\Schema(type="integer", example=0)
- *     ),
- *     @OA\Parameter(
- *         name="count",
- *         in="query",
- *         required=false,
- *         description="Number of lesson plans to return",
- *         @OA\Schema(type="integer", example=20)
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Weekly lesson plans retrieved successfully",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Success"),
- *             @OA\Property(
- *                 property="pld",
- *                 type="object",
- *                 @OA\Property(property="schid", type="string", example="12"),
- *                 @OA\Property(property="ssn", type="string", example="2025"),
- *                 @OA\Property(property="trm", type="integer", example=1),
- *                 @OA\Property(property="clsm", type="string", example="11"),
- *                 @OA\Property(property="sbj", type="string", nullable=true, example="ENGLISH LANGUAGE"),
- *                 @OA\Property(property="count", type="integer", example=3),
- *                 @OA\Property(
- *                     property="lesson_plans",
- *                     type="array",
- *                     @OA\Items(type="object")
- *                 )
- *             )
- *         )
- *     )
- * )
- */
-public function getWeeklyLessonPlan($schid, $ssn, $trm, $clsm)
-{
-    $start = request()->input('start', 0);
-    $count = request()->input('count', 20);
-    $sbj   = request()->input('sbj', null); // subject from query
+    /**
+     * @OA\Get(
+     *     path="/api/lesson-plan/weekly/{schid}/{ssn}/{trm}/{clsm}",
+     *     summary="Get weekly lesson plans",
+     *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
+     *     description="Fetch weekly lesson plans for a specific school, class, session, and term. Optionally filter by subject and week_start date.",
+     *
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="path",
+     *         required=true,
+     *         description="School ID",
+     *         @OA\Schema(type="string", example="12")
+     *     ),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="path",
+     *         required=true,
+     *         description="Session/academic year",
+     *         @OA\Schema(type="string", example="2025")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Term number",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Parameter(
+     *         name="clsm",
+     *         in="path",
+     *         required=true,
+     *         description="Class/grade",
+     *         @OA\Schema(type="string", example="11")
+     *     ),
+     *     @OA\Parameter(
+     *         name="sbj",
+     *         in="query",
+     *         required=false,
+     *         description="Subject name (optional). Leave empty to fetch all subjects",
+     *         @OA\Schema(type="string", example="ENGLISH LANGUAGE")
+     *     ),
+     *     @OA\Parameter(
+     *         name="week_start",
+     *         in="query",
+     *         required=false,
+     *         description="Start date of the week (YYYY-MM-DD) to filter lesson plans",
+     *         @OA\Schema(type="string", format="date", example="2026-02-09")
+     *     ),
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         required=false,
+     *         description="Pagination start index",
+     *         @OA\Schema(type="integer", example=0)
+     *     ),
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         required=false,
+     *         description="Number of lesson plans to return",
+     *         @OA\Schema(type="integer", example=20)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Weekly lesson plans retrieved successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 @OA\Property(property="schid", type="string", example="12"),
+     *                 @OA\Property(property="ssn", type="string", example="2025"),
+     *                 @OA\Property(property="trm", type="integer", example=1),
+     *                 @OA\Property(property="clsm", type="string", example="11"),
+     *                 @OA\Property(property="sbj", type="string", nullable=true, example="ENGLISH LANGUAGE"),
+     *                 @OA\Property(property="count", type="integer", example=3),
+     *                 @OA\Property(
+     *                     property="lesson_plans",
+     *                     type="array",
+     *                     @OA\Items(type="object")
+     *                 )
+     *             )
+     *         )
+     *     )
+     * )
+     */
+    public function getWeeklyLessonPlan($schid, $ssn, $trm, $clsm)
+    {
+        $start = request()->input('start', 0);
+        $count = request()->input('count', 20);
+        $sbj = request()->input('sbj', null); // subject from query
 
-    $query = lesson_plan::where('schid', $schid)
-        ->where('clsm', $clsm)
-        ->where('ssn', $ssn)
-        ->where('trm', $trm)
-        ->where('plan_type', 'weekly');
+        $query = lesson_plan::where('schid', $schid)
+            ->where('clsm', $clsm)
+            ->where('ssn', $ssn)
+            ->where('trm', $trm)
+            ->where('plan_type', 'weekly');
 
-    if ($sbj !== null) {
-        $query->where('sbj', trim(urldecode($sbj)));
-    }
-
-    if (request()->has('week_start')) {
-        try {
-            $weekStart = Carbon::parse(request()->input('week_start'))->startOfWeek();
-            $weekEnd   = Carbon::parse(request()->input('week_start'))->endOfWeek();
-            $query->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()]);
-        } catch (\Exception $e) {
-            // ignore invalid week_start
+        if ($sbj !== null) {
+            $query->where('sbj', trim(urldecode($sbj)));
         }
+
+        if (request()->has('week_start')) {
+            try {
+                $weekStart = Carbon::parse(request()->input('week_start'))->startOfWeek();
+                $weekEnd = Carbon::parse(request()->input('week_start'))->endOfWeek();
+                $query->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()]);
+            } catch (\Exception $e) {
+                // ignore invalid week_start
+            }
+        }
+
+        $lessonPlan = $query->skip($start)->take($count)->get();
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => [
+                'schid' => $schid,
+                'ssn' => $ssn,
+                'trm' => (int) $trm,
+                'clsm' => $clsm,
+                'sbj' => $sbj,
+                'count' => $lessonPlan->count(),
+                'lesson_plans' => $lessonPlan,
+            ],
+        ]);
     }
-
-    $lessonPlan = $query->skip($start)->take($count)->get();
-
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => [
-            'schid' => $schid,
-            'ssn'   => $ssn,
-            'trm'   => (int) $trm,
-            'clsm'  => $clsm,
-            'sbj'   => $sbj,
-            'count' => $lessonPlan->count(),
-            'lesson_plans' => $lessonPlan,
-        ],
-    ]);
-}
     //////////////////////////////////////////
     /**
      * @OA\Get(
@@ -36955,123 +36992,123 @@ public function getWeeklyLessonPlan($schid, $ssn, $trm, $clsm)
 
 
 
-/**
- * @OA\Get(
- *     path="/api/lesson-plans/termly/{schid}/{ssn}/{trm}/{sbj}",
- *     operationId="getTermlyLessonPlans",
- *     tags={"Api"},
- *     security={{"bearerAuth": {}}},
- *     summary="Get termly lesson plans by subject",
- *     description="Fetch all termly lesson plans for a specific school, session, term, and subject. Weekly lesson plans are excluded.",
- *
- *     @OA\Parameter(
- *         name="schid",
- *         in="path",
- *         required=true,
- *         description="School ID",
- *         @OA\Schema(type="string", example="12")
- *     ),
- *
- *     @OA\Parameter(
- *         name="ssn",
- *         in="path",
- *         required=true,
- *         description="Academic session",
- *         @OA\Schema(type="string", example="2025")
- *     ),
- *
- *     @OA\Parameter(
- *         name="trm",
- *         in="path",
- *         required=true,
- *         description="Academic term",
- *         @OA\Schema(type="integer", example=1)
- *     ),
- *
- *     @OA\Parameter(
- *         name="sbj",
- *         in="path",
- *         required=true,
- *         description="Subject name to filter lesson plans",
- *         @OA\Schema(type="string", example="ENGLISH LANGUAGE")
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Termly lesson plans fetched successfully",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Termly lesson plans fetched successfully"),
- *             @OA\Property(
- *                 property="pld",
- *                 type="object",
- *                 @OA\Property(property="plan_type", type="string", example="termly"),
- *                 @OA\Property(property="schid", type="string", example="12"),
- *                 @OA\Property(property="ssn", type="string", example="2025"),
- *                 @OA\Property(property="trm", type="integer", example=1),
- *                 @OA\Property(property="sbj", type="string", example="ENGLISH LANGUAGE"),
- *                 @OA\Property(property="count", type="integer", example=3),
- *                 @OA\Property(
- *                     property="lesson_plans",
- *                     type="array",
- *                     @OA\Items(
- *                         type="object",
- *                         @OA\Property(property="id", type="integer", example=1),
- *                         @OA\Property(property="schid", type="string", example="12"),
- *                         @OA\Property(property="clsm", type="string", example="11"),
- *                         @OA\Property(property="ssn", type="string", example="2025"),
- *                         @OA\Property(property="trm", type="integer", example=1),
- *                         @OA\Property(property="plan_type", type="string", example="termly"),
- *                         @OA\Property(property="sbj", type="string", example="ENGLISH LANGUAGE"),
- *                         @OA\Property(property="topic", type="string", example="Parts of Speech"),
- *                         @OA\Property(property="sub_topic", type="array", @OA\Items(type="string"), example={"Nouns","Verbs"}),
- *                         @OA\Property(property="date", type="string", format="date", example="2025-09-03"),
- *                         @OA\Property(property="no_of_class", type="integer", example=35),
- *                         @OA\Property(property="average_age", type="number", example=12),
- *                         @OA\Property(property="time_from", type="string", format="time", example="07:30"),
- *                         @OA\Property(property="time_to", type="string", format="time", example="08:10"),
- *                         @OA\Property(property="duration", type="string", example="40 minutes"),
- *                         @OA\Property(property="learning_materials", type="array", @OA\Items(type="string"), example={"Textbook","Board"}),
- *                         @OA\Property(property="lesson_objectives", type="array", @OA\Items(type="string"), example={"Identify nouns","Recognize verbs"})
- *                     )
- *                 )
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=404,
- *         description="No lesson plans found for the specified filters"
- *     )
- * )
- */
-public function getLessonPlansByTerm($schid, $ssn, $trm, $sbj)
-{
-    // Fetch termly lesson plans for the specific subject
-    $lessonPlans = lesson_plan::where('plan_type', 'termly')
-        ->whereNull('weekly') // termly plans only
-        ->where('schid', $schid)
-        ->where('ssn', $ssn)
-        ->where('trm', $trm)
-        ->where('sbj', $sbj) // filter by subject
-        ->orderBy('date', 'asc')
-        ->get();
+    /**
+     * @OA\Get(
+     *     path="/api/lesson-plans/termly/{schid}/{ssn}/{trm}/{sbj}",
+     *     operationId="getTermlyLessonPlans",
+     *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
+     *     summary="Get termly lesson plans by subject",
+     *     description="Fetch all termly lesson plans for a specific school, session, term, and subject. Weekly lesson plans are excluded.",
+     *
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="path",
+     *         required=true,
+     *         description="School ID",
+     *         @OA\Schema(type="string", example="12")
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="path",
+     *         required=true,
+     *         description="Academic session",
+     *         @OA\Schema(type="string", example="2025")
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Academic term",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="sbj",
+     *         in="path",
+     *         required=true,
+     *         description="Subject name to filter lesson plans",
+     *         @OA\Schema(type="string", example="ENGLISH LANGUAGE")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Termly lesson plans fetched successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Termly lesson plans fetched successfully"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 @OA\Property(property="plan_type", type="string", example="termly"),
+     *                 @OA\Property(property="schid", type="string", example="12"),
+     *                 @OA\Property(property="ssn", type="string", example="2025"),
+     *                 @OA\Property(property="trm", type="integer", example=1),
+     *                 @OA\Property(property="sbj", type="string", example="ENGLISH LANGUAGE"),
+     *                 @OA\Property(property="count", type="integer", example=3),
+     *                 @OA\Property(
+     *                     property="lesson_plans",
+     *                     type="array",
+     *                     @OA\Items(
+     *                         type="object",
+     *                         @OA\Property(property="id", type="integer", example=1),
+     *                         @OA\Property(property="schid", type="string", example="12"),
+     *                         @OA\Property(property="clsm", type="string", example="11"),
+     *                         @OA\Property(property="ssn", type="string", example="2025"),
+     *                         @OA\Property(property="trm", type="integer", example=1),
+     *                         @OA\Property(property="plan_type", type="string", example="termly"),
+     *                         @OA\Property(property="sbj", type="string", example="ENGLISH LANGUAGE"),
+     *                         @OA\Property(property="topic", type="string", example="Parts of Speech"),
+     *                         @OA\Property(property="sub_topic", type="array", @OA\Items(type="string"), example={"Nouns","Verbs"}),
+     *                         @OA\Property(property="date", type="string", format="date", example="2025-09-03"),
+     *                         @OA\Property(property="no_of_class", type="integer", example=35),
+     *                         @OA\Property(property="average_age", type="number", example=12),
+     *                         @OA\Property(property="time_from", type="string", format="time", example="07:30"),
+     *                         @OA\Property(property="time_to", type="string", format="time", example="08:10"),
+     *                         @OA\Property(property="duration", type="string", example="40 minutes"),
+     *                         @OA\Property(property="learning_materials", type="array", @OA\Items(type="string"), example={"Textbook","Board"}),
+     *                         @OA\Property(property="lesson_objectives", type="array", @OA\Items(type="string"), example={"Identify nouns","Recognize verbs"})
+     *                     )
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="No lesson plans found for the specified filters"
+     *     )
+     * )
+     */
+    public function getLessonPlansByTerm($schid, $ssn, $trm, $sbj)
+    {
+        // Fetch termly lesson plans for the specific subject
+        $lessonPlans = lesson_plan::where('plan_type', 'termly')
+            ->whereNull('weekly') // termly plans only
+            ->where('schid', $schid)
+            ->where('ssn', $ssn)
+            ->where('trm', $trm)
+            ->where('sbj', $sbj) // filter by subject
+            ->orderBy('date', 'asc')
+            ->get();
 
-    return response()->json([
-        'status' => true,
-        'message' => 'Termly lesson plans fetched successfully',
-        'pld' => [
-            'plan_type' => 'termly',
-            'schid' => $schid,
-            'ssn'   => $ssn,
-            'trm'   => (int) $trm,
-            'sbj'   => $sbj,
-            'count' => $lessonPlans->count(),
-            'lesson_plans' => $lessonPlans,
-        ],
-    ], 200);
-}
+        return response()->json([
+            'status' => true,
+            'message' => 'Termly lesson plans fetched successfully',
+            'pld' => [
+                'plan_type' => 'termly',
+                'schid' => $schid,
+                'ssn' => $ssn,
+                'trm' => (int) $trm,
+                'sbj' => $sbj,
+                'count' => $lessonPlans->count(),
+                'lesson_plans' => $lessonPlans,
+            ],
+        ], 200);
+    }
 
 
 
