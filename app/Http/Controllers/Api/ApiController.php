@@ -2494,7 +2494,7 @@ class ApiController extends Controller
             "last_class" => "required",
             "new_class" => "required",
             "new_class_main" => "required",
-            "dob" => "required",
+             "dob" => "required|date|before:today",
             "sex" => "required",
             "height" => "required",
             "country" => "required",
@@ -2503,11 +2503,12 @@ class ApiController extends Controller
             "addr" => "required",
         ]);
 
-        /*
- |----------------------------------------------------------------------
- | Normalize DOB (same logic as setStudentBasicInfo)
- |----------------------------------------------------------------------
- */
+    /*
+    |--------------------------------------------------------------------------
+    | Normalize DOB (SAFE – prevents server error)
+    |--------------------------------------------------------------------------
+    */
+    try {
         $dob = $request->dob;
 
         if (is_numeric($dob)) {
@@ -2517,6 +2518,12 @@ class ApiController extends Controller
             // Normal date string
             $dob = Carbon::parse($dob)->format('Y-m-d');
         }
+    } catch (\Exception $e) {
+        return response()->json([
+            "status"  => false,
+            "message" => "Invalid date of birth format. Please use YYYY-MM-DD or a valid date.",
+        ]);
+    }
 
 
         if (strlen($request->password) < 6) {
