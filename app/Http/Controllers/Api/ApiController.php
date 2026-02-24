@@ -2494,7 +2494,7 @@ class ApiController extends Controller
             "last_class" => "required",
             "new_class" => "required",
             "new_class_main" => "required",
-             "dob" => "required|date|before:today",
+            "dob" => "required|date|before:today",
             "sex" => "required",
             "height" => "required",
             "country" => "required",
@@ -2503,27 +2503,27 @@ class ApiController extends Controller
             "addr" => "required",
         ]);
 
-    /*
-    |--------------------------------------------------------------------------
-    | Normalize DOB (SAFE – prevents server error)
-    |--------------------------------------------------------------------------
-    */
-    try {
-        $dob = $request->dob;
+        /*
+        |--------------------------------------------------------------------------
+        | Normalize DOB (SAFE – prevents server error)
+        |--------------------------------------------------------------------------
+        */
+        try {
+            $dob = $request->dob;
 
-        if (is_numeric($dob)) {
-            // Timestamp in milliseconds
-            $dob = Carbon::createFromTimestampMs($dob)->format('Y-m-d');
-        } else {
-            // Normal date string
-            $dob = Carbon::parse($dob)->format('Y-m-d');
+            if (is_numeric($dob)) {
+                // Timestamp in milliseconds
+                $dob = Carbon::createFromTimestampMs($dob)->format('Y-m-d');
+            } else {
+                // Normal date string
+                $dob = Carbon::parse($dob)->format('Y-m-d');
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                "status" => false,
+                "message" => "Invalid date of birth format. Please use YYYY-MM-DD or a valid date.",
+            ]);
         }
-    } catch (\Exception $e) {
-        return response()->json([
-            "status"  => false,
-            "message" => "Invalid date of birth format. Please use YYYY-MM-DD or a valid date.",
-        ]);
-    }
 
 
         if (strlen($request->password) < 6) {
@@ -2723,14 +2723,29 @@ class ApiController extends Controller
          | - ISO date strings
          | - Unix timestamp in milliseconds (e.g. 1205794800000)
          */
-        $dob = $request->dob;
+        try {
+            $dob = $request->dob;
 
-        if (is_numeric($dob)) {
-            // Timestamp in milliseconds
-            $dob = Carbon::createFromTimestampMs($dob)->format('Y-m-d');
-        } else {
-            // Normal date string
-            $dob = Carbon::parse($dob)->format('Y-m-d');
+            if (is_numeric($dob)) {
+                // Timestamp in milliseconds
+                $dob = Carbon::createFromTimestampMs($dob)->format('Y-m-d');
+            } else {
+                $dob = Carbon::parse($dob)->format('Y-m-d');
+            }
+
+            // Extra safety: DOB must be in the past
+            if (Carbon::parse($dob)->isToday() || Carbon::parse($dob)->isFuture()) {
+                return response()->json([
+                    "status" => false,
+                    "message" => "Date of birth must be before today.",
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            return response()->json([
+                "status" => false,
+                "message" => "Invalid date format. Use YYYY-MM-DD or a valid timestamp.",
+            ]);
         }
 
         // Update or Create student_basic_data
@@ -6942,15 +6957,30 @@ class ApiController extends Controller
          | - ISO date strings
          | - Unix timestamp in milliseconds
          */
-        $dob = $request->dob;
+        try {
+            $dob = $request->dob;
 
-        if (is_numeric($dob)) {
-            // Timestamp in milliseconds
-            $dob = Carbon::createFromTimestampMs($dob)->format('Y-m-d');
-        } else {
-            // Normal date string
-            $dob = Carbon::parse($dob)->format('Y-m-d');
+            if (is_numeric($dob)) {
+                // Timestamp in milliseconds
+                $dob = Carbon::createFromTimestampMs($dob)->format('Y-m-d');
+            } else {
+                $dob = Carbon::parse($dob)->format('Y-m-d');
+            }
+
+            // Optional safety: DOB must be in the past
+            if (Carbon::parse($dob)->isToday() || Carbon::parse($dob)->isFuture()) {
+                return response()->json([
+                    "status" => false,
+                    "message" => "Date of birth must be before today.",
+                ]);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                "status" => false,
+                "message" => "Invalid date of birth format.",
+            ]);
         }
+
 
         staff_basic_data::updateOrCreate(
             ["user_id" => $request->user_id,],
@@ -37246,153 +37276,153 @@ class ApiController extends Controller
 
 
 
-/**
- * @OA\Put(
- *     path="/api/staff/update-dob/{userId}",
- *     summary="Update staff date of birth",
- *     description="Updates the date of birth (DOB) for a staff member belonging to a specific school. DOB supports YYYY-MM-DD, ISO date strings, or Unix timestamp in milliseconds.",
- *     operationId="updateDobForStaff",
- *     tags={"Api"},
- *     security={{"bearerAuth": {}}},
- *
- *     @OA\Parameter(
- *         name="userId",
- *         in="path",
- *         required=true,
- *         description="Staff user ID (staff.sid)",
- *         @OA\Schema(type="integer", example=1836)
- *     ),
- *
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"schid"},
- *             @OA\Property(
- *                 property="schid",
- *                 type="integer",
- *                 example=31,
- *                 description="School ID the staff belongs to"
- *             ),
- *             @OA\Property(
- *                 property="dob",
- *                 type="string",
- *                 nullable=true,
- *                 example="1992-03-23",
- *                 description="Date of birth. Accepts YYYY-MM-DD, ISO date string, or Unix timestamp in milliseconds"
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="DOB updated successfully",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Date of birth updated successfully."),
- *             @OA\Property(
- *                 property="pld",
- *                 type="object",
- *                 @OA\Property(property="user_id", type="integer", example=1836),
- *                 @OA\Property(property="dob", type="string", example="1992-03-23"),
- *                 @OA\Property(property="schid", type="integer", example=31)
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=400,
- *         description="Invalid input or DOB is in the future",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="Invalid input. Please provide a valid school ID and a correct date of birth.")
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=401,
- *         description="Unauthorized"
- *     ),
- *
- *     @OA\Response(
- *         response=404,
- *         description="Staff not found"
- *     )
- * )
- */
+    /**
+     * @OA\Put(
+     *     path="/api/staff/update-dob/{userId}",
+     *     summary="Update staff date of birth",
+     *     description="Updates the date of birth (DOB) for a staff member belonging to a specific school. DOB supports YYYY-MM-DD, ISO date strings, or Unix timestamp in milliseconds.",
+     *     operationId="updateDobForStaff",
+     *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
+     *
+     *     @OA\Parameter(
+     *         name="userId",
+     *         in="path",
+     *         required=true,
+     *         description="Staff user ID (staff.sid)",
+     *         @OA\Schema(type="integer", example=1836)
+     *     ),
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"schid"},
+     *             @OA\Property(
+     *                 property="schid",
+     *                 type="integer",
+     *                 example=31,
+     *                 description="School ID the staff belongs to"
+     *             ),
+     *             @OA\Property(
+     *                 property="dob",
+     *                 type="string",
+     *                 nullable=true,
+     *                 example="1992-03-23",
+     *                 description="Date of birth. Accepts YYYY-MM-DD, ISO date string, or Unix timestamp in milliseconds"
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="DOB updated successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Date of birth updated successfully."),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 @OA\Property(property="user_id", type="integer", example=1836),
+     *                 @OA\Property(property="dob", type="string", example="1992-03-23"),
+     *                 @OA\Property(property="schid", type="integer", example=31)
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=400,
+     *         description="Invalid input or DOB is in the future",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Invalid input. Please provide a valid school ID and a correct date of birth.")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized"
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="Staff not found"
+     *     )
+     * )
+     */
     public function updateDobForStaff(Request $request, $userId)
-{
-    try {
-        $validated = $request->validate([
-            'dob'   => ['nullable'],
-            'schid' => ['required', 'integer', 'exists:staff,schid'],
-        ]);
-    } catch (ValidationException $e) {
-        return response()->json([
-            'status'  => false,
-            'message' => 'Invalid input. Please provide a valid school ID and a correct date of birth.',
-        ]);
-    }
-
-    /*
-     |----------------------------------------------------------------------
-     | Check if staff belongs to the school
-     |----------------------------------------------------------------------
-     | staff.sid === staff_basic_data.user_id
-     */
-    $exists = DB::table('staff_basic_data as sb')
-        ->join('staff as s', 's.sid', '=', 'sb.user_id')
-        ->where('sb.user_id', $userId)
-        ->where('s.schid', $validated['schid'])
-        ->exists();
-
-    // Optional strict check (same style as your student endpoint)
-    // if (!$exists) {
-    //     return response()->json([
-    //         'status' => false,
-    //         'message' => 'Staff does not belong to this school.',
-    //     ]);
-    // }
-
-    /*
-     |----------------------------------------------------------------------
-     | Normalize & Update DOB (only if provided)
-     |----------------------------------------------------------------------
-     */
-    $dob = null;
-
-    if ($request->has('dob')) {
-        $rawDob = $request->dob;
-
-        if (is_numeric($rawDob)) {
-            // Timestamp in milliseconds
-            $dob = Carbon::createFromTimestampMs($rawDob)->format('Y-m-d');
-        } else {
-            $dob = Carbon::parse($rawDob)->format('Y-m-d');
-        }
-
-        // Extra safety: DOB must be before today
-        if (Carbon::parse($dob)->isToday() || Carbon::parse($dob)->isFuture()) {
+    {
+        try {
+            $validated = $request->validate([
+                'dob' => ['nullable'],
+                'schid' => ['required', 'integer', 'exists:staff,schid'],
+            ]);
+        } catch (ValidationException $e) {
             return response()->json([
-                'status'  => false,
-                'message' => 'Date of birth must be before today.',
+                'status' => false,
+                'message' => 'Invalid input. Please provide a valid school ID and a correct date of birth.',
             ]);
         }
 
-        DB::table('staff_basic_data')
-            ->where('user_id', $userId)
-            ->update(['dob' => $dob]);
-    }
+        /*
+         |----------------------------------------------------------------------
+         | Check if staff belongs to the school
+         |----------------------------------------------------------------------
+         | staff.sid === staff_basic_data.user_id
+         */
+        $exists = DB::table('staff_basic_data as sb')
+            ->join('staff as s', 's.sid', '=', 'sb.user_id')
+            ->where('sb.user_id', $userId)
+            ->where('s.schid', $validated['schid'])
+            ->exists();
 
-    return response()->json([
-        'status'  => true,
-        'message' => 'Date of birth updated successfully.',
-        'pld'     => [
-            'user_id' => $userId,
-            'dob'     => $dob,
-            'schid'   => $validated['schid'],
-        ],
-    ]);
-}
+        // Optional strict check (same style as your student endpoint)
+        // if (!$exists) {
+        //     return response()->json([
+        //         'status' => false,
+        //         'message' => 'Staff does not belong to this school.',
+        //     ]);
+        // }
+
+        /*
+         |----------------------------------------------------------------------
+         | Normalize & Update DOB (only if provided)
+         |----------------------------------------------------------------------
+         */
+        $dob = null;
+
+        if ($request->has('dob')) {
+            $rawDob = $request->dob;
+
+            if (is_numeric($rawDob)) {
+                // Timestamp in milliseconds
+                $dob = Carbon::createFromTimestampMs($rawDob)->format('Y-m-d');
+            } else {
+                $dob = Carbon::parse($rawDob)->format('Y-m-d');
+            }
+
+            // Extra safety: DOB must be before today
+            if (Carbon::parse($dob)->isToday() || Carbon::parse($dob)->isFuture()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Date of birth must be before today.',
+                ]);
+            }
+
+            DB::table('staff_basic_data')
+                ->where('user_id', $userId)
+                ->update(['dob' => $dob]);
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Date of birth updated successfully.',
+            'pld' => [
+                'user_id' => $userId,
+                'dob' => $dob,
+                'schid' => $validated['schid'],
+            ],
+        ]);
+    }
 
 }
 
