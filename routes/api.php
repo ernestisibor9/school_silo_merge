@@ -229,6 +229,7 @@ Route::group([
     Route::post('/staff/maintain-previous', [ApiController::class, 'maintainPreviousStaff']);
 
     Route::put('/learners/{userId}/dob', [ApiController::class, 'updateDob']);
+    Route::put('/staff/update-dob/{userId}', [ApiController::class, 'updateDobForStaff']);
     Route::put('/staff/{userId}/dob', [ApiController::class, 'updateStaffDob']);
 
 

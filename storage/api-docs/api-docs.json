@@ -31055,6 +31055,124 @@
                     }
                 ]
             }
+        },
+        "/api/staff/update-dob/{userId}": {
+            "put": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Update staff date of birth",
+                "description": "Updates the date of birth (DOB) for a staff member belonging to a specific school. DOB supports YYYY-MM-DD, ISO date strings, or Unix timestamp in milliseconds.",
+                "operationId": "updateDobForStaff",
+                "parameters": [
+                    {
+                        "name": "userId",
+                        "in": "path",
+                        "description": "Staff user ID (staff.sid)",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1836
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "schid"
+                                ],
+                                "properties": {
+                                    "schid": {
+                                        "description": "School ID the staff belongs to",
+                                        "type": "integer",
+                                        "example": 31
+                                    },
+                                    "dob": {
+                                        "description": "Date of birth. Accepts YYYY-MM-DD, ISO date string, or Unix timestamp in milliseconds",
+                                        "type": "string",
+                                        "example": "1992-03-23",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "DOB updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Date of birth updated successfully."
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "user_id": {
+                                                    "type": "integer",
+                                                    "example": 1836
+                                                },
+                                                "dob": {
+                                                    "type": "string",
+                                                    "example": "1992-03-23"
+                                                },
+                                                "schid": {
+                                                    "type": "integer",
+                                                    "example": 31
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input or DOB is in the future",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid input. Please provide a valid school ID and a correct date of birth."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Staff not found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
