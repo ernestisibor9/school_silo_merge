@@ -2522,7 +2522,7 @@ class ApiController extends Controller
             return response()->json([
                 "status" => false,
                 "message" => "Invalid date of birth format. Please use YYYY-MM-DD or a valid date.",
-            ]);
+            ], 422);
         }
 
 
@@ -2738,14 +2738,14 @@ class ApiController extends Controller
                 return response()->json([
                     "status" => false,
                     "message" => "Date of birth must be before today.",
-                ]);
+                ], 422);
             }
 
         } catch (\Exception $e) {
             return response()->json([
                 "status" => false,
                 "message" => "Invalid date format. Use YYYY-MM-DD or a valid timestamp.",
-            ]);
+            ], 422);
         }
 
         // Update or Create student_basic_data
@@ -6972,13 +6972,13 @@ class ApiController extends Controller
                 return response()->json([
                     "status" => false,
                     "message" => "Date of birth must be before today.",
-                ]);
+                ], 422);
             }
         } catch (\Exception $e) {
             return response()->json([
                 "status" => false,
                 "message" => "Invalid date of birth format.",
-            ]);
+            ], 422);
         }
 
 
