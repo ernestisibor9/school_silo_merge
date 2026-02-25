@@ -2548,15 +2548,15 @@ class ApiController extends Controller
             $ssn = $request->ssn;
             student::updateOrCreate(
                 [
-                    'sid' => strval($usr->id),
-                    'schid' => $request->schid,
-                    'year' => $request->ssn,
-                    'term' => $request->term,
+                    'sid' => strval($usr->id), // primary unique key
                 ],
                 [
+                    'schid' => $request->schid,
                     'fname' => $request->fname,
-                    'mname' => $request->mname,
+                    'mname' => $request->mname, // optional
                     'lname' => $request->lname,
+                    'year' => $request->ssn,
+                    'term' => $request->term,
                     'count' => strval($count),
                     'sch3' => $request->sch3,
                     's_basic' => '0',
