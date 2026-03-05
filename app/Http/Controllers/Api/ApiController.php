@@ -12287,26 +12287,26 @@ class ApiController extends Controller
         | DUPLICATE CHECK (clsid + pay_head_id)
         |--------------------------------------------------------------------------
         */
-        $dupQuery = accts::where('schid', $request->schid)
-            ->where('clsid', $request->clsid);
+    $dupQuery = accts::where('schid', $request->schid)
+        ->where('clsid', $request->clsid)
+        ->where('ssn', $request->ssn);
 
-        // Only check pay_head_id if it's provided
-        if ($request->filled('pay_head_id')) {
-            $dupQuery->where('pay_head_id', $request->pay_head_id);
-        }
+    // Only check pay_head_id if it's provided
+    if ($request->filled('pay_head_id')) {
+        $dupQuery->where('pay_head_id', $request->pay_head_id);
+    }
 
-        // If updating, ignore the current record
-        if ($request->has('id')) {
-            $dupQuery->where('id', '!=', $request->id);
-        }
+    // Ignore current record during update
+    if ($request->has('id')) {
+        $dupQuery->where('id', '!=', $request->id);
+    }
 
-        // Check if a duplicate exists
-        if ($dupQuery->exists()) {
-            return response()->json([
-                'status' => false,
-                'message' => 'This pay head has already been assigned to this class for this school.'
-            ]);
-        }
+    if ($dupQuery->exists()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'This pay head has already been assigned to this class for this session.'
+        ]);
+    }
 
         /*
         |--------------------------------------------------------------------------
