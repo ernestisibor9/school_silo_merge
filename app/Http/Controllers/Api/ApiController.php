@@ -6123,7 +6123,58 @@ class ApiController extends Controller
      */
 
 
+    // public function setStudentRes(Request $request)
+    // {
+    //     // Retrieve the authenticated user
+    //     $user = auth()->user();
 
+    //     // Allow School Admin (typ = 'a' or 's') to add comments
+    //     if (in_array($user->typ, ['a', 's'])) {
+    //         return $this->saveStudentRes($request);
+    //     }
+
+    //     // Find the corresponding staff record
+    //     $staff = staff::where('sid', $user->id)->first();
+
+    //     if (!$staff) {
+    //         return response()->json([
+    //             "status" => false,
+    //             "message" => "Unauthorized: Staff not found."
+    //         ], 403);
+    //     }
+
+    //     // Retrieve the role names from the staff_role table
+    //     $roleNames = staff_role::whereIn('id', [$staff->role, $staff->role2])
+    //         ->pluck('name')
+    //         ->toArray();
+
+    //     // Allow Form Teachers, Head Teacher, Class Teachers, and Principals to comment
+    //     $allowedRoles = ['Form Teacher', 'Head Teacher', 'Class Teacher', 'Principal'];
+
+    //     if (!array_intersect($allowedRoles, $roleNames)) {
+    //         return response()->json([
+    //             "status" => false,
+    //             "message" => "Unauthorized: Only Form Teachers, Head Teacher, Class Teachers, Principals, or Admins can add comments."
+    //         ], 403);
+    //     }
+
+    //     // If the staff is a Class Teacher, ensure they are assigned to the correct class arm
+    //     if (in_array('Class Teacher', $roleNames)) {
+    //         $assignedClassArm = staff_class_arm::where('stid', $staff->sid)
+    //             ->where('cls', $request->clsm) // Ensure same class
+    //             ->where('arm', $request->clsa) // Ensure same class arm
+    //             ->exists();
+
+    //         if (!$assignedClassArm) {
+    //             return response()->json([
+    //                 "status" => false,
+    //                 "message" => "Unauthorized: You are not assigned to this class arm."
+    //             ], 403);
+    //         }
+    //     }
+
+    //     return $this->saveStudentRes($request);
+    // }
 
     public function setStudentRes(Request $request)
     {
@@ -6145,13 +6196,17 @@ class ApiController extends Controller
             ], 403);
         }
 
+        // Sanitize role IDs: remove non-numeric characters like '*' and ignore -1
+        $roleIds = array_map(fn($r) => preg_replace('/\D/', '', $r), [$staff->role, $staff->role2]);
+        $roleIds = array_filter(array_map('intval', $roleIds), fn($r) => $r > 0);
+
         // Retrieve the role names from the staff_role table
-        $roleNames = staff_role::whereIn('id', [$staff->role, $staff->role2])
+        $roleNames = staff_role::whereIn('id', $roleIds)
             ->pluck('name')
             ->toArray();
 
-        // Allow Form Teachers, Head Teacher, Class Teachers, and Principals to comment
-        $allowedRoles = ['Form Teacher', 'Head Teacher', 'Class Teacher', 'Principal'];
+        // Allow Form Teachers, Head Teacher, Class Teachers, Principals, and Admins to comment
+        $allowedRoles = ['Form Teacher', 'Head Teacher', 'Class Teacher', 'Principal', 'Admin'];
 
         if (!array_intersect($allowedRoles, $roleNames)) {
             return response()->json([
@@ -12287,26 +12342,26 @@ class ApiController extends Controller
         | DUPLICATE CHECK (clsid + pay_head_id)
         |--------------------------------------------------------------------------
         */
-    $dupQuery = accts::where('schid', $request->schid)
-        ->where('clsid', $request->clsid)
-        ->where('ssn', $request->ssn);
+        $dupQuery = accts::where('schid', $request->schid)
+            ->where('clsid', $request->clsid)
+            ->where('ssn', $request->ssn);
 
-    // Only check pay_head_id if it's provided
-    if ($request->filled('pay_head_id')) {
-        $dupQuery->where('pay_head_id', $request->pay_head_id);
-    }
+        // Only check pay_head_id if it's provided
+        if ($request->filled('pay_head_id')) {
+            $dupQuery->where('pay_head_id', $request->pay_head_id);
+        }
 
-    // Ignore current record during update
-    if ($request->has('id')) {
-        $dupQuery->where('id', '!=', $request->id);
-    }
+        // Ignore current record during update
+        if ($request->has('id')) {
+            $dupQuery->where('id', '!=', $request->id);
+        }
 
-    if ($dupQuery->exists()) {
-        return response()->json([
-            'status' => false,
-            'message' => 'This pay head has already been assigned to this class for this session.'
-        ]);
-    }
+        if ($dupQuery->exists()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'This pay head has already been assigned to this class for this session.'
+            ]);
+        }
 
         /*
         |--------------------------------------------------------------------------
@@ -20652,176 +20707,182 @@ class ApiController extends Controller
 
 
 
-    public function setAttendanceMark(Request $request)
-    {
-        // Normalize input first
-        $request->merge([
-            'period' => is_string($request->period)
-                ? trim(strtolower($request->period))
-                : $request->period,
-        ]);
-        $validated = $request->validate([
-            'schid' => 'required|string',
-            'ssn' => 'required|string',
-            'trm' => 'required|string',
-            'clsm' => 'required|string',
-            'clsa' => 'required|string',
-            'stid' => 'nullable|string', // stid is now optional
-            'week' => 'required|integer|min:1|max:14',
-            'day' => 'required|in:monday,tuesday,wednesday,thursday,friday',
-            'period' => 'required|in:morning,evening', // ✅ NEW
-            'students' => 'required|array',
-            'students.*.sid' => 'required|string',
-            'students.*.status' => 'required|in:0,1,2',
-        ]);
+    // public function setAttendanceMark(Request $request)
+    // {
+    //     // Normalize input first
+    //     $request->merge([
+    //         'period' => is_string($request->period)
+    //             ? trim(strtolower($request->period))
+    //             : $request->period,
+    //     ]);
+    //     $validated = $request->validate([
+    //         'schid' => 'required|string',
+    //         'ssn' => 'required|string',
+    //         'trm' => 'required|string',
+    //         'clsm' => 'required|string',
+    //         'clsa' => 'required|string',
+    //         'stid' => 'nullable|string', // stid is now optional
+    //         'week' => 'required|integer|min:1|max:14',
+    //         'day' => 'required|in:monday,tuesday,wednesday,thursday,friday',
+    //         'period' => 'required|in:morning,evening', // ✅ NEW
+    //         'students' => 'required|array',
+    //         'students.*.sid' => 'required|string',
+    //         'students.*.status' => 'required|in:0,1,2',
+    //     ]);
 
-        // Check staff only if stid is provided
-        if (!empty($validated['stid'])) {
-            $staff = old_staff::where('sid', $validated['stid'])
-                ->where('ssn', $validated['ssn'])
-                ->where('trm', $validated['trm'])
-                ->first();
+    //     // Check staff only if stid is provided
+    //     if (!empty($validated['stid'])) {
+    //         $staff = old_staff::where('sid', $validated['stid'])
+    //             ->where('ssn', $validated['ssn'])
+    //             ->where('trm', $validated['trm'])
+    //             ->first();
 
-            if (!$staff) {
-                return response()->json(['status' => 'error', 'message' => 'Staff not found'], 403);
-            }
+    //         if (!$staff) {
+    //             return response()->json(['status' => 'error', 'message' => 'Staff not found'], 403);
+    //         }
 
-            $roles = staff_role::whereIn('id', [$staff->role, $staff->role2])->pluck('name')->toArray();
-            if (!array_intersect(['Admin', 'Form Teacher'], $roles)) {
-                return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
-            }
+    //         $roles = staff_role::whereIn('id', [$staff->role, $staff->role2])->pluck('name')->toArray();
+    //         if (!array_intersect(['Admin', 'Form Teacher'], $roles)) {
+    //             return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
+    //         }
+    //     }
+
+    //     $marked = [];
+
+    //     foreach ($validated['students'] as $student) {
+    //         $existing = attendance::where([
+    //             'schid' => $validated['schid'],
+    //             'ssn' => $validated['ssn'],
+    //             'trm' => $validated['trm'],
+    //             'clsm' => $validated['clsm'],
+    //             'clsa' => $validated['clsa'],
+    //             'sid' => $student['sid'],
+    //             'week' => $validated['week'],
+    //             'day' => $validated['day'],
+    //             'period' => $validated['period'],
+    //         ])->first();
+
+    //         if ($existing) {
+    //             $existing->update([
+    //                 'status' => $student['status'],
+    //                 'stid' => $validated['stid'] ?? null,
+    //             ]);
+    //             $marked[] = $existing;
+    //         } else {
+    //             $marked[] = attendance::create([
+    //                 'schid' => $validated['schid'],
+    //                 'ssn' => $validated['ssn'],
+    //                 'trm' => $validated['trm'],
+    //                 'clsm' => $validated['clsm'],
+    //                 'clsa' => $validated['clsa'],
+    //                 'sid' => $student['sid'],
+    //                 'stid' => $validated['stid'] ?? null, // Safe nullable fallback
+    //                 'week' => $validated['week'],
+    //                 'day' => $validated['day'],
+    //                 'period' => $validated['period'],
+    //                 'status' => $student['status'],
+    //             ]);
+    //         }
+    //     }
+
+    //     return response()->json([
+    //         'status' => 'success',
+    //         'message' => 'Attendance marked successfully for students.',
+    //         'pld' => $marked
+    //     ]);
+    // }
+
+public function setAttendanceMark(Request $request)
+{
+    // Normalize input first
+    $request->merge([
+        'period' => is_string($request->period)
+            ? trim(strtolower($request->period))
+            : $request->period,
+    ]);
+    $validated = $request->validate([
+        'schid' => 'required|string',
+        'ssn' => 'required|string',
+        'trm' => 'required|string',
+        'clsm' => 'required|string',
+        'clsa' => 'required|string',
+        'stid' => 'nullable|string', // stid is now optional
+        'week' => 'required|integer|min:1|max:14',
+        'day' => 'required|in:monday,tuesday,wednesday,thursday,friday',
+        'period' => 'required|in:morning,evening', // ✅ NEW
+        'students' => 'required|array',
+        'students.*.sid' => 'required|string',
+        'students.*.status' => 'required|in:0,1,2',
+    ]);
+
+    // Check staff only if stid is provided
+    if (!empty($validated['stid'])) {
+        $staff = old_staff::where('sid', $validated['stid'])
+            ->where('ssn', $validated['ssn'])
+            ->where('trm', $validated['trm'])
+            ->first();
+
+        if (!$staff) {
+            return response()->json(['status' => 'error', 'message' => 'Staff not found'], 403);
         }
 
-        $marked = [];
+        // Sanitize role IDs: remove non-numeric chars like '*' and ignore -1
+        $roleIds = array_map(fn($r) => preg_replace('/\D/', '', $r), [$staff->role, $staff->role2]);
+        $roleIds = array_filter(array_map('intval', $roleIds), fn($r) => $r > 0);
 
-        foreach ($validated['students'] as $student) {
-            $existing = attendance::where([
+        // Retrieve role names
+        $roles = staff_role::whereIn('id', $roleIds)->pluck('name')->toArray();
+
+        // Only Admin or Form Teacher allowed
+        if (!array_intersect(['Admin', 'Form Teacher'], $roles)) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
+        }
+    }
+
+    $marked = [];
+
+    foreach ($validated['students'] as $student) {
+        $existing = attendance::where([
+            'schid' => $validated['schid'],
+            'ssn' => $validated['ssn'],
+            'trm' => $validated['trm'],
+            'clsm' => $validated['clsm'],
+            'clsa' => $validated['clsa'],
+            'sid' => $student['sid'],
+            'week' => $validated['week'],
+            'day' => $validated['day'],
+            'period' => $validated['period'],
+        ])->first();
+
+        if ($existing) {
+            $existing->update([
+                'status' => $student['status'],
+                'stid' => $validated['stid'] ?? null,
+            ]);
+            $marked[] = $existing;
+        } else {
+            $marked[] = attendance::create([
                 'schid' => $validated['schid'],
                 'ssn' => $validated['ssn'],
                 'trm' => $validated['trm'],
                 'clsm' => $validated['clsm'],
                 'clsa' => $validated['clsa'],
                 'sid' => $student['sid'],
+                'stid' => $validated['stid'] ?? null, // Safe nullable fallback
                 'week' => $validated['week'],
                 'day' => $validated['day'],
                 'period' => $validated['period'],
-            ])->first();
-
-            if ($existing) {
-                $existing->update([
-                    'status' => $student['status'],
-                    'stid' => $validated['stid'] ?? null,
-                ]);
-                $marked[] = $existing;
-            } else {
-                $marked[] = attendance::create([
-                    'schid' => $validated['schid'],
-                    'ssn' => $validated['ssn'],
-                    'trm' => $validated['trm'],
-                    'clsm' => $validated['clsm'],
-                    'clsa' => $validated['clsa'],
-                    'sid' => $student['sid'],
-                    'stid' => $validated['stid'] ?? null, // Safe nullable fallback
-                    'week' => $validated['week'],
-                    'day' => $validated['day'],
-                    'period' => $validated['period'],
-                    'status' => $student['status'],
-                ]);
-            }
+                'status' => $student['status'],
+            ]);
         }
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Attendance marked successfully for students.',
-            'pld' => $marked
-        ]);
     }
 
-    // public function setAttendanceMark(Request $request)
-// {
-//     $validated = $request->validate([
-//         'schid' => 'required|string',
-//         'ssn' => 'required|string',
-//         'trm' => 'required|string',
-//         'clsm' => 'required|string',
-//         'clsa' => 'required|string',
-//         'stid' => 'nullable|string', // stid is now optional
-//         'week' => 'required|integer|min:1|max:14',
-//         'day' => 'required|in:monday,tuesday,wednesday,thursday,friday',
-//         'period' => 'required|in:morning,evening', // ✅ NEW
-//         'students' => 'required|array',
-//         'students.*.sid' => 'required|string',
-//         'students.*.status' => 'required|in:0,1,2',
-//     ]);
-
-    //     // Check staff only if stid is provided
-//     if (!empty($validated['stid'])) {
-//         $staff = old_staff::where('sid', $validated['stid'])
-//             ->where('ssn', $validated['ssn'])
-//             ->where('trm', $validated['trm'])
-//             ->first();
-
-    //         if (!$staff) {
-//             return response()->json(['status' => 'error', 'message' => 'Staff not found for this session/term'], 403);
-//         }
-
-    //         $allowedRoles = ['Admin', 'Form Teacher'];
-//         $staffRoles = staff_role::whereIn('id', array_filter([$staff->role, $staff->role2]))
-//             ->pluck('name')
-//             ->toArray();
-
-    //         // Allow access if staff has ANY allowed role
-//         if (count(array_intersect($allowedRoles, $staffRoles)) === 0) {
-//             return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
-//         }
-//     }
-
-    //     $marked = [];
-
-    //     foreach ($validated['students'] as $student) {
-//         $existing = attendance::where([
-//             'schid' => $validated['schid'],
-//             'ssn' => $validated['ssn'],
-//             'trm' => $validated['trm'],
-//             'clsm' => $validated['clsm'],
-//             'clsa' => $validated['clsa'],
-//             'sid' => $student['sid'],
-//             'week' => $validated['week'],
-//             'day' => $validated['day'],
-//             'period' => $validated['period'],
-//         ])->first();
-
-    //         if ($existing) {
-//             $existing->update([
-//                 'status' => $student['status'],
-//                 'stid' => $validated['stid'] ?? null,
-//             ]);
-//             $marked[] = $existing;
-//         } else {
-//             $marked[] = attendance::create([
-//                 'schid' => $validated['schid'],
-//                 'ssn' => $validated['ssn'],
-//                 'trm' => $validated['trm'],
-//                 'clsm' => $validated['clsm'],
-//                 'clsa' => $validated['clsa'],
-//                 'sid' => $student['sid'],
-//                 'stid' => $validated['stid'] ?? null,
-//                 'week' => $validated['week'],
-//                 'day' => $validated['day'],
-//                 'period' => $validated['period'],
-//                 'status' => $student['status'],
-//             ]);
-//         }
-//     }
-
-    //     return response()->json([
-//         'status' => 'success',
-//         'message' => 'Attendance marked successfully for students.',
-//         'pld' => $marked
-//     ]);
-// }
-
-
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Attendance marked successfully for students.',
+        'pld' => $marked
+    ]);
+}
 
 
     ///
