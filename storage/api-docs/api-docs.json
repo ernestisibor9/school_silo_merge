@@ -2557,8 +2557,8 @@
                 "tags": [
                     "Api"
                 ],
-                "summary": "Fetch student subjects by student ID, with optional session and term filters",
-                "description": "Retrieve subjects assigned to a particular student. You can optionally filter by session (ssn) and term (trm), and also control pagination using start and count parameters.",
+                "summary": "Fetch student subjects by student ID, with optional session, term, and class filters",
+                "description": "Retrieve subjects assigned to a particular student. You can optionally filter by session (ssn), term (trm), and class (clsid), and control pagination using start and count parameters.",
                 "operationId": "getStudentSubjects",
                 "parameters": [
                     {
@@ -2589,6 +2589,16 @@
                         "schema": {
                             "type": "integer",
                             "example": 1
+                        }
+                    },
+                    {
+                        "name": "clsid",
+                        "in": "query",
+                        "description": "Filter by class ID",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 10
                         }
                     },
                     {
@@ -2626,6 +2636,18 @@
                                         "message": {
                                             "type": "string",
                                             "example": "Success"
+                                        },
+                                        "total": {
+                                            "type": "integer",
+                                            "example": 100
+                                        },
+                                        "start": {
+                                            "type": "integer",
+                                            "example": 0
+                                        },
+                                        "count": {
+                                            "type": "integer",
+                                            "example": 20
                                         },
                                         "pld": {
                                             "type": "array",
