@@ -6927,7 +6927,7 @@ public function getStudentSubjects($stid)
             "role" => "required",
             "role2" => "required",
             "role_name" => "required",
-            "role2_name" => "required",
+            "role2_name" => "nullable",
             "schid" => "required",
         ]);
 
