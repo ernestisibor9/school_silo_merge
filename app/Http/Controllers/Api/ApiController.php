@@ -6723,8 +6723,8 @@ public function getStudentSubjects($stid)
                 "year" => $request->year,
                 "trm" => $request->trm,
                 "cuid" => $request->cuid,
-                "role" => "*" . $request->role,
-                "role2" => '-1',
+                "role" => $request->role,
+                // "role2" => '-1',
                 "s_basic" => '0',
                 "s_prof" => '0',
             ]);
