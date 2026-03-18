@@ -8840,14 +8840,14 @@
                 ]
             }
         },
-        "/api/confirmAcceptancePayment/{schid}/{clsid}/{stid}": {
+        "/api/confirmAcceptancePayment/{schid}/{clsid}/{stid}/{ssn}/{trm}": {
             "get": {
                 "tags": [
                     "Payments"
                 ],
                 "summary": "Returns null if no payment",
                 "description": "Use this endpoint to confirm payment of acceptance fee",
-                "operationId": "7d66e9c7055e1a7682ca3970a8432ca6",
+                "operationId": "1d8d1c3c8252e8435fc9c8acd1c760b2",
                 "parameters": [
                     {
                         "name": "schid",
@@ -8871,6 +8871,24 @@
                         "name": "stid",
                         "in": "path",
                         "description": "Student ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "path",
+                        "description": "Session ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "path",
+                        "description": "Term ID",
                         "required": true,
                         "schema": {
                             "type": "string"

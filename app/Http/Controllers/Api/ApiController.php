@@ -11510,7 +11510,7 @@ public function getStudentSubjects($stid)
 
     /**
      * @OA\Get(
-     *     path="/api/confirmAcceptancePayment/{schid}/{clsid}/{stid}",
+     *     path="/api/confirmAcceptancePayment/{schid}/{clsid}/{stid}/{ssn}/{trm}",
      *     tags={"Payments"},
      *     summary="Returns null if no payment",
      *     description="Use this endpoint to confirm payment of acceptance fee",
@@ -11536,13 +11536,27 @@ public function getStudentSubjects($stid)
      *         description="Student ID",
      *         @OA\Schema(type="string")
      *     ),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="path",
+     *         required=true,
+     *         description="Session ID",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Term ID",
+     *         @OA\Schema(type="string")
+     *     ),
      *     @OA\Response(response="200", description="Success", @OA\JsonContent()),
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    public function confirmAcceptancePayment($schid, $clsid, $stid)
+    public function confirmAcceptancePayment($schid, $clsid, $stid, $ssn, $trm)
     {
-        $pld = afeerec::where('schid', $schid)->where('clsid', $clsid)->where('stid', $stid)->first();
+        $pld = afeerec::where('schid', $schid)->where('clsid', $clsid)->where('stid', $stid)->where('ssn', $ssn)->where('trm', $trm)->first();
         // Respond
         return response()->json([
             "status" => true,
