@@ -254,7 +254,7 @@ Route::group([
     Route::get('getStudentPaymentStat/{stid}', [ApiController::class, 'getStudentPaymentStat']);
     Route::get('getAcceptancePaymentStat/{schid}/{clsid}', [ApiController::class, 'getAcceptancePaymentStat']);
     Route::get('getAcceptancePayments/{schid}/{clsid}', [ApiController::class, 'getAcceptancePayments']);
-    Route::get('confirmAcceptancePayment/{schid}/{clsid}/{stid}', [ApiController::class, 'confirmAcceptancePayment']);
+    Route::get('confirmAcceptancePayment/{schid}/{clsid}/{stid}/{ssn}/{trm}', [ApiController::class, 'confirmAcceptancePayment']);
     Route::get('getRegFeePaymentStat/{schid}/{rfee}', [ApiController::class, 'getRegFeePaymentStat']);
     Route::get('getRegFeePayments/{schid}/{rfee}', [ApiController::class, 'getRegFeePayments']);
     Route::get('getAcctPref/{schid}/{ssn}/{trm}', [ApiController::class, 'getAcctPref']);

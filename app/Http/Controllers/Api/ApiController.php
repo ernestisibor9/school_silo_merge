@@ -27396,112 +27396,112 @@ public function setAttendanceMark(Request $request)
 
 
 
-    // public function promoteStudent(Request $request)
-    // {
-    //     $request->validate([
-    //         'sid' => 'required',
-    //         'schid' => 'required',
-    //         'sesn' => 'required',  // session
-    //         'trm' => 'required',  // term
-    //         'clsm' => 'required',  // new main class
-    //         'clsa' => 'required',  // requested new class arm (sch_cls.id)
-    //         'suid' => 'required',  // student unique id
-    //     ]);
+    public function promoteStudent(Request $request)
+    {
+        $request->validate([
+            'sid' => 'required',
+            'schid' => 'required',
+            'sesn' => 'required',  // session
+            'trm' => 'required',  // term
+            'clsm' => 'required',  // new main class
+            'clsa' => 'required',  // requested new class arm (sch_cls.id)
+            'suid' => 'required',  // student unique id
+        ]);
 
-    //     // 1. Find the student
-    //     $student = student::where('sid', $request->sid)->firstOrFail();
+        // 1. Find the student
+        $student = student::where('sid', $request->sid)->firstOrFail();
 
-    //     // 2. Make sure this arm belongs to the new class
-    //     $validArm = DB::table('sch_cls')
-    //         ->where('id', $request->clsa)
-    //         ->where('cls_id', $request->clsm)   // ensure arm belongs to this class
-    //         ->where('schid', $request->schid)
-    //         ->first();
+        // 2. Make sure this arm belongs to the new class
+        $validArm = DB::table('sch_cls')
+            ->where('id', $request->clsa)
+            ->where('cls_id', $request->clsm)   // ensure arm belongs to this class
+            ->where('schid', $request->schid)
+            ->first();
 
-    //     if (!$validArm) {
-    //         return response()->json([
-    //             'status' => false,
-    //             'message' => 'Invalid class arm for the selected class',
-    //         ], 422);
-    //     }
+        if (!$validArm) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Invalid class arm for the selected class',
+            ], 422);
+        }
 
-    //     // 3. Check if already promoted for this session + term
-    //     $alreadyPromoted = old_student::where('sid', $request->sid)
-    //         ->where('schid', $request->schid)
-    //         ->where('ssn', $request->sesn)
-    //         ->where('trm', $request->trm)
-    //         ->where('clsm', $request->clsm)
-    //         ->where('clsa', $request->clsa)
-    //         ->first();
+        // 3. Check if already promoted for this session + term
+        $alreadyPromoted = old_student::where('sid', $request->sid)
+            ->where('schid', $request->schid)
+            ->where('ssn', $request->sesn)
+            ->where('trm', $request->trm)
+            ->where('clsm', $request->clsm)
+            ->where('clsa', $request->clsa)
+            ->first();
 
-    //     if ($alreadyPromoted) {
-    //         return response()->json([
-    //             'status' => false,
-    //             'message' => 'This student has already been promoted for the selected session and term',
-    //         ], ); // conflict
-    //     }
+        if ($alreadyPromoted) {
+            return response()->json([
+                'status' => false,
+                'message' => 'This student has already been promoted for the selected session and term',
+            ], ); // conflict
+        }
 
-    //     // 4. Generate deterministic UID (no random numbers)
-    //     $uid = $request->sesn . $request->trm . $request->sid . $request->clsm;
+        // 4. Generate deterministic UID (no random numbers)
+        $uid = $request->sesn . $request->trm . $request->sid . $request->clsm;
 
-    //     // ✅ Check if this combination already exists
-    //     $exists = old_student::where([
-    //         'sid' => $request->sid,
-    //         'ssn' => $request->sesn,
-    //         'trm' => $request->trm,
-    //         'clsm' => $request->clsm,
-    //         'clsa' => $request->id,
-    //     ])->exists();
+        // ✅ Check if this combination already exists
+        $exists = old_student::where([
+            'sid' => $request->sid,
+            'ssn' => $request->sesn,
+            'trm' => $request->trm,
+            'clsm' => $request->clsm,
+            'clsa' => $request->id,
+        ])->exists();
 
-    //     if ($exists) {
-    //         return response()->json([
-    //             'status' => false,
-    //             'message' => 'This student has already been promoted for the selected session, term, and class.',
-    //         ], ); //  Conflict
-    //     }
+        if ($exists) {
+            return response()->json([
+                'status' => false,
+                'message' => 'This student has already been promoted for the selected session, term, and class.',
+            ], ); //  Conflict
+        }
 
-    //     // 5. Create promotion record
-    //     $promotion = old_student::updateOrCreate(
-    //         [
-    //             'sid' => $request->sid,
-    //             'schid' => $request->schid,
-    //             'ssn' => $request->sesn,
-    //             'trm' => $request->trm,
-    //             'clsm' => $request->clsm,
-    //             'clsa' => $request->clsa,
-    //         ],
-    //         [
-    //             'uid' => $uid,
-    //             'fname' => $student->fname,
-    //             'mname' => $student->mname,
-    //             'lname' => $student->lname,
-    //             'status' => 'active',
-    //             'suid' => $request->suid,
-    //             'more' => '',
-    //         ]
-    //     );
+        // 5. Create promotion record
+        $promotion = old_student::updateOrCreate(
+            [
+                'sid' => $request->sid,
+                'schid' => $request->schid,
+                'ssn' => $request->sesn,
+                'trm' => $request->trm,
+                'clsm' => $request->clsm,
+                'clsa' => $request->clsa,
+            ],
+            [
+                'uid' => $uid,
+                'fname' => $student->fname,
+                'mname' => $student->mname,
+                'lname' => $student->lname,
+                'status' => 'active',
+                'suid' => $request->suid,
+                'more' => '',
+            ]
+        );
 
-    //     // 6. Update student_academic_data table
-    //     student_academic_data::where('user_id', $request->sid)
-    //         ->update([
-    //             'new_class_main' => $request->clsm,
-    //             'new_class' => $validArm->id,
-    //         ]);
+        // 6. Update student_academic_data table
+        student_academic_data::where('user_id', $request->sid)
+            ->update([
+                'new_class_main' => $request->clsm,
+                'new_class' => $validArm->id,
+            ]);
 
-    //     return response()->json([
-    //         'status' => true,
-    //         'message' => 'Student promoted successfully for this term',
-    //         'data' => [
-    //             'sid' => $promotion->sid,
-    //             'suid' => $promotion->suid,
-    //             'ssn' => $promotion->ssn,
-    //             'trm' => $promotion->trm,
-    //             'clsm' => $promotion->clsm,
-    //             'clsa' => $promotion->clsa,
-    //             'clsa_name' => $validArm->name,   // arm name
-    //         ],
-    //     ]);
-    // }
+        return response()->json([
+            'status' => true,
+            'message' => 'Student promoted successfully for this term',
+            'data' => [
+                'sid' => $promotion->sid,
+                'suid' => $promotion->suid,
+                'ssn' => $promotion->ssn,
+                'trm' => $promotion->trm,
+                'clsm' => $promotion->clsm,
+                'clsa' => $promotion->clsa,
+                'clsa_name' => $validArm->name,   // arm name
+            ],
+        ]);
+    }
 
 
 
@@ -28422,7 +28422,7 @@ public function setAttendanceMark(Request $request)
             return response()->json([
                 'status' => false,
                 'message' => 'This student has already been reposted for the selected session, term, and class.',
-            ]);
+            ], 409);
         }
 
         // ✅ Create or update promotion record
