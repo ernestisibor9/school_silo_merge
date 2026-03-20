@@ -14456,21 +14456,20 @@ public function paystackConf(Request $request)
             return response()->json(['status' => 'duplicate'], 200);
         }
 
-        // Parse reference for payment type first
-        $parts = explode('-', $ref);
-        if (count($parts) >= 8) {
-            $typ = (int) $parts[3]; // get from reference reliably
-        } else {
-            $typ = isset($trx['metadata']['typ']) ? (int) $trx['metadata']['typ'] : 0; // fallback
-        }
+        // -------------------------
+        // FIXED: Determine payment type from metadata FIRST
+        // -------------------------
+        $metadata = $trx['metadata'] ?? [];
+        $typ = isset($metadata['typ']) ? (int) $metadata['typ'] : 0; // <- FIX HERE
 
         if (!in_array($typ, [0, 1, 2])) {
             Log::warning('Invalid payment type detected', ['typ' => $typ, 'ref' => $ref]);
             return response()->json(['status' => 'error', 'message' => 'Invalid payment type'], 400);
         }
 
+        // -------------------------
         // Metadata
-        $metadata = $trx['metadata'] ?? [];
+        // -------------------------
         $nm = $metadata['name'] ?? '';
         $exp = $metadata['exp'] ?? '';
         $lid = $metadata['lid'] ?? '';
