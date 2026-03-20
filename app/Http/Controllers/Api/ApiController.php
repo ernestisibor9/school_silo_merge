@@ -14461,6 +14461,7 @@ public function paystackConf(Request $request)
         // -------------------------
         $metadata = $trx['metadata'] ?? [];
         $typ = isset($metadata['typ']) ? (int) $metadata['typ'] : 0; // <- FIX HERE
+        Log::info('Payment type before insert', ['typ' => $typ]);
 
         if (!in_array($typ, [0, 1, 2])) {
             Log::warning('Invalid payment type detected', ['typ' => $typ, 'ref' => $ref]);
