@@ -2951,149 +2951,149 @@ class ApiController extends Controller
     }
 
 
-/**
- * @OA\Get(
- *     path="/api/getStudentSubjects/{stid}",
- *     summary="Fetch student subjects by student ID, with optional session, term, and class filters",
- *     description="Retrieve subjects assigned to a particular student. You can optionally filter by session (ssn), term (trm), and class (clsid), and control pagination using start and count parameters.",
- *     operationId="getStudentSubjects",
- *     tags={"Api"},
- *     security={{"bearerAuth": {}}},
- *
- *     @OA\Parameter(
- *         name="stid",
- *         in="path",
- *         required=true,
- *         description="The ID of the student",
- *         @OA\Schema(type="integer", example=207)
- *     ),
- *
- *     @OA\Parameter(
- *         name="ssn",
- *         in="query",
- *         required=false,
- *         description="Filter by academic session (e.g., 2025)",
- *         @OA\Schema(type="string", example="2025")
- *     ),
- *
- *     @OA\Parameter(
- *         name="trm",
- *         in="query",
- *         required=false,
- *         description="Filter by academic term (e.g., 1 for first term, 2 for second term)",
- *         @OA\Schema(type="integer", example=1)
- *     ),
- *
- *     @OA\Parameter(
- *         name="clsid",
- *         in="query",
- *         required=false,
- *         description="Filter by class ID",
- *         @OA\Schema(type="integer", example=10)
- *     ),
- *
- *     @OA\Parameter(
- *         name="start",
- *         in="query",
- *         required=false,
- *         description="Starting index for pagination",
- *         @OA\Schema(type="integer", example=0)
- *     ),
- *
- *     @OA\Parameter(
- *         name="count",
- *         in="query",
- *         required=false,
- *         description="Number of records to return (default: 20)",
- *         @OA\Schema(type="integer", example=20)
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Successful response",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Success"),
- *             @OA\Property(property="total", type="integer", example=100),
- *             @OA\Property(property="start", type="integer", example=0),
- *             @OA\Property(property="count", type="integer", example=20),
- *             @OA\Property(
- *                 property="pld",
- *                 type="array",
- *                 @OA\Items(
- *                     type="object",
- *                     @OA\Property(property="id", type="integer", example=1),
- *                     @OA\Property(property="stid", type="integer", example=207),
- *                     @OA\Property(property="sbj", type="string", example="Mathematics"),
- *                     @OA\Property(property="comp", type="integer", example=1),
- *                     @OA\Property(property="trm", type="integer", example=1),
- *                     @OA\Property(property="ssn", type="string", example="2025"),
- *                     @OA\Property(property="schid", type="integer", example=13),
- *                     @OA\Property(property="clsid", type="integer", example=10),
- *                     @OA\Property(property="created_at", type="string", format="date-time", example="2025-03-04T14:04:57"),
- *                     @OA\Property(property="updated_at", type="string", format="date-time", example="2025-03-04T14:04:57")
- *                 )
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=400,
- *         description="Invalid parameters"
- *     ),
- *
- *     @OA\Response(
- *         response=404,
- *         description="Student not found or no subjects found"
- *     )
- * )
- */
+    /**
+     * @OA\Get(
+     *     path="/api/getStudentSubjects/{stid}",
+     *     summary="Fetch student subjects by student ID, with optional session, term, and class filters",
+     *     description="Retrieve subjects assigned to a particular student. You can optionally filter by session (ssn), term (trm), and class (clsid), and control pagination using start and count parameters.",
+     *     operationId="getStudentSubjects",
+     *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
+     *
+     *     @OA\Parameter(
+     *         name="stid",
+     *         in="path",
+     *         required=true,
+     *         description="The ID of the student",
+     *         @OA\Schema(type="integer", example=207)
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="query",
+     *         required=false,
+     *         description="Filter by academic session (e.g., 2025)",
+     *         @OA\Schema(type="string", example="2025")
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="query",
+     *         required=false,
+     *         description="Filter by academic term (e.g., 1 for first term, 2 for second term)",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="clsid",
+     *         in="query",
+     *         required=false,
+     *         description="Filter by class ID",
+     *         @OA\Schema(type="integer", example=10)
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         required=false,
+     *         description="Starting index for pagination",
+     *         @OA\Schema(type="integer", example=0)
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         required=false,
+     *         description="Number of records to return (default: 20)",
+     *         @OA\Schema(type="integer", example=20)
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful response",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(property="total", type="integer", example=100),
+     *             @OA\Property(property="start", type="integer", example=0),
+     *             @OA\Property(property="count", type="integer", example=20),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="stid", type="integer", example=207),
+     *                     @OA\Property(property="sbj", type="string", example="Mathematics"),
+     *                     @OA\Property(property="comp", type="integer", example=1),
+     *                     @OA\Property(property="trm", type="integer", example=1),
+     *                     @OA\Property(property="ssn", type="string", example="2025"),
+     *                     @OA\Property(property="schid", type="integer", example=13),
+     *                     @OA\Property(property="clsid", type="integer", example=10),
+     *                     @OA\Property(property="created_at", type="string", format="date-time", example="2025-03-04T14:04:57"),
+     *                     @OA\Property(property="updated_at", type="string", format="date-time", example="2025-03-04T14:04:57")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=400,
+     *         description="Invalid parameters"
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="Student not found or no subjects found"
+     *     )
+     * )
+     */
 
-public function getStudentSubjects($stid)
-{
-    // Get query parameters
-    $start = (int) request()->input('start', 0);
-    $count = (int) request()->input('count', 20);
-    $ssn   = request()->input('ssn');   // session
-    $trm   = request()->input('trm');   // term
-    $clsid = request()->input('clsid'); // class
+    public function getStudentSubjects($stid)
+    {
+        // Get query parameters
+        $start = (int) request()->input('start', 0);
+        $count = (int) request()->input('count', 20);
+        $ssn = request()->input('ssn');   // session
+        $trm = request()->input('trm');   // term
+        $clsid = request()->input('clsid'); // class
 
-    // Base query
-    $query = student_subj::where('stid', $stid);
+        // Base query
+        $query = student_subj::where('stid', $stid);
 
-    // Apply filters only if values exist
-    if ($ssn !== null) {
-        $query->where('ssn', $ssn);
+        // Apply filters only if values exist
+        if ($ssn !== null) {
+            $query->where('ssn', $ssn);
+        }
+
+        if ($trm !== null) {
+            $query->where('trm', $trm);
+        }
+
+        if ($clsid !== null) {
+            $query->where('clsid', $clsid);
+        }
+
+        // Get total records before pagination
+        $total = $query->count();
+
+        // Fetch paginated records
+        $subjects = $query
+            ->orderBy('id', 'asc')
+            ->skip($start)
+            ->take($count)
+            ->get();
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "total" => $total,
+            "start" => $start,
+            "count" => $subjects->count(),
+            "pld" => $subjects
+        ]);
     }
-
-    if ($trm !== null) {
-        $query->where('trm', $trm);
-    }
-
-    if ($clsid !== null) {
-        $query->where('clsid', $clsid);
-    }
-
-    // Get total records before pagination
-    $total = $query->count();
-
-    // Fetch paginated records
-    $subjects = $query
-        ->orderBy('id', 'asc')
-        ->skip($start)
-        ->take($count)
-        ->get();
-
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "total" => $total,
-        "start" => $start,
-        "count" => $subjects->count(),
-        "pld" => $subjects
-    ]);
-}
 
 
 
@@ -14201,119 +14201,147 @@ public function getStudentSubjects($stid)
      * )
      */
 
-    //Paystack Webhook (POST, formdata)
-    // public function paystackConf(Request $request){
-    //     Log::info('------------ARRIVED-----------');
-    //     $payload = json_decode($request->input('payload'), true);
-    //     if($payload['event'] == "charge.success"){
-    //         $ref = $payload['data']['reference'];
-    //         Log::info($ref);
-    //         $pld = payment_refs::where("ref","=", $ref)->first();
-    //         if(!$pld){ // Its unique
-    //             $payinfo = explode('-',$ref);
-    //             $amt = $payinfo[2];
-    //             $schid = $payinfo[1];
-    //             $typ = $payinfo[3];
-    //             $stid = $payinfo[4];
-    //             $ssnid = $payinfo[5];
-    //             $trmid = $payinfo[6];
-    //             $clsid = $payinfo[7];
-    //             $nm = $payload['data']['metadata']['name'];
-    //             $tm = $payload['data']['metadata']['time'];
-    //             $exp = $payload['data']['metadata']['exp'];
-    //             $eml = $payload['data']['metadata']['eml'];
-    //             $lid = $payload['data']['metadata']['lid'];
-    //             $pid = $payload['data']['metadata']['pid'];
-    //             $what = '';
-    //             if($typ =='0'){ //School-Student Payment
-    //                 payments::create([
-    //                     'schid'=>$schid,
-    //                     'stid'=>$stid,
-    //                     'ssnid'=>$ssnid,
-    //                     'trmid'=>$trmid,
-    //                     'clsid'=>$clsid,
-    //                     'name'=>$nm,
-    //                     'exp'=>$exp,
-    //                     'amt'=>$amt,
-    //                     'lid'=>$lid,
-    //                 ]);
-    //                 $what = 'School Fees';
-    //             }
-    //             if($typ =='1'){ //Application Fee Paid
-    //                 //WARN: ClassID will be a placeholder in this case, so dont use it
-    //                 student::where('sid',$stid)->update([
-    //                     "rfee"=>'1'
-    //                 ]);
-    //                 $what = 'Application Fee';
-    //             }
-    //             if($typ =='2'){ //Acceptance Fee Paid
-    //                 $uid = $stid.$schid.$clsid;
-    //                 afeerec::updateOrCreate(
-    //                     ["uid"=> $uid,],
-    //                     [
-    //                     "stid"=> $stid,
-    //                     "schid"=> $schid,
-    //                     "clsid"=> $clsid,
-    //                     "amt"=> intval($amt),
-    //                 ]);
-    //                 $what = 'Acceptance Fee';
-    //             }
-    //             // Wrap the email sending logic in a try-catch block
-    //             try {
-    //                 $data = [
-    //                     'name' => $nm,
-    //                     'subject' => 'Payment Received',
-    //                     'body' => 'Your '.$what.' payment was received',
-    //                     'link'=>env('PORTAL_URL').'/studentLogin'.'/'.$schid,
-    //                 ];
-    //                 Mail::to($eml)->send(new SSSMails($data));
-    //             } catch (\Exception $e) {
-    //                 // Log the email error, but don't stop the process
-    //                 Log::error('Failed to send email: ' . $e->getMessage());
-    //             }
 
-    //             payment_refs::create([
-    //                 "ref"=> $ref,
-    //                 "amt"=> $amt,
-    //                 "time"=> $tm,
-    //             ]);
-    //             Log::info('SUCCESS');
-    //         }else{
-    //             Log::info('PLD EXISTS'.json_encode($pld));
-    //         }
-    //     }else{
-    //         Log::info('EVENTS BAD '.$payload['event']);
-    //     }
-    //     return response()->json(['status' => 'success'], 200);
-    // }
-
-
-
-    //Paystack Webhook (POST, formdata)
     // public function paystackConf(Request $request)
     // {
-    //     Log::info('------------ARRIVED-----------');
-    //     $payload = json_decode($request->input('payload'), true);
-    //     if ($payload['event'] == "charge.success") {
-    //         $ref = $payload['data']['reference'];
-    //         $pld = payment_refs::where("ref", "=", $ref)->first();
-    //         if (!$pld) { // Its unique
-    //             $payinfo = explode('-', $ref);
-    //             $amt = $payinfo[2];
-    //             $schid = $payinfo[1];
-    //             $typ = $payinfo[3];
-    //             $stid = $payinfo[4];
-    //             $ssnid = $payinfo[5];
-    //             $trmid = $payinfo[6];
-    //             $clsid = $payinfo[7];
-    //             $nm = $payload['data']['metadata']['name'];
-    //             $tm = $payload['data']['metadata']['time'];
-    //             $exp = $payload['data']['metadata']['exp'];
-    //             $eml = $payload['data']['metadata']['eml'];
-    //             $lid = $payload['data']['metadata']['lid'];
+    //     Log::info('------------ PAYSTACK WEBHOOK ARRIVED -----------');
 
-    //             $what = '';
-    //             if ($typ == '0') { //School-Student Payment
+    //     try {
+    //         $payloadRaw = $request->getContent();
+    //         Log::info('Raw Paystack payload', ['payload' => $payloadRaw]);
+
+    //         // Decode payload
+    //         $payload = json_decode($payloadRaw, true);
+    //         if (!$payload) {
+    //             Log::error('Failed to decode JSON payload', ['raw' => $payloadRaw]);
+    //             return response()->json(['status' => 'error', 'message' => 'Invalid JSON payload'], 400);
+    //         }
+
+    //         // Decode nested payload if exists
+    //         if (isset($payload['payload'])) {
+    //             $nested = json_decode($payload['payload'], true);
+    //             if ($nested) {
+    //                 $payload = $nested;
+    //             } else {
+    //                 Log::warning('Failed to decode nested payload, using original');
+    //             }
+    //         }
+
+    //         // Signature verification
+    //         if (env('APP_ENV') !== 'local') {
+    //             $signature = $request->header('x-paystack-signature');
+    //             if (!$signature || hash_hmac('sha512', $payloadRaw, env('PAYSTACK_SECRET')) !== $signature) {
+    //                 Log::warning('Invalid Paystack signature');
+    //                 return response()->json(['status' => 'unauthorized'], 401);
+    //             }
+    //         }
+
+    //         // Accept only successful charge events
+    //         $event = $payload['event'] ?? '';
+    //         if (!in_array($event, ['charge.success', 'payment.success'])) {
+    //             Log::info('Ignored Paystack event', ['event' => $event]);
+    //             return response()->json(['status' => 'ignored'], 200);
+    //         }
+
+    //         $trx = $payload['data'] ?? [];
+    //         $ref = $trx['reference'] ?? null;
+    //         if (!$ref) {
+    //             Log::error('Missing reference', ['payload' => $payload]);
+    //             return response()->json(['status' => 'error', 'message' => 'Missing reference'], 400);
+    //         }
+
+    //         Log::info('Processing reference', ['ref' => $ref]);
+
+    //         // Idempotency check
+    //         $refRow = payment_refs::where('ref', $ref)->first();
+    //         if ($refRow && $refRow->confirmed_at) {
+    //             Log::info("Duplicate webhook detected for {$ref}");
+    //             return response()->json(['status' => 'duplicate'], 200);
+    //         }
+
+    //         // Parse reference
+    //         $parts = explode('-', $ref);
+    //         if (count($parts) < 8) {
+    //             Log::error('Reference format invalid', ['ref' => $ref]);
+    //             return response()->json(['status' => 'error', 'message' => 'Invalid reference format'], 400);
+    //         }
+    //         [$host, $schid, $amt, $typ, $stid, $ssnid, $trmid, $clsid] = $parts;
+
+    //         // Metadata
+    //         $metadata = $trx['metadata'] ?? [];
+    //         $nm = $metadata['name'] ?? '';
+    //         $exp = $metadata['exp'] ?? '';
+    //         $lid = $metadata['lid'] ?? '';
+    //         $eml = $metadata['eml'] ?? '';
+    //         $payheadIds = $metadata['payhead_ids'] ?? [];
+    //         $tm = $metadata['time'] ?? now()->timestamp;
+
+    //         // Amount
+    //         $totalAmountPaid = ($trx['amount'] ?? 0) / 100;
+
+    //         // Payment type
+    //         $what = 'School Fees';
+    //         if ($typ == '1') {
+    //             $what = 'Application Fee';
+    //             student::where('sid', $stid)->update(['rfee' => 1]);
+    //         } elseif ($typ == '2') {
+    //             $what = 'Acceptance Fee';
+    //             $uid = $stid . $schid . $clsid;
+    //             afeerec::updateOrCreate(
+    //                 ['uid' => $uid],
+    //                 [
+    //                     'stid' => $stid,
+    //                     'schid' => $schid,
+    //                     'clsid' => $clsid,
+    //                     'ssn' => $ssnid,
+    //                     'trm' => $trmid,
+    //                     'amt' => intval($totalAmountPaid),
+    //                 ]
+    //             );
+    //         }
+
+    //         // -------------------------
+    //         // Resolve split data
+    //         // -------------------------
+    //         $splitData = [];
+
+    //         // Case 1: Stored split from init transaction
+    //         if ($refRow && $refRow->subaccounts) {
+    //             $splitData = json_decode($refRow->subaccounts, true) ?? [];
+    //         }
+    //         // Case 2: Paystack multiple subaccount split
+    //         elseif (!empty($trx['split']['subaccounts'])) {
+    //             $splitData = $trx['split']['subaccounts'];
+    //         }
+    //         // Case 3: Paystack single subaccount payment
+    //         elseif (!empty($trx['subaccount']['subaccount_code'])) {
+    //             $splitData[] = [
+    //                 'subaccount' => $trx['subaccount']['subaccount_code'],
+    //                 'share' => 100,
+    //             ];
+    //         }
+
+    //         // Case 4: Default subaccount for non-split payments
+    //         if (empty($splitData)) {
+    //             $defaultSub = \DB::table('sub_accounts')
+    //                 ->where('schid', $schid)
+    //                 ->where('clsid', $clsid)
+    //                 ->first();
+
+    //             if ($defaultSub) {
+    //                 $splitData[] = [
+    //                     'subaccount' => $defaultSub->subaccount_code,
+    //                     'share' => 100,
+    //                 ];
+    //             }
+    //         }
+
+    //         Log::info('Resolved split data', ['ref' => $ref, 'split' => $splitData]);
+
+    //         // Record payments
+    //         foreach ($splitData as $sub) {
+    //             try {
+    //                 $subAmount = ($totalAmountPaid * $sub['share']) / 100;
     //                 payments::create([
     //                     'schid' => $schid,
     //                     'stid' => $stid,
@@ -14322,358 +14350,55 @@ public function getStudentSubjects($stid)
     //                     'clsid' => $clsid,
     //                     'name' => $nm,
     //                     'exp' => $exp,
-    //                     'amt' => $amt,
+    //                     'amt' => $totalAmountPaid,
+    //                     'share' => $subAmount,
+    //                     'subaccount_code' => $sub['subaccount'],
+    //                     'main_ref' => $ref,
+    //                     'payment_type' => (int)$typ,
+    //                     'pay_head' => implode(',', $payheadIds),
+    //                     'total_split_amount' => $totalAmountPaid,
+    //                     'email' => $eml,
     //                     'lid' => $lid,
     //                 ]);
-    //                 $what = 'School Fees';
-    //             }
-    //             if ($typ == '1') { //Application Fee Paid
-    //                 //WARN: ClassID will be a placeholder in this case, so dont use it
-    //                 student::where('sid', $stid)->update([
-    //                     "rfee" => '1'
-    //                 ]);
-    //                 $what = 'Application Fee';
-    //             }
-    //             if ($typ == '2') { //Acceptance Fee Paid
-    //                 $uid = $stid . $schid . $clsid;
-    //                 afeerec::updateOrCreate(
-    //                     ["uid" => $uid,],
-    //                     [
-    //                         "stid" => $stid,
-    //                         "schid" => $schid,
-    //                         "clsid" => $clsid,
-    //                         "amt" => intval($amt),
-    //                     ]
-    //                 );
-    //                 $what = 'Acceptance Fee';
-    //             }
-    //             // Wrap the email sending logic in a try-catch block
-    //             try {
-    //                 $data = [
-    //                     'name' => $nm,
-    //                     'subject' => 'Payment Received',
-    //                     'body' => 'Your ' . $what . ' payment was received',
-    //                     'link' => env('PORTAL_URL') . '/studentLogin' . '/' . $schid,
-    //                 ];
-    //                 Mail::to($eml)->send(new SSSMails($data));
     //             } catch (\Exception $e) {
-    //                 // Log the email error, but don't stop the process
-    //                 Log::error('Failed to send email: ' . $e->getMessage());
+    //                 Log::error('Failed to create payment', ['ref' => $ref, 'sub' => $sub, 'error' => $e->getMessage()]);
     //             }
-
-    //             payment_refs::create([
-    //                 "ref" => $ref,
-    //                 "amt" => $amt,
-    //                 "time" => $tm,
-    //             ]);
-    //             Log::info('SUCCESS');
-    //         } else {
-    //             Log::info('PLD EXISTS' . json_encode($pld));
-    //         }
-    //     } else {
-    //         Log::info('EVENTS BAD ' . $payload['event']);
-    //     }
-    //     return response()->json(['status' => 'success'], 200);
-    // }
-
-
-    // public function paystackConf(Request $request)
-    // {
-    //     Log::info('------------ARRIVED-----------');
-    //     $payload = json_decode($request->input('payload'), true);
-
-    //     if ($payload['event'] == "charge.success") {
-    //         $ref = $payload['data']['reference'];
-    //         $pld = payment_refs::where("ref", "=", $ref)->first();
-
-    //         if (!$pld) { // Unique reference
-    //             $payinfo = explode('-', $ref);
-    //             $amt   = $payinfo[2];
-    //             $schid = $payinfo[1];
-    //             $typ   = $payinfo[3];
-    //             $stid  = $payinfo[4];
-    //             $ssnid = $payinfo[5];
-    //             $trmid = $payinfo[6];
-    //             $clsid = $payinfo[7];
-
-    //             $metadata = $payload['data']['metadata'];
-    //             $nm  = $metadata['name'] ?? '';
-    //             $tm  = $metadata['time'] ?? now()->timestamp;
-    //             $exp = $metadata['exp'] ?? '';
-    //             $eml = $metadata['eml'] ?? '';
-    //             $lid = $metadata['lid'] ?? '';
-
-    //             $what = '';
-    //             if ($typ == '0') {
-    //                 $what = 'School Fees';
-    //             } elseif ($typ == '1') {
-    //                 $what = 'Application Fee';
-    //                 student::where('sid', $stid)->update(["rfee" => '1']);
-    //             } elseif ($typ == '2') {
-    //                 $what = 'Acceptance Fee';
-    //                 $uid = $stid . $schid . $clsid;
-    //                 afeerec::updateOrCreate(
-    //                     ["uid" => $uid],
-    //                     [
-    //                         "stid"  => $stid,
-    //                         "schid" => $schid,
-    //                         "clsid" => $clsid,
-    //                         "amt"   => intval($amt),
-    //                     ]
-    //                 );
-    //             }
-
-    //             // If split exists, save each subaccount payment separately
-    //             if (!empty($payload['data']['split']['shares']['subaccounts'])) {
-    //                 foreach ($payload['data']['split']['shares']['subaccounts'] as $sub) {
-    //                     payments::create([
-    //                         'schid'           => $schid,
-    //                         'stid'            => $stid,
-    //                         'ssnid'           => $ssnid,
-    //                         'trmid'           => $trmid,
-    //                         'clsid'           => $clsid,
-    //                         'name'            => $nm,
-    //                         'exp'             => $exp,
-    //                         'amt'             => $sub['amount'] / 100, // convert kobo to Naira
-    //                         'lid'             => $lid,
-    //                         'subaccount_code' => $sub['subaccount_code'], // added
-    //                         'main_ref'        => $ref, // added
-    //                     ]);
-    //                 }
-    //             } else {
-    //                 // If no split, save total payment
-    //                 payments::create([
-    //                     'schid'    => $schid,
-    //                     'stid'     => $stid,
-    //                     'ssnid'    => $ssnid,
-    //                     'trmid'    => $trmid,
-    //                     'clsid'    => $clsid,
-    //                     'name'     => $nm,
-    //                     'exp'      => $exp,
-    //                     'amt'      => $amt,
-    //                     'lid'      => $lid,
-    //                     'main_ref' => $ref, // added
-    //                 ]);
-    //             }
-
-    //             // Send email (optional)
-    //             try {
-    //                 $data = [
-    //                     'name'    => $nm,
-    //                     'subject' => 'Payment Received',
-    //                     'body'    => 'Your ' . $what . ' payment was received',
-    //                     'link'    => env('PORTAL_URL') . '/studentLogin/' . $schid,
-    //                 ];
-    //                 Mail::to($eml)->send(new SSSMails($data));
-    //             } catch (\Exception $e) {
-    //                 Log::error('Failed to send email: ' . $e->getMessage());
-    //             }
-
-    //             // Save reference
-    //             payment_refs::create([
-    //                 "ref"  => $ref,
-    //                 "amt"  => $amt,
-    //                 "time" => $tm,
-    //             ]);
-
-    //             Log::info('SUCCESS');
-    //         } else {
-    //             Log::info('PLD EXISTS: ' . json_encode($pld));
-    //         }
-    //     } else {
-    //         Log::info('EVENTS BAD: ' . $payload['event']);
-    //     }
-
-    //     return response()->json(['status' => 'success'], 200);;
-    // }
-
-
-
-    //     public function paystackConf(Request $request)
-//     {
-//         Log::info('------------ PAYSTACK CALLBACK ARRIVED -----------');
-
-    //         //   $payload = json_decode($request->getContent(), true);
-//         $payload = json_decode($request->input('payload'), true);
-
-    //         // Verify Paystack event type
-//         if (!isset($payload['event']) || $payload['event'] !== "charge.success") {
-//             Log::warning('Invalid Paystack event received.');
-//             return response()->json(['status' => 'ignored'], 200);
-//         }
-
-    //         //  Extract reference
-//         $ref = $payload['data']['reference'] ?? null;
-//         if (!$ref) {
-//             Log::error('Missing payment reference.');
-//             return response()->json(['status' => 'error', 'message' => 'Missing reference'], 400);
-//         }
-
-    //         //  Prevent duplicate webhook saves
-//         if (payments::where('main_ref', $ref)->exists()) {
-//             Log::info("Duplicate webhook ignored for ref {$ref}");
-//             return response()->json(['status' => 'duplicate'], 200);
-//         }
-
-    //         //  Parse identifiers from reference
-//         $payinfo = explode('-', $ref);
-//         [$host, $schid, $amt, $typ, $stid, $ssnid, $trmid, $clsid] = $payinfo;
-//         $totalAmountPaid = ($payload['data']['amount'] ?? ($amt * 100)) / 100;
-
-    //         $what = '';
-
-    //         if ($typ == '0') {
-//             $what = 'School Fees';
-
-    //         } elseif ($typ == '1') {
-//             $what = 'Application Fee';
-
-    //             // Mark registration fee as paid
-//             student::where('sid', $stid)->update([
-//                 'rfee' => '1'
-//             ]);
-
-    //         } elseif ($typ == '2') {
-//             $what = 'Acceptance Fee';
-
-    //             // Unique acceptance fee record
-//             $uid = $stid . $schid . $clsid;
-
-    //             afeerec::updateOrCreate(
-//                 ['uid' => $uid],
-//                 [
-//                     'stid' => $stid,
-//                     'schid' => $schid,
-//                     'clsid' => $clsid,
-//                     'ssn' => $ssnid,
-//                     'trm' => $trmid,
-//                     'amt' => intval($totalAmountPaid),
-//                 ]
-//             );
-
     //         }
 
-    //         //  Extract metadata
-//         $metadata = $payload['data']['metadata'] ?? [];
-//         $payheads = $metadata['payheads'] ?? [];
-//         $nm = $metadata['name'] ?? '';
-//         $exp = $metadata['exp'] ?? '';
-//         $lid = $metadata['lid'] ?? '';
-//         $eml = $metadata['eml'] ?? '';
-//         $tm = $metadata['time'] ?? now()->timestamp;
+    //         // Update payment_refs
+    //         payment_refs::updateOrCreate(
+    //             ['ref' => $ref],
+    //             [
+    //                 'amt' => $totalAmountPaid,
+    //                 'time' => $tm,
+    //                 'metadata' => json_encode($metadata),
+    //                 'subaccounts' => json_encode($splitData),
+    //                 'confirmed_at' => now(),
+    //                 'payment_type' => (int)$typ,
+    //             ]
+    //         );
 
-    //         // $totalAmountPaid = ($payload['data']['amount'] ?? ($amt * 100)) / 100;
-
-    //         //  Get split data (from webhook or stored reference)
-//         $splitData = $payload['data']['split']['subaccounts'] ?? [];
-
-    //         if (!$splitData || !is_array($splitData)) {
-//             $stored = payment_refs::where('ref', $ref)->first();
-//             if ($stored && $stored->subaccounts) {
-//                 $splitData = json_decode($stored->subaccounts, true);
-//             }
-//         }
-
-    //         //  Record payments (split or non-split)
-//         if ($splitData && is_array($splitData) && count($splitData) > 0) {
-//             Log::info('Split Data detected:', $splitData);
-
-    //             $totalSplitAmount = $totalAmountPaid;
-//             $hasRealShares = false;
-
-    //             // Check if there are valid share values
-//             foreach ($splitData as $sub) {
-//                 if (isset($sub['share']) && floatval($sub['share']) > 0) {
-//                     $hasRealShares = true;
-//                     break;
-//                 }
-//             }
-
-    //             // Insert payments
-// foreach ($payheads as $ph) {
-//     foreach ($splitData as $sub) {
-
-    //         $subCode = $sub['subaccount'] ?? null;
-//         $subShare = 0;
-
-    //         if ($hasRealShares) {
-//             $shareValue = floatval($sub['share'] ?? 0);
-//             $subShare = ($shareValue <= 100)
-//                 ? ($totalSplitAmount * $shareValue) / 100
-//                 : $shareValue;
-//         } else {
-//             $subShare = $totalSplitAmount / count($splitData);
-//         }
-
-    //         payments::create([
-//             'schid' => $schid,
-//             'stid' => $stid,
-//             'ssnid' => $ssnid,
-//             'trmid' => $trmid,
-//             'clsid' => $clsid,
-//             'name' => $nm,
-//             'exp' => $exp,
-//             'amt' => $ph['amount'],        // ✅ amount per payhead
-//             'share' => $subShare,
-//             'pay_head' => $ph['id'],       // ✅ PAYHEAD ID
-//             'lid' => $lid,
-//             'subaccount_code' => $subCode,
-//             'main_ref' => $ref,
-//             'total_split_amount' => $totalAmountPaid,
-//         ]);
-//     }
-// }
-
-
-    //             Log::info("Split payment recorded successfully for ref {$ref}");
-//         } else {
-//             // Non-split transaction
-// foreach ($payheads as $ph) {
-//     payments::create([
-//         'schid' => $schid,
-//         'stid' => $stid,
-//         'ssnid' => $ssnid,
-//         'trmid' => $trmid,
-//         'clsid' => $clsid,
-//         'name' => $nm,
-//         'exp' => $exp,
-//         'pay_head' => $ph['id'],     // ✅ PAYHEAD ID
-//         'amt' => $ph['amount'],     // ✅ PAYHEAD AMOUNT
-//         'lid' => $lid,
-//         'main_ref' => $ref
-//     ]);
-// }
-
-    //             Log::info("Non-split payment recorded for ref {$ref}");
-//         }
-
-    //         //  Update payment_refs
-//         payment_refs::updateOrCreate(
-//             ['ref' => $ref],
-//             [
-//                 'amt' => $totalAmountPaid,
-//                 'time' => $tm,
-//                 'metadata' => json_encode($metadata),
-//                 'subaccounts' => json_encode($splitData), // store the actual subaccounts array
-//                 'confirmed_at' => now(),
-//             ]
-//         );
-
-    //         //  Send confirmation email
-//         try {
-//             $data = [
-//                 'name' => $nm,
-//                 'subject' => 'Payment Received',
-//                 'body' => "Your {$what} payment of ₦{$totalAmountPaid} was received successfully.",
-//                 'link' => env('PORTAL_URL') . '/studentLogin/' . $schid,
-//             ];
-//             Mail::to($eml)->send(new SSSMails($data));
-//         } catch (\Exception $e) {
-//             Log::error('Failed to send email: ' . $e->getMessage());
-//         }
+    //         // Send email (non-blocking)
+    //         try {
+    //             Mail::to($eml)->send(new SSSMails([
+    //                 'name' => $nm,
+    //                 'subject' => 'Payment Received',
+    //                 'body' => "Your {$what} payment of ₦{$totalAmountPaid} was received successfully.",
+    //                 'link' => env('PORTAL_URL') . '/studentLogin/' . $schid,
+    //             ]));
+    //         } catch (\Exception $e) {
+    //             Log::error('Failed to send email', ['error' => $e->getMessage()]);
+    //         }
 
     //         return response()->json(['status' => 'success'], 200);
-//     }
+
+    //     } catch (\Exception $e) {
+    //         Log::error('paystackConf unexpected error', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+    //         return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+    //     }
+    // }
+
+
 
     public function paystackConf(Request $request)
     {
@@ -14739,6 +14464,13 @@ public function getStudentSubjects($stid)
                 return response()->json(['status' => 'error', 'message' => 'Invalid reference format'], 400);
             }
             [$host, $schid, $amt, $typ, $stid, $ssnid, $trmid, $clsid] = $parts;
+            $typ = (int) $typ; // cast to integer early
+
+            // Validate payment type
+            if (!in_array($typ, [0, 1, 2])) {
+                Log::warning('Invalid payment type detected', ['typ' => $typ, 'ref' => $ref]);
+                return response()->json(['status' => 'error', 'message' => 'Invalid payment type'], 400);
+            }
 
             // Metadata
             $metadata = $trx['metadata'] ?? [];
@@ -14752,25 +14484,33 @@ public function getStudentSubjects($stid)
             // Amount
             $totalAmountPaid = ($trx['amount'] ?? 0) / 100;
 
-            // Payment type
+            // Payment type logic
             $what = 'School Fees';
-            if ($typ == '1') {
-                $what = 'Application Fee';
-                student::where('sid', $stid)->update(['rfee' => 1]);
-            } elseif ($typ == '2') {
-                $what = 'Acceptance Fee';
-                $uid = $stid . $schid . $clsid;
-                afeerec::updateOrCreate(
-                    ['uid' => $uid],
-                    [
-                        'stid' => $stid,
-                        'schid' => $schid,
-                        'clsid' => $clsid,
-                        'ssn' => $ssnid,
-                        'trm' => $trmid,
-                        'amt' => intval($totalAmountPaid),
-                    ]
-                );
+            switch ($typ) {
+                case 1: // Application Fee
+                    $what = 'Application Fee';
+                    student::where('sid', $stid)->update(['rfee' => 1]);
+                    break;
+
+                case 2: // Acceptance Fee
+                    $what = 'Acceptance Fee';
+                    $uid = $stid . $schid . $clsid;
+                    afeerec::updateOrCreate(
+                        ['uid' => $uid],
+                        [
+                            'stid' => $stid,
+                            'schid' => $schid,
+                            'clsid' => $clsid,
+                            'ssn' => $ssnid,
+                            'trm' => $trmid,
+                            'amt' => intval($totalAmountPaid),
+                        ]
+                    );
+                    break;
+
+                default: // School Fees
+                    $what = 'School Fees';
+                    break;
             }
 
             // -------------------------
@@ -14827,6 +14567,7 @@ public function getStudentSubjects($stid)
                         'share' => $subAmount,
                         'subaccount_code' => $sub['subaccount'],
                         'main_ref' => $ref,
+                        'payment_type' => $typ,
                         'pay_head' => implode(',', $payheadIds),
                         'total_split_amount' => $totalAmountPaid,
                         'email' => $eml,
@@ -14846,6 +14587,7 @@ public function getStudentSubjects($stid)
                     'metadata' => json_encode($metadata),
                     'subaccounts' => json_encode($splitData),
                     'confirmed_at' => now(),
+                    'payment_type' => $typ,
                 ]
             );
 
@@ -20830,97 +20572,97 @@ public function getStudentSubjects($stid)
     //     ]);
     // }
 
-public function setAttendanceMark(Request $request)
-{
-    // Normalize input first
-    $request->merge([
-        'period' => is_string($request->period)
-            ? trim(strtolower($request->period))
-            : $request->period,
-    ]);
-    $validated = $request->validate([
-        'schid' => 'required|string',
-        'ssn' => 'required|string',
-        'trm' => 'required|string',
-        'clsm' => 'required|string',
-        'clsa' => 'required|string',
-        'stid' => 'nullable|string', // stid is now optional
-        'week' => 'required|integer|min:1|max:14',
-        'day' => 'required|in:monday,tuesday,wednesday,thursday,friday',
-        'period' => 'required|in:morning,evening', // ✅ NEW
-        'students' => 'required|array',
-        'students.*.sid' => 'required|string',
-        'students.*.status' => 'required|in:0,1,2',
-    ]);
+    public function setAttendanceMark(Request $request)
+    {
+        // Normalize input first
+        $request->merge([
+            'period' => is_string($request->period)
+                ? trim(strtolower($request->period))
+                : $request->period,
+        ]);
+        $validated = $request->validate([
+            'schid' => 'required|string',
+            'ssn' => 'required|string',
+            'trm' => 'required|string',
+            'clsm' => 'required|string',
+            'clsa' => 'required|string',
+            'stid' => 'nullable|string', // stid is now optional
+            'week' => 'required|integer|min:1|max:14',
+            'day' => 'required|in:monday,tuesday,wednesday,thursday,friday',
+            'period' => 'required|in:morning,evening', // ✅ NEW
+            'students' => 'required|array',
+            'students.*.sid' => 'required|string',
+            'students.*.status' => 'required|in:0,1,2',
+        ]);
 
-    // Check staff only if stid is provided
-    if (!empty($validated['stid'])) {
-        $staff = old_staff::where('sid', $validated['stid'])
-            ->where('ssn', $validated['ssn'])
-            ->where('trm', $validated['trm'])
-            ->first();
+        // Check staff only if stid is provided
+        if (!empty($validated['stid'])) {
+            $staff = old_staff::where('sid', $validated['stid'])
+                ->where('ssn', $validated['ssn'])
+                ->where('trm', $validated['trm'])
+                ->first();
 
-        if (!$staff) {
-            return response()->json(['status' => 'error', 'message' => 'Staff not found'], 403);
+            if (!$staff) {
+                return response()->json(['status' => 'error', 'message' => 'Staff not found'], 403);
+            }
+
+            // Sanitize role IDs: remove non-numeric chars like '*' and ignore -1
+            $roleIds = array_map(fn($r) => preg_replace('/\D/', '', $r), [$staff->role, $staff->role2]);
+            $roleIds = array_filter(array_map('intval', $roleIds), fn($r) => $r > 0);
+
+            // Retrieve role names
+            $roles = staff_role::whereIn('id', $roleIds)->pluck('name')->toArray();
+
+            // Only Admin or Form Teacher allowed
+            if (!array_intersect(['Admin', 'Form Teacher'], $roles)) {
+                return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
+            }
         }
 
-        // Sanitize role IDs: remove non-numeric chars like '*' and ignore -1
-        $roleIds = array_map(fn($r) => preg_replace('/\D/', '', $r), [$staff->role, $staff->role2]);
-        $roleIds = array_filter(array_map('intval', $roleIds), fn($r) => $r > 0);
+        $marked = [];
 
-        // Retrieve role names
-        $roles = staff_role::whereIn('id', $roleIds)->pluck('name')->toArray();
-
-        // Only Admin or Form Teacher allowed
-        if (!array_intersect(['Admin', 'Form Teacher'], $roles)) {
-            return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
-        }
-    }
-
-    $marked = [];
-
-    foreach ($validated['students'] as $student) {
-        $existing = attendance::where([
-            'schid' => $validated['schid'],
-            'ssn' => $validated['ssn'],
-            'trm' => $validated['trm'],
-            'clsm' => $validated['clsm'],
-            'clsa' => $validated['clsa'],
-            'sid' => $student['sid'],
-            'week' => $validated['week'],
-            'day' => $validated['day'],
-            'period' => $validated['period'],
-        ])->first();
-
-        if ($existing) {
-            $existing->update([
-                'status' => $student['status'],
-                'stid' => $validated['stid'] ?? null,
-            ]);
-            $marked[] = $existing;
-        } else {
-            $marked[] = attendance::create([
+        foreach ($validated['students'] as $student) {
+            $existing = attendance::where([
                 'schid' => $validated['schid'],
                 'ssn' => $validated['ssn'],
                 'trm' => $validated['trm'],
                 'clsm' => $validated['clsm'],
                 'clsa' => $validated['clsa'],
                 'sid' => $student['sid'],
-                'stid' => $validated['stid'] ?? null, // Safe nullable fallback
                 'week' => $validated['week'],
                 'day' => $validated['day'],
                 'period' => $validated['period'],
-                'status' => $student['status'],
-            ]);
-        }
-    }
+            ])->first();
 
-    return response()->json([
-        'status' => 'success',
-        'message' => 'Attendance marked successfully for students.',
-        'pld' => $marked
-    ]);
-}
+            if ($existing) {
+                $existing->update([
+                    'status' => $student['status'],
+                    'stid' => $validated['stid'] ?? null,
+                ]);
+                $marked[] = $existing;
+            } else {
+                $marked[] = attendance::create([
+                    'schid' => $validated['schid'],
+                    'ssn' => $validated['ssn'],
+                    'trm' => $validated['trm'],
+                    'clsm' => $validated['clsm'],
+                    'clsa' => $validated['clsa'],
+                    'sid' => $student['sid'],
+                    'stid' => $validated['stid'] ?? null, // Safe nullable fallback
+                    'week' => $validated['week'],
+                    'day' => $validated['day'],
+                    'period' => $validated['period'],
+                    'status' => $student['status'],
+                ]);
+            }
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Attendance marked successfully for students.',
+            'pld' => $marked
+        ]);
+    }
 
 
     ///
@@ -35810,30 +35552,30 @@ public function setAttendanceMark(Request $request)
 
 
 
-public function maintainPreviousStudents(Request $request)
-{
-    $request->validate([
-        'schid' => 'required|integer',
-        'new_trm' => 'required|integer',
-        'ssn' => 'required|integer',
-    ]);
+    public function maintainPreviousStudents(Request $request)
+    {
+        $request->validate([
+            'schid' => 'required|integer',
+            'new_trm' => 'required|integer',
+            'ssn' => 'required|integer',
+        ]);
 
-    $schid = (int) $request->schid;
-    $current_trm = (int) $request->new_trm;
-    $current_ssn = (int) $request->ssn;
+        $schid = (int) $request->schid;
+        $current_trm = (int) $request->new_trm;
+        $current_ssn = (int) $request->ssn;
 
-    // Determine next term & session
-    $next_trm = ($current_trm === 3) ? 1 : $current_trm + 1;
-    $next_ssn = ($current_trm === 3) ? $current_ssn + 1 : $current_ssn;
+        // Determine next term & session
+        $next_trm = ($current_trm === 3) ? 1 : $current_trm + 1;
+        $next_ssn = ($current_trm === 3) ? $current_ssn + 1 : $current_ssn;
 
-    $prev_trm = $current_trm;
-    $prev_ssn = $current_ssn;
+        $prev_trm = $current_trm;
+        $prev_ssn = $current_ssn;
 
-    DB::beginTransaction();
+        DB::beginTransaction();
 
-    try {
-        // 1️⃣ Promote students using INSERT ... SELECT (no PHP memory overload)
-        $inserted = DB::insert("
+        try {
+            // 1️⃣ Promote students using INSERT ... SELECT (no PHP memory overload)
+            $inserted = DB::insert("
             INSERT IGNORE INTO old_student (
                 uid, suid, sid, schid, fname, mname, lname,
                 clsm, clsa, cls_sbj_students,
@@ -35855,87 +35597,87 @@ public function maintainPreviousStudents(Request $request)
               AND status = 'active'
         ", [$next_ssn, $next_trm, $next_ssn, $next_trm, $schid, $prev_trm, $prev_ssn]);
 
-        // 2️⃣ Promote student subjects in batches
-        DB::table('student_subj')
-            ->whereIn('stid', function ($query) use ($schid, $prev_trm, $prev_ssn) {
-                $query->select('sid')
-                    ->from('old_student')
-                    ->where('schid', $schid)
-                    ->where('trm', $prev_trm)
-                    ->where('ssn', $prev_ssn)
-                    ->where('status', 'active');
-            })
-            ->where('trm', $prev_trm)
-            ->where('ssn', $prev_ssn)
-            ->orderBy('stid')
-            ->chunk(50, function ($subjects) use ($next_trm, $next_ssn) {
-                $insertData = [];
-                foreach ($subjects as $s) {
-                    $insertData[] = [
-                        'uid' => implode('-', [$s->stid, $s->sbj, $next_trm, $next_ssn]),
-                        'stid' => $s->stid,
-                        'sbj' => $s->sbj,
-                        'comp' => $s->comp,
-                        'schid' => $s->schid,
-                        'clsid' => $s->clsid,
-                        'trm' => $next_trm,
-                        'ssn' => $next_ssn,
-                        'created_at' => now(),
-                        'updated_at' => now()
-                    ];
-                }
-                DB::table('student_subj')->insertOrIgnore($insertData);
-            });
+            // 2️⃣ Promote student subjects in batches
+            DB::table('student_subj')
+                ->whereIn('stid', function ($query) use ($schid, $prev_trm, $prev_ssn) {
+                    $query->select('sid')
+                        ->from('old_student')
+                        ->where('schid', $schid)
+                        ->where('trm', $prev_trm)
+                        ->where('ssn', $prev_ssn)
+                        ->where('status', 'active');
+                })
+                ->where('trm', $prev_trm)
+                ->where('ssn', $prev_ssn)
+                ->orderBy('stid')
+                ->chunk(50, function ($subjects) use ($next_trm, $next_ssn) {
+                    $insertData = [];
+                    foreach ($subjects as $s) {
+                        $insertData[] = [
+                            'uid' => implode('-', [$s->stid, $s->sbj, $next_trm, $next_ssn]),
+                            'stid' => $s->stid,
+                            'sbj' => $s->sbj,
+                            'comp' => $s->comp,
+                            'schid' => $s->schid,
+                            'clsid' => $s->clsid,
+                            'trm' => $next_trm,
+                            'ssn' => $next_ssn,
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ];
+                    }
+                    DB::table('student_subj')->insertOrIgnore($insertData);
+                });
 
-        // 3️⃣ Promote class subjects in batches
-        DB::table('class_subj')
-            ->where('schid', $schid)
-            ->where('trm', $prev_trm)
-            ->where('sesn', $prev_ssn)
-            ->orderBy('clsid')
-            ->chunk(50, function ($classes) use ($next_trm, $next_ssn) {
-                $insertData = [];
-                foreach ($classes as $cs) {
-                    $insertData[] = [
-                        'uid' => implode('-', [$next_ssn, $next_trm, $cs->clsid, $cs->subj_id]),
-                        'subj_id' => $cs->subj_id,
-                        'schid' => $cs->schid,
-                        'name' => $cs->name,
-                        'comp' => $cs->comp,
-                        'clsid' => $cs->clsid,
-                        'sesn' => $next_ssn,
-                        'trm' => $next_trm,
-                        'created_at' => now(),
-                        'updated_at' => now()
-                    ];
-                }
-                DB::table('class_subj')->insertOrIgnore($insertData);
-            });
+            // 3️⃣ Promote class subjects in batches
+            DB::table('class_subj')
+                ->where('schid', $schid)
+                ->where('trm', $prev_trm)
+                ->where('sesn', $prev_ssn)
+                ->orderBy('clsid')
+                ->chunk(50, function ($classes) use ($next_trm, $next_ssn) {
+                    $insertData = [];
+                    foreach ($classes as $cs) {
+                        $insertData[] = [
+                            'uid' => implode('-', [$next_ssn, $next_trm, $cs->clsid, $cs->subj_id]),
+                            'subj_id' => $cs->subj_id,
+                            'schid' => $cs->schid,
+                            'name' => $cs->name,
+                            'comp' => $cs->comp,
+                            'clsid' => $cs->clsid,
+                            'sesn' => $next_ssn,
+                            'trm' => $next_trm,
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ];
+                    }
+                    DB::table('class_subj')->insertOrIgnore($insertData);
+                });
 
-        DB::commit();
+            DB::commit();
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Students promoted successfully',
-            'new_trm' => $next_trm,
-            'new_ssn' => $next_ssn
-        ]);
+            return response()->json([
+                'status' => true,
+                'message' => 'Students promoted successfully',
+                'new_trm' => $next_trm,
+                'new_ssn' => $next_ssn
+            ]);
 
-    } catch (\Throwable $e) {
-        DB::rollBack();
+        } catch (\Throwable $e) {
+            DB::rollBack();
 
-        Log::error('Promotion failed', [
-            'error' => $e->getMessage(),
-            'stack' => $e->getTraceAsString()
-        ]);
+            Log::error('Promotion failed', [
+                'error' => $e->getMessage(),
+                'stack' => $e->getTraceAsString()
+            ]);
 
-        return response()->json([
-            'status' => false,
-            'message' => 'Promotion failed',
-            'error' => $e->getMessage()
-        ], 500);
+            return response()->json([
+                'status' => false,
+                'message' => 'Promotion failed',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
-}
 
 
 
