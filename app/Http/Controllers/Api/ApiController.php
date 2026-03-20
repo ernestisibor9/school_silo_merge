@@ -14456,6 +14456,19 @@ public function paystackConf(Request $request)
             return response()->json(['status' => 'duplicate'], 200);
         }
 
+        // Parse reference for payment type first
+        $parts = explode('-', $ref);
+        if (count($parts) >= 8) {
+            $typ = (int) $parts[3]; // get from reference reliably
+        } else {
+            $typ = isset($trx['metadata']['typ']) ? (int) $trx['metadata']['typ'] : 0; // fallback
+        }
+
+        if (!in_array($typ, [0, 1, 2])) {
+            Log::warning('Invalid payment type detected', ['typ' => $typ, 'ref' => $ref]);
+            return response()->json(['status' => 'error', 'message' => 'Invalid payment type'], 400);
+        }
+
         // Metadata
         $metadata = $trx['metadata'] ?? [];
         $nm = $metadata['name'] ?? '';
@@ -14464,13 +14477,6 @@ public function paystackConf(Request $request)
         $eml = $metadata['eml'] ?? '';
         $payheadIds = $metadata['payhead_ids'] ?? [];
         $tm = $metadata['time'] ?? now()->timestamp;
-
-        // Pull payment type from metadata (fallback to 0)
-        $typ = isset($metadata['typ']) ? (int) $metadata['typ'] : 0;
-        if (!in_array($typ, [0, 1, 2])) {
-            Log::warning('Invalid payment type detected', ['typ' => $typ, 'ref' => $ref]);
-            return response()->json(['status' => 'error', 'message' => 'Invalid payment type'], 400);
-        }
 
         // Amount
         $totalAmountPaid = ($trx['amount'] ?? 0) / 100;
@@ -14595,7 +14601,6 @@ public function paystackConf(Request $request)
         return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
     }
 }
-
 
 
     //--VENDORS.
