@@ -14202,405 +14202,202 @@ class ApiController extends Controller
      */
 
 
-    // public function paystackConf(Request $request)
-    // {
-    //     Log::info('------------ PAYSTACK WEBHOOK ARRIVED -----------');
+    public function paystackConf(Request $request)
+    {
+        Log::info('------------ PAYSTACK WEBHOOK ARRIVED -----------');
 
-    //     try {
-    //         $payloadRaw = $request->getContent();
-    //         Log::info('Raw Paystack payload', ['payload' => $payloadRaw]);
+        try {
+            $payloadRaw = $request->getContent();
+            Log::info('Raw Paystack payload', ['payload' => $payloadRaw]);
 
-    //         // Decode payload
-    //         $payload = json_decode($payloadRaw, true);
-    //         if (!$payload) {
-    //             Log::error('Failed to decode JSON payload', ['raw' => $payloadRaw]);
-    //             return response()->json(['status' => 'error', 'message' => 'Invalid JSON payload'], 400);
-    //         }
-
-    //         // Decode nested payload if exists
-    //         if (isset($payload['payload'])) {
-    //             $nested = json_decode($payload['payload'], true);
-    //             if ($nested) {
-    //                 $payload = $nested;
-    //             } else {
-    //                 Log::warning('Failed to decode nested payload, using original');
-    //             }
-    //         }
-
-    //         // Signature verification
-    //         if (env('APP_ENV') !== 'local') {
-    //             $signature = $request->header('x-paystack-signature');
-    //             if (!$signature || hash_hmac('sha512', $payloadRaw, env('PAYSTACK_SECRET')) !== $signature) {
-    //                 Log::warning('Invalid Paystack signature');
-    //                 return response()->json(['status' => 'unauthorized'], 401);
-    //             }
-    //         }
-
-    //         // Accept only successful charge events
-    //         $event = $payload['event'] ?? '';
-    //         if (!in_array($event, ['charge.success', 'payment.success'])) {
-    //             Log::info('Ignored Paystack event', ['event' => $event]);
-    //             return response()->json(['status' => 'ignored'], 200);
-    //         }
-
-    //         $trx = $payload['data'] ?? [];
-    //         $ref = $trx['reference'] ?? null;
-    //         if (!$ref) {
-    //             Log::error('Missing reference', ['payload' => $payload]);
-    //             return response()->json(['status' => 'error', 'message' => 'Missing reference'], 400);
-    //         }
-
-    //         Log::info('Processing reference', ['ref' => $ref]);
-
-    //         // Idempotency check
-    //         $refRow = payment_refs::where('ref', $ref)->first();
-    //         if ($refRow && $refRow->confirmed_at) {
-    //             Log::info("Duplicate webhook detected for {$ref}");
-    //             return response()->json(['status' => 'duplicate'], 200);
-    //         }
-
-    //         // Parse reference
-    //         $parts = explode('-', $ref);
-    //         if (count($parts) < 8) {
-    //             Log::error('Reference format invalid', ['ref' => $ref]);
-    //             return response()->json(['status' => 'error', 'message' => 'Invalid reference format'], 400);
-    //         }
-    //         [$host, $schid, $amt, $typ, $stid, $ssnid, $trmid, $clsid] = $parts;
-
-    //         // Metadata
-    //         $metadata = $trx['metadata'] ?? [];
-    //         $nm = $metadata['name'] ?? '';
-    //         $exp = $metadata['exp'] ?? '';
-    //         $lid = $metadata['lid'] ?? '';
-    //         $eml = $metadata['eml'] ?? '';
-    //         $payheadIds = $metadata['payhead_ids'] ?? [];
-    //         $tm = $metadata['time'] ?? now()->timestamp;
-
-    //         // Amount
-    //         $totalAmountPaid = ($trx['amount'] ?? 0) / 100;
-
-    //         // Payment type
-    //         $what = 'School Fees';
-    //         if ($typ == '1') {
-    //             $what = 'Application Fee';
-    //             student::where('sid', $stid)->update(['rfee' => 1]);
-    //         } elseif ($typ == '2') {
-    //             $what = 'Acceptance Fee';
-    //             $uid = $stid . $schid . $clsid;
-    //             afeerec::updateOrCreate(
-    //                 ['uid' => $uid],
-    //                 [
-    //                     'stid' => $stid,
-    //                     'schid' => $schid,
-    //                     'clsid' => $clsid,
-    //                     'ssn' => $ssnid,
-    //                     'trm' => $trmid,
-    //                     'amt' => intval($totalAmountPaid),
-    //                 ]
-    //             );
-    //         }
-
-    //         // -------------------------
-    //         // Resolve split data
-    //         // -------------------------
-    //         $splitData = [];
-
-    //         // Case 1: Stored split from init transaction
-    //         if ($refRow && $refRow->subaccounts) {
-    //             $splitData = json_decode($refRow->subaccounts, true) ?? [];
-    //         }
-    //         // Case 2: Paystack multiple subaccount split
-    //         elseif (!empty($trx['split']['subaccounts'])) {
-    //             $splitData = $trx['split']['subaccounts'];
-    //         }
-    //         // Case 3: Paystack single subaccount payment
-    //         elseif (!empty($trx['subaccount']['subaccount_code'])) {
-    //             $splitData[] = [
-    //                 'subaccount' => $trx['subaccount']['subaccount_code'],
-    //                 'share' => 100,
-    //             ];
-    //         }
-
-    //         // Case 4: Default subaccount for non-split payments
-    //         if (empty($splitData)) {
-    //             $defaultSub = \DB::table('sub_accounts')
-    //                 ->where('schid', $schid)
-    //                 ->where('clsid', $clsid)
-    //                 ->first();
-
-    //             if ($defaultSub) {
-    //                 $splitData[] = [
-    //                     'subaccount' => $defaultSub->subaccount_code,
-    //                     'share' => 100,
-    //                 ];
-    //             }
-    //         }
-
-    //         Log::info('Resolved split data', ['ref' => $ref, 'split' => $splitData]);
-
-    //         // Record payments
-    //         foreach ($splitData as $sub) {
-    //             try {
-    //                 $subAmount = ($totalAmountPaid * $sub['share']) / 100;
-    //                 payments::create([
-    //                     'schid' => $schid,
-    //                     'stid' => $stid,
-    //                     'ssnid' => $ssnid,
-    //                     'trmid' => $trmid,
-    //                     'clsid' => $clsid,
-    //                     'name' => $nm,
-    //                     'exp' => $exp,
-    //                     'amt' => $totalAmountPaid,
-    //                     'share' => $subAmount,
-    //                     'subaccount_code' => $sub['subaccount'],
-    //                     'main_ref' => $ref,
-    //                     'payment_type' => (int)$typ,
-    //                     'pay_head' => implode(',', $payheadIds),
-    //                     'total_split_amount' => $totalAmountPaid,
-    //                     'email' => $eml,
-    //                     'lid' => $lid,
-    //                 ]);
-    //             } catch (\Exception $e) {
-    //                 Log::error('Failed to create payment', ['ref' => $ref, 'sub' => $sub, 'error' => $e->getMessage()]);
-    //             }
-    //         }
-
-    //         // Update payment_refs
-    //         payment_refs::updateOrCreate(
-    //             ['ref' => $ref],
-    //             [
-    //                 'amt' => $totalAmountPaid,
-    //                 'time' => $tm,
-    //                 'metadata' => json_encode($metadata),
-    //                 'subaccounts' => json_encode($splitData),
-    //                 'confirmed_at' => now(),
-    //                 'payment_type' => (int)$typ,
-    //             ]
-    //         );
-
-    //         // Send email (non-blocking)
-    //         try {
-    //             Mail::to($eml)->send(new SSSMails([
-    //                 'name' => $nm,
-    //                 'subject' => 'Payment Received',
-    //                 'body' => "Your {$what} payment of ₦{$totalAmountPaid} was received successfully.",
-    //                 'link' => env('PORTAL_URL') . '/studentLogin/' . $schid,
-    //             ]));
-    //         } catch (\Exception $e) {
-    //             Log::error('Failed to send email', ['error' => $e->getMessage()]);
-    //         }
-
-    //         return response()->json(['status' => 'success'], 200);
-
-    //     } catch (\Exception $e) {
-    //         Log::error('paystackConf unexpected error', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-    //         return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
-    //     }
-    // }
-
-
-public function paystackConf(Request $request)
-{
-    Log::info('------------ PAYSTACK WEBHOOK ARRIVED -----------');
-
-    try {
-        $payloadRaw = $request->getContent();
-        Log::info('Raw Paystack payload', ['payload' => $payloadRaw]);
-
-        // Decode payload
-        $payload = json_decode($payloadRaw, true);
-        if (!$payload) {
-            Log::error('Failed to decode JSON payload', ['raw' => $payloadRaw]);
-            return response()->json(['status' => 'error', 'message' => 'Invalid JSON payload'], 400);
-        }
-
-        // Decode nested payload if exists
-        if (isset($payload['payload'])) {
-            $nested = json_decode($payload['payload'], true);
-            if ($nested) {
-                $payload = $nested;
-            } else {
-                Log::warning('Failed to decode nested payload, using original');
+            // Decode payload
+            $payload = json_decode($payloadRaw, true);
+            if (!$payload) {
+                Log::error('Failed to decode JSON payload', ['raw' => $payloadRaw]);
+                return response()->json(['status' => 'error', 'message' => 'Invalid JSON payload'], 400);
             }
-        }
 
-        // Signature verification
-        if (env('APP_ENV') !== 'local') {
-            $signature = $request->header('x-paystack-signature');
-            if (!$signature || hash_hmac('sha512', $payloadRaw, env('PAYSTACK_SECRET')) !== $signature) {
-                Log::warning('Invalid Paystack signature');
-                return response()->json(['status' => 'unauthorized'], 401);
+            // Decode nested payload if exists
+            if (isset($payload['payload'])) {
+                $nested = json_decode($payload['payload'], true);
+                if ($nested) {
+                    $payload = $nested;
+                } else {
+                    Log::warning('Failed to decode nested payload, using original');
+                }
             }
-        }
 
-        // Accept only successful charge events
-        $event = $payload['event'] ?? '';
-        if (!in_array($event, ['charge.success', 'payment.success'])) {
-            Log::info('Ignored Paystack event', ['event' => $event]);
-            return response()->json(['status' => 'ignored'], 200);
-        }
+            // Signature verification
+            if (env('APP_ENV') !== 'local') {
+                $signature = $request->header('x-paystack-signature');
+                if (!$signature || hash_hmac('sha512', $payloadRaw, env('PAYSTACK_SECRET')) !== $signature) {
+                    Log::warning('Invalid Paystack signature');
+                    return response()->json(['status' => 'unauthorized'], 401);
+                }
+            }
 
-        $trx = $payload['data'] ?? [];
-        $ref = $trx['reference'] ?? null;
-        if (!$ref) {
-            Log::error('Missing reference', ['payload' => $payload]);
-            return response()->json(['status' => 'error', 'message' => 'Missing reference'], 400);
-        }
+            // Accept only successful charge events
+            $event = $payload['event'] ?? '';
+            if (!in_array($event, ['charge.success', 'payment.success'])) {
+                Log::info('Ignored Paystack event', ['event' => $event]);
+                return response()->json(['status' => 'ignored'], 200);
+            }
 
-        Log::info('Processing reference', ['ref' => $ref]);
+            $trx = $payload['data'] ?? [];
+            $ref = $trx['reference'] ?? null;
+            if (!$ref) {
+                Log::error('Missing reference', ['payload' => $payload]);
+                return response()->json(['status' => 'error', 'message' => 'Missing reference'], 400);
+            }
 
-        // Idempotency check
-        $refRow = payment_refs::where('ref', $ref)->first();
-        if ($refRow && $refRow->confirmed_at) {
-            Log::info("Duplicate webhook detected for {$ref}");
-            return response()->json(['status' => 'duplicate'], 200);
-        }
+            Log::info('Processing reference', ['ref' => $ref]);
 
-        // -------------------------
-        // FIXED: Determine payment type from metadata FIRST
-        // -------------------------
-        $metadata = $trx['metadata'] ?? [];
-        $typ = isset($metadata['typ']) ? (int) $metadata['typ'] : 0; // <- FIX HERE
-        Log::info('Payment type before insert', ['typ' => $typ]);
+            // Idempotency check
+            $refRow = payment_refs::where('ref', $ref)->first();
+            if ($refRow && $refRow->confirmed_at) {
+                Log::info("Duplicate webhook detected for {$ref}");
+                return response()->json(['status' => 'duplicate'], 200);
+            }
 
-        if (!in_array($typ, [0, 1, 2])) {
-            Log::warning('Invalid payment type detected', ['typ' => $typ, 'ref' => $ref]);
-            return response()->json(['status' => 'error', 'message' => 'Invalid payment type'], 400);
-        }
+            // Parse reference
+            $parts = explode('-', $ref);
+            if (count($parts) < 8) {
+                Log::error('Reference format invalid', ['ref' => $ref]);
+                return response()->json(['status' => 'error', 'message' => 'Invalid reference format'], 400);
+            }
+            [$host, $schid, $amt, $typ, $stid, $ssnid, $trmid, $clsid] = $parts;
 
-        // -------------------------
-        // Metadata
-        // -------------------------
-        $nm = $metadata['name'] ?? '';
-        $exp = $metadata['exp'] ?? '';
-        $lid = $metadata['lid'] ?? '';
-        $eml = $metadata['eml'] ?? '';
-        $payheadIds = $metadata['payhead_ids'] ?? [];
-        $tm = $metadata['time'] ?? now()->timestamp;
+            // Metadata
+            $metadata = $trx['metadata'] ?? [];
+            $nm = $metadata['name'] ?? '';
+            $exp = $metadata['exp'] ?? '';
+            $lid = $metadata['lid'] ?? '';
+            $eml = $metadata['eml'] ?? '';
+            $payheadIds = $metadata['payhead_ids'] ?? [];
+            $tm = $metadata['time'] ?? now()->timestamp;
 
-        // Amount
-        $totalAmountPaid = ($trx['amount'] ?? 0) / 100;
+            // Amount
+            $totalAmountPaid = ($trx['amount'] ?? 0) / 100;
 
-        // Payment type logic
-        $what = 'School Fees';
-        switch ($typ) {
-            case 1: // Application Fee
+            // Payment type
+            $what = 'School Fees';
+            if ($typ == '1') {
                 $what = 'Application Fee';
-                student::where('sid', $metadata['stid'] ?? 0)->update(['rfee' => 1]);
-                break;
-
-            case 2: // Acceptance Fee
+                student::where('sid', $stid)->update(['rfee' => 1]);
+            } elseif ($typ == '2') {
                 $what = 'Acceptance Fee';
-                $uid = ($metadata['stid'] ?? 0) . ($metadata['schid'] ?? 0) . ($metadata['clsid'] ?? 0);
+                $uid = $stid . $schid . $clsid;
                 afeerec::updateOrCreate(
                     ['uid' => $uid],
                     [
-                        'stid' => $metadata['stid'] ?? 0,
-                        'schid' => $metadata['schid'] ?? 0,
-                        'clsid' => $metadata['clsid'] ?? 0,
-                        'ssn' => $metadata['ssnid'] ?? 0,
-                        'trm' => $metadata['trmid'] ?? 0,
+                        'stid' => $stid,
+                        'schid' => $schid,
+                        'clsid' => $clsid,
+                        'ssn' => $ssnid,
+                        'trm' => $trmid,
                         'amt' => intval($totalAmountPaid),
                     ]
                 );
-                break;
+            }
 
-            default: // School Fees
-                $what = 'School Fees';
-                break;
-        }
+            // -------------------------
+            // Resolve split data
+            // -------------------------
+            $splitData = [];
 
-        // -------------------------
-        // Resolve split data
-        // -------------------------
-        $splitData = [];
-
-        if ($refRow && $refRow->subaccounts) {
-            $splitData = json_decode($refRow->subaccounts, true) ?? [];
-        } elseif (!empty($trx['split']['subaccounts'])) {
-            $splitData = $trx['split']['subaccounts'];
-        } elseif (!empty($trx['subaccount']['subaccount_code'])) {
-            $splitData[] = [
-                'subaccount' => $trx['subaccount']['subaccount_code'],
-                'share' => 100,
-            ];
-        }
-
-        if (empty($splitData)) {
-            $defaultSub = \DB::table('sub_accounts')
-                ->where('schid', $metadata['schid'] ?? 0)
-                ->where('clsid', $metadata['clsid'] ?? 0)
-                ->first();
-
-            if ($defaultSub) {
+            // Case 1: Stored split from init transaction
+            if ($refRow && $refRow->subaccounts) {
+                $splitData = json_decode($refRow->subaccounts, true) ?? [];
+            }
+            // Case 2: Paystack multiple subaccount split
+            elseif (!empty($trx['split']['subaccounts'])) {
+                $splitData = $trx['split']['subaccounts'];
+            }
+            // Case 3: Paystack single subaccount payment
+            elseif (!empty($trx['subaccount']['subaccount_code'])) {
                 $splitData[] = [
-                    'subaccount' => $defaultSub->subaccount_code,
+                    'subaccount' => $trx['subaccount']['subaccount_code'],
                     'share' => 100,
                 ];
             }
-        }
 
-        Log::info('Resolved split data', ['ref' => $ref, 'split' => $splitData]);
+            // Case 4: Default subaccount for non-split payments
+            if (empty($splitData)) {
+                $defaultSub = \DB::table('sub_accounts')
+                    ->where('schid', $schid)
+                    ->where('clsid', $clsid)
+                    ->first();
 
-        // Record payments
-        foreach ($splitData as $sub) {
-            try {
-                $subAmount = ($totalAmountPaid * $sub['share']) / 100;
-                payments::create([
-                    'schid' => $metadata['schid'] ?? 0,
-                    'stid' => $metadata['stid'] ?? 0,
-                    'ssnid' => $metadata['ssnid'] ?? 0,
-                    'trmid' => $metadata['trmid'] ?? 0,
-                    'clsid' => $metadata['clsid'] ?? 0,
-                    'name' => $nm,
-                    'exp' => $exp,
-                    'amt' => $totalAmountPaid,
-                    'share' => $subAmount,
-                    'subaccount_code' => $sub['subaccount'],
-                    'main_ref' => $ref,
-                    'payment_type' => $typ,
-                    'pay_head' => implode(',', $payheadIds),
-                    'total_split_amount' => $totalAmountPaid,
-                    'email' => $eml,
-                    'lid' => $lid,
-                ]);
-            } catch (\Exception $e) {
-                Log::error('Failed to create payment', ['ref' => $ref, 'sub' => $sub, 'error' => $e->getMessage()]);
+                if ($defaultSub) {
+                    $splitData[] = [
+                        'subaccount' => $defaultSub->subaccount_code,
+                        'share' => 100,
+                    ];
+                }
             }
-        }
 
-        // Update payment_refs
-        payment_refs::updateOrCreate(
-            ['ref' => $ref],
-            [
-                'amt' => $totalAmountPaid,
-                'time' => $tm,
-                'metadata' => json_encode($metadata),
-                'subaccounts' => json_encode($splitData),
-                'confirmed_at' => now(),
-                'payment_type' => $typ,
-            ]
-        );
+            Log::info('Resolved split data', ['ref' => $ref, 'split' => $splitData]);
 
-        // Send email (non-blocking)
-        try {
-            Mail::to($eml)->send(new SSSMails([
-                'name' => $nm,
-                'subject' => 'Payment Received',
-                'body' => "Your {$what} payment of ₦{$totalAmountPaid} was received successfully.",
-                'link' => env('PORTAL_URL') . '/studentLogin/' . ($metadata['schid'] ?? 0),
-            ]));
+            // Record payments
+            foreach ($splitData as $sub) {
+                try {
+                    $subAmount = ($totalAmountPaid * $sub['share']) / 100;
+                    payments::create([
+                        'schid' => $schid,
+                        'stid' => $stid,
+                        'ssnid' => $ssnid,
+                        'trmid' => $trmid,
+                        'clsid' => $clsid,
+                        'name' => $nm,
+                        'exp' => $exp,
+                        'amt' => $totalAmountPaid,
+                        'share' => $subAmount,
+                        'subaccount_code' => $sub['subaccount'],
+                        'main_ref' => $ref,
+                        'payment_type' => (int)$typ,
+                        'pay_head' => implode(',', $payheadIds),
+                        'total_split_amount' => $totalAmountPaid,
+                        'email' => $eml,
+                        'lid' => $lid,
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('Failed to create payment', ['ref' => $ref, 'sub' => $sub, 'error' => $e->getMessage()]);
+                }
+            }
+
+            // Update payment_refs
+            payment_refs::updateOrCreate(
+                ['ref' => $ref],
+                [
+                    'amt' => $totalAmountPaid,
+                    'time' => $tm,
+                    'metadata' => json_encode($metadata),
+                    'subaccounts' => json_encode($splitData),
+                    'confirmed_at' => now(),
+                    'payment_type' => (int)$typ,
+                ]
+            );
+
+            // Send email (non-blocking)
+            try {
+                Mail::to($eml)->send(new SSSMails([
+                    'name' => $nm,
+                    'subject' => 'Payment Received',
+                    'body' => "Your {$what} payment of ₦{$totalAmountPaid} was received successfully.",
+                    'link' => env('PORTAL_URL') . '/studentLogin/' . $schid,
+                ]));
+            } catch (\Exception $e) {
+                Log::error('Failed to send email', ['error' => $e->getMessage()]);
+            }
+
+            return response()->json(['status' => 'success'], 200);
+
         } catch (\Exception $e) {
-            Log::error('Failed to send email', ['error' => $e->getMessage()]);
+            Log::error('paystackConf unexpected error', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
-
-        return response()->json(['status' => 'success'], 200);
-
-    } catch (\Exception $e) {
-        Log::error('paystackConf unexpected error', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
     }
-}
+
 
 
     //--VENDORS.
