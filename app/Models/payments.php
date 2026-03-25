@@ -8,7 +8,21 @@ class payments extends Model
 {
     protected $table = 'payments';
     protected $fillable = [
-        'schid','stid','ssnid','trmid', 'pay_head', 'payment_type', 'clsid', 'share', 'name', 'exp', 'amt','lid','subaccount_code', 'total_split_amount', 'main_ref'
+        'schid',
+        'stid',
+        'ssnid',
+        'trmid',
+        'pay_head',
+        'payment_type',
+        'clsid',
+        'share',
+        'name',
+        'exp',
+        'amt',
+        'lid',
+        'subaccount_code',
+        'total_split_amount',
+        'main_ref'
     ];
     /*protected $hidden = [
         'password',

@@ -12382,6 +12382,7 @@ class ApiController extends Controller
         */
         $dupQuery = accts::where('schid', $request->schid)
             ->where('clsid', $request->clsid)
+            ->where('trm', $request->trm)
             ->where('ssn', $request->ssn);
 
         // Only check pay_head_id if it's provided
