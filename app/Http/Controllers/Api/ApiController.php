@@ -3240,6 +3240,7 @@ class ApiController extends Controller
      *             @OA\Property(property="sdob", type="string"),
      *             @OA\Property(property="spos", type="string"),
      *             @OA\Property(property="subj_pos", type="string"),
+     *            @OA\Property(property="attend_pos", type="string"),
      *             @OA\Property(property="num_of_days", type="string"),
      *         )
      *     ),
@@ -3259,6 +3260,7 @@ class ApiController extends Controller
             "sdob" => "required",
             "spos" => "required",
             "subj_pos" => "nullable",
+            "attend_pos" => "nullable",
             "num_of_days" => "nullable",
         ]);
 
@@ -3272,6 +3274,7 @@ class ApiController extends Controller
                 "sdob" => $request->sdob,
                 "spos" => $request->spos,
                 "subj_pos" => $request->subj_pos ?? 'y',
+                "attend_pos" => $request->attend_pos ?? 'y',
                 "num_of_days" => $request->num_of_days,
             ]
         );
@@ -4358,7 +4361,7 @@ class ApiController extends Controller
 
             // Individual attendance logic
 // Individual attendance logic (Morning + Evening aware)
-            $attendanceRows = \DB::table('attendances')
+            $attendanceRows = DB::table('attendances')
                 ->where('schid', $schid)
                 ->where('ssn', $ssn)
                 ->where('trm', $trm)

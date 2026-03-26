@@ -2875,6 +2875,9 @@
                                     "subj_pos": {
                                         "type": "string"
                                     },
+                                    "attend_pos": {
+                                        "type": "string"
+                                    },
                                     "num_of_days": {
                                         "type": "string"
                                     }
@@ -23239,6 +23242,117 @@
                     },
                     "404": {
                         "description": "Class not found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/promoteStudent": {
+            "post": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Promote a student to the next class",
+                "description": "Creates a new promotion record for the student. Previous records remain unchanged.",
+                "operationId": "promoteStudent",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "sid",
+                                    "schid",
+                                    "sesn",
+                                    "trm",
+                                    "clsm",
+                                    "clsa"
+                                ],
+                                "properties": {
+                                    "sid": {
+                                        "description": "Student ID",
+                                        "type": "integer",
+                                        "example": 1000
+                                    },
+                                    "schid": {
+                                        "description": "School ID",
+                                        "type": "integer",
+                                        "example": 13
+                                    },
+                                    "sesn": {
+                                        "description": "Academic session",
+                                        "type": "string",
+                                        "example": "2025"
+                                    },
+                                    "trm": {
+                                        "description": "Term number",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "clsm": {
+                                        "description": "Main class ID",
+                                        "type": "integer",
+                                        "example": 12
+                                    },
+                                    "clsa": {
+                                        "description": "Class arm/section",
+                                        "type": "string",
+                                        "example": "1"
+                                    },
+                                    "suid": {
+                                        "description": "Student unique ID",
+                                        "type": "string",
+                                        "example": "HRS/2025/1/68"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Student promoted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Student promoted successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The sid field is required."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
