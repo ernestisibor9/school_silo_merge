@@ -177,6 +177,16 @@ Route::group([
     Route::get('getStudentResultsByArm/{schid}/{clsid}/{ssn}/{trm}/{arm}', [ApiController::class, 'getStudentResultsByArm']);
     Route::post('updateLocation/{schid}', [ApiController::class, 'updateLocation']);
 
+    // School Admin
+    Route::post('/school/send-message', [ApiController::class, 'schoolSendMessage']);
+    Route::get('/school/inbox', [ApiController::class, 'schoolInbox']);
+    Route::post('/school/reply/{messageId}', [ApiController::class, 'schoolReply']);
+
+    // Domain Admin
+    Route::post('/domain/send-message', [ApiController::class, 'domainSendMessage']);
+    Route::get('/domain/inbox', [ApiController::class, 'domainInbox']);
+    Route::post('/domain/reply/{messageId}', [ApiController::class, 'domainReply']);
+
     Route::post('toggleResultStatus', [ApiController::class, 'toggleResultStatus']);
     Route::post('assignClassSubject', [ApiController::class, 'assignClassSubject']);
 

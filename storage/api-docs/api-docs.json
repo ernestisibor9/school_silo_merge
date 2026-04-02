@@ -31327,6 +31327,895 @@
                     }
                 ]
             }
+        },
+        "/api/school/send-message": {
+            "post": {
+                "tags": [
+                    "Messages"
+                ],
+                "summary": "Send a message from school admin",
+                "description": "Allows a school admin to send a message to a domain admin, staff, or student.",
+                "operationId": "schoolSendMessage",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "subject",
+                                    "message",
+                                    "receiver_type",
+                                    "receiver_id"
+                                ],
+                                "properties": {
+                                    "subject": {
+                                        "description": "Subject of the message",
+                                        "type": "string",
+                                        "example": "Meeting Reminder"
+                                    },
+                                    "message": {
+                                        "description": "The main message content",
+                                        "type": "string",
+                                        "example": "Please attend the staff meeting at 10 AM."
+                                    },
+                                    "receiver_type": {
+                                        "description": "Receiver type: a=domain admin, sf=staff, st=student",
+                                        "type": "string",
+                                        "example": "a"
+                                    },
+                                    "receiver_id": {
+                                        "description": "ID of the receiver",
+                                        "type": "integer",
+                                        "example": 3
+                                    },
+                                    "attachment": {
+                                        "description": "Optional file attachment (max 20MB)",
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Message sent successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Message sent"
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "sender_id": {
+                                                    "type": "integer",
+                                                    "example": 5
+                                                },
+                                                "sender_type": {
+                                                    "type": "string",
+                                                    "example": "s"
+                                                },
+                                                "receiver_id": {
+                                                    "type": "integer",
+                                                    "example": 3
+                                                },
+                                                "receiver_type": {
+                                                    "type": "string",
+                                                    "example": "a"
+                                                },
+                                                "subject": {
+                                                    "type": "string",
+                                                    "example": "Meeting Reminder"
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "Please attend the staff meeting at 10 AM."
+                                                },
+                                                "attachment": {
+                                                    "type": "string",
+                                                    "example": "http://yourdomain.com/uploads/messages/1680412345_file.pdf"
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2026-04-02T10:00:00Z"
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2026-04-02T10:00:00Z"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthorized"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/school/inbox": {
+            "get": {
+                "tags": [
+                    "Messages"
+                ],
+                "summary": "Get school admin inbox messages",
+                "description": "Retrieve all messages received by the authenticated school admin, ordered by latest first.",
+                "operationId": "schoolInbox",
+                "responses": {
+                    "200": {
+                        "description": "Inbox retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "sender_id": {
+                                                        "type": "integer",
+                                                        "example": 5
+                                                    },
+                                                    "sender_type": {
+                                                        "type": "string",
+                                                        "example": "a"
+                                                    },
+                                                    "receiver_id": {
+                                                        "type": "integer",
+                                                        "example": 3
+                                                    },
+                                                    "receiver_type": {
+                                                        "type": "string",
+                                                        "example": "s"
+                                                    },
+                                                    "subject": {
+                                                        "type": "string",
+                                                        "example": "Meeting Reminder"
+                                                    },
+                                                    "message": {
+                                                        "type": "string",
+                                                        "example": "Please attend the staff meeting at 10 AM."
+                                                    },
+                                                    "attachment": {
+                                                        "type": "string",
+                                                        "example": "http://yourdomain.com/uploads/messages/1680412345_file.pdf"
+                                                    },
+                                                    "parent_id": {
+                                                        "type": "integer",
+                                                        "example": null,
+                                                        "nullable": true
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2026-04-02T10:00:00Z"
+                                                    },
+                                                    "updated_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2026-04-02T10:00:00Z"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthorized"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/domain/send-message": {
+            "post": {
+                "tags": [
+                    "Messages"
+                ],
+                "summary": "Domain Admin sends a message",
+                "description": "Allows a domain admin to send a message to a specific school, all schools, or schools within a specific LGA",
+                "operationId": "domainSendMessage",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "subject",
+                                    "message",
+                                    "receiver_type"
+                                ],
+                                "properties": {
+                                    "subject": {
+                                        "description": "Subject of the message",
+                                        "type": "string",
+                                        "example": "Meeting Reminder"
+                                    },
+                                    "message": {
+                                        "description": "Message content",
+                                        "type": "string",
+                                        "example": "Please attend the meeting at 10AM"
+                                    },
+                                    "receiver_type": {
+                                        "description": "Receiver type: s=school, sf=staff, st=student",
+                                        "type": "string",
+                                        "example": "s"
+                                    },
+                                    "receiver_id": {
+                                        "description": "ID of the receiver. Leave null to send to all",
+                                        "type": "integer",
+                                        "example": 12,
+                                        "nullable": true
+                                    },
+                                    "lga": {
+                                        "description": "Optional filter by LGA",
+                                        "type": "string",
+                                        "example": "Some LGA",
+                                        "nullable": true
+                                    },
+                                    "attachment": {
+                                        "description": "Optional file attachment (max 20MB)",
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Message sent successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Message sent"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "sender_id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "receiver_id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "receiver_type": {
+                                                        "type": "string"
+                                                    },
+                                                    "subject": {
+                                                        "type": "string"
+                                                    },
+                                                    "message": {
+                                                        "type": "string"
+                                                    },
+                                                    "attachment": {
+                                                        "type": "string",
+                                                        "nullable": true
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Unauthorized access",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthorized"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/domain/inbox": {
+            "get": {
+                "tags": [
+                    "Messages"
+                ],
+                "summary": "Get domain admin inbox",
+                "description": "Retrieve all messages received by the domain admin.",
+                "operationId": "domainInbox",
+                "responses": {
+                    "200": {
+                        "description": "Inbox messages retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "sender_id": {
+                                                        "type": "integer",
+                                                        "example": 2
+                                                    },
+                                                    "sender_type": {
+                                                        "type": "string",
+                                                        "example": "s"
+                                                    },
+                                                    "receiver_id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "receiver_type": {
+                                                        "type": "string",
+                                                        "example": "a"
+                                                    },
+                                                    "subject": {
+                                                        "type": "string",
+                                                        "example": "Staff Meeting"
+                                                    },
+                                                    "message": {
+                                                        "type": "string",
+                                                        "example": "Please attend the meeting tomorrow at 10 AM."
+                                                    },
+                                                    "attachment": {
+                                                        "type": "string",
+                                                        "example": "http://yourdomain.com/uploads/messages/file.pdf",
+                                                        "nullable": true
+                                                    },
+                                                    "parent_id": {
+                                                        "type": "integer",
+                                                        "example": null,
+                                                        "nullable": true
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2026-04-02T10:00:00Z"
+                                                    },
+                                                    "updated_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2026-04-02T10:00:00Z"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthorized"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/domain/reply/{messageId}": {
+            "post": {
+                "tags": [
+                    "Messages"
+                ],
+                "summary": "Domain admin replies to a message from a school",
+                "description": "Allows a domain admin to reply to a specific message received from a school or school admin.",
+                "operationId": "domainReply",
+                "parameters": [
+                    {
+                        "name": "messageId",
+                        "in": "path",
+                        "description": "ID of the message being replied to",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 10
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "message"
+                                ],
+                                "properties": {
+                                    "message": {
+                                        "description": "The reply content",
+                                        "type": "string",
+                                        "example": "Thank you, we will take note of this."
+                                    },
+                                    "attachment": {
+                                        "description": "Optional file attachment (jpg, jpeg, png, pdf, doc, docx, max 20MB)",
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Reply sent successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Reply sent"
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 15
+                                                },
+                                                "sender_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "sender_type": {
+                                                    "type": "string",
+                                                    "example": "a"
+                                                },
+                                                "receiver_id": {
+                                                    "type": "integer",
+                                                    "example": 5
+                                                },
+                                                "receiver_type": {
+                                                    "type": "string",
+                                                    "example": "s"
+                                                },
+                                                "subject": {
+                                                    "type": "string",
+                                                    "example": "Staff Meeting"
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "Thank you, we will take note of this."
+                                                },
+                                                "attachment": {
+                                                    "type": "string",
+                                                    "example": "http://yourdomain.com/uploads/messages/file.pdf",
+                                                    "nullable": true
+                                                },
+                                                "parent_id": {
+                                                    "type": "integer",
+                                                    "example": 10
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2026-04-02T10:00:00Z"
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2026-04-02T10:00:00Z"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthorized"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Message not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Message not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/school/reply/{messageId}": {
+            "post": {
+                "tags": [
+                    "Messages"
+                ],
+                "summary": "School admin replies to a message from domain admin",
+                "description": "Allows a school admin to reply to a specific message received from a domain admin.",
+                "operationId": "schoolReply",
+                "parameters": [
+                    {
+                        "name": "messageId",
+                        "in": "path",
+                        "description": "ID of the message being replied to",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 10
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "message"
+                                ],
+                                "properties": {
+                                    "message": {
+                                        "description": "The reply content",
+                                        "type": "string",
+                                        "example": "Thank you, we will review this request."
+                                    },
+                                    "attachment": {
+                                        "description": "Optional file attachment (jpg, jpeg, png, pdf, doc, docx, max 20MB)",
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Reply sent successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Reply sent successfully"
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 15
+                                                },
+                                                "sender_id": {
+                                                    "type": "integer",
+                                                    "example": 3
+                                                },
+                                                "sender_type": {
+                                                    "type": "string",
+                                                    "example": "s"
+                                                },
+                                                "receiver_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "receiver_type": {
+                                                    "type": "string",
+                                                    "example": "a"
+                                                },
+                                                "subject": {
+                                                    "type": "string",
+                                                    "example": "Staff Meeting"
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "Thank you, we will review this request."
+                                                },
+                                                "attachment": {
+                                                    "type": "string",
+                                                    "example": "http://yourdomain.com/uploads/messages/file.pdf",
+                                                    "nullable": true
+                                                },
+                                                "parent_id": {
+                                                    "type": "integer",
+                                                    "example": 10
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2026-04-02T10:00:00Z"
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2026-04-02T10:00:00Z"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthorized"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Message not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Message not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
