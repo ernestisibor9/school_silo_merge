@@ -36824,7 +36824,7 @@ class ApiController extends Controller
      *     operationId="schoolSendMessage",
      *     tags={"Messages"},
      *     security={{"bearerAuth": {}}},
-     *     
+     *
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\MediaType(
@@ -36864,7 +36864,7 @@ class ApiController extends Controller
      *             )
      *         )
      *     ),
-     *     
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Message sent successfully",
@@ -36951,7 +36951,7 @@ class ApiController extends Controller
      *     operationId="schoolInbox",
      *     tags={"Messages"},
      *     security={{"bearerAuth": {}}},
-     *     
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Inbox retrieved successfully",
@@ -37121,7 +37121,7 @@ class ApiController extends Controller
         if ($request->receiver_type === 's' && $request->receiver_id) {
             $receivers[] = $request->receiver_id;
         } elseif ($request->receiver_type === 's' && $request->lga) {
-            $receivers = \DB::table('school_web_data')
+            $receivers = DB::table('school_web_data')
                 ->where('lga', $request->lga)
                 ->pluck('user_id')
                 ->toArray();
