@@ -36941,7 +36941,7 @@ class ApiController extends Controller
             $filename = time() . '_' . preg_replace('/[^A-Za-z0-9_\-\.]/', '_', $file->getClientOriginalName());
             $file->move(base_path('../public_html/uploads/messages'), $filename);
 
-            $filePath = url('uploads/messages/' . $filename);
+            $filePath = url('api/uploads/messages/' . $filename);
         }
 
         $message = Message::create([
@@ -37134,7 +37134,7 @@ class ApiController extends Controller
 
             $file->move(base_path('../public_html/uploads/messages'), $filename);
 
-            $filePath = url('uploads/messages/' . $filename);
+            $filePath = url('api/uploads/messages/' . $filename);
         }
         $receivers = [];
         if ($request->receiver_type === 's' && $request->receiver_id) {
