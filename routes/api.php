@@ -10,6 +10,17 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+Route::get('/uploads/messages/{filename}', function ($filename) {
+
+    $path = base_path('../public_html/uploads/messages/' . $filename);
+
+    if (!file_exists($path)) {
+        abort(404);
+    }
+
+    return response()->file($path);
+});
+
 // API Routes PREFIX = api
 
 // -- OPEN ENDPOINTS
