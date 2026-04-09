@@ -36938,8 +36938,9 @@ class ApiController extends Controller
         $filePath = null;
         if ($request->hasFile('attachment')) {
             $file = $request->file('attachment');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $file->move(public_path('uploads/messages'), $filename);
+            $filename = time() . '_' . preg_replace('/[^A-Za-z0-9_\-\.]/', '_', $file->getClientOriginalName());
+            $file->move(base_path('../public_html/uploads/messages'), $filename);
+
             $filePath = url('uploads/messages/' . $filename);
         }
 
@@ -37131,9 +37132,8 @@ class ApiController extends Controller
             // sanitize filename
             $filename = time() . '_' . preg_replace('/[^A-Za-z0-9_\-\.]/', '_', $file->getClientOriginalName());
 
-            $file->move(public_path('uploads/messages'), $filename);
+            $file->move(base_path('../public_html/uploads/messages'), $filename);
 
-            // safe URL
             $filePath = url('uploads/messages/' . $filename);
         }
         $receivers = [];
