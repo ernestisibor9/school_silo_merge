@@ -5811,7 +5811,11 @@ class ApiController extends Controller
     public function getOldStudent($schid, $ssn, $stid)
     {
         $pld = [];
-        $pld = old_student::where("schid", $schid)->where("ssn", $ssn)->where("sid", $stid)->first();
+        $pld = old_student::where("schid", $schid)
+            ->where("ssn", $ssn)
+            ->where("sid", $stid)
+            ->latest() // uses created_at
+            ->first();
         return response()->json([
             "status" => true,
             "message" => "Success",
@@ -8905,13 +8909,25 @@ class ApiController extends Controller
                 }
             }
 
+            // $totalStd = student::join('old_student', 'student.sid', '=', 'old_student.sid')
+            //     ->where('student.schid', $schid)
+            //     ->where('student.stat', '1')
+            //     ->where('old_student.ssn', $ssn)
+            //     ->where('old_student.clsm', $clsm)
+            //     ->where('old_student.clsa', $clsa)
+            //     ->count();
+
             $totalStd = student::join('old_student', 'student.sid', '=', 'old_student.sid')
                 ->where('student.schid', $schid)
                 ->where('student.stat', '1')
+                ->where('student.status', 'active')
                 ->where('old_student.ssn', $ssn)
+                ->where('old_student.trm', $trm) // ✅ FIXED
                 ->where('old_student.clsm', $clsm)
                 ->where('old_student.clsa', $clsa)
-                ->count();
+                ->where('old_student.status', 'active')
+                ->distinct('student.sid') // ✅ VERY IMPORTANT
+                ->count('student.sid');   // ✅ count unique students
 
             $std = old_student::where('schid', $schid)
                 ->where('ssn', $ssn)
@@ -9109,7 +9125,6 @@ class ApiController extends Controller
             ], 500);
         }
     }
-
     /////////////////////////////////////
 
 
@@ -37112,11 +37127,15 @@ class ApiController extends Controller
         $filePath = null;
         if ($request->hasFile('attachment')) {
             $file = $request->file('attachment');
-            $filename = time() . '_' . $file->getClientOriginalName();
+
+            // sanitize filename
+            $filename = time() . '_' . preg_replace('/[^A-Za-z0-9_\-\.]/', '_', $file->getClientOriginalName());
+
             $file->move(public_path('uploads/messages'), $filename);
+
+            // safe URL
             $filePath = url('uploads/messages/' . $filename);
         }
-
         $receivers = [];
         if ($request->receiver_type === 's' && $request->receiver_id) {
             $receivers[] = $request->receiver_id;
@@ -37311,8 +37330,13 @@ class ApiController extends Controller
         $filePath = null;
         if ($request->hasFile('attachment')) {
             $file = $request->file('attachment');
-            $filename = time() . '_' . $file->getClientOriginalName();
+
+            // sanitize filename
+            $filename = time() . '_' . preg_replace('/[^A-Za-z0-9_\-\.]/', '_', $file->getClientOriginalName());
+
             $file->move(public_path('uploads/messages'), $filename);
+
+            // safe URL
             $filePath = url('uploads/messages/' . $filename);
         }
 
