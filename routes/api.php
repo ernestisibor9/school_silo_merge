@@ -193,6 +193,10 @@ Route::group([
     Route::get('/school/inbox', [ApiController::class, 'schoolInbox']);
     Route::post('/school/reply/{messageId}', [ApiController::class, 'schoolReply']);
 
+    Route::post('/messages/{messageId}/reply', [ApiController::class, 'reply']);
+    Route::get('/inbox', [ApiController::class, 'inbox']);
+    Route::get('/sent-messages', [ApiController::class, 'sent']);
+
     // Domain Admin
     Route::post('/domain/send-message', [ApiController::class, 'domainSendMessage']);
     Route::get('/domain/inbox', [ApiController::class, 'domainInbox']);

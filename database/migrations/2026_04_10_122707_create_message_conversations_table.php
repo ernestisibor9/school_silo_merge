@@ -10,20 +10,9 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('messages', function (Blueprint $table) {
+        Schema::create('message_conversations', function (Blueprint $table) {
             $table->id();
-
-            $table->unsignedBigInteger('conversation_id')->index();
-
-            $table->unsignedBigInteger('sender_id');
-            $table->char('sender_type', 1); // a, s
-
-            $table->text('message');
             $table->string('subject');
-            $table->string('attachment')->nullable();
-
-            $table->unsignedBigInteger('parent_id')->nullable(); // reply support
-
             $table->timestamps();
         });
     }
@@ -33,6 +22,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('messages');
+        Schema::dropIfExists('message_conversations');
     }
 };

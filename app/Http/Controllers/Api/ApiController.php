@@ -16,6 +16,8 @@ use App\Models\school;
 use App\Models\User;
 use App\Models\files;
 use App\Models\msg;
+use App\Models\MessageConversation;
+use App\Models\MessageRecipient;
 use App\Models\msgthread;
 use App\Models\partner_basic_data;
 use App\Models\partner_financial_data;
@@ -36833,271 +36835,50 @@ class ApiController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/api/school/send-message",
-     *     summary="Send a message from school admin",
-     *     description="Allows a school admin to send a message to a domain admin, staff, or student.",
-     *     operationId="schoolSendMessage",
-     *     tags={"Messages"},
-     *     security={{"bearerAuth": {}}},
-     *
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\MediaType(
-     *             mediaType="multipart/form-data",
-     *             @OA\Schema(
-     *                 required={"subject","message","receiver_type","receiver_id"},
-     *                 @OA\Property(
-     *                     property="subject",
-     *                     type="string",
-     *                     example="Meeting Reminder",
-     *                     description="Subject of the message"
-     *                 ),
-     *                 @OA\Property(
-     *                     property="message",
-     *                     type="string",
-     *                     example="Please attend the staff meeting at 10 AM.",
-     *                     description="The main message content"
-     *                 ),
-     *                 @OA\Property(
-     *                     property="receiver_type",
-     *                     type="string",
-     *                     example="a",
-     *                     description="Receiver type: a=domain admin, sf=staff, st=student"
-     *                 ),
-     *                 @OA\Property(
-     *                     property="receiver_id",
-     *                     type="integer",
-     *                     example=3,
-     *                     description="ID of the receiver"
-     *                 ),
-     *                 @OA\Property(
-     *                     property="attachment",
-     *                     type="string",
-     *                     format="binary",
-     *                     description="Optional file attachment (max 20MB)"
-     *                 )
-     *             )
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="Message sent successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Message sent"),
-     *             @OA\Property(
-     *                 property="pld",
-     *                 type="object",
-     *                 @OA\Property(property="id", type="integer", example=1),
-     *                 @OA\Property(property="sender_id", type="integer", example=5),
-     *                 @OA\Property(property="sender_type", type="string", example="s"),
-     *                 @OA\Property(property="receiver_id", type="integer", example=3),
-     *                 @OA\Property(property="receiver_type", type="string", example="a"),
-     *                 @OA\Property(property="subject", type="string", example="Meeting Reminder"),
-     *                 @OA\Property(property="message", type="string", example="Please attend the staff meeting at 10 AM."),
-     *                 @OA\Property(property="attachment", type="string", example="http://yourdomain.com/uploads/messages/1680412345_file.pdf"),
-     *                 @OA\Property(property="created_at", type="string", format="date-time", example="2026-04-02T10:00:00Z"),
-     *                 @OA\Property(property="updated_at", type="string", format="date-time", example="2026-04-02T10:00:00Z")
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=403,
-     *         description="Unauthorized",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Unauthorized")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=422,
-     *         description="Validation error",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
-     *             @OA\Property(property="errors", type="object")
-     *         )
-     *     )
-     * )
-     */
-    // 1️⃣ School sends message
-    public function schoolSendMessage(Request $request)
-    {
-        $user = auth()->user();
-        if ($user->typ !== 's')
-            return response()->json(["status" => false, "message" => "Unauthorized"], 403);
-
-        $request->validate([
-            'subject' => 'required|string',
-            'message' => 'required|string',
-            'receiver_type' => 'required|string', // a=domain, sf=staff, st=student
-            'receiver_id' => 'required|integer',
-            'attachment' => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc,docx|max:20480'
-        ]);
-
-        $filePath = null;
-        if ($request->hasFile('attachment')) {
-            $file = $request->file('attachment');
-            $filename = time() . '_' . preg_replace('/[^A-Za-z0-9_\-\.]/', '_', $file->getClientOriginalName());
-            $file->move(base_path('../public_html/uploads/messages'), $filename);
-
-            $filePath = url('api/uploads/messages/' . $filename);
-        }
-
-        $message = Message::create([
-            'sender_id' => $user->id,
-            'sender_type' => 's',
-            'receiver_id' => $request->receiver_id,
-            'receiver_type' => $request->receiver_type,
-            'subject' => $request->subject,
-            'message' => $request->message,
-            'attachment' => $filePath
-        ]);
-
-        return response()->json(["status" => true, "message" => "Message sent", "pld" => $message]);
-    }
-
-
-
-    /**
-     * @OA\Get(
-     *     path="/api/school/inbox",
-     *     summary="Get school admin inbox messages",
-     *     description="Retrieve all messages received by the authenticated school admin, ordered by latest first.",
-     *     operationId="schoolInbox",
-     *     tags={"Messages"},
-     *     security={{"bearerAuth": {}}},
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="Inbox retrieved successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(
-     *                 property="pld",
-     *                 type="array",
-     *                 @OA\Items(
-     *                     type="object",
-     *                     @OA\Property(property="id", type="integer", example=1),
-     *                     @OA\Property(property="sender_id", type="integer", example=5),
-     *                     @OA\Property(property="sender_type", type="string", example="a"),
-     *                     @OA\Property(property="receiver_id", type="integer", example=3),
-     *                     @OA\Property(property="receiver_type", type="string", example="s"),
-     *                     @OA\Property(property="subject", type="string", example="Meeting Reminder"),
-     *                     @OA\Property(property="message", type="string", example="Please attend the staff meeting at 10 AM."),
-     *                     @OA\Property(property="attachment", type="string", example="http://yourdomain.com/uploads/messages/1680412345_file.pdf"),
-     *                     @OA\Property(property="parent_id", type="integer", nullable=true, example=null),
-     *                     @OA\Property(property="created_at", type="string", format="date-time", example="2026-04-02T10:00:00Z"),
-     *                     @OA\Property(property="updated_at", type="string", format="date-time", example="2026-04-02T10:00:00Z")
-     *                 )
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=403,
-     *         description="Unauthorized",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Unauthorized")
-     *         )
-     *     )
-     * )
-     */
-    // 2️⃣ School inbox
-    public function schoolInbox()
-    {
-        $user = auth()->user();
-        if ($user->typ !== 's')
-            return response()->json(["status" => false, "message" => "Unauthorized"], 403);
-
-        $messages = Message::where('receiver_type', 's')
-            ->where('receiver_id', $user->id)
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return response()->json(["status" => true, "pld" => $messages]);
-    }
-
-
-    /**
-     * @OA\Post(
      *     path="/api/domain/send-message",
-     *     summary="Domain Admin sends a message",
-     *     description="Allows a domain admin to send a message to a specific school, all schools, or schools within a specific LGA",
-     *     operationId="domainSendMessage",
-     *     tags={"Messages"},
-     *     security={{"bearerAuth": {}}},
+     *     summary="Domain admin sends message to schools (single, multiple, or LGA broadcast)",
+     *     tags={"Messaging"},
+     *     security={{"bearerAuth":{}}},
+     *
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\MediaType(
      *             mediaType="multipart/form-data",
      *             @OA\Schema(
-     *                 type="object",
-     *                 required={"subject","message","receiver_type"},
+     *                 required={"subject", "message"},
+     *
+     *                 @OA\Property(property="subject", type="string", example="Urgent Circular"),
+     *                 @OA\Property(property="message", type="string", example="All schools must submit their reports by Friday."),
+     *
      *                 @OA\Property(
-     *                     property="subject",
-     *                     type="string",
-     *                     description="Subject of the message",
-     *                     example="Meeting Reminder"
+     *                     property="school_ids[]",
+     *                     type="array",
+     *                     @OA\Items(type="integer"),
+     *                     description="List of school user IDs"
      *                 ),
-     *                 @OA\Property(
-     *                     property="message",
-     *                     type="string",
-     *                     description="Message content",
-     *                     example="Please attend the meeting at 10AM"
-     *                 ),
-     *                 @OA\Property(
-     *                     property="receiver_type",
-     *                     type="string",
-     *                     description="Receiver type: s=school, sf=staff, st=student",
-     *                     example="s"
-     *                 ),
-     *                 @OA\Property(
-     *                     property="receiver_id",
-     *                     type="integer",
-     *                     description="ID of the receiver. Leave null to send to all",
-     *                     nullable=true,
-     *                     example=12
-     *                 ),
-     *                 @OA\Property(
-     *                     property="lga",
-     *                     type="string",
-     *                     description="Optional filter by LGA",
-     *                     nullable=true,
-     *                     example="Some LGA"
-     *                 ),
+     *
+     *                 @OA\Property(property="lga", type="string", example="Aba"),
+     *
      *                 @OA\Property(
      *                     property="attachment",
      *                     type="string",
-     *                     format="binary",
-     *                     description="Optional file attachment (max 20MB)"
+     *                     format="binary"
      *                 )
      *             )
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=200,
      *         description="Message sent successfully",
      *         @OA\JsonContent(
-     *             type="object",
      *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Message sent"),
-     *             @OA\Property(
-     *                 property="pld",
-     *                 type="array",
-     *                 @OA\Items(
-     *                     type="object",
-     *                     @OA\Property(property="id", type="integer"),
-     *                     @OA\Property(property="sender_id", type="integer"),
-     *                     @OA\Property(property="receiver_id", type="integer"),
-     *                     @OA\Property(property="receiver_type", type="string"),
-     *                     @OA\Property(property="subject", type="string"),
-     *                     @OA\Property(property="message", type="string"),
-     *                     @OA\Property(property="attachment", type="string", nullable=true)
-     *                 )
-     *             )
+     *             @OA\Property(property="conversation_id", type="integer", example=101),
+     *             @OA\Property(property="message_id", type="integer", example=55),
+     *             @OA\Property(property="total_receivers", type="integer", example=25)
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=403,
      *         description="Unauthorized access",
@@ -37105,387 +36886,531 @@ class ApiController extends Controller
      *             @OA\Property(property="status", type="boolean", example=false),
      *             @OA\Property(property="message", type="string", example="Unauthorized")
      *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error"
      *     )
      * )
      */
-
-    // 3️⃣ Domain admin sends message
     public function domainSendMessage(Request $request)
     {
         $user = auth()->user();
-        if ($user->typ !== 'a')
+
+        if ($user->typ !== 'a') {
             return response()->json(["status" => false, "message" => "Unauthorized"], 403);
+        }
+
+        $schoolIds = $request->input('school_ids', []);
+
+        // Swagger sends strings → convert properly
+        if (is_string($schoolIds)) {
+            $schoolIds = explode(',', $schoolIds);
+        }
+
+        // convert all values to integers
+        $schoolIds = array_map('intval', $schoolIds);
+
+        // remove invalid zeros (optional safety)
+        $schoolIds = array_filter($schoolIds);
+
+        $request->merge([
+            'school_ids' => $schoolIds
+        ]);
 
         $request->validate([
             'subject' => 'required|string',
             'message' => 'required|string',
-            'receiver_type' => 'required|string', // s=school, sf=staff, st=student
-            'receiver_id' => 'nullable|integer', // leave null if sending to all
-            'lga' => 'nullable|string', // optional filter by LGA
+            'school_ids' => 'nullable|array',
+            'school_ids.*' => 'integer',
+            'lga' => 'nullable|string',
             'attachment' => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc,docx|max:20480'
         ]);
 
+        // upload file
         $filePath = null;
         if ($request->hasFile('attachment')) {
             $file = $request->file('attachment');
-
-            // sanitize filename
             $filename = time() . '_' . preg_replace('/[^A-Za-z0-9_\-\.]/', '_', $file->getClientOriginalName());
-
             $file->move(base_path('../public_html/uploads/messages'), $filename);
-
             $filePath = url('api/uploads/messages/' . $filename);
         }
+
+        // STEP 1: RESOLVE RECEIVERS
         $receivers = [];
-        if ($request->receiver_type === 's' && $request->receiver_id) {
-            $receivers[] = $request->receiver_id;
-        } elseif ($request->receiver_type === 's' && $request->lga) {
-            $receivers = DB::table('school_web_data')
+
+        // direct selected schools
+        if ($request->school_ids) {
+            $receivers = $request->school_ids;
+        }
+
+        // LGA-based schools
+        if ($request->lga) {
+            $lgaSchools = DB::table('school_web_data')
                 ->where('lga', $request->lga)
                 ->pluck('user_id')
                 ->toArray();
-        } else {
-            // Could also add logic for staff or students
+
+            $receivers = array_merge($receivers, $lgaSchools);
         }
 
-        $messages = [];
+        $receivers = array_unique($receivers);
+
+        // STEP 2: CREATE CONVERSATION
+        $conversation = MessageConversation::create([
+            'subject' => $request->subject
+        ]);
+
+        // STEP 3: CREATE MESSAGE (ONLY ONCE)
+        $message = Message::create([
+            'conversation_id' => $conversation->id,
+            'sender_id' => $user->id,
+            'sender_type' => 'a',
+            'message' => $request->message,
+            'subject' => $request->subject,
+            'attachment' => $filePath,
+            'parent_id' => null
+        ]);
+
+        // STEP 4: ATTACH ALL RECEIVERS
         foreach ($receivers as $rid) {
-            $messages[] = Message::create([
-                'sender_id' => $user->id,
-                'sender_type' => 'a',
+            MessageRecipient::create([
+                'message_id' => $message->id,
                 'receiver_id' => $rid,
-                'receiver_type' => $request->receiver_type,
-                'subject' => $request->subject,
-                'message' => $request->message,
-                'attachment' => $filePath
+                'receiver_type' => 's'
             ]);
         }
 
-        return response()->json(["status" => true, "message" => "Message sent", "pld" => $messages]);
-    }
-
-
-
-    /**
-     * @OA\Get(
-     *     path="/api/domain/inbox",
-     *     summary="Get domain admin inbox",
-     *     description="Retrieve all messages received by the domain admin.",
-     *     operationId="domainInbox",
-     *     tags={"Messages"},
-     *     security={{"bearerAuth": {}}},
-     *     @OA\Response(
-     *         response=200,
-     *         description="Inbox messages retrieved successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(
-     *                 property="data",
-     *                 type="array",
-     *                 @OA\Items(
-     *                     type="object",
-     *                     @OA\Property(property="id", type="integer", example=1),
-     *                     @OA\Property(property="sender_id", type="integer", example=2),
-     *                     @OA\Property(property="sender_type", type="string", example="s"),
-     *                     @OA\Property(property="receiver_id", type="integer", example=1),
-     *                     @OA\Property(property="receiver_type", type="string", example="a"),
-     *                     @OA\Property(property="subject", type="string", example="Staff Meeting"),
-     *                     @OA\Property(property="message", type="string", example="Please attend the meeting tomorrow at 10 AM."),
-     *                     @OA\Property(property="attachment", type="string", nullable=true, example="http://yourdomain.com/uploads/messages/file.pdf"),
-     *                     @OA\Property(property="parent_id", type="integer", nullable=true, example=null),
-     *                     @OA\Property(property="created_at", type="string", format="date-time", example="2026-04-02T10:00:00Z"),
-     *                     @OA\Property(property="updated_at", type="string", format="date-time", example="2026-04-02T10:00:00Z")
-     *                 )
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=403,
-     *         description="Unauthorized",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Unauthorized")
-     *         )
-     *     )
-     * )
-     */
-    // 4️⃣ Domain inbox
-    public function domainInbox()
-    {
-        $user = auth()->user();
-        if ($user->typ !== 'a')
-            return response()->json(["status" => false, "message" => "Unauthorized"], 403);
-
-        $messages = Message::where('receiver_type', 'a')
-            ->where('receiver_id', $user->id)
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return response()->json(["status" => true, "pld" => $messages]);
-    }
-
-
-
-    /**
-     * @OA\Post(
-     *     path="/api/domain/reply/{messageId}",
-     *     summary="Domain admin replies to a message from a school",
-     *     description="Allows a domain admin to reply to a specific message received from a school or school admin.",
-     *     operationId="domainReply",
-     *     tags={"Messages"},
-     *     security={{"bearerAuth": {}}},
-     *     @OA\Parameter(
-     *         name="messageId",
-     *         in="path",
-     *         description="ID of the message being replied to",
-     *         required=true,
-     *         @OA\Schema(type="integer", example=10)
-     *     ),
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\MediaType(
-     *             mediaType="multipart/form-data",
-     *             @OA\Schema(
-     *                 required={"message"},
-     *                 @OA\Property(
-     *                     property="message",
-     *                     type="string",
-     *                     description="The reply content",
-     *                     example="Thank you, we will take note of this."
-     *                 ),
-     *                 @OA\Property(
-     *                     property="attachment",
-     *                     type="string",
-     *                     format="binary",
-     *                     description="Optional file attachment (jpg, jpeg, png, pdf, doc, docx, max 20MB)"
-     *                 )
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Reply sent successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Reply sent"),
-     *             @OA\Property(
-     *                 property="pld",
-     *                 type="object",
-     *                 @OA\Property(property="id", type="integer", example=15),
-     *                 @OA\Property(property="sender_id", type="integer", example=1),
-     *                 @OA\Property(property="sender_type", type="string", example="a"),
-     *                 @OA\Property(property="receiver_id", type="integer", example=5),
-     *                 @OA\Property(property="receiver_type", type="string", example="s"),
-     *                 @OA\Property(property="subject", type="string", example="Staff Meeting"),
-     *                 @OA\Property(property="message", type="string", example="Thank you, we will take note of this."),
-     *                 @OA\Property(property="attachment", type="string", nullable=true, example="http://yourdomain.com/uploads/messages/file.pdf"),
-     *                 @OA\Property(property="parent_id", type="integer", example=10),
-     *                 @OA\Property(property="created_at", type="string", format="date-time", example="2026-04-02T10:00:00Z"),
-     *                 @OA\Property(property="updated_at", type="string", format="date-time", example="2026-04-02T10:00:00Z")
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=403,
-     *         description="Unauthorized",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Unauthorized")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Message not found",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Message not found")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=422,
-     *         description="Validation error",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
-     *             @OA\Property(property="errors", type="object")
-     *         )
-     *     )
-     * )
-     */
-    // 5️⃣ Domain replies to school
-    public function domainReply(Request $request, $messageId)
-    {
-        $user = auth()->user();
-        if ($user->typ !== 'a')
-            return response()->json(["status" => false, "message" => "Unauthorized"], 403);
-
-        $request->validate([
-            'message' => 'required|string',
-            'attachment' => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc,docx|max:20480'
-        ]);
-
-        $original = Message::find($messageId);
-        if (!$original)
-            return response()->json(["status" => false, "message" => "Message not found"], 404);
-
-        $filePath = null;
-        if ($request->hasFile('attachment')) {
-            $file = $request->file('attachment');
-
-            // sanitize filename
-            $filename = time() . '_' . preg_replace('/[^A-Za-z0-9_\-\.]/', '_', $file->getClientOriginalName());
-
-            $file->move(public_path('uploads/messages'), $filename);
-
-            // safe URL
-            $filePath = url('uploads/messages/' . $filename);
-        }
-
-        $reply = Message::create([
-            'sender_id' => $user->id,
-            'sender_type' => 'a',
-            'receiver_id' => $original->sender_id,
-            'receiver_type' => $original->sender_type,
-            'subject' => $original->subject,
-            'message' => $request->message,
-            'attachment' => $filePath,
-            'parent_id' => $original->id
-        ]);
-
-        return response()->json(["status" => true, "message" => "Reply sent", "pld" => $reply]);
-    }
-
-
-    /**
-     * @OA\Post(
-     *     path="/api/school/reply/{messageId}",
-     *     summary="School admin replies to a message from domain admin",
-     *     description="Allows a school admin to reply to a specific message received from a domain admin.",
-     *     operationId="schoolReply",
-     *     tags={"Messages"},
-     *     security={{"bearerAuth": {}}},
-     *     @OA\Parameter(
-     *         name="messageId",
-     *         in="path",
-     *         description="ID of the message being replied to",
-     *         required=true,
-     *         @OA\Schema(type="integer", example=10)
-     *     ),
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\MediaType(
-     *             mediaType="multipart/form-data",
-     *             @OA\Schema(
-     *                 required={"message"},
-     *                 @OA\Property(
-     *                     property="message",
-     *                     type="string",
-     *                     description="The reply content",
-     *                     example="Thank you, we will review this request."
-     *                 ),
-     *                 @OA\Property(
-     *                     property="attachment",
-     *                     type="string",
-     *                     format="binary",
-     *                     description="Optional file attachment (jpg, jpeg, png, pdf, doc, docx, max 20MB)"
-     *                 )
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Reply sent successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Reply sent successfully"),
-     *             @OA\Property(
-     *                 property="pld",
-     *                 type="object",
-     *                 @OA\Property(property="id", type="integer", example=15),
-     *                 @OA\Property(property="sender_id", type="integer", example=3),
-     *                 @OA\Property(property="sender_type", type="string", example="s"),
-     *                 @OA\Property(property="receiver_id", type="integer", example=1),
-     *                 @OA\Property(property="receiver_type", type="string", example="a"),
-     *                 @OA\Property(property="subject", type="string", example="Staff Meeting"),
-     *                 @OA\Property(property="message", type="string", example="Thank you, we will review this request."),
-     *                 @OA\Property(property="attachment", type="string", nullable=true, example="http://yourdomain.com/uploads/messages/file.pdf"),
-     *                 @OA\Property(property="parent_id", type="integer", example=10),
-     *                 @OA\Property(property="created_at", type="string", format="date-time", example="2026-04-02T10:00:00Z"),
-     *                 @OA\Property(property="updated_at", type="string", format="date-time", example="2026-04-02T10:00:00Z")
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=403,
-     *         description="Unauthorized",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Unauthorized")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Message not found",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Message not found")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=422,
-     *         description="Validation error",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
-     *             @OA\Property(property="errors", type="object")
-     *         )
-     *     )
-     * )
-     */
-    // School Admin replies to Domain Admin
-    public function schoolReply(Request $request, $messageId)
-    {
-        $user = auth()->user();
-        if ($user->typ !== 's') {
-            return response()->json(["status" => false, "message" => "Unauthorized"], 403);
-        }
-
-        $request->validate([
-            'message' => 'required|string',
-            'attachment' => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc,docx|max:20480'
-        ]);
-
-        // Find the original message
-        $original = Message::find($messageId);
-        if (!$original) {
-            return response()->json(["status" => false, "message" => "Message not found"], 404);
-        }
-
-        // Handle attachment
-        $filePath = null;
-        if ($request->hasFile('attachment')) {
-            $file = $request->file('attachment');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $file->move(public_path('uploads/messages'), $filename);
-            $filePath = url('uploads/messages/' . $filename);
-        }
-
-        // Create reply
-        $reply = Message::create([
-            'sender_id' => $user->id,
-            'sender_type' => 's',
-            'receiver_id' => $original->sender_id,
-            'receiver_type' => $original->sender_type,
-            'subject' => $original->subject, // same subject
-            'message' => $request->message,
-            'attachment' => $filePath,
-            'parent_id' => $original->id
-        ]);
-
         return response()->json([
             "status" => true,
-            "message" => "Reply sent successfully",
-            "pld" => $reply
+            "conversation_id" => $conversation->id,
+            "message_id" => $message->id,
+            "total_receivers" => count($receivers)
         ]);
     }
+
+
+
+    /**
+ * @OA\Post(
+ *     path="/api/school/send-message",
+ *     summary="School admin sends message to admin, staff, or students",
+ *     tags={"Messaging"},
+ *     security={{"bearerAuth":{}}},
+ *
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\MediaType(
+ *             mediaType="multipart/form-data",
+ *             @OA\Schema(
+ *                 required={"receiver_id", "receiver_type", "subject", "message"},
+ *
+ *                 @OA\Property(
+ *                     property="receiver_id",
+ *                     type="integer",
+ *                     example=25,
+ *                     description="ID of receiver (admin, staff, or student)"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="receiver_type",
+ *                     type="string",
+ *                     enum={"a", "sf", "st"},
+ *                     example="st",
+ *                     description="Receiver type: a=admin, sf=staff, st=student"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="subject",
+ *                     type="string",
+ *                     example="Exam Update"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="message",
+ *                     type="string",
+ *                     example="Please note the exam has been rescheduled."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="attachment",
+ *                     type="string",
+ *                     format="binary",
+ *                     description="Optional file attachment (jpg, png, pdf, docx)"
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Message sent successfully",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="conversation_id", type="integer", example=101),
+ *             @OA\Property(property="message_id", type="integer", example=55)
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=403,
+ *         description="Unauthorized access",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="Unauthorized")
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation error",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+ *             @OA\Property(
+ *                 property="errors",
+ *                 type="object"
+ *             )
+ *         )
+ *     )
+ * )
+ */
+public function schoolSendMessage(Request $request)
+{
+    $user = auth()->user();
+
+    if ($user->typ !== 's') {
+        return response()->json(["status" => false, "message" => "Unauthorized"], 403);
+    }
+
+    $request->validate([
+        'receiver_id' => 'required|integer',
+        'receiver_type' => 'required|in:a,sf,st',
+        'subject' => 'required|string',
+        'message' => 'required|string',
+        'attachment' => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc,docx|max:20480'
+    ]);
+
+    // upload attachment
+    $filePath = null;
+    if ($request->hasFile('attachment')) {
+        $file = $request->file('attachment');
+
+        $filename = time().'_'.preg_replace('/[^A-Za-z0-9_\-\.]/','_',$file->getClientOriginalName());
+
+        $file->move(base_path('../public_html/uploads/messages'), $filename);
+
+        $filePath = url('api/uploads/messages/'.$filename);
+    }
+
+    // conversation
+    $conversation = MessageConversation::create([
+        'subject' => $request->subject
+    ]);
+
+    // message
+    $msg = Message::create([
+        'conversation_id' => $conversation->id,
+        'sender_id' => $user->id,
+        'sender_type' => 's',
+        'subject' => $request->subject,
+        'message' => $request->message,
+        'attachment' => $filePath
+    ]);
+
+    // recipient
+    MessageRecipient::create([
+        'message_id' => $msg->id,
+        'receiver_id' => $request->receiver_id,
+        'receiver_type' => $request->receiver_type
+    ]);
+
+    return response()->json([
+        "status" => true,
+        "conversation_id" => $conversation->id,
+        "message_id" => $msg->id
+    ]);
+}
+
+
+ /**
+ * @OA\Post(
+ *     path="/api/messages/{messageId}/reply",
+ *     summary="Reply to a message (threaded conversation system)",
+ *     tags={"Messaging"},
+ *     security={{"bearerAuth":{}}},
+ *
+ *     @OA\Parameter(
+ *         name="messageId",
+ *         in="path",
+ *         required=true,
+ *         description="ID of the message being replied to",
+ *         @OA\Schema(type="integer", example=10)
+ *     ),
+ *
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\MediaType(
+ *             mediaType="application/json",
+ *             @OA\Schema(
+ *                 required={"message"},
+ *
+ *                 @OA\Property(
+ *                     property="message",
+ *                     type="string",
+ *                     example="Thank you, we have received your instruction."
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Reply created successfully",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(
+ *                 property="reply",
+ *                 type="object",
+ *                 @OA\Property(property="id", type="integer", example=25),
+ *                 @OA\Property(property="conversation_id", type="integer", example=5),
+ *                 @OA\Property(property="sender_id", type="integer", example=2),
+ *                 @OA\Property(property="sender_type", type="string", example="s"),
+ *                 @OA\Property(property="message", type="string", example="We have completed the submission"),
+ *                 @OA\Property(property="subject", type="string", example="Exam Notice"),
+ *                 @OA\Property(property="parent_id", type="integer", example=10),
+ *                 @OA\Property(property="created_at", type="string", example="2026-04-10T10:00:00.000000Z")
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=404,
+ *         description="Original message not found",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="message", type="string", example="No query results for model Message")
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=403,
+ *         description="Unauthorized access"
+ *     )
+ * )
+ */
+public function reply(Request $request, $messageId)
+{
+    $user = auth()->user();
+
+    $parent = Message::findOrFail($messageId);
+
+    $reply = Message::create([
+        'conversation_id' => $parent->conversation_id,
+        'sender_id' => $user->id,
+        'sender_type' => $user->typ,
+        'message' => $request->message,
+        'subject' => $parent->subject,
+        'parent_id' => $parent->id
+    ]);
+
+    // inherit recipients from original message
+    $recipients = MessageRecipient::where('message_id', $parent->id)->get();
+
+    foreach ($recipients as $r) {
+        MessageRecipient::create([
+            'message_id' => $reply->id,
+            'receiver_id' => $r->receiver_id,
+            'receiver_type' => $r->receiver_type
+        ]);
+    }
+
+    return response()->json([
+        "status" => true,
+        "reply" => $reply
+    ]);
+}
+
+
+
+
+/**
+ * @OA\Get(
+ *     path="/api/inbox",
+ *     summary="Get logged-in user inbox messages",
+ *     tags={"Messaging"},
+ *     security={{"bearerAuth":{}}},
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Inbox retrieved successfully",
+ *         @OA\JsonContent(
+ *             type="array",
+ *             @OA\Items(
+ *                 type="object",
+ *                 @OA\Property(
+ *                     property="id",
+ *                     type="integer",
+ *                     example=10
+ *                 ),
+ *                 @OA\Property(
+ *                     property="conversation_id",
+ *                     type="integer",
+ *                     example=5
+ *                 ),
+ *                 @OA\Property(
+ *                     property="sender_id",
+ *                     type="integer",
+ *                     example=2
+ *                 ),
+ *                 @OA\Property(
+ *                     property="sender_type",
+ *                     type="string",
+ *                     example="a"
+ *                 ),
+ *                 @OA\Property(
+ *                     property="subject",
+ *                     type="string",
+ *                     example="Exam Update"
+ *                 ),
+ *                 @OA\Property(
+ *                     property="message",
+ *                     type="string",
+ *                     example="Please note exam has been rescheduled."
+ *                 ),
+ *                 @OA\Property(
+ *                     property="attachment",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="https://api.example.com/uploads/messages/file.pdf"
+ *                 ),
+ *                 @OA\Property(
+ *                     property="created_at",
+ *                     type="string",
+ *                     format="date-time",
+ *                     example="2026-04-10T12:30:00Z"
+ *                 ),
+ *                 @OA\Property(
+ *                     property="conversation",
+ *                     type="object",
+ *                     description="Related conversation data"
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthorized",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="Unauthenticated")
+ *         )
+ *     )
+ * )
+ */
+public function inbox()
+{
+    $user = auth()->user();
+
+    return Message::whereHas('recipients', function ($q) use ($user) {
+            $q->where('receiver_id', $user->id)
+              ->where('receiver_type', $user->typ);
+        })
+        ->with('conversation')
+        ->orderBy('created_at', 'desc') // LAST MESSAGE FIRST
+        ->get();
+}
+
+
+
+
+
+/**
+ * @OA\Get(
+ *     path="/api/sent-messages",
+ *     summary="Get logged-in user sent messages",
+ *     tags={"Messaging"},
+ *     security={{"bearerAuth":{}}},
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Sent messages retrieved successfully",
+ *         @OA\JsonContent(
+ *             type="array",
+ *             @OA\Items(
+ *                 type="object",
+ *                 @OA\Property(
+ *                     property="id",
+ *                     type="integer",
+ *                     example=15
+ *                 ),
+ *                 @OA\Property(
+ *                     property="conversation_id",
+ *                     type="integer",
+ *                     example=8
+ *                 ),
+ *                 @OA\Property(
+ *                     property="sender_id",
+ *                     type="integer",
+ *                     example=3
+ *                 ),
+ *                 @OA\Property(
+ *                     property="sender_type",
+ *                     type="string",
+ *                     example="s"
+ *                 ),
+ *                 @OA\Property(
+ *                     property="subject",
+ *                     type="string",
+ *                     example="Meeting Reminder"
+ *                 ),
+ *                 @OA\Property(
+ *                     property="message",
+ *                     type="string",
+ *                     example="Please attend the meeting tomorrow at 10am."
+ *                 ),
+ *                 @OA\Property(
+ *                     property="attachment",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="https://api.example.com/uploads/messages/file.pdf"
+ *                 ),
+ *                 @OA\Property(
+ *                     property="created_at",
+ *                     type="string",
+ *                     format="date-time",
+ *                     example="2026-04-10T14:00:00Z"
+ *                 ),
+ *                 @OA\Property(
+ *                     property="conversation",
+ *                     type="object",
+ *                     description="Related conversation data"
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthorized",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="Unauthenticated")
+ *         )
+ *     )
+ * )
+ */
+public function sent()
+{
+    $user = auth()->user();
+
+    return Message::where('sender_id', $user->id)
+        ->where('sender_type', $user->typ)
+        ->with('conversation')
+        ->orderBy('created_at', 'desc')
+        ->get();
+}
+
 
 }
 

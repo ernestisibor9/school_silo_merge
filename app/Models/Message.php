@@ -10,27 +10,22 @@ class Message extends Model
     use HasFactory;
 
     protected $fillable = [
-        'sender_id', 'sender_type',
-        'receiver_id', 'receiver_type',
-        'subject', 'message',
-        'attachment', 'parent_id'
+        'conversation_id',
+        'sender_id',
+        'sender_type',
+        'message',
+        'subject',
+        'attachment',
+        'parent_id'
     ];
 
-    // Sender relationship
-    public function sender()
+    public function recipients()
     {
-        return $this->morphTo(null, 'sender_type', 'sender_id');
+        return $this->hasMany(MessageRecipient::class);
     }
 
-    // Receiver relationship
-    public function receiver()
+    public function conversation()
     {
-        return $this->morphTo(null, 'receiver_type', 'receiver_id');
-    }
-
-    // Replies
-    public function replies()
-    {
-        return $this->hasMany(Message::class, 'parent_id');
+        return $this->belongsTo(MessageConversation::class);
     }
 }
