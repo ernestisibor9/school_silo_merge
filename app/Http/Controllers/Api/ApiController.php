@@ -6212,108 +6212,109 @@ class ApiController extends Controller
     //     return $this->saveStudentRes($request);
     // }
 
-    public function setStudentRes(Request $request)
-    {
-        // Retrieve the authenticated user
-        $user = auth()->user();
+public function setStudentRes(Request $request)
+{
+    // Retrieve the authenticated user
+    $user = auth()->user();
 
-        // Allow School Admin (typ = 'a' or 's') to add comments
-        if (in_array($user->typ, ['a', 's'])) {
-            return $this->saveStudentRes($request);
-        }
-
-        // Find the corresponding staff record
-        $staff = staff::where('sid', $user->id)->first();
-
-        if (!$staff) {
-            return response()->json([
-                "status" => false,
-                "message" => "Unauthorized: Staff not found."
-            ], 403);
-        }
-
-        // Sanitize role IDs: remove non-numeric characters like '*' and ignore -1
-        $roleIds = array_map(fn($r) => preg_replace('/\D/', '', $r), [$staff->role, $staff->role2]);
-        $roleIds = array_filter(array_map('intval', $roleIds), fn($r) => $r > 0);
-
-        // Retrieve the role names from the staff_role table
-        $roleNames = staff_role::whereIn('id', $roleIds)
-            ->pluck('name')
-            ->toArray();
-
-        // Allow Form Teachers, Head Teacher, Class Teachers, Principals, and Admins to comment
-        $allowedRoles = ['Form Teacher', 'Head Teacher', 'Class Teacher', 'Principal', 'Admin'];
-
-        if (!array_intersect($allowedRoles, $roleNames)) {
-            return response()->json([
-                "status" => false,
-                "message" => "Unauthorized: Only Form Teachers, Head Teacher, Class Teachers, Principals, or Admins can add comments."
-            ], 403);
-        }
-
-        // If the staff is a Class Teacher, ensure they are assigned to the correct class arm
-        if (in_array('Class Teacher', $roleNames)) {
-            $assignedClassArm = staff_class_arm::where('stid', $staff->sid)
-                ->where('cls', $request->clsm) // Ensure same class
-                ->where('arm', $request->clsa) // Ensure same class arm
-                ->exists();
-
-            if (!$assignedClassArm) {
-                return response()->json([
-                    "status" => false,
-                    "message" => "Unauthorized: You are not assigned to this class arm."
-                ], 403);
-            }
-        }
-
+    // Allow School Admin (typ = 'a' or 's') to add comments
+    if (in_array($user->typ, ['a', 's'])) {
         return $this->saveStudentRes($request);
     }
 
+    // Find the corresponding staff record
+    $staff = staff::where('sid', $user->id)->first();
 
-    /**
-     * Save or update student results
-     */
-    private function saveStudentRes(Request $request)
-    {
-        $request->validate([
-            "uid" => "required",
-            "stat" => "required",
-            "com" => "required",
-            "stid" => "required",
-            "schid" => "required",
-            "ssn" => "required",
-            "trm" => "required",
-            "clsm" => "required",
-            "clsa" => "required",
-            "pos" => "numeric",
-            'avg' => 'numeric|min:0|max:100',
-            'cavg' => 'numeric|min:0|max:100',
-        ]);
-
-        student_res::updateOrCreate(
-            [
-                'uid' => $request->uid, // only match on UID, don't update it
-            ],
-            [
-                'stat' => $request->stat,
-                'com' => $request->com,
-                'stid' => $request->stid,
-                'schid' => $request->schid,
-                'ssn' => $request->ssn,
-                'trm' => $request->trm,
-                'clsm' => $request->clsm,
-                'clsa' => $request->clsa,
-                'pos' => $request->pos,
-                'avg' => $request->avg,
-                'cavg' => $request->cavg,
-            ]
-        );
-
+    if (!$staff) {
         return response()->json([
-            "status" => true,
-            "message" => "Info Updated"
-        ]);
+            "status" => false,
+            "message" => "Unauthorized: Staff not found."
+        ], 403);
     }
+
+    // Sanitize role IDs: remove non-numeric characters like '*' and ignore -1
+    $roleIds = array_map(fn($r) => preg_replace('/\D/', '', $r), [$staff->role, $staff->role2]);
+    $roleIds = array_filter(array_map('intval', $roleIds), fn($r) => $r > 0);
+
+    // Retrieve the role names from the staff_role table
+    $roleNames = staff_role::whereIn('id', $roleIds)
+        ->pluck('name')
+        ->toArray();
+
+    // Allow Form Teachers, Head Teacher, Class Teachers, Principals, and Admins to comment
+    $allowedRoles = ['Form Teacher', 'Head Teacher', 'Class Teacher', 'Principal', 'Admin'];
+
+    if (!array_intersect($allowedRoles, $roleNames)) {
+        return response()->json([
+            "status" => false,
+            "message" => "Unauthorized: Only Form Teachers, Head Teacher, Class Teachers, Principals, or Admins can add comments."
+        ], 403);
+    }
+
+    // If the staff is a Class Teacher, ensure they are assigned to the correct class arm
+    if (in_array('Class Teacher', $roleNames)) {
+        $assignedClassArm = staff_class_arm::where('stid', $staff->sid)
+            ->where('cls', $request->clsm) // Ensure same class
+            ->where('arm', $request->clsa) // Ensure same class arm
+            ->exists();
+
+        if (!$assignedClassArm) {
+            return response()->json([
+                "status" => false,
+                "message" => "Unauthorized: You are not assigned to this class arm."
+            ], 403);
+        }
+    }
+
+    return $this->saveStudentRes($request);
+}
+
+
+/**
+ * Save or update student results
+ */
+private function saveStudentRes(Request $request)
+{
+    $request->validate([
+        "uid" => "required",
+        "stat" => "required",
+        "com" => "required",
+        "stid" => "required",
+        "schid" => "required",
+        "ssn" => "required",
+        "trm" => "required",
+        "clsm" => "required",
+        "clsa" => "required",
+        "pos" => "numeric",
+        'avg' => 'numeric|min:0|max:100',
+        'cavg' => 'numeric|min:0|max:100',
+    ]);
+
+    // ✅ FIXED: Match using same fields used when fetching
+    student_res::updateOrCreate(
+        [
+            'stid' => $request->stid,
+            'schid' => $request->schid,
+            'ssn' => $request->ssn,
+            'trm' => $request->trm,
+            'clsm' => $request->clsm,
+            'clsa' => $request->clsa,
+        ],
+        [
+            'uid' => $request->uid, // still stored (optional)
+            'stat' => $request->stat,
+            'com' => $request->com,
+            'pos' => $request->pos,
+            'avg' => $request->avg,
+            'cavg' => $request->cavg,
+        ]
+    );
+
+    return response()->json([
+        "status" => true,
+        "message" => "Info Updated"
+    ]);
+}
 
 
 
@@ -8197,7 +8198,7 @@ class ApiController extends Controller
 
             $avgForGrade = (int) floor($average);
 
-            $grade = \DB::table('sch_grade')
+            $grade = DB::table('sch_grade')
                 ->where('schid', $schid)
                 ->where('clsid', $clsm)
                 ->where('ssn', $ssn)
@@ -37133,7 +37134,7 @@ public function schoolSendMessage(Request $request)
 }
 
 
- /**
+/**
  * @OA\Post(
  *     path="/api/messages/{messageId}/reply",
  *     summary="Reply to a message (threaded conversation system)",
@@ -37154,7 +37155,6 @@ public function schoolSendMessage(Request $request)
  *             mediaType="application/json",
  *             @OA\Schema(
  *                 required={"message"},
- *
  *                 @OA\Property(
  *                     property="message",
  *                     type="string",
@@ -37168,9 +37168,13 @@ public function schoolSendMessage(Request $request)
  *         response=200,
  *         description="Reply created successfully",
  *         @OA\JsonContent(
+ *             type="object",
+ *
  *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Reply sent successfully"),
+ *
  *             @OA\Property(
- *                 property="reply",
+ *                 property="pld",
  *                 type="object",
  *                 @OA\Property(property="id", type="integer", example=25),
  *                 @OA\Property(property="conversation_id", type="integer", example=5),
@@ -37179,7 +37183,7 @@ public function schoolSendMessage(Request $request)
  *                 @OA\Property(property="message", type="string", example="We have completed the submission"),
  *                 @OA\Property(property="subject", type="string", example="Exam Notice"),
  *                 @OA\Property(property="parent_id", type="integer", example=10),
- *                 @OA\Property(property="created_at", type="string", example="2026-04-10T10:00:00.000000Z")
+ *                 @OA\Property(property="created_at", type="string", format="date-time", example="2026-04-10T10:00:00Z")
  *             )
  *         )
  *     ),
@@ -37188,13 +37192,18 @@ public function schoolSendMessage(Request $request)
  *         response=404,
  *         description="Original message not found",
  *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=false),
  *             @OA\Property(property="message", type="string", example="No query results for model Message")
  *         )
  *     ),
  *
  *     @OA\Response(
- *         response=403,
- *         description="Unauthorized access"
+ *         response=401,
+ *         description="Unauthorized",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="Unauthenticated")
+ *         )
  *     )
  * )
  */
@@ -37226,7 +37235,8 @@ public function reply(Request $request, $messageId)
 
     return response()->json([
         "status" => true,
-        "reply" => $reply
+        "message" => "Reply sent successfully",
+        "pld" => $reply
     ]);
 }
 
@@ -37244,55 +37254,37 @@ public function reply(Request $request, $messageId)
  *         response=200,
  *         description="Inbox retrieved successfully",
  *         @OA\JsonContent(
- *             type="array",
- *             @OA\Items(
- *                 type="object",
- *                 @OA\Property(
- *                     property="id",
- *                     type="integer",
- *                     example=10
- *                 ),
- *                 @OA\Property(
- *                     property="conversation_id",
- *                     type="integer",
- *                     example=5
- *                 ),
- *                 @OA\Property(
- *                     property="sender_id",
- *                     type="integer",
- *                     example=2
- *                 ),
- *                 @OA\Property(
- *                     property="sender_type",
- *                     type="string",
- *                     example="a"
- *                 ),
- *                 @OA\Property(
- *                     property="subject",
- *                     type="string",
- *                     example="Exam Update"
- *                 ),
- *                 @OA\Property(
- *                     property="message",
- *                     type="string",
- *                     example="Please note exam has been rescheduled."
- *                 ),
- *                 @OA\Property(
- *                     property="attachment",
- *                     type="string",
- *                     nullable=true,
- *                     example="https://api.example.com/uploads/messages/file.pdf"
- *                 ),
- *                 @OA\Property(
- *                     property="created_at",
- *                     type="string",
- *                     format="date-time",
- *                     example="2026-04-10T12:30:00Z"
- *                 ),
- *                 @OA\Property(
- *                     property="conversation",
+ *             type="object",
+ *
+ *             @OA\Property(
+ *                 property="status",
+ *                 type="boolean",
+ *                 example=true
+ *             ),
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="Inbox fetched successfully"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
  *                     type="object",
- *                     description="Related conversation data"
+ *                     @OA\Property(property="id", type="integer", example=10),
+ *                     @OA\Property(property="conversation_id", type="integer", example=5),
+ *                     @OA\Property(property="sender_id", type="integer", example=2),
+ *                     @OA\Property(property="sender_type", type="string", example="a"),
+ *                     @OA\Property(property="subject", type="string", example="Exam Update"),
+ *                     @OA\Property(property="message", type="string", example="Please note exam has been rescheduled."),
+ *                     @OA\Property(property="attachment", type="string", nullable=true, example="https://api.example.com/uploads/messages/file.pdf"),
+ *                     @OA\Property(property="created_at", type="string", format="date-time", example="2026-04-10T12:30:00Z"),
+ *                     @OA\Property(
+ *                         property="conversation",
+ *                         type="object",
+ *                         description="Related conversation data"
+ *                     )
  *                 )
  *             )
  *         )
@@ -37312,15 +37304,20 @@ public function inbox()
 {
     $user = auth()->user();
 
-    return Message::whereHas('recipients', function ($q) use ($user) {
+    $messages = Message::whereHas('recipients', function ($q) use ($user) {
             $q->where('receiver_id', $user->id)
               ->where('receiver_type', $user->typ);
         })
         ->with('conversation')
         ->orderBy('created_at', 'desc') // LAST MESSAGE FIRST
         ->get();
-}
 
+    return response()->json([
+        "status" => true,
+        "message" => "Inbox fetched successfully",
+        "pld" => $messages,
+    ]);
+}
 
 
 
@@ -37336,55 +37333,37 @@ public function inbox()
  *         response=200,
  *         description="Sent messages retrieved successfully",
  *         @OA\JsonContent(
- *             type="array",
- *             @OA\Items(
- *                 type="object",
- *                 @OA\Property(
- *                     property="id",
- *                     type="integer",
- *                     example=15
- *                 ),
- *                 @OA\Property(
- *                     property="conversation_id",
- *                     type="integer",
- *                     example=8
- *                 ),
- *                 @OA\Property(
- *                     property="sender_id",
- *                     type="integer",
- *                     example=3
- *                 ),
- *                 @OA\Property(
- *                     property="sender_type",
- *                     type="string",
- *                     example="s"
- *                 ),
- *                 @OA\Property(
- *                     property="subject",
- *                     type="string",
- *                     example="Meeting Reminder"
- *                 ),
- *                 @OA\Property(
- *                     property="message",
- *                     type="string",
- *                     example="Please attend the meeting tomorrow at 10am."
- *                 ),
- *                 @OA\Property(
- *                     property="attachment",
- *                     type="string",
- *                     nullable=true,
- *                     example="https://api.example.com/uploads/messages/file.pdf"
- *                 ),
- *                 @OA\Property(
- *                     property="created_at",
- *                     type="string",
- *                     format="date-time",
- *                     example="2026-04-10T14:00:00Z"
- *                 ),
- *                 @OA\Property(
- *                     property="conversation",
+ *             type="object",
+ *
+ *             @OA\Property(
+ *                 property="status",
+ *                 type="boolean",
+ *                 example=true
+ *             ),
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="Sent messages fetched successfully"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
  *                     type="object",
- *                     description="Related conversation data"
+ *                     @OA\Property(property="id", type="integer", example=15),
+ *                     @OA\Property(property="conversation_id", type="integer", example=8),
+ *                     @OA\Property(property="sender_id", type="integer", example=3),
+ *                     @OA\Property(property="sender_type", type="string", example="s"),
+ *                     @OA\Property(property="subject", type="string", example="Meeting Reminder"),
+ *                     @OA\Property(property="message", type="string", example="Please attend the meeting tomorrow at 10am."),
+ *                     @OA\Property(property="attachment", type="string", nullable=true, example="https://api.example.com/uploads/messages/file.pdf"),
+ *                     @OA\Property(property="created_at", type="string", format="date-time", example="2026-04-10T14:00:00Z"),
+ *                     @OA\Property(
+ *                         property="conversation",
+ *                         type="object",
+ *                         description="Related conversation data"
+ *                     )
  *                 )
  *             )
  *         )
@@ -37404,13 +37383,18 @@ public function sent()
 {
     $user = auth()->user();
 
-    return Message::where('sender_id', $user->id)
+    $messages = Message::where('sender_id', $user->id)
         ->where('sender_type', $user->typ)
         ->with('conversation')
         ->orderBy('created_at', 'desc')
         ->get();
-}
 
+    return response()->json([
+        "status" => true,
+        "message" => "Sent messages fetched successfully",
+        "pld" => $messages,
+    ]);
+}
 
 }
 
