@@ -37485,22 +37485,22 @@ class ApiController extends Controller
      *     )
      * )
      */
-    public function sent()
-    {
-        $user = auth()->user();
+public function sent()
+{
+    $user = auth()->user();
 
-        $messages = Message::where('sender_id', $user->id)
-            ->where('sender_type', $user->typ)
-            ->with('conversation')
-            ->orderBy('created_at', 'desc')
-            ->get();
+    $messages = Message::where('sender_id', $user->id)
+        ->where('sender_type', $user->typ)
+        ->with(['conversation', 'recipients']) // ✅ include recipients
+        ->orderBy('created_at', 'desc')
+        ->get();
 
-        return response()->json([
-            "status" => true,
-            "message" => "Sent messages fetched successfully",
-            "pld" => $messages,
-        ]);
-    }
+    return response()->json([
+        "status" => true,
+        "message" => "Sent messages fetched successfully",
+        "pld" => $messages,
+    ]);
+}
 
 }
 
