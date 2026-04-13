@@ -36834,111 +36834,111 @@ class ApiController extends Controller
 
 
 
-/**
- * @OA\Post(
- *     path="/api/domain/send-message",
- *     summary="Domain admin sends message to schools (single, multiple, or LGA broadcast)",
- *     description="Creates separate private conversations per school. Supports direct school IDs or LGA-based targeting.",
- *     tags={"Messaging"},
- *     security={{"bearerAuth":{}}},
- *
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\MediaType(
- *             mediaType="multipart/form-data",
- *             @OA\Schema(
- *                 required={"subject", "message"},
- *
- *                 @OA\Property(
- *                     property="subject",
- *                     type="string",
- *                     example="Urgent Circular"
- *                 ),
- *
- *                 @OA\Property(
- *                     property="message",
- *                     type="string",
- *                     example="All schools must submit their reports by Friday."
- *                 ),
- *
- *                 @OA\Property(
- *                     property="school_ids[]",
- *                     type="array",
- *                     @OA\Items(type="integer"),
- *                     description="Optional list of school user IDs (can also be sent as comma-separated string: 1,2,3)"
- *                 ),
- *
- *                 @OA\Property(
- *                     property="lga",
- *                     type="string",
- *                     nullable=true,
- *                     example="Aba",
- *                     description="Optional LGA to broadcast message to all schools in that LGA"
- *                 ),
- *
- *                 @OA\Property(
- *                     property="attachment",
- *                     type="string",
- *                     format="binary",
- *                     nullable=true,
- *                     description="Optional file (jpg, jpeg, png, pdf, doc, docx | max: 20MB)"
- *                 )
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Message sent successfully to all resolved schools",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Message sent successfully"),
- *
- *             @OA\Property(
- *                 property="total_conversations",
- *                 type="integer",
- *                 example=3,
- *                 description="Number of private conversations created"
- *             ),
- *
- *             @OA\Property(
- *                 property="pld",
- *                 type="array",
- *                 description="Per-recipient conversation details",
- *                 @OA\Items(
- *                     type="object",
- *                     @OA\Property(property="conversation_id", type="integer", example=101),
- *                     @OA\Property(property="message_id", type="integer", example=55),
- *                     @OA\Property(property="receiver_id", type="integer", example=12)
- *                 )
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=400,
- *         description="No valid receivers found",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="No valid receivers found")
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=403,
- *         description="Unauthorized access",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="Unauthorized")
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=422,
- *         description="Validation error"
- *     )
- * )
- */
+    /**
+     * @OA\Post(
+     *     path="/api/domain/send-message",
+     *     summary="Domain admin sends message to schools (single, multiple, or LGA broadcast)",
+     *     description="Creates separate private conversations per school. Supports direct school IDs or LGA-based targeting.",
+     *     tags={"Messaging"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\MediaType(
+     *             mediaType="multipart/form-data",
+     *             @OA\Schema(
+     *                 required={"subject", "message"},
+     *
+     *                 @OA\Property(
+     *                     property="subject",
+     *                     type="string",
+     *                     example="Urgent Circular"
+     *                 ),
+     *
+     *                 @OA\Property(
+     *                     property="message",
+     *                     type="string",
+     *                     example="All schools must submit their reports by Friday."
+     *                 ),
+     *
+     *                 @OA\Property(
+     *                     property="school_ids[]",
+     *                     type="array",
+     *                     @OA\Items(type="integer"),
+     *                     description="Optional list of school user IDs (can also be sent as comma-separated string: 1,2,3)"
+     *                 ),
+     *
+     *                 @OA\Property(
+     *                     property="lga",
+     *                     type="string",
+     *                     nullable=true,
+     *                     example="Aba",
+     *                     description="Optional LGA to broadcast message to all schools in that LGA"
+     *                 ),
+     *
+     *                 @OA\Property(
+     *                     property="attachment",
+     *                     type="string",
+     *                     format="binary",
+     *                     nullable=true,
+     *                     description="Optional file (jpg, jpeg, png, pdf, doc, docx | max: 20MB)"
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Message sent successfully to all resolved schools",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Message sent successfully"),
+     *
+     *             @OA\Property(
+     *                 property="total_conversations",
+     *                 type="integer",
+     *                 example=3,
+     *                 description="Number of private conversations created"
+     *             ),
+     *
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 description="Per-recipient conversation details",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="conversation_id", type="integer", example=101),
+     *                     @OA\Property(property="message_id", type="integer", example=55),
+     *                     @OA\Property(property="receiver_id", type="integer", example=12)
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=400,
+     *         description="No valid receivers found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="No valid receivers found")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=403,
+     *         description="Unauthorized access",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Unauthorized")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error"
+     *     )
+     * )
+     */
     public function domainSendMessage(Request $request)
     {
         $user = auth()->user();
@@ -37217,96 +37217,96 @@ class ApiController extends Controller
     }
 
 
-/**
- * @OA\Post(
- *     path="/api/messages/{messageId}/reply",
- *     summary="Reply to a message (threaded private conversation system)",
- *     description="Creates a reply under an existing message thread. Replies are private: school replies go to admin, admin replies go to the specific school.",
- *     tags={"Messaging"},
- *     security={{"bearerAuth":{}}},
- *
- *     @OA\Parameter(
- *         name="messageId",
- *         in="path",
- *         required=true,
- *         description="ID of the parent message being replied to",
- *         @OA\Schema(type="integer", example=10)
- *     ),
- *
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\MediaType(
- *             mediaType="application/json",
- *             @OA\Schema(
- *                 required={"message"},
- *                 @OA\Property(
- *                     property="message",
- *                     type="string",
- *                     example="Thank you, we have received your instruction."
- *                 )
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Reply created and sent privately",
- *         @OA\JsonContent(
- *             type="object",
- *
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Reply sent privately"),
- *
- *             @OA\Property(
- *                 property="pld",
- *                 type="object",
- *                 description="Created reply message object",
- *
- *                 @OA\Property(property="id", type="integer", example=25),
- *                 @OA\Property(property="conversation_id", type="integer", example=5),
- *                 @OA\Property(property="sender_id", type="integer", example=2),
- *                 @OA\Property(property="sender_type", type="string", example="s"),
- *                 @OA\Property(property="message", type="string", example="We have completed the submission"),
- *                 @OA\Property(property="subject", type="string", example="Exam Notice"),
- *                 @OA\Property(property="parent_id", type="integer", example=10),
- *                 @OA\Property(property="created_at", type="string", format="date-time", example="2026-04-10T10:00:00Z"),
- *                 @OA\Property(property="updated_at", type="string", format="date-time", example="2026-04-10T10:00:00Z")
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=404,
- *         description="Original message not found",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="No query results for model Message")
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=401,
- *         description="Unauthenticated",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="Unauthenticated")
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=422,
- *         description="Validation error",
- *         @OA\JsonContent(
- *             @OA\Property(property="message", type="string", example="The given data was invalid."),
- *             @OA\Property(
- *                 property="errors",
- *                 type="object",
- *                 example={"message": {"The message field is required."}}
- *             )
- *         )
- *     )
- * )
- */
+    /**
+     * @OA\Post(
+     *     path="/api/messages/{messageId}/reply",
+     *     summary="Reply to a message (threaded private conversation system)",
+     *     description="Creates a reply under an existing message thread. Replies are private: school replies go to admin, admin replies go to the specific school.",
+     *     tags={"Messaging"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="messageId",
+     *         in="path",
+     *         required=true,
+     *         description="ID of the parent message being replied to",
+     *         @OA\Schema(type="integer", example=10)
+     *     ),
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\MediaType(
+     *             mediaType="application/json",
+     *             @OA\Schema(
+     *                 required={"message"},
+     *                 @OA\Property(
+     *                     property="message",
+     *                     type="string",
+     *                     example="Thank you, we have received your instruction."
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Reply created and sent privately",
+     *         @OA\JsonContent(
+     *             type="object",
+     *
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Reply sent privately"),
+     *
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 description="Created reply message object",
+     *
+     *                 @OA\Property(property="id", type="integer", example=25),
+     *                 @OA\Property(property="conversation_id", type="integer", example=5),
+     *                 @OA\Property(property="sender_id", type="integer", example=2),
+     *                 @OA\Property(property="sender_type", type="string", example="s"),
+     *                 @OA\Property(property="message", type="string", example="We have completed the submission"),
+     *                 @OA\Property(property="subject", type="string", example="Exam Notice"),
+     *                 @OA\Property(property="parent_id", type="integer", example=10),
+     *                 @OA\Property(property="created_at", type="string", format="date-time", example="2026-04-10T10:00:00Z"),
+     *                 @OA\Property(property="updated_at", type="string", format="date-time", example="2026-04-10T10:00:00Z")
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="Original message not found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="No query results for model Message")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Unauthenticated")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+     *             @OA\Property(
+     *                 property="errors",
+     *                 type="object",
+     *                 example={"message": {"The message field is required."}}
+     *             )
+     *         )
+     *     )
+     * )
+     */
     public function reply(Request $request, $messageId)
     {
         $user = auth()->user();
@@ -37485,22 +37485,43 @@ class ApiController extends Controller
      *     )
      * )
      */
-public function sent()
-{
-    $user = auth()->user();
+    public function sent()
+    {
+        $user = auth()->user();
 
-    $messages = Message::where('sender_id', $user->id)
-        ->where('sender_type', $user->typ)
-        ->with(['conversation', 'recipients']) // ✅ include recipients
-        ->orderBy('created_at', 'desc')
-        ->get();
+        $messages = Message::where('sender_id', $user->id)
+            ->where('sender_type', $user->typ)
+            ->with(['recipients', 'conversation'])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->groupBy(function ($msg) {
+                return $msg->subject . '|' . $msg->message; // ✅ FIXED
+            })
+            ->map(function ($group) {
+                $first = $group->first();
 
-    return response()->json([
-        "status" => true,
-        "message" => "Sent messages fetched successfully",
-        "pld" => $messages,
-    ]);
-}
+                return [
+                    'id' => $first->id,
+                    'subject' => $first->subject,
+                    'message' => $first->message,
+                    'attachment' => $first->attachment,
+                    'created_at' => $first->created_at,
+
+                    'receiver_ids' => $group->flatMap(function ($msg) {
+                        return $msg->recipients->pluck('receiver_id');
+                    })->unique()->values(),
+
+                    'total_receivers' => $group->count()
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            "status" => true,
+            "message" => "Sent messages grouped successfully",
+            "pld" => $messages,
+        ]);
+    }
 
 }
 
