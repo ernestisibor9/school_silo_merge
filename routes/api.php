@@ -144,6 +144,8 @@ Route::group([
     'middleware' => ['auth:api'],
 ], function () {
 
+ Route::get('/getDomainAdmin', [ApiController::class, 'getDomainAdmin']);
+
     Route::post('sendEmailVerificationLink', [ApiController::class, 'sendEmailVerificationLink']);
     Route::post('setSchool', [ApiController::class, 'setSchool']);
     Route::post('setPartner', [ApiController::class, 'setPartner']);

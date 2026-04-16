@@ -37523,5 +37523,51 @@ class ApiController extends Controller
         ]);
     }
 
+
+
+/**
+ * @OA\Get(
+ *     path="/api/getDomainAdmin",
+ *     summary="Get all domain admins",
+ *     description="Fetch all users where typ = 'a'",
+ *     operationId="getDomainAdmins",
+ *     tags={"Api"},
+ *     security={{"bearerAuth":{}}},
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful response",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(property="id", type="integer", example=1),
+ *                     @OA\Property(property="email", type="string", example="admin@example.com"),
+ *                     @OA\Property(property="typ", type="string", example="a"),
+ *                     @OA\Property(property="verif", type="integer", example=1),
+ *                     @OA\Property(property="created_at", type="string", format="date-time"),
+ *                     @OA\Property(property="updated_at", type="string", format="date-time")
+ *                 )
+ *             )
+ *         )
+ *     )
+ * )
+ */
+public function getDomainAdmin()
+{
+    $subj = User::where('typ', 'a')->get();
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => $subj,
+    ]);
+}
+
 }
 
