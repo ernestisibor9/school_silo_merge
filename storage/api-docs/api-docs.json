@@ -31334,6 +31334,7 @@
                     "Messaging"
                 ],
                 "summary": "Domain admin sends message to schools (single, multiple, or LGA broadcast)",
+                "description": "Creates separate private conversations per school. Supports direct school IDs or LGA-based targeting.",
                 "operationId": "12b04c7b6d45e817872bef4ce44213ee",
                 "requestBody": {
                     "required": true,
@@ -31354,19 +31355,23 @@
                                         "example": "All schools must submit their reports by Friday."
                                     },
                                     "school_ids[]": {
-                                        "description": "List of school user IDs",
+                                        "description": "Optional list of school user IDs (can also be sent as comma-separated string: 1,2,3)",
                                         "type": "array",
                                         "items": {
                                             "type": "integer"
                                         }
                                     },
                                     "lga": {
+                                        "description": "Optional LGA to broadcast message to all schools in that LGA",
                                         "type": "string",
-                                        "example": "Aba"
+                                        "example": "Aba",
+                                        "nullable": true
                                     },
                                     "attachment": {
+                                        "description": "Optional file (jpg, jpeg, png, pdf, doc, docx | max: 20MB)",
                                         "type": "string",
-                                        "format": "binary"
+                                        "format": "binary",
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -31376,7 +31381,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Message sent successfully",
+                        "description": "Message sent successfully to all resolved schools",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -31385,17 +31390,55 @@
                                             "type": "boolean",
                                             "example": true
                                         },
-                                        "conversation_id": {
-                                            "type": "integer",
-                                            "example": 101
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Message sent successfully"
                                         },
-                                        "message_id": {
+                                        "total_conversations": {
+                                            "description": "Number of private conversations created",
                                             "type": "integer",
-                                            "example": 55
+                                            "example": 3
                                         },
-                                        "total_receivers": {
-                                            "type": "integer",
-                                            "example": 25
+                                        "pld": {
+                                            "description": "Per-recipient conversation details",
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "conversation_id": {
+                                                        "type": "integer",
+                                                        "example": 101
+                                                    },
+                                                    "message_id": {
+                                                        "type": "integer",
+                                                        "example": 55
+                                                    },
+                                                    "receiver_id": {
+                                                        "type": "integer",
+                                                        "example": 12
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "No valid receivers found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No valid receivers found"
                                         }
                                     },
                                     "type": "object"
@@ -31564,13 +31607,14 @@
                 "tags": [
                     "Messaging"
                 ],
-                "summary": "Reply to a message (threaded conversation system)",
+                "summary": "Reply to a message (threaded private conversation system)",
+                "description": "Creates a reply under an existing message thread. Replies are private: school replies go to admin, admin replies go to the specific school.",
                 "operationId": "3eef75cff8b0052bd178171ee42db0b4",
                 "parameters": [
                     {
                         "name": "messageId",
                         "in": "path",
-                        "description": "ID of the message being replied to",
+                        "description": "ID of the parent message being replied to",
                         "required": true,
                         "schema": {
                             "type": "integer",
@@ -31599,7 +31643,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Reply created successfully",
+                        "description": "Reply created and sent privately",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -31608,7 +31652,12 @@
                                             "type": "boolean",
                                             "example": true
                                         },
-                                        "reply": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Reply sent privately"
+                                        },
+                                        "pld": {
+                                            "description": "Created reply message object",
                                             "properties": {
                                                 "id": {
                                                     "type": "integer",
@@ -31640,7 +31689,13 @@
                                                 },
                                                 "created_at": {
                                                     "type": "string",
-                                                    "example": "2026-04-10T10:00:00.000000Z"
+                                                    "format": "date-time",
+                                                    "example": "2026-04-10T10:00:00Z"
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2026-04-10T10:00:00Z"
                                                 }
                                             },
                                             "type": "object"
@@ -31657,6 +31712,10 @@
                             "application/json": {
                                 "schema": {
                                     "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
                                         "message": {
                                             "type": "string",
                                             "example": "No query results for model Message"
@@ -31667,8 +31726,49 @@
                             }
                         }
                     },
-                    "403": {
-                        "description": "Unauthorized access"
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "example": {
+                                                "message": [
+                                                    "The message field is required."
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
@@ -31691,50 +31791,63 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "properties": {
-                                            "id": {
-                                                "type": "integer",
-                                                "example": 10
-                                            },
-                                            "conversation_id": {
-                                                "type": "integer",
-                                                "example": 5
-                                            },
-                                            "sender_id": {
-                                                "type": "integer",
-                                                "example": 2
-                                            },
-                                            "sender_type": {
-                                                "type": "string",
-                                                "example": "a"
-                                            },
-                                            "subject": {
-                                                "type": "string",
-                                                "example": "Exam Update"
-                                            },
-                                            "message": {
-                                                "type": "string",
-                                                "example": "Please note exam has been rescheduled."
-                                            },
-                                            "attachment": {
-                                                "type": "string",
-                                                "example": "https://api.example.com/uploads/messages/file.pdf",
-                                                "nullable": true
-                                            },
-                                            "created_at": {
-                                                "type": "string",
-                                                "format": "date-time",
-                                                "example": "2026-04-10T12:30:00Z"
-                                            },
-                                            "conversation": {
-                                                "description": "Related conversation data",
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Inbox fetched successfully"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 10
+                                                    },
+                                                    "conversation_id": {
+                                                        "type": "integer",
+                                                        "example": 5
+                                                    },
+                                                    "sender_id": {
+                                                        "type": "integer",
+                                                        "example": 2
+                                                    },
+                                                    "sender_type": {
+                                                        "type": "string",
+                                                        "example": "a"
+                                                    },
+                                                    "subject": {
+                                                        "type": "string",
+                                                        "example": "Exam Update"
+                                                    },
+                                                    "message": {
+                                                        "type": "string",
+                                                        "example": "Please note exam has been rescheduled."
+                                                    },
+                                                    "attachment": {
+                                                        "type": "string",
+                                                        "example": "https://api.example.com/uploads/messages/file.pdf",
+                                                        "nullable": true
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2026-04-10T12:30:00Z"
+                                                    },
+                                                    "conversation": {
+                                                        "description": "Related conversation data",
+                                                        "type": "object"
+                                                    }
+                                                },
                                                 "type": "object"
                                             }
-                                        },
-                                        "type": "object"
-                                    }
+                                        }
+                                    },
+                                    "type": "object"
                                 }
                             }
                         }
@@ -31780,50 +31893,63 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "properties": {
-                                            "id": {
-                                                "type": "integer",
-                                                "example": 15
-                                            },
-                                            "conversation_id": {
-                                                "type": "integer",
-                                                "example": 8
-                                            },
-                                            "sender_id": {
-                                                "type": "integer",
-                                                "example": 3
-                                            },
-                                            "sender_type": {
-                                                "type": "string",
-                                                "example": "s"
-                                            },
-                                            "subject": {
-                                                "type": "string",
-                                                "example": "Meeting Reminder"
-                                            },
-                                            "message": {
-                                                "type": "string",
-                                                "example": "Please attend the meeting tomorrow at 10am."
-                                            },
-                                            "attachment": {
-                                                "type": "string",
-                                                "example": "https://api.example.com/uploads/messages/file.pdf",
-                                                "nullable": true
-                                            },
-                                            "created_at": {
-                                                "type": "string",
-                                                "format": "date-time",
-                                                "example": "2026-04-10T14:00:00Z"
-                                            },
-                                            "conversation": {
-                                                "description": "Related conversation data",
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Sent messages fetched successfully"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 15
+                                                    },
+                                                    "conversation_id": {
+                                                        "type": "integer",
+                                                        "example": 8
+                                                    },
+                                                    "sender_id": {
+                                                        "type": "integer",
+                                                        "example": 3
+                                                    },
+                                                    "sender_type": {
+                                                        "type": "string",
+                                                        "example": "s"
+                                                    },
+                                                    "subject": {
+                                                        "type": "string",
+                                                        "example": "Meeting Reminder"
+                                                    },
+                                                    "message": {
+                                                        "type": "string",
+                                                        "example": "Please attend the meeting tomorrow at 10am."
+                                                    },
+                                                    "attachment": {
+                                                        "type": "string",
+                                                        "example": "https://api.example.com/uploads/messages/file.pdf",
+                                                        "nullable": true
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2026-04-10T14:00:00Z"
+                                                    },
+                                                    "conversation": {
+                                                        "description": "Related conversation data",
+                                                        "type": "object"
+                                                    }
+                                                },
                                                 "type": "object"
                                             }
-                                        },
-                                        "type": "object"
-                                    }
+                                        }
+                                    },
+                                    "type": "object"
                                 }
                             }
                         }
@@ -31841,6 +31967,75 @@
                                         "message": {
                                             "type": "string",
                                             "example": "Unauthenticated"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/getDomainAdmin": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get all domain admins",
+                "description": "Fetch all users where typ = 'a'",
+                "operationId": "getDomainAdmins",
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "email": {
+                                                        "type": "string",
+                                                        "example": "admin@example.com"
+                                                    },
+                                                    "typ": {
+                                                        "type": "string",
+                                                        "example": "a"
+                                                    },
+                                                    "verif": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    },
+                                                    "updated_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
                                         }
                                     },
                                     "type": "object"
