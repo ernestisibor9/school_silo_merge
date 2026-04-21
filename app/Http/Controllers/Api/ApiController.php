@@ -37323,32 +37323,28 @@ public function reply(Request $request, $messageId)
         'parent_id' => $parent->id
     ]);
 
-    // STEP 2: FIX → DETERMINE REAL RECEIVER
-    if ($user->typ === 's') {
+    // STEP 2: FIX → ALWAYS SEND TO "THE OTHER PERSON"
+    if ($parent->sender_id == $user->id && $parent->sender_type == $user->typ) {
 
-        // school replying → send to ADMIN (who originally sent it)
-        $receiverId = $parent->sender_id;
-
-        MessageRecipient::create([
-            'message_id' => $reply->id,
-            'receiver_id' => $receiverId,
-            'receiver_type' => 'a'
-        ]);
-
-    } else {
-
-        // domain replying → send to SCHOOL (original recipient)
-        $receiver = $parent->recipients
-            ->where('receiver_type', 's')
-            ->first();
+        // If YOU sent the parent → reply goes to original receiver
+        $receiver = $parent->recipients->first();
 
         if ($receiver) {
             MessageRecipient::create([
                 'message_id' => $reply->id,
                 'receiver_id' => $receiver->receiver_id,
-                'receiver_type' => 's'
+                'receiver_type' => $receiver->receiver_type
             ]);
         }
+
+    } else {
+
+        // If OTHER person sent the parent → reply goes back to them
+        MessageRecipient::create([
+            'message_id' => $reply->id,
+            'receiver_id' => $parent->sender_id,
+            'receiver_type' => $parent->sender_type
+        ]);
     }
 
     return response()->json([
