@@ -37307,46 +37307,56 @@ class ApiController extends Controller
      *     )
      * )
      */
-    public function reply(Request $request, $messageId)
-    {
-        $user = auth()->user();
+public function reply(Request $request, $messageId)
+{
+    $user = auth()->user();
 
-        $parent = Message::findOrFail($messageId);
+    $parent = Message::with('recipients')->findOrFail($messageId);
 
-        // STEP 1: create reply message
-        $reply = Message::create([
-            'conversation_id' => $parent->conversation_id,
-            'sender_id' => $user->id,
-            'sender_type' => $user->typ,
-            'message' => $request->message,
-            'subject' => $parent->subject,
-            'parent_id' => $parent->id
+    // STEP 1: create reply message
+    $reply = Message::create([
+        'conversation_id' => $parent->conversation_id,
+        'sender_id' => $user->id,
+        'sender_type' => $user->typ,
+        'message' => $request->message,
+        'subject' => $parent->subject,
+        'parent_id' => $parent->id
+    ]);
+
+    // STEP 2: FIX → DETERMINE REAL RECEIVER
+    if ($user->typ === 's') {
+
+        // school replying → send to ADMIN (who originally sent it)
+        $receiverId = $parent->sender_id;
+
+        MessageRecipient::create([
+            'message_id' => $reply->id,
+            'receiver_id' => $receiverId,
+            'receiver_type' => 'a'
         ]);
 
-        // STEP 2: determine who to reply to (VERY IMPORTANT)
-        if ($user->typ === 's') {
-            // school replying → send ONLY to domain admin
+    } else {
+
+        // domain replying → send to SCHOOL (original recipient)
+        $receiver = $parent->recipients
+            ->where('receiver_type', 's')
+            ->first();
+
+        if ($receiver) {
             MessageRecipient::create([
                 'message_id' => $reply->id,
-                'receiver_id' => $parent->sender_id,
-                'receiver_type' => 'a'
-            ]);
-        } else {
-            // domain replying → send ONLY to that specific school
-            MessageRecipient::create([
-                'message_id' => $reply->id,
-                'receiver_id' => $parent->sender_id,
+                'receiver_id' => $receiver->receiver_id,
                 'receiver_type' => 's'
             ]);
         }
-
-        return response()->json([
-            "status" => true,
-            "message" => "Reply sent privately",
-            "pld" => $reply
-        ]);
     }
 
+    return response()->json([
+        "status" => true,
+        "message" => "Reply sent correctly",
+        "pld" => $reply
+    ]);
+}
 
 
     /**
