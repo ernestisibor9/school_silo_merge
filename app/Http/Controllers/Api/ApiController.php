@@ -21571,85 +21571,159 @@ class ApiController extends Controller
     //     ], 200);
     // }
 
+    // public function setLessonPlan(Request $request)
+    // {
+    //     // ✅ VALIDATION
+    //     $request->validate([
+    //         "schid" => "required|string",
+    //         "clsm" => "required|string",
+    //         'date' => 'required|date',
+    //         "ssn" => "required|string",
+    //         "trm" => "required",
+    //         "sbj" => "required|string",
+    //         'no_of_class' => 'required|integer',
+    //         'average_age' => 'required|numeric',
+    //         'topic' => 'required|string',
+    //         'sub_topic' => 'nullable|array',
+    //         'time_from' => 'required|date_format:H:i',
+    //         'time_to' => 'required|date_format:H:i|after:time_from',
+    //         'duration' => 'required|string',
+    //         'learning_materials' => 'nullable|array',
+    //         'lesson_objectives' => 'required|array',
+
+    //         // 👇 Plan Type
+    //         'plan_type' => 'required|in:weekly,termly',
+
+    //         // 👇 Weekly is required ONLY when plan_type = weekly
+    //         'weekly' => 'nullable|required_if:plan_type,weekly|string|max:100',
+    //     ]);
+
+    //     // ✅ DATA TO SAVE
+    //     $data = $request->only([
+    //         'date',
+    //         'no_of_class',
+    //         'average_age',
+    //         'topic',
+    //         'time_from',
+    //         'time_to',
+    //         'duration',
+    //         "ssn",
+    //         "trm",
+    //         "sbj",
+    //         "schid",
+    //         "clsm",
+    //         'plan_type',
+    //         'weekly', // 👈 INCLUDED
+    //     ]);
+
+    //     // JSON fields
+    //     $data['sub_topic'] = $request->sub_topic;
+    //     $data['learning_materials'] = $request->learning_materials;
+    //     $data['lesson_objectives'] = $request->lesson_objectives;
+
+    //     // ✅ Ensure weekly is NULL for termly plans
+    //     if ($request->plan_type === 'termly') {
+    //         $data['weekly'] = null;
+    //     }
+
+    //     // ✅ UPDATE OR CREATE
+    //     $lessonPlan = lesson_plan::updateOrCreate(
+    //         [
+    //             'date' => $request->date,
+    //             "schid" => $request->schid,
+    //             "clsm" => $request->clsm,
+    //             "ssn" => $request->ssn,
+    //             "trm" => $request->trm,
+    //             "sbj" => $request->sbj,
+    //             "no_of_class" => $request->no_of_class,
+    //             "time_from" => $request->time_from,
+    //             "time_to" => $request->time_to,
+    //             "topic" => $request->topic,
+    //             "average_age" => $request->average_age
+    //         ],
+    //         $data
+    //     );
+
+    //     return response()->json([
+    //         'status' => true,
+    //         'message' => 'Lesson plan saved successfully',
+    //         'pld' => $lessonPlan,
+    //     ], 200);
+    // }
+
     public function setLessonPlan(Request $request)
-    {
-        // ✅ VALIDATION
-        $request->validate([
-            "schid" => "required|string",
-            "clsm" => "required|string",
-            'date' => 'required|date',
-            "ssn" => "required|string",
-            "trm" => "required",
-            "sbj" => "required|string",
-            'no_of_class' => 'required|integer',
-            'average_age' => 'required|numeric',
-            'topic' => 'required|string',
-            'sub_topic' => 'nullable|array',
-            'time_from' => 'required|date_format:H:i',
-            'time_to' => 'required|date_format:H:i|after:time_from',
-            'duration' => 'required|string',
-            'learning_materials' => 'nullable|array',
-            'lesson_objectives' => 'required|array',
+{
+    // ✅ VALIDATION
+    $request->validate([
+        "schid" => "required|string",
+        "clsm" => "required|string",
+        'date' => 'required|date',
+        "ssn" => "required|string",
+        "trm" => "required",
+        "sbj" => "required|string",
+        'no_of_class' => 'required|integer',
+        'average_age' => 'required|numeric',
+        'topic' => 'required|string',
+        'sub_topic' => 'nullable|array',
+        'time_from' => 'required|date_format:H:i',
+        'time_to' => 'required|date_format:H:i|after:time_from',
+        'duration' => 'required|string',
+        'learning_materials' => 'nullable|array',
+        'lesson_objectives' => 'required|array',
 
-            // 👇 Plan Type
-            'plan_type' => 'required|in:weekly,termly',
+        // 👇 Plan Type
+        'plan_type' => 'required|in:weekly,termly',
 
-            // 👇 Weekly is required ONLY when plan_type = weekly
-            'weekly' => 'nullable|required_if:plan_type,weekly|string|max:100',
-        ]);
+        // 👇 Weekly is required ONLY when plan_type = weekly
+        'weekly' => 'nullable|required_if:plan_type,weekly|string|max:100',
+    ]);
 
-        // ✅ DATA TO SAVE
-        $data = $request->only([
-            'date',
-            'no_of_class',
-            'average_age',
-            'topic',
-            'time_from',
-            'time_to',
-            'duration',
-            "ssn",
-            "trm",
-            "sbj",
-            "schid",
-            "clsm",
-            'plan_type',
-            'weekly', // 👈 INCLUDED
-        ]);
+    // ✅ DATA TO SAVE
+    $data = $request->only([
+        'date',
+        'no_of_class',
+        'average_age',
+        'topic',
+        'time_from',
+        'time_to',
+        'duration',
+        "ssn",
+        "trm",
+        "sbj",
+        "schid",
+        "clsm",
+        'plan_type',
+        'weekly',
+    ]);
 
-        // JSON fields
-        $data['sub_topic'] = $request->sub_topic;
-        $data['learning_materials'] = $request->learning_materials;
-        $data['lesson_objectives'] = $request->lesson_objectives;
+    // JSON fields
+    $data['sub_topic'] = $request->sub_topic;
+    $data['learning_materials'] = $request->learning_materials;
+    $data['lesson_objectives'] = $request->lesson_objectives;
 
-        // ✅ Ensure weekly is NULL for termly plans
-        if ($request->plan_type === 'termly') {
-            $data['weekly'] = null;
-        }
-
-        // ✅ UPDATE OR CREATE
-        $lessonPlan = lesson_plan::updateOrCreate(
-            [
-                'date' => $request->date,
-                "schid" => $request->schid,
-                "clsm" => $request->clsm,
-                "ssn" => $request->ssn,
-                "trm" => $request->trm,
-                "sbj" => $request->sbj,
-                "no_of_class" => $request->no_of_class,
-                "time_from" => $request->time_from,
-                "time_to" => $request->time_to,
-                "topic" => $request->topic,
-                "average_age" => $request->average_age
-            ],
-            $data
-        );
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Lesson plan saved successfully',
-            'pld' => $lessonPlan,
-        ], 200);
+    // ✅ Ensure weekly is NULL for termly plans
+    if ($request->plan_type === 'termly') {
+        $data['weekly'] = null;
     }
+
+    // 🔥 FIX: SIMPLIFIED UNIQUE MATCHING (prevents overwrite bug)
+    $lessonPlan = lesson_plan::updateOrCreate(
+        [
+            'schid' => $request->schid,
+            'clsm'  => $request->clsm,
+            'date'  => $request->date,
+            'sbj'   => $request->sbj,
+            'topic' => $request->topic,
+        ],
+        $data
+    );
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Lesson plan saved successfully',
+        'pld' => $lessonPlan,
+    ], 200);
+}
 
 
 
