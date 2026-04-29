@@ -37154,6 +37154,7 @@ class ApiController extends Controller
  * @OA\Post(
  *     path="/api/school/send-message",
  *     summary="School admin sends message to admin, staff, students, class or arm groups",
+ *     description="Allows a school admin to send messages to a single user or bulk groups (students, staff, class, or arm). Supports file attachments and automatically resolves recipient types.",
  *     tags={"Messaging"},
  *     security={{"bearerAuth":{}}},
  *
@@ -37177,7 +37178,7 @@ class ApiController extends Controller
  *                     type="integer",
  *                     nullable=true,
  *                     example=25,
- *                     description="Specific receiver ID (required when receiver_type is a, w, or z)"
+ *                     description="Required for single recipient types (a, w, z)"
  *                 ),
  *
  *                 @OA\Property(
@@ -37185,7 +37186,7 @@ class ApiController extends Controller
  *                     type="integer",
  *                     nullable=true,
  *                     example=3,
- *                     description="Class ID (required when receiver_type is class or arm)"
+ *                     description="Class ID required when receiver_type is class or arm"
  *                 ),
  *
  *                 @OA\Property(
@@ -37193,7 +37194,7 @@ class ApiController extends Controller
  *                     type="integer",
  *                     nullable=true,
  *                     example=2,
- *                     description="Class arm ID (required when receiver_type is arm)"
+ *                     description="Class arm ID required when receiver_type is arm"
  *                 ),
  *
  *                 @OA\Property(
@@ -37223,6 +37224,8 @@ class ApiController extends Controller
  *         response=200,
  *         description="Message sent successfully",
  *         @OA\JsonContent(
+ *             type="object",
+ *
  *             @OA\Property(property="status", type="boolean", example=true),
  *             @OA\Property(property="conversation_id", type="integer", example=101),
  *             @OA\Property(property="message_id", type="integer", example=55),
@@ -37255,14 +37258,17 @@ class ApiController extends Controller
  *             @OA\Property(property="message", type="string", example="The given data was invalid."),
  *             @OA\Property(
  *                 property="errors",
- *                 type="object"
+ *                 type="object",
+ *                 example={
+ *                     "receiver_type": {"The receiver type field is required."},
+ *                     "message": {"The message field is required."}
+ *                 }
  *             )
  *         )
  *     )
  * )
  */
-
-    public function schoolSendMessage(Request $request)
+public function schoolSendMessage(Request $request)
 {
     $user = auth()->user();
 
@@ -37299,20 +37305,24 @@ class ApiController extends Controller
     // RESOLVE RECEIVERS
     // =========================
     $receivers = [];
+    $finalType = null;
 
     // DOMAIN ADMIN
     if ($request->receiver_type === 'a') {
         $receivers = [$request->receiver_id];
+        $finalType = 'a';
     }
 
-    // STAFF
+    // STAFF (single)
     elseif ($request->receiver_type === 'w') {
         $receivers = [$request->receiver_id];
+        $finalType = 'w';
     }
 
-    // STUDENT
+    // STUDENT (single)
     elseif ($request->receiver_type === 'z') {
         $receivers = [$request->receiver_id];
+        $finalType = 'z';
     }
 
     // ALL STUDENTS
@@ -37321,6 +37331,8 @@ class ApiController extends Controller
             ->where('schid', $user->id)
             ->pluck('sid')
             ->toArray();
+
+        $finalType = 'z';
     }
 
     // ALL STAFF
@@ -37329,6 +37341,8 @@ class ApiController extends Controller
             ->where('schid', $user->id)
             ->pluck('sid')
             ->toArray();
+
+        $finalType = 'w';
     }
 
     // CLASS
@@ -37338,6 +37352,8 @@ class ApiController extends Controller
             ->where('clsm', $request->clsm)
             ->pluck('sid')
             ->toArray();
+
+        $finalType = 'z';
     }
 
     // CLASS ARM
@@ -37348,6 +37364,8 @@ class ApiController extends Controller
             ->where('clsa', $request->arm)
             ->pluck('sid')
             ->toArray();
+
+        $finalType = 'z';
     }
 
     if (empty($receivers)) {
@@ -37358,7 +37376,7 @@ class ApiController extends Controller
     }
 
     // =========================
-    // CREATE CONVERSATION
+    // CONVERSATION
     // =========================
     $conversation = MessageConversation::create([
         'subject' => $request->subject
@@ -37377,22 +37395,10 @@ class ApiController extends Controller
     // SAVE RECIPIENTS
     // =========================
     foreach ($receivers as $rid) {
-
-        // FIX: determine correct type
-        $type = $request->receiver_type;
-
-        if ($type === 'all_students' || $type === 'class' || $type === 'arm') {
-            $type = 'z';
-        }
-
-        if ($type === 'all_staff') {
-            $type = 'w';
-        }
-
         MessageRecipient::create([
             'message_id' => $msg->id,
             'receiver_id' => $rid,
-            'receiver_type' => $type
+            'receiver_type' => $finalType
         ]);
     }
 
@@ -37408,7 +37414,7 @@ class ApiController extends Controller
  * @OA\Post(
  *     path="/api/messages/{messageId}/reply",
  *     summary="Reply to a message (threaded private conversation system)",
- *     description="Creates a private reply under an existing message thread. Replies follow role-based routing: staff can reply to any recipient, students reply to class teacher, admin/school has full access.",
+ *     description="Creates a private reply under an existing message thread. Replies follow role-based routing: staff replies to original recipient, students reply to class teacher, admin/school has full access.",
  *     tags={"Messaging"},
  *     security={{"bearerAuth":{}}},
  *
@@ -37517,7 +37523,7 @@ public function reply(Request $request, $messageId)
     $receiverType = null;
 
     // =========================
-    // STAFF RULE (CAN REPLY TO ADMIN + STAFF + STUDENTS)
+    // STAFF RULE
     // =========================
     if ($user->typ === 'w') {
 
@@ -37527,31 +37533,32 @@ public function reply(Request $request, $messageId)
             $receiverId = $receiver->receiver_id;
             $receiverType = $receiver->receiver_type;
         }
-
     }
 
     // =========================
-    // STUDENT RULE (ONLY CLASS TEACHER OR SCHOOL ADMIN)
+    // STUDENT RULE (ONLY CLASS TEACHER OR ADMIN)
     // =========================
     elseif ($user->typ === 'z') {
 
-        $teacher = DB::table('staff_class')
-            ->where('cls', function ($q) use ($user) {
-                $q->select('clsm')
-                    ->from('old_student')
-                    ->where('sid', $user->id)
-                    ->limit(1);
-            })
+        $student = DB::table('old_student')
+            ->where('sid', $user->id)
             ->first();
 
-        if ($teacher) {
-            $receiverId = $teacher->stid;
-            $receiverType = 'w';
+        if ($student) {
+
+            $teacher = DB::table('staff_class')
+                ->where('cls', $student->clsm)
+                ->first();
+
+            if ($teacher) {
+                $receiverId = $teacher->stid;
+                $receiverType = 'w';
+            }
         }
     }
 
     // =========================
-    // ADMIN + SCHOOL (FULL FLEXIBILITY)
+    // ADMIN + SCHOOL (FULL CONTROL)
     // =========================
     else {
 

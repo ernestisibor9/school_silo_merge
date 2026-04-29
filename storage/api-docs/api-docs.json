@@ -31483,6 +31483,7 @@
                     "Messaging"
                 ],
                 "summary": "School admin sends message to admin, staff, students, class or arm groups",
+                "description": "Allows a school admin to send messages to a single user or bulk groups (students, staff, class, or arm). Supports file attachments and automatically resolves recipient types.",
                 "operationId": "a9fb932a19be72fef05ae8519eea5ce5",
                 "requestBody": {
                     "required": true,
@@ -31510,19 +31511,19 @@
                                         "example": "class"
                                     },
                                     "receiver_id": {
-                                        "description": "Specific receiver ID (required when receiver_type is a, w, or z)",
+                                        "description": "Required for single recipient types (a, w, z)",
                                         "type": "integer",
                                         "example": 25,
                                         "nullable": true
                                     },
                                     "clsm": {
-                                        "description": "Class ID (required when receiver_type is class or arm)",
+                                        "description": "Class ID required when receiver_type is class or arm",
                                         "type": "integer",
                                         "example": 3,
                                         "nullable": true
                                     },
                                     "arm": {
-                                        "description": "Class arm ID (required when receiver_type is arm)",
+                                        "description": "Class arm ID required when receiver_type is arm",
                                         "type": "integer",
                                         "example": 2,
                                         "nullable": true
@@ -31627,7 +31628,15 @@
                                             "example": "The given data was invalid."
                                         },
                                         "errors": {
-                                            "type": "object"
+                                            "type": "object",
+                                            "example": {
+                                                "receiver_type": [
+                                                    "The receiver type field is required."
+                                                ],
+                                                "message": [
+                                                    "The message field is required."
+                                                ]
+                                            }
                                         }
                                     },
                                     "type": "object"
@@ -31649,7 +31658,7 @@
                     "Messaging"
                 ],
                 "summary": "Reply to a message (threaded private conversation system)",
-                "description": "Creates a private reply under an existing message thread. Replies follow role-based routing: staff can reply to any recipient, students reply to class teacher, admin/school has full access.",
+                "description": "Creates a private reply under an existing message thread. Replies follow role-based routing: staff replies to original recipient, students reply to class teacher, admin/school has full access.",
                 "operationId": "3eef75cff8b0052bd178171ee42db0b4",
                 "parameters": [
                     {
