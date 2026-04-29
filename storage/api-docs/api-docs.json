@@ -31482,7 +31482,7 @@
                 "tags": [
                     "Messaging"
                 ],
-                "summary": "School admin sends message to admin, staff, or students",
+                "summary": "School admin sends message to admin, staff, students, class or arm groups",
                 "operationId": "a9fb932a19be72fef05ae8519eea5ce5",
                 "requestBody": {
                     "required": true,
@@ -31490,26 +31490,42 @@
                         "multipart/form-data": {
                             "schema": {
                                 "required": [
-                                    "receiver_id",
                                     "receiver_type",
                                     "subject",
                                     "message"
                                 ],
                                 "properties": {
-                                    "receiver_id": {
-                                        "description": "ID of receiver (admin, staff, or student)",
-                                        "type": "integer",
-                                        "example": 25
-                                    },
                                     "receiver_type": {
-                                        "description": "Receiver type: a=admin, sf=staff, st=student",
+                                        "description": "Receiver type: a=admin, w=staff, z=student, all_students=all students, all_staff=all staff, class=by class, arm=by class arm",
                                         "type": "string",
                                         "enum": [
                                             "a",
-                                            "sf",
-                                            "st"
+                                            "w",
+                                            "z",
+                                            "all_students",
+                                            "all_staff",
+                                            "class",
+                                            "arm"
                                         ],
-                                        "example": "st"
+                                        "example": "class"
+                                    },
+                                    "receiver_id": {
+                                        "description": "Specific receiver ID (required when receiver_type is a, w, or z)",
+                                        "type": "integer",
+                                        "example": 25,
+                                        "nullable": true
+                                    },
+                                    "clsm": {
+                                        "description": "Class ID (required when receiver_type is class or arm)",
+                                        "type": "integer",
+                                        "example": 3,
+                                        "nullable": true
+                                    },
+                                    "arm": {
+                                        "description": "Class arm ID (required when receiver_type is arm)",
+                                        "type": "integer",
+                                        "example": 2,
+                                        "nullable": true
                                     },
                                     "subject": {
                                         "type": "string",
@@ -31520,9 +31536,10 @@
                                         "example": "Please note the exam has been rescheduled."
                                     },
                                     "attachment": {
-                                        "description": "Optional file attachment (jpg, png, pdf, docx)",
+                                        "description": "Optional file attachment (jpg, jpeg, png, pdf, doc, docx)",
                                         "type": "string",
-                                        "format": "binary"
+                                        "format": "binary",
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -31548,6 +31565,30 @@
                                         "message_id": {
                                             "type": "integer",
                                             "example": 55
+                                        },
+                                        "total_receivers": {
+                                            "type": "integer",
+                                            "example": 120
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "No receivers found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No receivers found"
                                         }
                                     },
                                     "type": "object"
@@ -31608,7 +31649,7 @@
                     "Messaging"
                 ],
                 "summary": "Reply to a message (threaded private conversation system)",
-                "description": "Creates a reply under an existing message thread. Replies are private: school replies go to admin, admin replies go to the specific school.",
+                "description": "Creates a private reply under an existing message thread. Replies follow role-based routing: staff can reply to any recipient, students reply to class teacher, admin/school has full access.",
                 "operationId": "3eef75cff8b0052bd178171ee42db0b4",
                 "parameters": [
                     {
@@ -31654,7 +31695,7 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "Reply sent privately"
+                                            "example": "Reply sent correctly"
                                         },
                                         "pld": {
                                             "description": "Created reply message object",
@@ -31673,7 +31714,7 @@
                                                 },
                                                 "sender_type": {
                                                     "type": "string",
-                                                    "example": "s"
+                                                    "example": "w"
                                                 },
                                                 "message": {
                                                     "type": "string",
