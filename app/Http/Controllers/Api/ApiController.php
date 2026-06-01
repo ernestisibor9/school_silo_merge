@@ -21652,78 +21652,78 @@ class ApiController extends Controller
     // }
 
     public function setLessonPlan(Request $request)
-{
-    // ✅ VALIDATION
-    $request->validate([
-        "schid" => "required|string",
-        "clsm" => "required|string",
-        'date' => 'required|date',
-        "ssn" => "required|string",
-        "trm" => "required",
-        "sbj" => "required|string",
-        'no_of_class' => 'required|integer',
-        'average_age' => 'required|numeric',
-        'topic' => 'required|string',
-        'sub_topic' => 'nullable|array',
-        'time_from' => 'required|date_format:H:i',
-        'time_to' => 'required|date_format:H:i|after:time_from',
-        'duration' => 'required|string',
-        'learning_materials' => 'nullable|array',
-        'lesson_objectives' => 'required|array',
+    {
+        // ✅ VALIDATION
+        $request->validate([
+            "schid" => "required|string",
+            "clsm" => "required|string",
+            'date' => 'required|date',
+            "ssn" => "required|string",
+            "trm" => "required",
+            "sbj" => "required|string",
+            'no_of_class' => 'required|integer',
+            'average_age' => 'required|numeric',
+            'topic' => 'required|string',
+            'sub_topic' => 'nullable|array',
+            'time_from' => 'required|date_format:H:i',
+            'time_to' => 'required|date_format:H:i|after:time_from',
+            'duration' => 'required|string',
+            'learning_materials' => 'nullable|array',
+            'lesson_objectives' => 'required|array',
 
-        // 👇 Plan Type
-        'plan_type' => 'required|in:weekly,termly',
+            // 👇 Plan Type
+            'plan_type' => 'required|in:weekly,termly',
 
-        // 👇 Weekly is required ONLY when plan_type = weekly
-        'weekly' => 'nullable|required_if:plan_type,weekly|string|max:100',
-    ]);
+            // 👇 Weekly is required ONLY when plan_type = weekly
+            'weekly' => 'nullable|required_if:plan_type,weekly|string|max:100',
+        ]);
 
-    // ✅ DATA TO SAVE
-    $data = $request->only([
-        'date',
-        'no_of_class',
-        'average_age',
-        'topic',
-        'time_from',
-        'time_to',
-        'duration',
-        "ssn",
-        "trm",
-        "sbj",
-        "schid",
-        "clsm",
-        'plan_type',
-        'weekly',
-    ]);
+        // ✅ DATA TO SAVE
+        $data = $request->only([
+            'date',
+            'no_of_class',
+            'average_age',
+            'topic',
+            'time_from',
+            'time_to',
+            'duration',
+            "ssn",
+            "trm",
+            "sbj",
+            "schid",
+            "clsm",
+            'plan_type',
+            'weekly',
+        ]);
 
-    // JSON fields
-    $data['sub_topic'] = $request->sub_topic;
-    $data['learning_materials'] = $request->learning_materials;
-    $data['lesson_objectives'] = $request->lesson_objectives;
+        // JSON fields
+        $data['sub_topic'] = $request->sub_topic;
+        $data['learning_materials'] = $request->learning_materials;
+        $data['lesson_objectives'] = $request->lesson_objectives;
 
-    // ✅ Ensure weekly is NULL for termly plans
-    if ($request->plan_type === 'termly') {
-        $data['weekly'] = null;
+        // ✅ Ensure weekly is NULL for termly plans
+        if ($request->plan_type === 'termly') {
+            $data['weekly'] = null;
+        }
+
+        // 🔥 FIX: SIMPLIFIED UNIQUE MATCHING (prevents overwrite bug)
+        $lessonPlan = lesson_plan::updateOrCreate(
+            [
+                'schid' => $request->schid,
+                'clsm' => $request->clsm,
+                'date' => $request->date,
+                'sbj' => $request->sbj,
+                'topic' => $request->topic,
+            ],
+            $data
+        );
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Lesson plan saved successfully',
+            'pld' => $lessonPlan,
+        ], 200);
     }
-
-    // 🔥 FIX: SIMPLIFIED UNIQUE MATCHING (prevents overwrite bug)
-    $lessonPlan = lesson_plan::updateOrCreate(
-        [
-            'schid' => $request->schid,
-            'clsm'  => $request->clsm,
-            'date'  => $request->date,
-            'sbj'   => $request->sbj,
-            'topic' => $request->topic,
-        ],
-        $data
-    );
-
-    return response()->json([
-        'status' => true,
-        'message' => 'Lesson plan saved successfully',
-        'pld' => $lessonPlan,
-    ], 200);
-}
 
 
 
@@ -37150,440 +37150,440 @@ class ApiController extends Controller
     }
 
 
-/**
- * @OA\Post(
- *     path="/api/school/send-message",
- *     summary="School admin sends message to admin, staff, students, class or arm groups",
- *     description="Allows a school admin to send messages to a single user or bulk groups (students, staff, class, or arm). Supports file attachments and automatically resolves recipient types.",
- *     tags={"Messaging"},
- *     security={{"bearerAuth":{}}},
- *
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\MediaType(
- *             mediaType="multipart/form-data",
- *             @OA\Schema(
- *                 required={"receiver_type", "subject", "message"},
- *
- *                 @OA\Property(
- *                     property="receiver_type",
- *                     type="string",
- *                     enum={"a", "w", "z", "all_students", "all_staff", "class", "arm"},
- *                     example="class",
- *                     description="Receiver type: a=admin, w=staff, z=student, all_students=all students, all_staff=all staff, class=by class, arm=by class arm"
- *                 ),
- *
- *                 @OA\Property(
- *                     property="receiver_id",
- *                     type="integer",
- *                     nullable=true,
- *                     example=25,
- *                     description="Required for single recipient types (a, w, z)"
- *                 ),
- *
- *                 @OA\Property(
- *                     property="clsm",
- *                     type="integer",
- *                     nullable=true,
- *                     example=3,
- *                     description="Class ID required when receiver_type is class or arm"
- *                 ),
- *
- *                 @OA\Property(
- *                     property="arm",
- *                     type="integer",
- *                     nullable=true,
- *                     example=2,
- *                     description="Class arm ID required when receiver_type is arm"
- *                 ),
- *
- *                 @OA\Property(
- *                     property="subject",
- *                     type="string",
- *                     example="Exam Update"
- *                 ),
- *
- *                 @OA\Property(
- *                     property="message",
- *                     type="string",
- *                     example="Please note the exam has been rescheduled."
- *                 ),
- *
- *                 @OA\Property(
- *                     property="attachment",
- *                     type="string",
- *                     format="binary",
- *                     nullable=true,
- *                     description="Optional file attachment (jpg, jpeg, png, pdf, doc, docx)"
- *                 )
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Message sent successfully",
- *         @OA\JsonContent(
- *             type="object",
- *
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="conversation_id", type="integer", example=101),
- *             @OA\Property(property="message_id", type="integer", example=55),
- *             @OA\Property(property="total_receivers", type="integer", example=120)
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=400,
- *         description="No receivers found",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="No receivers found")
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=403,
- *         description="Unauthorized access",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="Unauthorized")
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=422,
- *         description="Validation error",
- *         @OA\JsonContent(
- *             @OA\Property(property="message", type="string", example="The given data was invalid."),
- *             @OA\Property(
- *                 property="errors",
- *                 type="object",
- *                 example={
- *                     "receiver_type": {"The receiver type field is required."},
- *                     "message": {"The message field is required."}
- *                 }
- *             )
- *         )
- *     )
- * )
- */
-public function schoolSendMessage(Request $request)
-{
-    $user = auth()->user();
+    /**
+     * @OA\Post(
+     *     path="/api/school/send-message",
+     *     summary="School admin sends message to admin, staff, students, class or arm groups",
+     *     description="Allows a school admin to send messages to a single user or bulk groups (students, staff, class, or arm). Supports file attachments and automatically resolves recipient types.",
+     *     tags={"Messaging"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\MediaType(
+     *             mediaType="multipart/form-data",
+     *             @OA\Schema(
+     *                 required={"receiver_type", "subject", "message"},
+     *
+     *                 @OA\Property(
+     *                     property="receiver_type",
+     *                     type="string",
+     *                     enum={"a", "w", "z", "all_students", "all_staff", "class", "arm"},
+     *                     example="class",
+     *                     description="Receiver type: a=admin, w=staff, z=student, all_students=all students, all_staff=all staff, class=by class, arm=by class arm"
+     *                 ),
+     *
+     *                 @OA\Property(
+     *                     property="receiver_id",
+     *                     type="integer",
+     *                     nullable=true,
+     *                     example=25,
+     *                     description="Required for single recipient types (a, w, z)"
+     *                 ),
+     *
+     *                 @OA\Property(
+     *                     property="clsm",
+     *                     type="integer",
+     *                     nullable=true,
+     *                     example=3,
+     *                     description="Class ID required when receiver_type is class or arm"
+     *                 ),
+     *
+     *                 @OA\Property(
+     *                     property="arm",
+     *                     type="integer",
+     *                     nullable=true,
+     *                     example=2,
+     *                     description="Class arm ID required when receiver_type is arm"
+     *                 ),
+     *
+     *                 @OA\Property(
+     *                     property="subject",
+     *                     type="string",
+     *                     example="Exam Update"
+     *                 ),
+     *
+     *                 @OA\Property(
+     *                     property="message",
+     *                     type="string",
+     *                     example="Please note the exam has been rescheduled."
+     *                 ),
+     *
+     *                 @OA\Property(
+     *                     property="attachment",
+     *                     type="string",
+     *                     format="binary",
+     *                     nullable=true,
+     *                     description="Optional file attachment (jpg, jpeg, png, pdf, doc, docx)"
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Message sent successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="conversation_id", type="integer", example=101),
+     *             @OA\Property(property="message_id", type="integer", example=55),
+     *             @OA\Property(property="total_receivers", type="integer", example=120)
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=400,
+     *         description="No receivers found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="No receivers found")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=403,
+     *         description="Unauthorized access",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Unauthorized")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+     *             @OA\Property(
+     *                 property="errors",
+     *                 type="object",
+     *                 example={
+     *                     "receiver_type": {"The receiver type field is required."},
+     *                     "message": {"The message field is required."}
+     *                 }
+     *             )
+     *         )
+     *     )
+     * )
+     */
+    public function schoolSendMessage(Request $request)
+    {
+        $user = auth()->user();
 
-    if ($user->typ !== 's') {
-        return response()->json(["status" => false, "message" => "Unauthorized"], 403);
-    }
+        if ($user->typ !== 's') {
+            return response()->json(["status" => false, "message" => "Unauthorized"], 403);
+        }
 
-    $request->validate([
-        'receiver_type' => 'required|in:a,w,z,all_students,all_staff,class,arm',
-        'receiver_id' => 'nullable|integer',
-        'clsm' => 'nullable|integer',
-        'arm' => 'nullable|integer',
-        'subject' => 'required|string',
-        'message' => 'required|string',
-        'attachment' => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc,docx|max:20480'
-    ]);
+        $request->validate([
+            'receiver_type' => 'required|in:a,w,z,all_students,all_staff,class,arm',
+            'receiver_id' => 'nullable|integer',
+            'clsm' => 'nullable|integer',
+            'arm' => 'nullable|integer',
+            'subject' => 'required|string',
+            'message' => 'required|string',
+            'attachment' => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc,docx|max:20480'
+        ]);
 
-    // =========================
-    // FILE UPLOAD
-    // =========================
-    $filePath = null;
+        // =========================
+        // FILE UPLOAD
+        // =========================
+        $filePath = null;
 
-    if ($request->hasFile('attachment')) {
-        $file = $request->file('attachment');
+        if ($request->hasFile('attachment')) {
+            $file = $request->file('attachment');
 
-        $filename = time() . '_' . preg_replace('/[^A-Za-z0-9_\-\.]/', '_', $file->getClientOriginalName());
+            $filename = time() . '_' . preg_replace('/[^A-Za-z0-9_\-\.]/', '_', $file->getClientOriginalName());
 
-        $file->move(base_path('../public_html/uploads/messages'), $filename);
+            $file->move(base_path('../public_html/uploads/messages'), $filename);
 
-        $filePath = url('api/uploads/messages/' . $filename);
-    }
+            $filePath = url('api/uploads/messages/' . $filename);
+        }
 
-    // =========================
-    // RESOLVE RECEIVERS
-    // =========================
-    $receivers = [];
-    $finalType = null;
+        // =========================
+        // RESOLVE RECEIVERS
+        // =========================
+        $receivers = [];
+        $finalType = null;
 
-    // DOMAIN ADMIN
-    if ($request->receiver_type === 'a') {
-        $receivers = [$request->receiver_id];
-        $finalType = 'a';
-    }
+        // DOMAIN ADMIN
+        if ($request->receiver_type === 'a') {
+            $receivers = [$request->receiver_id];
+            $finalType = 'a';
+        }
 
-    // STAFF (single)
-    elseif ($request->receiver_type === 'w') {
-        $receivers = [$request->receiver_id];
-        $finalType = 'w';
-    }
+        // SINGLE STAFF
+        elseif ($request->receiver_type === 'w') {
+            $receivers = [$request->receiver_id];
+            $finalType = 'w';
+        }
 
-    // STUDENT (single)
-    elseif ($request->receiver_type === 'z') {
-        $receivers = [$request->receiver_id];
-        $finalType = 'z';
-    }
+        // SINGLE STUDENT
+        elseif ($request->receiver_type === 'z') {
+            $receivers = [$request->receiver_id];
+            $finalType = 'z';
+        }
 
-    // ALL STUDENTS
-    elseif ($request->receiver_type === 'all_students') {
-        $receivers = DB::table('old_student')
-            ->where('schid', $user->id)
-            ->pluck('sid')
-            ->toArray();
+        // ALL STUDENTS
+        elseif ($request->receiver_type === 'all_students') {
+            $receivers = DB::table('old_student')
+                ->where('schid', $user->id)
+                ->pluck('sid')
+                ->toArray();
 
-        $finalType = 'z';
-    }
+            $finalType = 'z';
+        }
 
-    // ALL STAFF
-    elseif ($request->receiver_type === 'all_staff') {
-        $receivers = DB::table('old_staff')
-            ->where('schid', $user->id)
-            ->pluck('sid')
-            ->toArray();
+        // ALL STAFF
+        elseif ($request->receiver_type === 'all_staff') {
+            $receivers = DB::table('old_staff')
+                ->where('schid', $user->id)
+                ->pluck('sid')
+                ->toArray();
 
-        $finalType = 'w';
-    }
+            $finalType = 'w';
+        }
 
-    // CLASS
-    elseif ($request->receiver_type === 'class') {
-        $receivers = DB::table('old_student')
-            ->where('schid', $user->id)
-            ->where('clsm', $request->clsm)
-            ->pluck('sid')
-            ->toArray();
+        // CLASS
+        elseif ($request->receiver_type === 'class') {
+            $receivers = DB::table('old_student')
+                ->where('schid', $user->id)
+                ->where('clsm', $request->clsm)
+                ->pluck('sid')
+                ->toArray();
 
-        $finalType = 'z';
-    }
+            $finalType = 'z';
+        }
 
-    // CLASS ARM
-    elseif ($request->receiver_type === 'arm') {
-        $receivers = DB::table('old_student')
-            ->where('schid', $user->id)
-            ->where('clsm', $request->clsm)
-            ->where('clsa', $request->arm)
-            ->pluck('sid')
-            ->toArray();
+        // ARM
+        elseif ($request->receiver_type === 'arm') {
+            $receivers = DB::table('old_student')
+                ->where('schid', $user->id)
+                ->where('clsm', $request->clsm)
+                ->where('clsa', $request->arm)
+                ->pluck('sid')
+                ->toArray();
 
-        $finalType = 'z';
-    }
+            $finalType = 'z';
+        }
 
-    if (empty($receivers)) {
+        if (empty($receivers)) {
+            return response()->json([
+                "status" => false,
+                "message" => "No receivers found"
+            ], 400);
+        }
+
+        // =========================
+        // CONVERSATION
+        // =========================
+        $conversation = MessageConversation::create([
+            'subject' => $request->subject
+        ]);
+
+        $msg = Message::create([
+            'conversation_id' => $conversation->id,
+            'sender_id' => $user->id,
+            'sender_type' => 's',
+            'subject' => $request->subject,
+            'message' => $request->message,
+            'attachment' => $filePath
+        ]);
+
+        // =========================
+        // SAVE RECIPIENTS
+        // =========================
+        foreach ($receivers as $rid) {
+            MessageRecipient::create([
+                'message_id' => $msg->id,
+                'receiver_id' => $rid,
+                'receiver_type' => $finalType
+            ]);
+        }
+
         return response()->json([
-            "status" => false,
-            "message" => "No receivers found"
-        ], 400);
-    }
-
-    // =========================
-    // CONVERSATION
-    // =========================
-    $conversation = MessageConversation::create([
-        'subject' => $request->subject
-    ]);
-
-    $msg = Message::create([
-        'conversation_id' => $conversation->id,
-        'sender_id' => $user->id,
-        'sender_type' => 's',
-        'subject' => $request->subject,
-        'message' => $request->message,
-        'attachment' => $filePath
-    ]);
-
-    // =========================
-    // SAVE RECIPIENTS
-    // =========================
-    foreach ($receivers as $rid) {
-        MessageRecipient::create([
-            'message_id' => $msg->id,
-            'receiver_id' => $rid,
-            'receiver_type' => $finalType
+            "status" => true,
+            "conversation_id" => $conversation->id,
+            "message_id" => $msg->id,
+            "total_receivers" => count($receivers)
         ]);
     }
 
-    return response()->json([
-        "status" => true,
-        "conversation_id" => $conversation->id,
-        "message_id" => $msg->id,
-        "total_receivers" => count($receivers)
-    ]);
-}
+    /**
+     * @OA\Post(
+     *     path="/api/messages/{messageId}/reply",
+     *     summary="Reply to a message (threaded private conversation system)",
+     *     description="Creates a private reply under an existing message thread. Replies follow role-based routing: staff replies to original recipient, students reply to class teacher, admin/school has full access.",
+     *     tags={"Messaging"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="messageId",
+     *         in="path",
+     *         required=true,
+     *         description="ID of the parent message being replied to",
+     *         @OA\Schema(type="integer", example=10)
+     *     ),
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\MediaType(
+     *             mediaType="application/json",
+     *             @OA\Schema(
+     *                 required={"message"},
+     *
+     *                 @OA\Property(
+     *                     property="message",
+     *                     type="string",
+     *                     example="Thank you, we have received your instruction."
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Reply created and sent privately",
+     *         @OA\JsonContent(
+     *             type="object",
+     *
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Reply sent correctly"),
+     *
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 description="Created reply message object",
+     *
+     *                 @OA\Property(property="id", type="integer", example=25),
+     *                 @OA\Property(property="conversation_id", type="integer", example=5),
+     *                 @OA\Property(property="sender_id", type="integer", example=2),
+     *                 @OA\Property(property="sender_type", type="string", example="w"),
+     *                 @OA\Property(property="message", type="string", example="We have completed the submission"),
+     *                 @OA\Property(property="subject", type="string", example="Exam Notice"),
+     *                 @OA\Property(property="parent_id", type="integer", example=10),
+     *                 @OA\Property(property="created_at", type="string", format="date-time", example="2026-04-10T10:00:00Z"),
+     *                 @OA\Property(property="updated_at", type="string", format="date-time", example="2026-04-10T10:00:00Z")
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="Original message not found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="No query results for model Message")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Unauthenticated")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+     *             @OA\Property(
+     *                 property="errors",
+     *                 type="object",
+     *                 example={
+     *                     "message": {"The message field is required."}
+     *                 }
+     *             )
+     *         )
+     *     )
+     * )
+     */
 
-/**
- * @OA\Post(
- *     path="/api/messages/{messageId}/reply",
- *     summary="Reply to a message (threaded private conversation system)",
- *     description="Creates a private reply under an existing message thread. Replies follow role-based routing: staff replies to original recipient, students reply to class teacher, admin/school has full access.",
- *     tags={"Messaging"},
- *     security={{"bearerAuth":{}}},
- *
- *     @OA\Parameter(
- *         name="messageId",
- *         in="path",
- *         required=true,
- *         description="ID of the parent message being replied to",
- *         @OA\Schema(type="integer", example=10)
- *     ),
- *
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\MediaType(
- *             mediaType="application/json",
- *             @OA\Schema(
- *                 required={"message"},
- *
- *                 @OA\Property(
- *                     property="message",
- *                     type="string",
- *                     example="Thank you, we have received your instruction."
- *                 )
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Reply created and sent privately",
- *         @OA\JsonContent(
- *             type="object",
- *
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Reply sent correctly"),
- *
- *             @OA\Property(
- *                 property="pld",
- *                 type="object",
- *                 description="Created reply message object",
- *
- *                 @OA\Property(property="id", type="integer", example=25),
- *                 @OA\Property(property="conversation_id", type="integer", example=5),
- *                 @OA\Property(property="sender_id", type="integer", example=2),
- *                 @OA\Property(property="sender_type", type="string", example="w"),
- *                 @OA\Property(property="message", type="string", example="We have completed the submission"),
- *                 @OA\Property(property="subject", type="string", example="Exam Notice"),
- *                 @OA\Property(property="parent_id", type="integer", example=10),
- *                 @OA\Property(property="created_at", type="string", format="date-time", example="2026-04-10T10:00:00Z"),
- *                 @OA\Property(property="updated_at", type="string", format="date-time", example="2026-04-10T10:00:00Z")
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=404,
- *         description="Original message not found",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="No query results for model Message")
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=401,
- *         description="Unauthenticated",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="Unauthenticated")
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=422,
- *         description="Validation error",
- *         @OA\JsonContent(
- *             @OA\Property(property="message", type="string", example="The given data was invalid."),
- *             @OA\Property(
- *                 property="errors",
- *                 type="object",
- *                 example={
- *                     "message": {"The message field is required."}
- *                 }
- *             )
- *         )
- *     )
- * )
- */
+    public function reply(Request $request, $messageId)
+    {
+        $user = auth()->user();
 
-public function reply(Request $request, $messageId)
-{
-    $user = auth()->user();
+        $parent = Message::with('recipients')->findOrFail($messageId);
 
-    $parent = Message::with('recipients')->findOrFail($messageId);
+        $reply = Message::create([
+            'conversation_id' => $parent->conversation_id,
+            'sender_id' => $user->id,
+            'sender_type' => $user->typ,
+            'message' => $request->message,
+            'subject' => $parent->subject,
+            'parent_id' => $parent->id
+        ]);
 
-    $reply = Message::create([
-        'conversation_id' => $parent->conversation_id,
-        'sender_id' => $user->id,
-        'sender_type' => $user->typ,
-        'message' => $request->message,
-        'subject' => $parent->subject,
-        'parent_id' => $parent->id
-    ]);
+        $receiverId = null;
+        $receiverType = null;
 
-    $receiverId = null;
-    $receiverType = null;
+        // =========================
+        // STAFF RULE
+        // =========================
+        if ($user->typ === 'w') {
 
-    // =========================
-    // STAFF RULE
-    // =========================
-    if ($user->typ === 'w') {
+            $receiver = $parent->recipients->first();
 
-        $receiver = $parent->recipients->first();
-
-        if ($receiver) {
-            $receiverId = $receiver->receiver_id;
-            $receiverType = $receiver->receiver_type;
-        }
-    }
-
-    // =========================
-    // STUDENT RULE (ONLY CLASS TEACHER OR ADMIN)
-    // =========================
-    elseif ($user->typ === 'z') {
-
-        $student = DB::table('old_student')
-            ->where('sid', $user->id)
-            ->first();
-
-        if ($student) {
-
-            $teacher = DB::table('staff_class')
-                ->where('cls', $student->clsm)
-                ->first();
-
-            if ($teacher) {
-                $receiverId = $teacher->stid;
-                $receiverType = 'w';
+            if ($receiver) {
+                $receiverId = $receiver->receiver_id;
+                $receiverType = $receiver->receiver_type;
             }
         }
-    }
 
-    // =========================
-    // ADMIN + SCHOOL (FULL CONTROL)
-    // =========================
-    else {
+        // =========================
+        // STUDENT RULE (ONLY CLASS TEACHER OR ADMIN)
+        // =========================
+        elseif ($user->typ === 'z') {
 
-        $receiver = $parent->recipients->first();
+            $student = DB::table('old_student')
+                ->where('sid', $user->id)
+                ->first();
 
-        if ($receiver) {
-            $receiverId = $receiver->receiver_id;
-            $receiverType = $receiver->receiver_type;
+            if ($student) {
+
+                $teacher = DB::table('staff_class')
+                    ->where('cls', $student->clsm)
+                    ->first();
+
+                if ($teacher) {
+                    $receiverId = $teacher->stid;
+                    $receiverType = 'w';
+                }
+            }
         }
-    }
 
-    if ($receiverId && $receiverType) {
-        MessageRecipient::create([
-            'message_id' => $reply->id,
-            'receiver_id' => $receiverId,
-            'receiver_type' => $receiverType
+        // =========================
+        // ADMIN + SCHOOL (FULL CONTROL)
+        // =========================
+        else {
+
+            $receiver = $parent->recipients->first();
+
+            if ($receiver) {
+                $receiverId = $receiver->receiver_id;
+                $receiverType = $receiver->receiver_type;
+            }
+        }
+
+        if ($receiverId && $receiverType) {
+            MessageRecipient::create([
+                'message_id' => $reply->id,
+                'receiver_id' => $receiverId,
+                'receiver_type' => $receiverType
+            ]);
+        }
+
+        return response()->json([
+            "status" => true,
+            "message" => "Reply sent correctly",
+            "pld" => $reply
         ]);
     }
-
-    return response()->json([
-        "status" => true,
-        "message" => "Reply sent correctly",
-        "pld" => $reply
-    ]);
-}
 
 
     /**
@@ -37664,25 +37664,23 @@ public function reply(Request $request, $messageId)
 
 
     public function inbox()
-{
-    $user = auth()->user();
+    {
+        $user = auth()->user();
 
-    $messages = Message::whereHas('recipients', function ($q) use ($user) {
-        $q->where('receiver_id', $user->id)
-            ->where('receiver_type', $user->typ);
-    })
-    ->with('conversation')
-    ->orderBy('created_at', 'desc')
-    ->get();
+        $messages = Message::whereHas('recipients', function ($q) use ($user) {
+            $q->where('receiver_id', $user->id)
+                ->where('receiver_type', $user->typ);
+        })
+            ->with('conversation')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-    return response()->json([
-        "status" => true,
-        "message" => "Inbox fetched successfully",
-        "pld" => $messages,
-    ]);
-}
-
-
+        return response()->json([
+            "status" => true,
+            "message" => "Inbox fetched successfully",
+            "pld" => $messages,
+        ]);
+    }
 
 
     /**
@@ -37782,49 +37780,390 @@ public function reply(Request $request, $messageId)
 
 
 
-/**
- * @OA\Get(
- *     path="/api/getDomainAdmin",
- *     summary="Get all domain admins",
- *     description="Fetch all users where typ = 'a'",
- *     operationId="getDomainAdmins",
- *     tags={"Api"},
- *     security={{"bearerAuth":{}}},
- *
- *     @OA\Response(
- *         response=200,
- *         description="Successful response",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Success"),
- *             @OA\Property(
- *                 property="pld",
- *                 type="array",
- *                 @OA\Items(
- *                     type="object",
- *                     @OA\Property(property="id", type="integer", example=1),
- *                     @OA\Property(property="email", type="string", example="admin@example.com"),
- *                     @OA\Property(property="typ", type="string", example="a"),
- *                     @OA\Property(property="verif", type="integer", example=1),
- *                     @OA\Property(property="created_at", type="string", format="date-time"),
- *                     @OA\Property(property="updated_at", type="string", format="date-time")
- *                 )
- *             )
- *         )
- *     )
- * )
- */
-public function getDomainAdmin()
-{
-    $subj = User::where('typ', 'a')->get();
+    /**
+     * @OA\Get(
+     *     path="/api/getDomainAdmin",
+     *     summary="Get all domain admins",
+     *     description="Fetch all users where typ = 'a'",
+     *     operationId="getDomainAdmins",
+     *     tags={"Api"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful response",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="email", type="string", example="admin@example.com"),
+     *                     @OA\Property(property="typ", type="string", example="a"),
+     *                     @OA\Property(property="verif", type="integer", example=1),
+     *                     @OA\Property(property="created_at", type="string", format="date-time"),
+     *                     @OA\Property(property="updated_at", type="string", format="date-time")
+     *                 )
+     *             )
+     *         )
+     *     )
+     * )
+     */
+    public function getDomainAdmin()
+    {
+        $subj = User::where('typ', 'a')->get();
 
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => $subj,
-    ]);
-}
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $subj,
+        ]);
+
+    }
+
+
+
+
+
+    /**
+     * @OA\Post(
+     *     path="/api/staff/send-message",
+     *     summary="Staff sends message to their school admin",
+     *     tags={"Messaging"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\MediaType(
+     *             mediaType="multipart/form-data",
+     *             @OA\Schema(
+     *                 required={"subject","message"},
+     *
+     *                 @OA\Property(
+     *                     property="subject",
+     *                     type="string",
+     *                     example="Exam Update"
+     *                 ),
+     *
+     *                 @OA\Property(
+     *                     property="message",
+     *                     type="string",
+     *                     example="Please note the exam has been rescheduled."
+     *                 ),
+     *
+     *                 @OA\Property(
+     *                     property="attachment",
+     *                     type="string",
+     *                     format="binary",
+     *                     description="Optional file attachment (jpg, jpeg, png, pdf, doc, docx)"
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Message sent successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Message sent to school successfully"),
+     *             @OA\Property(property="conversation_id", type="integer", example=1),
+     *             @OA\Property(property="message_id", type="integer", example=10)
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=403,
+     *         description="Unauthorized",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Unauthorized")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="Staff record not found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Staff record not found")
+     *         )
+     *     )
+     * )
+     */
+    public function staffSendMessage(Request $request)
+    {
+        $user = auth()->user();
+
+        if ($user->typ !== 'w') {
+            return response()->json([
+                "status" => false,
+                "message" => "Unauthorized"
+            ], 403);
+        }
+
+        $request->validate([
+            'subject' => 'required|string',
+            'message' => 'required|string',
+            'attachment' => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc,docx|max:20480'
+        ]);
+
+        // Find staff record
+        $staff = DB::table('old_staff')
+            ->where('sid', $user->id)
+            ->first();
+
+        if (!$staff) {
+            return response()->json([
+                "status" => false,
+                "message" => "Staff record not found"
+            ], 404);
+        }
+
+        // School admin id
+        $schoolId = $staff->schid;
+
+        // upload file
+        $filePath = null;
+
+        if ($request->hasFile('attachment')) {
+
+            $file = $request->file('attachment');
+
+            $filename = time() . '_' .
+                preg_replace(
+                    '/[^A-Za-z0-9_\-\.]/',
+                    '_',
+                    $file->getClientOriginalName()
+                );
+
+            $file->move(
+                base_path('../public_html/uploads/messages'),
+                $filename
+            );
+
+            $filePath = url('api/uploads/messages/' . $filename);
+        }
+
+        $conversation = MessageConversation::create([
+            'subject' => $request->subject
+        ]);
+
+        $msg = Message::create([
+            'conversation_id' => $conversation->id,
+            'sender_id' => $user->id,
+            'sender_type' => 'w',
+            'subject' => $request->subject,
+            'message' => $request->message,
+            'attachment' => $filePath
+        ]);
+
+        MessageRecipient::create([
+            'message_id' => $msg->id,
+            'receiver_id' => $schoolId,
+            'receiver_type' => 's'
+        ]);
+
+        return response()->json([
+            "status" => true,
+            "message" => "Message sent to school successfully",
+            "conversation_id" => $conversation->id,
+            "message_id" => $msg->id
+        ]);
+    }
+
+
+
+
+    /**
+     * @OA\Post(
+     *     path="/api/class-subjects/assign",
+     *     summary="Assign multiple subjects to multiple classes across multiple schools (Domain Admin)",
+     *     tags={"Api"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"schid","clsid","sesn","trm","subjects"},
+     *
+     *             @OA\Property(
+     *                 property="schid",
+     *                 type="array",
+     *                 description="Array of School IDs",
+     *                 @OA\Items(type="integer", example=1)
+     *             ),
+     *
+     *             @OA\Property(
+     *                 property="clsid",
+     *                 type="integer",
+     *                 example=11,
+     *                 description="Class ID"
+     *             ),
+     *
+     *             @OA\Property(
+     *                 property="sesn",
+     *                 type="integer",
+     *                 example=2025,
+     *                 description="Academic Session"
+     *             ),
+     *
+     *             @OA\Property(
+     *                 property="trm",
+     *                 type="integer",
+     *                 example=1,
+     *                 description="Term"
+     *             ),
+     *
+     *             @OA\Property(
+     *                 property="subjects",
+     *                 type="array",
+     *                 description="List of subjects to assign",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     required={"subj_id","name","comp"},
+     *
+     *                     @OA\Property(
+     *                         property="subj_id",
+     *                         type="integer",
+     *                         example=1,
+     *                         description="Subject ID"
+     *                     ),
+     *
+     *                     @OA\Property(
+     *                         property="name",
+     *                         type="string",
+     *                         example="MATHEMATICS",
+     *                         description="Subject name"
+     *                     ),
+     *
+     *                     @OA\Property(
+     *                         property="comp",
+     *                         type="integer",
+     *                         example=1,
+     *                         description="Compulsory flag (1 = compulsory, 0 = optional)"
+     *                     )
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Subjects assigned successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Subjects assignment completed"),
+     *             @OA\Property(property="assigned_count", type="integer", example=10),
+     *             @OA\Property(property="skipped_count", type="integer", example=2),
+     *             @OA\Property(
+     *                 property="assigned",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="schid", type="integer", example=1),
+     *                     @OA\Property(property="subj_id", type="integer", example=2),
+     *                     @OA\Property(property="name", type="string", example="ENGLISH LANGUAGE")
+     *                 )
+     *             ),
+     *             @OA\Property(
+     *                 property="skipped",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="schid", type="integer", example=1),
+     *                     @OA\Property(property="subj_id", type="integer", example=3),
+     *                     @OA\Property(property="name", type="string", example="MATHEMATICS")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error"
+     *     )
+     * )
+     */
+    public function assignClassSubjectsDomainAdmin(Request $request)
+    {
+        $request->validate([
+            "schid" => "required|array|min:1",
+            "schid.*" => "integer",
+
+            "clsid" => "required|integer",
+            "sesn" => "required|integer",
+            "trm" => "required|integer",
+
+            "subjects" => "required|array|min:1",
+            "subjects.*.subj_id" => "required|integer",
+            "subjects.*.name" => "required|string",
+            "subjects.*.comp" => "required|integer",
+        ]);
+
+        $inserted = [];
+        $skipped = [];
+
+        foreach ($request->schid as $schoolId) {
+
+            foreach ($request->subjects as $subject) {
+
+                $exists = DB::table('class_subj')
+                    ->where('schid', $schoolId)
+                    ->where('clsid', $request->clsid)
+                    ->where('subj_id', $subject['subj_id'])
+                    ->where('sesn', $request->sesn)
+                    ->where('trm', $request->trm)
+                    ->exists();
+
+                if ($exists) {
+                    $skipped[] = [
+                        "schid" => $schoolId,
+                        "subj_id" => $subject['subj_id'],
+                        "name" => $subject['name']
+                    ];
+                    continue;
+                }
+
+                DB::table('class_subj')->insert([
+                    "uid" => $schoolId . $request->clsid . $subject['subj_id'] . $request->sesn . $request->trm,
+                    "schid" => $schoolId,
+                    "clsid" => $request->clsid,
+                    "subj_id" => $subject['subj_id'],
+                    "name" => $subject['name'],
+                    "comp" => $subject['comp'],
+                    "sesn" => $request->sesn,
+                    "trm" => $request->trm,
+                    "created_at" => now(),
+                    "updated_at" => now(),
+                ]);
+
+                $inserted[] = [
+                    "schid" => $schoolId,
+                    "subj_id" => $subject['subj_id'],
+                    "name" => $subject['name']
+                ];
+            }
+        }
+
+        return response()->json([
+            "status" => true,
+            "message" => "Subjects assignment completed",
+            "assigned_count" => count($inserted),
+            "skipped_count" => count($skipped),
+            "assigned" => $inserted,
+            "skipped" => $skipped
+        ]);
+    }
+
+
+
+
+
+
+
 
 }
 

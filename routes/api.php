@@ -198,11 +198,13 @@ Route::group([
     Route::post('/messages/{messageId}/reply', [ApiController::class, 'reply']);
     Route::get('/inbox', [ApiController::class, 'inbox']);
     Route::get('/sent-messages', [ApiController::class, 'sent']);
+    Route::post('/staff/send-message', [ApiController::class, 'staffSendMessage']);
 
     // Domain Admin
     Route::post('/domain/send-message', [ApiController::class, 'domainSendMessage']);
     Route::get('/domain/inbox', [ApiController::class, 'domainInbox']);
     Route::post('/domain/reply/{messageId}', [ApiController::class, 'domainReply']);
+    Route::post('/class-subjects/assign', [ApiController::class, 'assignClassSubjectsDomainAdmin']);
 
     Route::post('toggleResultStatus', [ApiController::class, 'toggleResultStatus']);
     Route::post('assignClassSubject', [ApiController::class, 'assignClassSubject']);

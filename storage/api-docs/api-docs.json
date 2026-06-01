@@ -32100,6 +32100,277 @@
                     }
                 ]
             }
+        },
+        "/api/staff/send-message": {
+            "post": {
+                "tags": [
+                    "Messaging"
+                ],
+                "summary": "Staff sends message to their school admin",
+                "operationId": "737546216400bdf474269af7332dab3f",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "subject",
+                                    "message"
+                                ],
+                                "properties": {
+                                    "subject": {
+                                        "type": "string",
+                                        "example": "Exam Update"
+                                    },
+                                    "message": {
+                                        "type": "string",
+                                        "example": "Please note the exam has been rescheduled."
+                                    },
+                                    "attachment": {
+                                        "description": "Optional file attachment (jpg, jpeg, png, pdf, doc, docx)",
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Message sent successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Message sent to school successfully"
+                                        },
+                                        "conversation_id": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "message_id": {
+                                            "type": "integer",
+                                            "example": 10
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthorized"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Staff record not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Staff record not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/class-subjects/assign": {
+            "post": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Assign multiple subjects to multiple classes across multiple schools (Domain Admin)",
+                "operationId": "3c791936566a5ee3aba87bd43b040244",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "schid",
+                                    "clsid",
+                                    "sesn",
+                                    "trm",
+                                    "subjects"
+                                ],
+                                "properties": {
+                                    "schid": {
+                                        "description": "Array of School IDs",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer",
+                                            "example": 1
+                                        }
+                                    },
+                                    "clsid": {
+                                        "description": "Class ID",
+                                        "type": "integer",
+                                        "example": 11
+                                    },
+                                    "sesn": {
+                                        "description": "Academic Session",
+                                        "type": "integer",
+                                        "example": 2025
+                                    },
+                                    "trm": {
+                                        "description": "Term",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "subjects": {
+                                        "description": "List of subjects to assign",
+                                        "type": "array",
+                                        "items": {
+                                            "required": [
+                                                "subj_id",
+                                                "name",
+                                                "comp"
+                                            ],
+                                            "properties": {
+                                                "subj_id": {
+                                                    "description": "Subject ID",
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "name": {
+                                                    "description": "Subject name",
+                                                    "type": "string",
+                                                    "example": "MATHEMATICS"
+                                                },
+                                                "comp": {
+                                                    "description": "Compulsory flag (1 = compulsory, 0 = optional)",
+                                                    "type": "integer",
+                                                    "example": 1
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Subjects assigned successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Subjects assignment completed"
+                                        },
+                                        "assigned_count": {
+                                            "type": "integer",
+                                            "example": 10
+                                        },
+                                        "skipped_count": {
+                                            "type": "integer",
+                                            "example": 2
+                                        },
+                                        "assigned": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "schid": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "subj_id": {
+                                                        "type": "integer",
+                                                        "example": 2
+                                                    },
+                                                    "name": {
+                                                        "type": "string",
+                                                        "example": "ENGLISH LANGUAGE"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "skipped": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "schid": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "subj_id": {
+                                                        "type": "integer",
+                                                        "example": 3
+                                                    },
+                                                    "name": {
+                                                        "type": "string",
+                                                        "example": "MATHEMATICS"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
