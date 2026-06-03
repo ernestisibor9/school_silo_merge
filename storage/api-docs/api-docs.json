@@ -32371,6 +32371,126 @@
                     }
                 ]
             }
+        },
+        "/api/get-assigned-class-subjects": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get assigned class subjects for Domain Admin",
+                "description": "Retrieve assigned subjects for one or more schools, class, session and term.",
+                "operationId": "getAssignedClassSubjectsDomainAdmin",
+                "parameters": [
+                    {
+                        "name": "schid[]",
+                        "in": "query",
+                        "description": "School IDs",
+                        "required": true,
+                        "style": "form",
+                        "explode": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    {
+                        "name": "clsid",
+                        "in": "query",
+                        "description": "Class ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "sesn",
+                        "in": "query",
+                        "description": "Session ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 2025
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "query",
+                        "description": "Term ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Assigned subjects retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "count": {
+                                            "type": "integer",
+                                            "example": 6
+                                        },
+                                        "pld": {
+                                            "type": "object",
+                                            "example": {
+                                                "1": [
+                                                    {
+                                                        "id": 1,
+                                                        "uid": "11120251",
+                                                        "subj_id": 1,
+                                                        "name": "Mathematics",
+                                                        "comp": 1,
+                                                        "schid": 1,
+                                                        "clsid": 1,
+                                                        "sesn": 2025,
+                                                        "trm": 1
+                                                    }
+                                                ],
+                                                "2": [
+                                                    {
+                                                        "id": 2,
+                                                        "uid": "21120251",
+                                                        "subj_id": 2,
+                                                        "name": "English Language",
+                                                        "comp": 1,
+                                                        "schid": 2,
+                                                        "clsid": 1,
+                                                        "sesn": 2025,
+                                                        "trm": 1
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {

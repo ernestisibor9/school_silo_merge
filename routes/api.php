@@ -205,6 +205,7 @@ Route::group([
     Route::get('/domain/inbox', [ApiController::class, 'domainInbox']);
     Route::post('/domain/reply/{messageId}', [ApiController::class, 'domainReply']);
     Route::post('/class-subjects/assign', [ApiController::class, 'assignClassSubjectsDomainAdmin']);
+    Route::get('/get-assigned-class-subjects', [ApiController::class, 'getAssignedClassSubjectsDomainAdmin']);
 
     Route::post('toggleResultStatus', [ApiController::class, 'toggleResultStatus']);
     Route::post('assignClassSubject', [ApiController::class, 'assignClassSubject']);

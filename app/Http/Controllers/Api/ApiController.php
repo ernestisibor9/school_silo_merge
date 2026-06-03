@@ -38161,8 +38161,157 @@ class ApiController extends Controller
 
 
 
+/**
+ * @OA\Get(
+ *     path="/api/get-assigned-class-subjects",
+ *     summary="Get assigned class subjects for Domain Admin",
+ *     description="Retrieve assigned subjects for one or more schools, class, session and term.",
+ *     operationId="getAssignedClassSubjectsDomainAdmin",
+ *     tags={"Api"},
+ *     security={{"bearerAuth":{}}},
+ *
+ *     @OA\Parameter(
+ *         name="schid[]",
+ *         in="query",
+ *         required=true,
+ *         description="School IDs",
+ *         @OA\Schema(
+ *             type="array",
+ *             @OA\Items(type="integer")
+ *         ),
+ *         style="form",
+ *         explode=true
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="clsid",
+ *         in="query",
+ *         required=true,
+ *         description="Class ID",
+ *         @OA\Schema(
+ *             type="integer",
+ *             example=1
+ *         )
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="sesn",
+ *         in="query",
+ *         required=true,
+ *         description="Session ID",
+ *         @OA\Schema(
+ *             type="integer",
+ *             example=2025
+ *         )
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="trm",
+ *         in="query",
+ *         required=true,
+ *         description="Term ID",
+ *         @OA\Schema(
+ *             type="integer",
+ *             example=1
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Assigned subjects retrieved successfully",
+ *         @OA\JsonContent(
+ *             @OA\Property(
+ *                 property="status",
+ *                 type="boolean",
+ *                 example=true
+ *             ),
+ *             @OA\Property(
+ *                 property="count",
+ *                 type="integer",
+ *                 example=6
+ *             ),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="object",
+ *                 example={
+ *                     "1"={
+ *                         {
+ *                             "id"=1,
+ *                             "uid"="11120251",
+ *                             "subj_id"=1,
+ *                             "name"="Mathematics",
+ *                             "comp"=1,
+ *                             "schid"=1,
+ *                             "clsid"=1,
+ *                             "sesn"=2025,
+ *                             "trm"=1
+ *                         }
+ *                     },
+ *                     "2"={
+ *                         {
+ *                             "id"=2,
+ *                             "uid"="21120251",
+ *                             "subj_id"=2,
+ *                             "name"="English Language",
+ *                             "comp"=1,
+ *                             "schid"=2,
+ *                             "clsid"=1,
+ *                             "sesn"=2025,
+ *                             "trm"=1
+ *                         }
+ *                     }
+ *                 }
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation Error"
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthorized"
+ *     )
+ * )
+ */
+public function getAssignedClassSubjectsDomainAdmin(Request $request)
+{
+    $request->validate([
+        'schid' => 'required|array|min:1',
+        'schid.*' => 'integer',
+        'clsid' => 'required|integer',
+        'sesn'  => 'required|integer',
+        'trm'   => 'required|integer',
+    ]);
 
+$subjects = DB::table('class_subj')
+    ->whereIn('schid', $request->schid)
+    ->where('clsid', $request->clsid)
+    ->where('sesn', $request->sesn)
+    ->where('trm', $request->trm)
+    ->select(
+        'uid',
+        'subj_id',
+        'name',
+        'comp',
+        'schid',
+        'clsid',
+        'sesn',
+        'trm'
+    )
+    ->orderBy('schid')
+    ->orderBy('name')
+    ->get()
+    ->groupBy('schid');
 
+    return response()->json([
+        'status' => true,
+        'count' => $subjects->flatten()->count(),
+        'pld' => $subjects
+    ]);
+}
 
 
 }
