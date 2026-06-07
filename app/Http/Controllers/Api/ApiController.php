@@ -34574,152 +34574,156 @@ class ApiController extends Controller
     }
 
 
-/**
- * @OA\Post(
- *     path="/api/toggleResultStatus",
- *     tags={"Api"},
- *     summary="Publish or Unpublish an Individual Student Result",
- *     description="Toggles the publication status of all subject results belonging to a specific student for a given session, term, and class.",
- *     operationId="toggleStudentResultStatus",
- *
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"stid","schid","clsa","clsm","ssn","trm"},
- *             @OA\Property(
- *                 property="stid",
- *                 type="integer",
- *                 example=2405,
- *                 description="Student ID"
- *             ),
- *             @OA\Property(
- *                 property="schid",
- *                 type="integer",
- *                 example=12,
- *                 description="School ID"
- *             ),
- *             @OA\Property(
- *                 property="clsa",
- *                 type="integer",
- *                 example=1,
- *                 description="Class Arm ID"
- *             ),
- *             @OA\Property(
- *                 property="clsm",
- *                 type="integer",
- *                 example=11,
- *                 description="Class ID"
- *             ),
- *             @OA\Property(
- *                 property="ssn",
- *                 type="integer",
- *                 example=2025,
- *                 description="Academic Session"
- *             ),
- *             @OA\Property(
- *                 property="trm",
- *                 type="integer",
- *                 example=1,
- *                 description="Term"
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Result status updated successfully",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(
- *                 property="message",
- *                 type="string",
- *                 example="Result Published Successfully"
- *             ),
- *             @OA\Property(
- *                 property="pld",
- *                 type="array",
- *                 @OA\Items(
- *                     @OA\Property(property="stid", type="integer", example=2405),
- *                     @OA\Property(property="new_stat", type="integer", example=1)
- *                 )
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=404,
- *         description="Student result not found",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(
- *                 property="message",
- *                 type="string",
- *                 example="Student result not found."
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=422,
- *         description="Validation Error"
- *     )
- * )
- */
+    /**
+     * @OA\Post(
+     *     path="/api/toggleResultStatus",
+     *     tags={"Api"},
+     *     summary="Publish or Unpublish an Individual Student Result",
+     *     description="Toggles the publication status of all subject results belonging to a specific student for a given session, term, and class.",
+     *     operationId="toggleStudentResultStatus",
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"stid","schid","clsa","clsm","ssn","trm"},
+     *             @OA\Property(
+     *                 property="stid",
+     *                 type="integer",
+     *                 example=2405,
+     *                 description="Student ID"
+     *             ),
+     *             @OA\Property(
+     *                 property="schid",
+     *                 type="integer",
+     *                 example=12,
+     *                 description="School ID"
+     *             ),
+     *             @OA\Property(
+     *                 property="clsa",
+     *                 type="integer",
+     *                 example=1,
+     *                 description="Class Arm ID"
+     *             ),
+     *             @OA\Property(
+     *                 property="clsm",
+     *                 type="integer",
+     *                 example=11,
+     *                 description="Class ID"
+     *             ),
+     *             @OA\Property(
+     *                 property="ssn",
+     *                 type="integer",
+     *                 example=2025,
+     *                 description="Academic Session"
+     *             ),
+     *             @OA\Property(
+     *                 property="trm",
+     *                 type="integer",
+     *                 example=1,
+     *                 description="Term"
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Result status updated successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(
+     *                 property="message",
+     *                 type="string",
+     *                 example="Result Published Successfully"
+     *             ),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="stid", type="integer", example=2405),
+     *                     @OA\Property(property="new_stat", type="integer", example=1)
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="Student result not found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(
+     *                 property="message",
+     *                 type="string",
+     *                 example="Student result not found."
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation Error"
+     *     )
+     * )
+     */
 
-public function toggleResultStatus(Request $request)
-{
-    $request->validate([
-        'stid'  => 'required',
-        'schid' => 'required',
-        'clsa'  => 'required',
-        'clsm'  => 'required',
-        'ssn'   => 'required',
-        'trm'   => 'required',
-    ]);
+    public function toggleResultStatus(Request $request)
+    {
+        $request->validate([
+            'stid' => 'required',
+            'schid' => 'required',
+            'clsa' => 'required',
+            'clsm' => 'required',
+            'ssn' => 'required',
+            'trm' => 'required',
+        ]);
 
-    // Get all subject records belonging to this student
-    $results = student_sub_res::where([
-        ['stid', $request->stid],
-        ['schid', $request->schid],
-        ['clsa', $request->clsa],
-        ['clsm', $request->clsm],
-        ['ssn', $request->ssn],
-        ['trm', $request->trm],
-    ])->get();
+        // Get all subject records belonging to this student
+        $results = student_sub_res::where([
+            ['stid', $request->stid],
+            ['schid', $request->schid],
+            ['clsa', $request->clsa],
+            ['clsm', $request->clsm],
+            ['ssn', $request->ssn],
+            ['trm', $request->trm],
+        ])->get();
 
-    if ($results->isEmpty()) {
+        if ($results->isEmpty()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Student result not found.'
+            ], 404);
+        }
+
+        // Determine new status
+        $newStatus = $results->first()->stat == 1 ? 0 : 1;
+
+        // Update all subjects for the student
+        student_sub_res::where([
+            ['stid', $request->stid],
+            ['schid', $request->schid],
+            ['clsa', $request->clsa],
+            ['clsm', $request->clsm],
+            ['ssn', $request->ssn],
+            ['trm', $request->trm],
+        ])->update([
+                    'stat' => $newStatus
+                ]);
+
         return response()->json([
-            'status' => false,
-            'message' => 'Student result not found.'
-        ], 404);
-    }
-
-    // Determine new status
-    $newStatus = $results->first()->stat == 1 ? 0 : 1;
-
-    // Update all subjects for the student
-    student_sub_res::where([
-        ['stid', $request->stid],
-        ['schid', $request->schid],
-        ['clsa', $request->clsa],
-        ['clsm', $request->clsm],
-        ['ssn', $request->ssn],
-        ['trm', $request->trm],
-    ])->update([
-        'stat' => $newStatus
-    ]);
-
-    return response()->json([
-        'status' => true,
-        'message' => $newStatus ? 'Result Published Successfully' : 'Result Unpublished Successfully',
-        'pld' => [
-            [
-                'stid' => $request->stid,
-                'new_stat' => $newStatus
+            'status' => true,
+            'message' => $newStatus ? 'Result Published Successfully' : 'Result Unpublished Successfully',
+            'pld' => [
+                [
+                    'clsa' => $request->clsa,
+                    'schid' => $request->schid,
+                    'clsm' => $request->clsm,
+                    'ssn' => $request->ssn,
+                    'trm' => $request->trm,
+                    'new_stat' => $newStatus,
+                ]
             ]
-        ]
-    ]);
-}
+        ]);
+    }
 
 
     /**
@@ -38186,157 +38190,157 @@ public function toggleResultStatus(Request $request)
 
 
 
-/**
- * @OA\Get(
- *     path="/api/get-assigned-class-subjects",
- *     summary="Get assigned class subjects for Domain Admin",
- *     description="Retrieve assigned subjects for one or more schools, class, session and term.",
- *     operationId="getAssignedClassSubjectsDomainAdmin",
- *     tags={"Api"},
- *     security={{"bearerAuth":{}}},
- *
- *     @OA\Parameter(
- *         name="schid[]",
- *         in="query",
- *         required=true,
- *         description="School IDs",
- *         @OA\Schema(
- *             type="array",
- *             @OA\Items(type="integer")
- *         ),
- *         style="form",
- *         explode=true
- *     ),
- *
- *     @OA\Parameter(
- *         name="clsid",
- *         in="query",
- *         required=true,
- *         description="Class ID",
- *         @OA\Schema(
- *             type="integer",
- *             example=1
- *         )
- *     ),
- *
- *     @OA\Parameter(
- *         name="sesn",
- *         in="query",
- *         required=true,
- *         description="Session ID",
- *         @OA\Schema(
- *             type="integer",
- *             example=2025
- *         )
- *     ),
- *
- *     @OA\Parameter(
- *         name="trm",
- *         in="query",
- *         required=true,
- *         description="Term ID",
- *         @OA\Schema(
- *             type="integer",
- *             example=1
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Assigned subjects retrieved successfully",
- *         @OA\JsonContent(
- *             @OA\Property(
- *                 property="status",
- *                 type="boolean",
- *                 example=true
- *             ),
- *             @OA\Property(
- *                 property="count",
- *                 type="integer",
- *                 example=6
- *             ),
- *             @OA\Property(
- *                 property="pld",
- *                 type="object",
- *                 example={
- *                     "1"={
- *                         {
- *                             "id"=1,
- *                             "uid"="11120251",
- *                             "subj_id"=1,
- *                             "name"="Mathematics",
- *                             "comp"=1,
- *                             "schid"=1,
- *                             "clsid"=1,
- *                             "sesn"=2025,
- *                             "trm"=1
- *                         }
- *                     },
- *                     "2"={
- *                         {
- *                             "id"=2,
- *                             "uid"="21120251",
- *                             "subj_id"=2,
- *                             "name"="English Language",
- *                             "comp"=1,
- *                             "schid"=2,
- *                             "clsid"=1,
- *                             "sesn"=2025,
- *                             "trm"=1
- *                         }
- *                     }
- *                 }
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=422,
- *         description="Validation Error"
- *     ),
- *
- *     @OA\Response(
- *         response=401,
- *         description="Unauthorized"
- *     )
- * )
- */
-public function getAssignedClassSubjectsDomainAdmin(Request $request)
-{
-    $request->validate([
-        'schid' => 'required|array|min:1',
-        'schid.*' => 'integer',
-        'clsid' => 'required|integer',
-        'sesn'  => 'required|integer',
-        'trm'   => 'required|integer',
-    ]);
+    /**
+     * @OA\Get(
+     *     path="/api/get-assigned-class-subjects",
+     *     summary="Get assigned class subjects for Domain Admin",
+     *     description="Retrieve assigned subjects for one or more schools, class, session and term.",
+     *     operationId="getAssignedClassSubjectsDomainAdmin",
+     *     tags={"Api"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="schid[]",
+     *         in="query",
+     *         required=true,
+     *         description="School IDs",
+     *         @OA\Schema(
+     *             type="array",
+     *             @OA\Items(type="integer")
+     *         ),
+     *         style="form",
+     *         explode=true
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="clsid",
+     *         in="query",
+     *         required=true,
+     *         description="Class ID",
+     *         @OA\Schema(
+     *             type="integer",
+     *             example=1
+     *         )
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="sesn",
+     *         in="query",
+     *         required=true,
+     *         description="Session ID",
+     *         @OA\Schema(
+     *             type="integer",
+     *             example=2025
+     *         )
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="query",
+     *         required=true,
+     *         description="Term ID",
+     *         @OA\Schema(
+     *             type="integer",
+     *             example=1
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Assigned subjects retrieved successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(
+     *                 property="status",
+     *                 type="boolean",
+     *                 example=true
+     *             ),
+     *             @OA\Property(
+     *                 property="count",
+     *                 type="integer",
+     *                 example=6
+     *             ),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 example={
+     *                     "1"={
+     *                         {
+     *                             "id"=1,
+     *                             "uid"="11120251",
+     *                             "subj_id"=1,
+     *                             "name"="Mathematics",
+     *                             "comp"=1,
+     *                             "schid"=1,
+     *                             "clsid"=1,
+     *                             "sesn"=2025,
+     *                             "trm"=1
+     *                         }
+     *                     },
+     *                     "2"={
+     *                         {
+     *                             "id"=2,
+     *                             "uid"="21120251",
+     *                             "subj_id"=2,
+     *                             "name"="English Language",
+     *                             "comp"=1,
+     *                             "schid"=2,
+     *                             "clsid"=1,
+     *                             "sesn"=2025,
+     *                             "trm"=1
+     *                         }
+     *                     }
+     *                 }
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation Error"
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized"
+     *     )
+     * )
+     */
+    public function getAssignedClassSubjectsDomainAdmin(Request $request)
+    {
+        $request->validate([
+            'schid' => 'required|array|min:1',
+            'schid.*' => 'integer',
+            'clsid' => 'required|integer',
+            'sesn' => 'required|integer',
+            'trm' => 'required|integer',
+        ]);
 
-$subjects = DB::table('class_subj')
-    ->whereIn('schid', $request->schid)
-    ->where('clsid', $request->clsid)
-    ->where('sesn', $request->sesn)
-    ->where('trm', $request->trm)
-    ->select(
-        'uid',
-        'subj_id',
-        'name',
-        'comp',
-        'schid',
-        'clsid',
-        'sesn',
-        'trm'
-    )
-    ->orderBy('schid')
-    ->orderBy('name')
-    ->get()
-    ->groupBy('schid');
+        $subjects = DB::table('class_subj')
+            ->whereIn('schid', $request->schid)
+            ->where('clsid', $request->clsid)
+            ->where('sesn', $request->sesn)
+            ->where('trm', $request->trm)
+            ->select(
+                'uid',
+                'subj_id',
+                'name',
+                'comp',
+                'schid',
+                'clsid',
+                'sesn',
+                'trm'
+            )
+            ->orderBy('schid')
+            ->orderBy('name')
+            ->get()
+            ->groupBy('schid');
 
-    return response()->json([
-        'status' => true,
-        'count' => $subjects->flatten()->count(),
-        'pld' => $subjects
-    ]);
-}
+        return response()->json([
+            'status' => true,
+            'count' => $subjects->flatten()->count(),
+            'pld' => $subjects
+        ]);
+    }
 
 
 }
