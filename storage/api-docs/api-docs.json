@@ -29543,20 +29543,21 @@
                 ]
             }
         },
-        "/api/toggleResultStatus": {
+        "/api/toggle-student-result-status": {
             "post": {
                 "tags": [
-                    "Api"
+                    "Results"
                 ],
-                "summary": "Toggle result publication status by class parameters",
-                "description": "Toggles the `stat` field (published/unpublished) for a result based on school, class arm, class, session, and term.",
-                "operationId": "toggleResultStatus",
+                "summary": "Publish or Unpublish an Individual Student Result",
+                "description": "Toggles the publication status of all subject results belonging to a specific student for a given session, term, and class.",
+                "operationId": "toggleStudentResultStatus",
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
                                 "required": [
+                                    "stid",
                                     "schid",
                                     "clsa",
                                     "clsm",
@@ -29564,6 +29565,11 @@
                                     "trm"
                                 ],
                                 "properties": {
+                                    "stid": {
+                                        "description": "Student ID",
+                                        "type": "integer",
+                                        "example": 2405
+                                    },
                                     "schid": {
                                         "description": "School ID",
                                         "type": "integer",
@@ -29572,7 +29578,7 @@
                                     "clsa": {
                                         "description": "Class Arm ID",
                                         "type": "integer",
-                                        "example": 3
+                                        "example": 1
                                     },
                                     "clsm": {
                                         "description": "Class ID",
@@ -29580,9 +29586,9 @@
                                         "example": 11
                                     },
                                     "ssn": {
-                                        "description": "Session / Academic Year",
+                                        "description": "Academic Session",
                                         "type": "integer",
-                                        "example": 2024
+                                        "example": 2025
                                     },
                                     "trm": {
                                         "description": "Term",
@@ -29597,7 +29603,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Result status toggled successfully",
+                        "description": "Result status updated successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -29608,34 +29614,17 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "Result status updated successfully."
+                                            "example": "Result Published Successfully"
                                         },
                                         "pld": {
                                             "type": "array",
                                             "items": {
                                                 "properties": {
-                                                    "clsa": {
+                                                    "stid": {
                                                         "type": "integer",
-                                                        "example": 3
-                                                    },
-                                                    "schid": {
-                                                        "type": "integer",
-                                                        "example": 12
-                                                    },
-                                                    "clsm": {
-                                                        "type": "integer",
-                                                        "example": 11
-                                                    },
-                                                    "ssn": {
-                                                        "type": "integer",
-                                                        "example": 2024
-                                                    },
-                                                    "trm": {
-                                                        "type": "integer",
-                                                        "example": 1
+                                                        "example": 2405
                                                     },
                                                     "new_stat": {
-                                                        "description": "New result status (1 = published, 0 = unpublished)",
                                                         "type": "integer",
                                                         "example": 1
                                                     }
@@ -29650,7 +29639,7 @@
                         }
                     },
                     "404": {
-                        "description": "Result not found",
+                        "description": "Student result not found",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -29661,7 +29650,7 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "Result not found."
+                                            "example": "Student result not found."
                                         }
                                     },
                                     "type": "object"
@@ -29670,30 +29659,9 @@
                         }
                     },
                     "422": {
-                        "description": "Validation error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "The given data was invalid."
-                                        },
-                                        "errors": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Validation Error"
                     }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/assignClassSubject": {

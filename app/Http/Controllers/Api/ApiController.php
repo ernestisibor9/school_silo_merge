@@ -34574,127 +34574,152 @@ class ApiController extends Controller
     }
 
 
-    /**
-     * @OA\Post(
-     *     path="/api/toggleResultStatus",
-     *     operationId="toggleResultStatus",
-     *     tags={"Api"},
-     *     summary="Toggle result publication status by class parameters",
-     *     description="Toggles the `stat` field (published/unpublished) for a result based on school, class arm, class, session, and term.",
-     *     security={{"bearerAuth":{}}},
-     *
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"schid","clsa","clsm","ssn","trm"},
-     *             @OA\Property(property="schid", type="integer", example=12, description="School ID"),
-     *             @OA\Property(property="clsa", type="integer", example=3, description="Class Arm ID"),
-     *             @OA\Property(property="clsm", type="integer", example=11, description="Class ID"),
-     *             @OA\Property(property="ssn", type="integer", example=2024, description="Session / Academic Year"),
-     *             @OA\Property(property="trm", type="integer", example=1, description="Term")
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="Result status toggled successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Result status updated successfully."),
-     *             @OA\Property(
-     *                 property="pld",
-     *                 type="array",
-     *                 @OA\Items(
-     *                     type="object",
-     *                     @OA\Property(property="clsa", type="integer", example=3),
-     *                     @OA\Property(property="schid", type="integer", example=12),
-     *                     @OA\Property(property="clsm", type="integer", example=11),
-     *                     @OA\Property(property="ssn", type="integer", example=2024),
-     *                     @OA\Property(property="trm", type="integer", example=1),
-     *                     @OA\Property(
-     *                         property="new_stat",
-     *                         type="integer",
-     *                         example=1,
-     *                         description="New result status (1 = published, 0 = unpublished)"
-     *                     )
-     *                 )
-     *             )
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=404,
-     *         description="Result not found",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Result not found.")
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=422,
-     *         description="Validation error",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
-     *             @OA\Property(property="errors", type="object")
-     *         )
-     *     )
-     * )
-     */
+/**
+ * @OA\Post(
+ *     path="/api/toggle-student-result-status",
+ *     tags={"Results"},
+ *     summary="Publish or Unpublish an Individual Student Result",
+ *     description="Toggles the publication status of all subject results belonging to a specific student for a given session, term, and class.",
+ *     operationId="toggleStudentResultStatus",
+ *
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             required={"stid","schid","clsa","clsm","ssn","trm"},
+ *             @OA\Property(
+ *                 property="stid",
+ *                 type="integer",
+ *                 example=2405,
+ *                 description="Student ID"
+ *             ),
+ *             @OA\Property(
+ *                 property="schid",
+ *                 type="integer",
+ *                 example=12,
+ *                 description="School ID"
+ *             ),
+ *             @OA\Property(
+ *                 property="clsa",
+ *                 type="integer",
+ *                 example=1,
+ *                 description="Class Arm ID"
+ *             ),
+ *             @OA\Property(
+ *                 property="clsm",
+ *                 type="integer",
+ *                 example=11,
+ *                 description="Class ID"
+ *             ),
+ *             @OA\Property(
+ *                 property="ssn",
+ *                 type="integer",
+ *                 example=2025,
+ *                 description="Academic Session"
+ *             ),
+ *             @OA\Property(
+ *                 property="trm",
+ *                 type="integer",
+ *                 example=1,
+ *                 description="Term"
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Result status updated successfully",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="Result Published Successfully"
+ *             ),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     @OA\Property(property="stid", type="integer", example=2405),
+ *                     @OA\Property(property="new_stat", type="integer", example=1)
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=404,
+ *         description="Student result not found",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="Student result not found."
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation Error"
+ *     )
+ * )
+ */
 
+public function toggleStudentResultStatus(Request $request)
+{
+    $request->validate([
+        'stid'  => 'required',
+        'schid' => 'required',
+        'clsa'  => 'required',
+        'clsm'  => 'required',
+        'ssn'   => 'required',
+        'trm'   => 'required',
+    ]);
 
-    public function toggleResultStatus(Request $request)
-    {
-        $request->validate([
-            'schid' => 'required',
-            'clsa' => 'required',
-            'clsm' => 'required',
-            'ssn' => 'required',
-            'trm' => 'required',
-        ]);
+    // Get all subject records belonging to this student
+    $results = student_sub_res::where([
+        ['stid', $request->stid],
+        ['schid', $request->schid],
+        ['clsa', $request->clsa],
+        ['clsm', $request->clsm],
+        ['ssn', $request->ssn],
+        ['trm', $request->trm],
+    ])->get();
 
-        $schid = $request->schid;
-        $clsa = $request->clsa;
-        $clsm = $request->clsm;
-        $ssn = $request->ssn;
-        $trm = $request->trm;
-
-        // Fetch the student result
-        $result = student_res::where([
-            ['schid', $schid],
-            ['clsa', $clsa],
-            ['clsm', $clsm],
-            ['ssn', $ssn],
-            ['trm', $trm],
-        ])->first();
-
-        if (!$result) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Result not found.'
-            ], 404);
-        }
-
-        // Toggle the status
-        $result->stat = $result->stat == 1 ? 0 : 1;
-        $result->save();
-
+    if ($results->isEmpty()) {
         return response()->json([
-            'status' => true,
-            'message' => 'Result status updated successfully.',
-            'pld' => [
-                [
-                    'clsa' => $clsa,
-                    'schid' => $schid,
-                    'clsm' => $clsm,
-                    'ssn' => $ssn,
-                    'trm' => $trm,
-                    'new_stat' => $result->stat,
-                ]
-            ]
-        ]);
+            'status' => false,
+            'message' => 'Student result not found.'
+        ], 404);
     }
 
+    // Determine new status
+    $newStatus = $results->first()->stat == 1 ? 0 : 1;
+
+    // Update all subjects for the student
+    student_sub_res::where([
+        ['stid', $request->stid],
+        ['schid', $request->schid],
+        ['clsa', $request->clsa],
+        ['clsm', $request->clsm],
+        ['ssn', $request->ssn],
+        ['trm', $request->trm],
+    ])->update([
+        'stat' => $newStatus
+    ]);
+
+    return response()->json([
+        'status' => true,
+        'message' => $newStatus ? 'Result Published Successfully' : 'Result Unpublished Successfully',
+        'pld' => [
+            [
+                'stid' => $request->stid,
+                'new_stat' => $newStatus
+            ]
+        ]
+    ]);
+}
 
 
     /**

@@ -10,7 +10,7 @@ class student_sub_res extends Model
     protected $primaryKey = 'uid';
     public $incrementing = false;
     protected $fillable = [
-        'uid','stid','schid','ssn','trm','clsm','clsa','sbj','pos'
+        'uid','stid','schid','stat','ssn','trm','clsm','clsa','sbj','pos'
     ];
     /*protected $hidden = [
         'password',
