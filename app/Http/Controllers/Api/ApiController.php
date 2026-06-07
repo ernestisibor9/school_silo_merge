@@ -37616,41 +37616,43 @@ class ApiController extends Controller
 
 
     public function reply(Request $request, $messageId)
-{
-    $user = auth()->user();
+    {
+        $user = auth()->user();
 
-    $request->validate([
-        'message' => 'required|string'
-    ]);
+        $request->validate([
+            'message' => 'required|string'
+        ]);
 
-    $parent = Message::with('recipients')->findOrFail($messageId);
+        $parent = Message::with('recipients')->findOrFail($messageId);
 
-    // create reply message
-    $reply = Message::create([
-        'conversation_id' => $parent->conversation_id,
-        'sender_id' => $user->id,
-        'sender_type' => $user->typ,
-        'message' => $request->message,
-        'subject' => $parent->subject,
-        'parent_id' => $parent->id
-    ]);
+        // create reply message
+        $reply = Message::create([
+            'conversation_id' => $parent->conversation_id,
+            'sender_id' => $user->id,
+            'sender_type' => $user->typ,
+            'message' => $request->message,
+            'subject' => $parent->subject,
+            'parent_id' => $parent->id
+        ]);
 
-    // 🔥 IMPORTANT FIX: send reply to ALL original recipients
-    foreach ($parent->recipients as $receiver) {
+        // 🔥 IMPORTANT FIX: send reply to ALL original recipients
+// include original recipients
+        foreach ($parent->recipients as $receiver) {
 
+            MessageRecipient::create([
+                'message_id' => $reply->id,
+                'receiver_id' => $receiver->receiver_id,
+                'receiver_type' => $receiver->receiver_type
+            ]);
+        }
+
+        // ALSO ensure sender gets reply if needed (IMPORTANT FIX)
         MessageRecipient::create([
             'message_id' => $reply->id,
-            'receiver_id' => $receiver->receiver_id,
-            'receiver_type' => $receiver->receiver_type
+            'receiver_id' => $parent->sender_id,
+            'receiver_type' => $parent->sender_type
         ]);
     }
-
-    return response()->json([
-        "status" => true,
-        "message" => "Reply sent correctly",
-        "pld" => $reply
-    ]);
-}
 
 
     /**
@@ -38383,63 +38385,63 @@ class ApiController extends Controller
 
 
 
- /**
- * @OA\Post(
- *     path="/api/toggleResultStat",
- *     tags={"Api"},
- *     summary="Publish or Unpublish Class Result",
- *     description="Toggles the publication status of a class result based on school, class, session, and term.",
- *     operationId="toggleResultStat",
- *
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"schid","clsa","clsm","ssn","trm"},
- *             @OA\Property(property="schid", type="integer", example=12, description="School ID"),
- *             @OA\Property(property="clsa", type="integer", example=1, description="Class Arm ID"),
- *             @OA\Property(property="clsm", type="integer", example=11, description="Class ID"),
- *             @OA\Property(property="ssn", type="integer", example=2025, description="Academic Session"),
- *             @OA\Property(property="trm", type="integer", example=1, description="Term")
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Result status updated successfully",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Result status updated successfully."),
- *             @OA\Property(
- *                 property="pld",
- *                 type="array",
- *                 @OA\Items(
- *                     @OA\Property(property="clsa", type="integer", example=1),
- *                     @OA\Property(property="schid", type="integer", example=12),
- *                     @OA\Property(property="clsm", type="integer", example=11),
- *                     @OA\Property(property="ssn", type="integer", example=2025),
- *                     @OA\Property(property="trm", type="integer", example=1),
- *                     @OA\Property(property="new_stat", type="integer", example=1)
- *                 )
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=404,
- *         description="Result not found",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="Result not found.")
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=422,
- *         description="Validation error"
- *     )
- * )
- */
-        public function toggleResultStat(Request $request)
+    /**
+     * @OA\Post(
+     *     path="/api/toggleResultStat",
+     *     tags={"Api"},
+     *     summary="Publish or Unpublish Class Result",
+     *     description="Toggles the publication status of a class result based on school, class, session, and term.",
+     *     operationId="toggleResultStat",
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"schid","clsa","clsm","ssn","trm"},
+     *             @OA\Property(property="schid", type="integer", example=12, description="School ID"),
+     *             @OA\Property(property="clsa", type="integer", example=1, description="Class Arm ID"),
+     *             @OA\Property(property="clsm", type="integer", example=11, description="Class ID"),
+     *             @OA\Property(property="ssn", type="integer", example=2025, description="Academic Session"),
+     *             @OA\Property(property="trm", type="integer", example=1, description="Term")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Result status updated successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Result status updated successfully."),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="clsa", type="integer", example=1),
+     *                     @OA\Property(property="schid", type="integer", example=12),
+     *                     @OA\Property(property="clsm", type="integer", example=11),
+     *                     @OA\Property(property="ssn", type="integer", example=2025),
+     *                     @OA\Property(property="trm", type="integer", example=1),
+     *                     @OA\Property(property="new_stat", type="integer", example=1)
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="Result not found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Result not found.")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error"
+     *     )
+     * )
+     */
+    public function toggleResultStat(Request $request)
     {
         $request->validate([
             'schid' => 'required',
