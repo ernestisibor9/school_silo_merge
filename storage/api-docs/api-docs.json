@@ -32459,6 +32459,137 @@
                     }
                 ]
             }
+        },
+        "/api/toggleResultStat": {
+            "post": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Publish or Unpublish Class Result",
+                "description": "Toggles the publication status of a class result based on school, class, session, and term.",
+                "operationId": "toggleResultStat",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "schid",
+                                    "clsa",
+                                    "clsm",
+                                    "ssn",
+                                    "trm"
+                                ],
+                                "properties": {
+                                    "schid": {
+                                        "description": "School ID",
+                                        "type": "integer",
+                                        "example": 12
+                                    },
+                                    "clsa": {
+                                        "description": "Class Arm ID",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "clsm": {
+                                        "description": "Class ID",
+                                        "type": "integer",
+                                        "example": 11
+                                    },
+                                    "ssn": {
+                                        "description": "Academic Session",
+                                        "type": "integer",
+                                        "example": 2025
+                                    },
+                                    "trm": {
+                                        "description": "Term",
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Result status updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Result status updated successfully."
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "clsa": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "schid": {
+                                                        "type": "integer",
+                                                        "example": 12
+                                                    },
+                                                    "clsm": {
+                                                        "type": "integer",
+                                                        "example": 11
+                                                    },
+                                                    "ssn": {
+                                                        "type": "integer",
+                                                        "example": 2025
+                                                    },
+                                                    "trm": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "new_stat": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Result not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Result not found."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            }
         }
     },
     "components": {

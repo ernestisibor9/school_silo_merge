@@ -208,6 +208,7 @@ Route::group([
     Route::get('/get-assigned-class-subjects', [ApiController::class, 'getAssignedClassSubjectsDomainAdmin']);
 
     Route::post('toggleResultStatus', [ApiController::class, 'toggleResultStatus']);
+    Route::post('toggleResultStat', [ApiController::class, 'toggleResultStat']);
     Route::post('assignClassSubject', [ApiController::class, 'assignClassSubject']);
 
     Route::post('setStaffClassArm', [ApiController::class, 'setStaffClassArm']);
