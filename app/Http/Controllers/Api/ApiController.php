@@ -34576,8 +34576,8 @@ class ApiController extends Controller
 
 /**
  * @OA\Post(
- *     path="/api/toggle-student-result-status",
- *     tags={"Results"},
+ *     path="/api/toggleResultStatus",
+ *     tags={"Api"},
  *     summary="Publish or Unpublish an Individual Student Result",
  *     description="Toggles the publication status of all subject results belonging to a specific student for a given session, term, and class.",
  *     operationId="toggleStudentResultStatus",
