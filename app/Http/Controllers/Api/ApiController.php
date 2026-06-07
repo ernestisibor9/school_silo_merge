@@ -37615,45 +37615,62 @@ class ApiController extends Controller
     // }
 
 
-    public function reply(Request $request, $messageId)
-    {
-        $user = auth()->user();
+public function reply(Request $request, $messageId)
+{
+    $user = auth()->user();
 
-        $request->validate([
-            'message' => 'required|string'
-        ]);
+    $request->validate([
+        'message' => 'required|string'
+    ]);
 
-        $parent = Message::with('recipients')->findOrFail($messageId);
+    $parent = Message::with('recipients')->findOrFail($messageId);
 
-        // create reply message
-        $reply = Message::create([
-            'conversation_id' => $parent->conversation_id,
-            'sender_id' => $user->id,
-            'sender_type' => $user->typ,
-            'message' => $request->message,
-            'subject' => $parent->subject,
-            'parent_id' => $parent->id
-        ]);
+    // create reply message
+    $reply = Message::create([
+        'conversation_id' => $parent->conversation_id,
+        'sender_id' => $user->id,
+        'sender_type' => $user->typ,
+        'message' => $request->message,
+        'subject' => $parent->subject,
+        'parent_id' => $parent->id
+    ]);
 
-        // 🔥 IMPORTANT FIX: send reply to ALL original recipients
-// include original recipients
-        foreach ($parent->recipients as $receiver) {
+    $targets = [];
 
-            MessageRecipient::create([
-                'message_id' => $reply->id,
-                'receiver_id' => $receiver->receiver_id,
-                'receiver_type' => $receiver->receiver_type
-            ]);
-        }
+    // 1. include all original recipients
+    foreach ($parent->recipients as $receiver) {
+        $targets[] = [
+            'id' => $receiver->receiver_id,
+            'type' => $receiver->receiver_type
+        ];
+    }
 
-        // ALSO ensure sender gets reply if needed (IMPORTANT FIX)
+    // 2. ALWAYS include original sender (IMPORTANT FIX)
+    $targets[] = [
+        'id' => $parent->sender_id,
+        'type' => $parent->sender_type
+    ];
+
+    // 3. remove duplicates (VERY IMPORTANT)
+    $targets = collect($targets)
+        ->unique(fn($t) => $t['id'].'-'.$t['type'])
+        ->values();
+
+    // 4. save recipients
+    foreach ($targets as $target) {
         MessageRecipient::create([
             'message_id' => $reply->id,
-            'receiver_id' => $parent->sender_id,
-            'receiver_type' => $parent->sender_type
+            'receiver_id' => $target['id'],
+            'receiver_type' => $target['type']
         ]);
     }
 
+    return response()->json([
+        "status" => true,
+        "message" => "Reply sent correctly",
+        "pld" => $reply
+    ]);
+}
 
     /**
      * @OA\Get(
