@@ -29543,10 +29543,10 @@
                 ]
             }
         },
-        "/api/toggle-student-result-status": {
+        "/api/toggleResultStatus": {
             "post": {
                 "tags": [
-                    "Results"
+                    "Api"
                 ],
                 "summary": "Publish or Unpublish an Individual Student Result",
                 "description": "Toggles the publication status of all subject results belonging to a specific student for a given session, term, and class.",

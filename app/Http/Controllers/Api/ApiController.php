@@ -34666,7 +34666,7 @@ class ApiController extends Controller
  * )
  */
 
-public function toggleStudentResultStatus(Request $request)
+public function toggleResultStatus(Request $request)
 {
     $request->validate([
         'stid'  => 'required',
