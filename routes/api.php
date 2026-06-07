@@ -144,7 +144,7 @@ Route::group([
     'middleware' => ['auth:api'],
 ], function () {
 
- Route::get('/getDomainAdmin', [ApiController::class, 'getDomainAdmin']);
+    Route::get('/getDomainAdmin', [ApiController::class, 'getDomainAdmin']);
 
     Route::post('sendEmailVerificationLink', [ApiController::class, 'sendEmailVerificationLink']);
     Route::post('setSchool', [ApiController::class, 'setSchool']);
@@ -199,6 +199,7 @@ Route::group([
     Route::get('/inbox', [ApiController::class, 'inbox']);
     Route::get('/sent-messages', [ApiController::class, 'sent']);
     Route::post('/staff/send-message', [ApiController::class, 'staffSendMessage']);
+    Route::post('/student/send-message', [ApiController::class, 'studentSendMessage']);
 
     // Domain Admin
     Route::post('/domain/send-message', [ApiController::class, 'domainSendMessage']);

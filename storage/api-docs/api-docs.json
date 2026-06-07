@@ -32590,6 +32590,127 @@
                     }
                 }
             }
+        },
+        "/api/student/send-message": {
+            "post": {
+                "tags": [
+                    "Messaging"
+                ],
+                "summary": "Student sends message to class teacher",
+                "description": "Allows a student to send a message and optional attachment to their assigned class teacher.",
+                "operationId": "2a193e6a96bacb74e4553c532ca831d0",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "subject",
+                                    "message"
+                                ],
+                                "properties": {
+                                    "subject": {
+                                        "type": "string",
+                                        "example": "Need Assistance"
+                                    },
+                                    "message": {
+                                        "type": "string",
+                                        "example": "Good morning teacher, I need clarification on yesterday's assignment."
+                                    },
+                                    "attachment": {
+                                        "description": "Optional file attachment (jpg, jpeg, png, pdf, doc, docx)",
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Message sent successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Message sent to class teacher successfully"
+                                        },
+                                        "conversation_id": {
+                                            "type": "integer",
+                                            "example": 45
+                                        },
+                                        "message_id": {
+                                            "type": "integer",
+                                            "example": 77
+                                        },
+                                        "teacher_id": {
+                                            "type": "integer",
+                                            "example": 1929
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthorized"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Student record or class teacher not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Class teacher not assigned"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
