@@ -37533,86 +37533,124 @@ class ApiController extends Controller
      * )
      */
 
+    // public function reply(Request $request, $messageId)
+    // {
+    //     $user = auth()->user();
+
+    //     $parent = Message::with('recipients')->findOrFail($messageId);
+
+    //     $reply = Message::create([
+    //         'conversation_id' => $parent->conversation_id,
+    //         'sender_id' => $user->id,
+    //         'sender_type' => $user->typ,
+    //         'message' => $request->message,
+    //         'subject' => $parent->subject,
+    //         'parent_id' => $parent->id
+    //     ]);
+
+    //     $receiverId = null;
+    //     $receiverType = null;
+
+    //     // =========================
+    //     // STAFF RULE
+    //     // =========================
+    //     if ($user->typ === 'w') {
+
+    //         $receiver = $parent->recipients->first();
+
+    //         if ($receiver) {
+    //             $receiverId = $receiver->receiver_id;
+    //             $receiverType = $receiver->receiver_type;
+    //         }
+    //     }
+
+    //     // =========================
+    //     // STUDENT RULE (ONLY CLASS TEACHER OR ADMIN)
+    //     // =========================
+    //     elseif ($user->typ === 'z') {
+
+    //         $student = DB::table('old_student')
+    //             ->where('sid', $user->id)
+    //             ->first();
+
+    //         if ($student) {
+
+    //             $teacher = DB::table('staff_class')
+    //                 ->where('cls', $student->clsm)
+    //                 ->first();
+
+    //             if ($teacher) {
+    //                 $receiverId = $teacher->stid;
+    //                 $receiverType = 'w';
+    //             }
+    //         }
+    //     }
+
+    //     // =========================
+    //     // ADMIN + SCHOOL (FULL CONTROL)
+    //     // =========================
+    //     else {
+
+    //         $receiver = $parent->recipients->first();
+
+    //         if ($receiver) {
+    //             $receiverId = $receiver->receiver_id;
+    //             $receiverType = $receiver->receiver_type;
+    //         }
+    //     }
+
+    //     if ($receiverId && $receiverType) {
+    //         MessageRecipient::create([
+    //             'message_id' => $reply->id,
+    //             'receiver_id' => $receiverId,
+    //             'receiver_type' => $receiverType
+    //         ]);
+    //     }
+
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Reply sent correctly",
+    //         "pld" => $reply
+    //     ]);
+    // }
+
+
     public function reply(Request $request, $messageId)
-    {
-        $user = auth()->user();
+{
+    $user = auth()->user();
 
-        $parent = Message::with('recipients')->findOrFail($messageId);
+    $request->validate([
+        'message' => 'required|string'
+    ]);
 
-        $reply = Message::create([
-            'conversation_id' => $parent->conversation_id,
-            'sender_id' => $user->id,
-            'sender_type' => $user->typ,
-            'message' => $request->message,
-            'subject' => $parent->subject,
-            'parent_id' => $parent->id
-        ]);
+    $parent = Message::with('recipients')->findOrFail($messageId);
 
-        $receiverId = null;
-        $receiverType = null;
+    // create reply message
+    $reply = Message::create([
+        'conversation_id' => $parent->conversation_id,
+        'sender_id' => $user->id,
+        'sender_type' => $user->typ,
+        'message' => $request->message,
+        'subject' => $parent->subject,
+        'parent_id' => $parent->id
+    ]);
 
-        // =========================
-        // STAFF RULE
-        // =========================
-        if ($user->typ === 'w') {
+    // 🔥 IMPORTANT FIX: send reply to ALL original recipients
+    foreach ($parent->recipients as $receiver) {
 
-            $receiver = $parent->recipients->first();
-
-            if ($receiver) {
-                $receiverId = $receiver->receiver_id;
-                $receiverType = $receiver->receiver_type;
-            }
-        }
-
-        // =========================
-        // STUDENT RULE (ONLY CLASS TEACHER OR ADMIN)
-        // =========================
-        elseif ($user->typ === 'z') {
-
-            $student = DB::table('old_student')
-                ->where('sid', $user->id)
-                ->first();
-
-            if ($student) {
-
-                $teacher = DB::table('staff_class')
-                    ->where('cls', $student->clsm)
-                    ->first();
-
-                if ($teacher) {
-                    $receiverId = $teacher->stid;
-                    $receiverType = 'w';
-                }
-            }
-        }
-
-        // =========================
-        // ADMIN + SCHOOL (FULL CONTROL)
-        // =========================
-        else {
-
-            $receiver = $parent->recipients->first();
-
-            if ($receiver) {
-                $receiverId = $receiver->receiver_id;
-                $receiverType = $receiver->receiver_type;
-            }
-        }
-
-        if ($receiverId && $receiverType) {
-            MessageRecipient::create([
-                'message_id' => $reply->id,
-                'receiver_id' => $receiverId,
-                'receiver_type' => $receiverType
-            ]);
-        }
-
-        return response()->json([
-            "status" => true,
-            "message" => "Reply sent correctly",
-            "pld" => $reply
+        MessageRecipient::create([
+            'message_id' => $reply->id,
+            'receiver_id' => $receiver->receiver_id,
+            'receiver_type' => $receiver->receiver_type
         ]);
     }
+
+    return response()->json([
+        "status" => true,
+        "message" => "Reply sent correctly",
+        "pld" => $reply
+    ]);
+}
 
 
     /**
