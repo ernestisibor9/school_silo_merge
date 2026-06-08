@@ -38698,7 +38698,11 @@ class ApiController extends Controller
             "message" => "Message sent to class teacher successfully",
             "conversation_id" => $conversation->id,
             "message_id" => $msg->id,
-            "teacher_id" => $teacher->stid
+            "teacher_id" => $teacher->stid,
+
+            // sender info
+            "sender_id" => $user->id,
+            "sender_type" => "z"
         ]);
     }
 
