@@ -12796,10 +12796,17 @@ class ApiController extends Controller
         //     throw new \Exception("Invalid split percentage (max 99%)");
         // }
 
-        $total = array_sum($merged);
+        $total = round(array_sum($merged), 2);
 
-        if ($total <= 0 || $total >= 100) {
-            throw new \Exception("Invalid split percentage");
+
+        $merchantShare = round(100 - $total, 2);
+
+        if ($merchantShare <= 0) {
+            throw new \Exception("Merchant share must be greater than 0. Got {$merchantShare}");
+        }
+
+        if ($merchantShare < 0 || $merchantShare > 100) {
+            throw new \Exception("Invalid merchant share calculated: {$merchantShare}");
         }
 
         // ✅ ADD THIS BLOCK HERE (RIGHT AFTER VALIDATION)
@@ -12817,10 +12824,6 @@ class ApiController extends Controller
         // ✅ ADD THIS HERE (RIGHT AFTER CALCULATION)
         if ($merchantShare > 100 || $merchantShare < 0) {
             throw new \Exception("Invalid merchant share calculated: {$merchantShare}");
-        }
-
-        if ($merchantShare < 0) {
-            throw new \Exception("Merchant share cannot be negative. Fix subaccount percentages.");
         }
 
         /* =====================================================
@@ -12854,6 +12857,12 @@ class ApiController extends Controller
             'merchant_share' => $merchantShare,
             'bearer_type' => 'account',
         ];
+
+        Log::info('PAYSTACK SPLIT DEBUG', [
+            'subaccounts' => $normalized,
+            'total' => $total,
+            'merchant_share' => $merchantShare,
+        ]);
 
         $response = Http::withToken(env('PAYSTACK_SECRET'))
             ->post('https://api.paystack.co/split', $postData);
@@ -12970,6 +12979,17 @@ class ApiController extends Controller
              * Create or reuse Paystack split
              * ------------------------------------------------*/
             $splitData = $this->createOrGetSplit($schid, $clsid, $subaccounts);
+
+            $total = collect($splitData['subaccounts'])->sum('share');
+
+            $merchantShare = 100 - $total;
+
+            if ($merchantShare <= 0) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Invalid split: merchant share is zero or negative'
+                ], 422);
+            }
 
             if (!isset($splitData['split_code'])) {
                 return response()->json([
