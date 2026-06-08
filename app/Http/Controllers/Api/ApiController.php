@@ -12732,7 +12732,7 @@ class ApiController extends Controller
 
     public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): array
     {
-        $MAX_SUBACCOUNT_SHARE = 99.0;
+        $MAX_SUBACCOUNT_SHARE = 100.0;
 
         /* =====================================================
          * 1. CHECK IF VALID SPLIT EXISTS (VERIFY AT PAYSTACK)
@@ -12764,12 +12764,21 @@ class ApiController extends Controller
          * ===================================================== */
         $merged = [];
         foreach ($subaccounts as $acc) {
+            // if (
+            //     empty($acc['subaccount']) ||
+            //     !isset($acc['share']) ||
+            //     floatval($acc['share']) <= 0
+            // ) {
+            //     throw new \Exception('Invalid subaccount payload');
+            // }
+            $share = floatval($acc['share']);
+
             if (
                 empty($acc['subaccount']) ||
-                !isset($acc['share']) ||
-                floatval($acc['share']) <= 0
+                $share <= 0 ||
+                $share > 100
             ) {
-                throw new \Exception('Invalid subaccount payload');
+                throw new \Exception("Invalid subaccount share detected: {$acc['subaccount']}");
             }
 
             $merged[$acc['subaccount']] = ($merged[$acc['subaccount']] ?? 0) + floatval($acc['share']);
@@ -12782,9 +12791,27 @@ class ApiController extends Controller
         /* =====================================================
          * 3. VALIDATE TOTAL ≤ 99%
          * ===================================================== */
+        // $total = array_sum($merged);
+        // if ($total <= 0 || $total > $MAX_SUBACCOUNT_SHARE) {
+        //     throw new \Exception("Invalid split percentage (max 99%)");
+        // }
+
         $total = array_sum($merged);
-        if ($total <= 0 || $total > $MAX_SUBACCOUNT_SHARE) {
+
+        if ($total <= 0 || $total >= 100) {
             throw new \Exception("Invalid split percentage (max 99%)");
+        }
+
+        // ✅ ADD THIS BLOCK HERE (RIGHT AFTER VALIDATION)
+        $merchantShare = 100 - $total;
+
+        // ✅ ADD THIS HERE (RIGHT AFTER CALCULATION)
+        if ($merchantShare > 100 || $merchantShare < 0) {
+            throw new \Exception("Invalid merchant share calculated: {$merchantShare}");
+        }
+
+        if ($merchantShare < 0) {
+            throw new \Exception("Merchant share cannot be negative. Fix subaccount percentages.");
         }
 
         /* =====================================================
@@ -12801,14 +12828,26 @@ class ApiController extends Controller
         /* =====================================================
          * 5. CREATE SPLIT AT PAYSTACK
          * ===================================================== */
+        // $response = Http::withToken(env('PAYSTACK_SECRET'))
+        //     ->post('https://api.paystack.co/split', [
+        //         'name' => "Split-{$schid}-{$clsid}",
+        //         'type' => 'percentage',
+        //         'currency' => 'NGN',
+        //         'subaccounts' => $normalized,
+        //         'bearer_type' => 'account', // ✅ CORRECT
+        //     ]);
+
+        $postData = [
+            'name' => "Split-{$schid}-{$clsid}",
+            'type' => 'percentage',
+            'currency' => 'NGN',
+            'subaccounts' => $normalized,
+            'merchant_share' => $merchantShare,
+            'bearer_type' => 'account',
+        ];
+
         $response = Http::withToken(env('PAYSTACK_SECRET'))
-            ->post('https://api.paystack.co/split', [
-                'name' => "Split-{$schid}-{$clsid}",
-                'type' => 'percentage',
-                'currency' => 'NGN',
-                'subaccounts' => $normalized,
-                'bearer_type' => 'account', // ✅ CORRECT
-            ]);
+            ->post('https://api.paystack.co/split', $postData);
 
         if (!$response->successful()) {
             Log::error('Paystack split creation failed', [
@@ -12930,8 +12969,21 @@ class ApiController extends Controller
              * Create or reuse Paystack split
              * ------------------------------------------------*/
             $splitData = $this->createOrGetSplit($schid, $clsid, $subaccounts);
+
+            // $sum = collect($splitData['subaccounts'])->sum('share');
+
+            // if ($sum > 99) {
+            //     return response()->json([
+            //         'status' => false,
+            //         'message' => 'Split total cannot exceed 99%'
+            //     ], 422);
+            // }
+
             $splitCode = $splitData['split_code'] ?? null;
             $subaccountsData = $splitData['subaccounts'] ?? [];
+
+            // Testing for bug
+
 
             /** -------------------------------------------------
              * Build reference
