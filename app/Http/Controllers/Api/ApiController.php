@@ -12774,9 +12774,7 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): ar
         $code = trim($acc['subaccount'] ?? '');
         $share = floatval($acc['share'] ?? 0);
 
-        if (!$code || $share <= 0) {
-            continue;
-        }
+        if (!$code || $share <= 0) continue;
 
         $clean[$code] = ($clean[$code] ?? 0) + $share;
     }
@@ -12786,7 +12784,7 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): ar
     }
 
     /* =====================================================
-     * 3. NORMALIZE TO SAFE PAYSTACK LIMIT (99.99%)
+     * 3. SAFE NORMALIZATION (NO FLOAT ERRORS)
      * ===================================================== */
     $sum = array_sum($clean);
 
@@ -12798,53 +12796,63 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): ar
     $total = 0;
 
     foreach ($clean as $code => $share) {
-        $percent = ($share / $sum) * 99.99; // IMPORTANT FIX
+
+        // IMPORTANT: cap at 99.99 to satisfy Paystack rule
+        $percent = ($share / $sum) * 99.99;
         $percent = round($percent, 2);
 
         $normalized[$code] = $percent;
         $total += $percent;
     }
 
-    // fix rounding drift
-    $difference = round(99.99 - $total, 2);
+    // fix rounding drift safely
+    $diff = round(99.99 - $total, 2);
 
     if (!empty($normalized)) {
         $lastKey = array_key_last($normalized);
-        $normalized[$lastKey] += $difference;
-    }
-
-    $merchantShare = round(100 - array_sum($normalized), 2);
-
-    // FORCE MINIMUM MERCHANT SHARE
-    if ($merchantShare < 0.01) {
-        $merchantShare = 0.01;
+        $normalized[$lastKey] += $diff;
     }
 
     /* =====================================================
-     * 4. FORMAT FOR PAYSTACK
+     * 4. ENSURE MERCHANT SHARE ALWAYS VALID
+     * ===================================================== */
+    $merchantShare = round(100 - array_sum($normalized), 2);
+
+    if ($merchantShare < 0.01) {
+        $merchantShare = 0.01;
+
+        // reduce last subaccount slightly
+        if (!empty($normalized)) {
+            $lastKey = array_key_last($normalized);
+            $normalized[$lastKey] -= 0.01;
+        }
+    }
+
+    /* =====================================================
+     * 5. FORMAT PAYSTACK PAYLOAD
      * ===================================================== */
     $payloadSubs = [];
 
     foreach ($normalized as $code => $share) {
         $payloadSubs[] = [
             'subaccount' => $code,
-            'share' => $share,
+            'share' => round($share, 2),
         ];
     }
 
     /* =====================================================
-     * 5. CREATE SPLIT
+     * 6. CREATE SPLIT
      * ===================================================== */
     $postData = [
         'name' => "Split-{$schid}-{$clsid}",
         'type' => 'percentage',
         'currency' => 'NGN',
         'subaccounts' => $payloadSubs,
-        'merchant_share' => $merchantShare,
+        'merchant_share' => round($merchantShare, 2),
         'bearer_type' => 'account',
     ];
 
-    Log::info('PAYSTACK SPLIT FINAL FIXED', $postData);
+    Log::info('PAYSTACK SPLIT FINAL SAFE', $postData);
 
     $response = Http::withToken(env('PAYSTACK_SECRET'))
         ->post('https://api.paystack.co/split', $postData);
@@ -12862,7 +12870,7 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): ar
     $splitCode = $response->json('data.split_code');
 
     /* =====================================================
-     * 6. VERIFY
+     * 7. VERIFY
      * ===================================================== */
     $verify = Http::withToken(env('PAYSTACK_SECRET'))
         ->get("https://api.paystack.co/split/{$splitCode}");
@@ -12872,7 +12880,7 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): ar
     }
 
     /* =====================================================
-     * 7. STORE
+     * 8. STORE
      * ===================================================== */
     subaccount_split::create([
         'schid' => $schid,
@@ -12886,6 +12894,26 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): ar
         'subaccounts' => $payloadSubs,
     ];
 }
+    public function handleCallback(Request $request)
+    {
+        $reference = $request->query('reference');
+
+        if (!$reference) {
+            return redirect()->to(url('/studentPortal?status=error'));
+        }
+
+        // Get school subdomain
+        $refParts = explode('-', $reference);
+        $schid = $refParts[1] ?? null;
+
+        $school = \DB::table('school')->where('sid', $schid)->first();
+        $subdomain = $school->sbd ?? 'www';
+
+        // Redirect user with reference to frontend
+        $url = request()->getScheme() . "://{$subdomain}.schoolsilomerge.top/studentPortal?status=processing&ref={$reference}";
+        return redirect()->to($url);
+    }
+
 
     private function redirectToError(): \Illuminate\Http\RedirectResponse
     {
@@ -13003,6 +13031,7 @@ public function initializePayment(Request $request)
         ], 500);
     }
 }
+
 
     private function getFrontendUrl(int $schid, string $path = ''): string
     {
