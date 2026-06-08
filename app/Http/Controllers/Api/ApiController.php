@@ -12781,7 +12781,7 @@ class ApiController extends Controller
                 throw new \Exception("Invalid subaccount share detected: {$acc['subaccount']}");
             }
 
-            $merged[$acc['subaccount']] = ($merged[$acc['subaccount']] ?? 0) + floatval($acc['share']);
+            $merged[$acc['subaccount']] = ($merged[$acc['subaccount']] ?? 0) + $share;
         }
 
         if (empty($merged)) {
@@ -12799,11 +12799,20 @@ class ApiController extends Controller
         $total = array_sum($merged);
 
         if ($total <= 0 || $total >= 100) {
-            throw new \Exception("Invalid split percentage (max 99%)");
+            throw new \Exception("Invalid split percentage");
         }
 
         // ✅ ADD THIS BLOCK HERE (RIGHT AFTER VALIDATION)
         $merchantShare = 100 - $total;
+
+        // ✅ ADD YOUR GUARDS HERE
+        if ($total >= 100) {
+            throw new \Exception("Invalid split: total cannot be 100 or more");
+        }
+
+        if ($merchantShare <= 0) {
+            throw new \Exception("Merchant share must be greater than 0");
+        }
 
         // ✅ ADD THIS HERE (RIGHT AFTER CALCULATION)
         if ($merchantShare > 100 || $merchantShare < 0) {
@@ -12935,14 +12944,6 @@ class ApiController extends Controller
         $metadata = $request->metadata;
         $payheadIds = $request->payhead_ids;
 
-        $totalShare = collect($subaccounts)->sum('share');
-
-        if ($totalShare <= 0 || $totalShare > 99) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Total split percentage must be between 0.01% and 99%',
-            ], 422);
-        }
 
         try {
             $totalAmountKobo = (int) round($amount * 100);
@@ -12970,6 +12971,13 @@ class ApiController extends Controller
              * ------------------------------------------------*/
             $splitData = $this->createOrGetSplit($schid, $clsid, $subaccounts);
 
+            if (!isset($splitData['split_code'])) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Split creation failed'
+                ], 500);
+            }
+
             // $sum = collect($splitData['subaccounts'])->sum('share');
 
             // if ($sum > 99) {
@@ -12981,6 +12989,11 @@ class ApiController extends Controller
 
             $splitCode = $splitData['split_code'] ?? null;
             $subaccountsData = $splitData['subaccounts'] ?? [];
+
+            Log::info('FINAL SPLIT CHECK', [
+                'split_code' => $splitCode,
+                'total' => collect($subaccountsData)->sum('share')
+            ]);
 
             // Testing for bug
 
