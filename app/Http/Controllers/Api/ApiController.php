@@ -12732,10 +12732,8 @@ class ApiController extends Controller
 
 public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): array
 {
-    $MAX_SUBACCOUNT_SHARE = 100.0;
-
     /* =====================================================
-     * 1. CHECK IF VALID SPLIT EXISTS (VERIFY AT PAYSTACK)
+     * 1. CHECK EXISTING SPLIT
      * ===================================================== */
     $existing = subaccount_split::where('schid', $schid)
         ->where('clsid', $clsid)
@@ -12749,12 +12747,11 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): ar
         if ($verify->successful()) {
 
             $data = $verify->json('data');
+
             $psSubs = $data['subaccounts'] ?? [];
             $merchantShare = $data['merchant_share'] ?? null;
 
-            // VALID SPLIT STILL EXISTS
             if (!empty($psSubs) && $merchantShare > 0) {
-
                 return [
                     'split_code' => $existing->split_code,
                     'subaccounts' => json_decode($existing->subaccounts, true),
@@ -12762,130 +12759,128 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): ar
             }
         }
 
-        // ❌ DELETE FROM PAYSTACK
         Http::withToken(env('PAYSTACK_SECRET'))
             ->delete("https://api.paystack.co/split/{$existing->split_code}");
 
-        // ❌ DELETE FROM DB
         $existing->delete();
     }
 
     /* =====================================================
-     * 2. MERGE & VALIDATE SUBACCOUNTS
+     * 2. CLEAN + NORMALIZE INPUT (IMPORTANT FIX)
      * ===================================================== */
-    $merged = [];
+    $clean = [];
 
     foreach ($subaccounts as $acc) {
 
-        $share = floatval($acc['share']);
+        $code = trim($acc['subaccount'] ?? '');
+        $share = floatval($acc['share'] ?? 0);
 
-        if (
-            empty($acc['subaccount']) ||
-            $share <= 0 ||
-            $share > 100
-        ) {
-            throw new \Exception("Invalid subaccount share detected: {$acc['subaccount']}");
+        if (!$code || $share <= 0) {
+            continue;
         }
 
-        $merged[$acc['subaccount']] = ($merged[$acc['subaccount']] ?? 0) + $share;
+        $clean[$code] = ($clean[$code] ?? 0) + $share;
     }
 
-    if (empty($merged)) {
-        throw new \Exception('No valid subaccounts supplied');
-    }
-
-    /* =====================================================
-     * 3. VALIDATE TOTAL SPLIT
-     * ===================================================== */
-    $total = round(array_sum($merged), 2);
-
-    if ($total <= 0 || $total >= 100) {
-        throw new \Exception("Invalid split percentage. Total: {$total}");
+    if (empty($clean)) {
+        throw new \Exception("No valid subaccounts supplied");
     }
 
     /* =====================================================
-     * 4. CALCULATE MERCHANT SHARE (SINGLE SOURCE OF TRUTH)
+     * 3. AUTO NORMALIZE TO 100% (CRITICAL FIX)
      * ===================================================== */
-    $merchantShare = round(100 - $total, 2);
+    $sum = array_sum($clean);
 
-    if ($merchantShare <= 0) {
-        throw new \Exception("Merchant share must be greater than 0. Got {$merchantShare}");
+    if ($sum <= 0) {
+        throw new \Exception("Invalid total share");
     }
 
-    if ($merchantShare > 100) {
-        throw new \Exception("Invalid merchant share calculated: {$merchantShare}");
-    }
-
-    /* =====================================================
-     * 5. NORMALIZE SUBACCOUNTS
-     * ===================================================== */
     $normalized = [];
+    $total = 0;
 
-    foreach ($merged as $code => $share) {
-        $normalized[] = [
+    foreach ($clean as $code => $share) {
+        $percent = round(($share / $sum) * 100, 2);
+        $normalized[$code] = $percent;
+        $total += $percent;
+    }
+
+    // fix rounding drift
+    $difference = round(100 - $total, 2);
+    if (!empty($normalized)) {
+        $lastKey = array_key_last($normalized);
+        $normalized[$lastKey] += $difference;
+    }
+
+    $merchantShare = round(100 - array_sum($normalized), 2);
+
+    if ($merchantShare < 0) {
+        throw new \Exception("Merchant share invalid after normalization");
+    }
+
+    /* =====================================================
+     * 4. FORMAT FOR PAYSTACK
+     * ===================================================== */
+    $payloadSubs = [];
+
+    foreach ($normalized as $code => $share) {
+        $payloadSubs[] = [
             'subaccount' => $code,
             'share' => round($share, 2),
         ];
     }
 
     /* =====================================================
-     * 6. CREATE SPLIT AT PAYSTACK
+     * 5. CREATE PAYSTACK SPLIT
      * ===================================================== */
     $postData = [
         'name' => "Split-{$schid}-{$clsid}",
         'type' => 'percentage',
         'currency' => 'NGN',
-        'subaccounts' => $normalized,
+        'subaccounts' => $payloadSubs,
         'merchant_share' => $merchantShare,
         'bearer_type' => 'account',
     ];
 
-    Log::info('PAYSTACK SPLIT DEBUG', [
-        'subaccounts' => $normalized,
-        'total' => $total,
-        'merchant_share' => $merchantShare,
-    ]);
+    Log::info('PAYSTACK SPLIT FINAL', $postData);
 
     $response = Http::withToken(env('PAYSTACK_SECRET'))
         ->post('https://api.paystack.co/split', $postData);
 
     if (!$response->successful()) {
-        Log::error('Paystack split creation failed', [
+        Log::error('Paystack split failed', [
             'body' => $response->body(),
         ]);
 
-        throw new \Exception('Unable to create Paystack split');
+        throw new \Exception("Unable to create Paystack split");
     }
 
     $splitCode = $response->json('data.split_code');
 
     /* =====================================================
-     * 7. VERIFY SPLIT AT PAYSTACK
+     * 6. VERIFY
      * ===================================================== */
     $verify = Http::withToken(env('PAYSTACK_SECRET'))
         ->get("https://api.paystack.co/split/{$splitCode}");
 
-    if (!$verify->successful() || empty($verify->json('data.subaccounts'))) {
-        throw new \Exception('Split verification failed at Paystack');
+    if (!$verify->successful()) {
+        throw new \Exception("Split verification failed");
     }
 
     /* =====================================================
-     * 8. STORE LOCALLY
+     * 7. STORE
      * ===================================================== */
     subaccount_split::create([
         'schid' => $schid,
         'clsid' => $clsid,
         'split_code' => $splitCode,
-        'subaccounts' => json_encode($normalized),
+        'subaccounts' => json_encode($payloadSubs),
     ]);
 
     return [
         'split_code' => $splitCode,
-        'subaccounts' => $normalized,
+        'subaccounts' => $payloadSubs,
     ];
 }
-
-
     public function handleCallback(Request $request)
     {
         $reference = $request->query('reference');
@@ -12921,8 +12916,6 @@ public function initializePayment(Request $request)
         'schid' => 'required|integer',
         'clsid' => 'required|integer',
         'subaccount_code' => 'required|array|min:1',
-        'subaccount_code.*.subaccount' => 'required|string',
-        'subaccount_code.*.share' => 'required|numeric|min:0.01',
         'metadata' => 'required|array',
         'payhead_ids' => 'required|array|min:1',
     ]);
@@ -12931,17 +12924,13 @@ public function initializePayment(Request $request)
     $amount = (float) $request->amount;
     $schid = (int) $request->schid;
     $clsid = (int) $request->clsid;
-    $subaccounts = $request->subaccount_code;
-    $metadata = $request->metadata;
-    $payheadIds = $request->payhead_ids;
 
     try {
+
         $totalAmountKobo = (int) round($amount * 100);
 
-        /** -------------------------------------------------
-         * Validate subaccounts exist for this school/class
-         * ------------------------------------------------*/
-        foreach ($subaccounts as $acc) {
+        /** Validate subaccounts */
+        foreach ($request->subaccount_code as $acc) {
             $exists = \DB::table('sub_accounts')
                 ->where('schid', $schid)
                 ->where('clsid', $clsid)
@@ -12956,87 +12945,23 @@ public function initializePayment(Request $request)
             }
         }
 
-        /** -------------------------------------------------
-         * Create or reuse Paystack split
-         * ------------------------------------------------*/
-        $splitData = $this->createOrGetSplit($schid, $clsid, $subaccounts);
-
-        if (!isset($splitData['split_code'])) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Split creation failed'
-            ], 500);
-        }
+        /** Create split */
+        $splitData = $this->createOrGetSplit($schid, $clsid, $request->subaccount_code);
 
         $splitCode = $splitData['split_code'];
         $subaccountsData = $splitData['subaccounts'];
 
-        /** -------------------------------------------------
-         * SAFE MERCHANT SHARE CALCULATION (FIX)
-         * ------------------------------------------------*/
-        $total = round(collect($subaccountsData)->sum('share'), 2);
-        $merchantShare = round(100 - $total, 2);
+        /** Build reference */
+        $ref = uniqid("pay_{$schid}_", true);
 
-        // HARD SAFETY CHECKS
-        if ($total <= 0 || $total >= 100) {
-            return response()->json([
-                'status' => false,
-                'message' => "Invalid split configuration. Total: {$total}"
-            ], 422);
-        }
-
-        if ($merchantShare <= 0) {
-            return response()->json([
-                'status' => false,
-                'message' => "Invalid merchant share detected: {$merchantShare}"
-            ], 422);
-        }
-
-        Log::info('FINAL SPLIT CHECK', [
-            'split_code' => $splitCode,
-            'total' => $total,
-            'merchant_share' => $merchantShare
-        ]);
-
-        /** -------------------------------------------------
-         * Build reference
-         * ------------------------------------------------*/
-        $host = preg_replace('/^api\./', '', $request->getHost());
-        $typ = (int) ($request->typ ?? 0);
-        $stid = (int) ($request->stid ?? 0);
-        $ssnid = (int) ($request->ssnid ?? 0);
-        $trmid = (int) ($request->trmid ?? 0);
-
-        $ref = "{$host}-{$schid}-{$amount}-{$typ}-{$stid}-{$ssnid}-{$trmid}-{$clsid}-" . uniqid('', true);
-
-        /** -------------------------------------------------
-         * Merge metadata safely
-         * ------------------------------------------------*/
-        $metadata = array_merge($metadata, [
-            'stid' => $stid,
-            'ssnid' => $ssnid,
-            'trmid' => $trmid,
-            'clsid' => $clsid,
-            'schid' => $schid,
-            'typ' => $typ,
-            'name' => $metadata['name'] ?? '',
-            'exp' => $metadata['exp'] ?? '',
-            'eml' => $email,
-            'lid' => $metadata['lid'] ?? '',
-            'payhead_ids' => $payheadIds,
-            'time' => now()->timestamp,
-        ]);
-
-        /** -------------------------------------------------
-         * Paystack initialize payload
-         * ------------------------------------------------*/
+        /** Payload */
         $payload = [
             'email' => $email,
             'amount' => $totalAmountKobo,
             'currency' => 'NGN',
             'reference' => $ref,
             'callback_url' => $this->getFrontendUrl($schid, '/studentPortal'),
-            'metadata' => $metadata,
+            'metadata' => $request->metadata,
             'channels' => ['card', 'bank', 'ussd'],
             'split_code' => $splitCode,
         ];
@@ -13045,22 +12970,12 @@ public function initializePayment(Request $request)
             ->post('https://api.paystack.co/transaction/initialize', $payload);
 
         if (!$response->successful()) {
-            Log::error('Paystack Init Failed', [
-                'payload' => $payload,
-                'response' => $response->body(),
-            ]);
-
             return response()->json([
                 'status' => false,
                 'message' => 'Payment Initialization Failed',
             ], 400);
         }
 
-        $paystackData = $response->json();
-
-        /** -------------------------------------------------
-         * Store reference for callback/webhook
-         * ------------------------------------------------*/
         payment_refs::updateOrCreate(
             ['ref' => $ref],
             [
@@ -13073,25 +12988,22 @@ public function initializePayment(Request $request)
 
         return response()->json([
             'status' => true,
-            'message' => 'Payment Initialized Successfully',
-            'data' => $paystackData,
-            'ref' => $ref,
+            'data' => $response->json(),
             'split_code' => $splitCode,
-            'subaccounts' => $subaccountsData,
         ]);
 
     } catch (\Throwable $e) {
-        Log::error('Initialize Payment Exception', [
+
+        Log::error('Payment Init Error', [
             'error' => $e->getMessage(),
         ]);
 
         return response()->json([
             'status' => false,
-            'message' => 'Server Error: Unable to initialize payment',
+            'message' => 'Server error',
         ], 500);
     }
 }
-
 
 
     private function getFrontendUrl(int $schid, string $path = ''): string
