@@ -12820,12 +12820,29 @@ class ApiController extends Controller
         /* =====================================================
          * 6. VERIFY SPLIT EXISTS AT PAYSTACK (CRITICAL)
          * ===================================================== */
-        $verify = Http::withToken(env('PAYSTACK_SECRET'))
-            ->get("https://api.paystack.co/split/{$splitCode}");
+$verify = Http::withToken(env('PAYSTACK_SECRET'))
+    ->get("https://api.paystack.co/split/{$existing->split_code}");
 
-        if (!$verify->successful() || empty($verify->json('data.subaccounts'))) {
-            throw new \Exception('Split verification failed at Paystack');
-        }
+    Log::info('New Split Verification', [
+    'split' => $verify->json('data')
+]);
+
+
+if ($verify->successful()) {
+
+    Log::info('Verified Paystack Split', [
+        'split' => $verify->json('data')
+    ]);
+
+    $psSubs = $verify->json('data.subaccounts') ?? [];
+
+    if (!empty($psSubs)) {
+        return [
+            'split_code' => $existing->split_code,
+            'subaccounts' => json_decode($existing->subaccounts, true),
+        ];
+    }
+}
 
         /* =====================================================
          * 7. STORE LOCALLY
