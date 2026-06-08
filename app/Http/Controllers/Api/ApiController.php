@@ -12965,6 +12965,29 @@ public function initializePayment(Request $request)
             'split_code' => $splitCode,
         ];
 
+        /* =====================================================
+ * SPLIT VALIDATION (PUT IT HERE)
+ * ===================================================== */
+if (!empty($splitCode)) {
+
+    $verify = Http::withToken(env('PAYSTACK_SECRET'))
+        ->get("https://api.paystack.co/split/{$splitCode}");
+
+    if ($verify->successful() && !empty($verify->json('data'))) {
+        $payload['split_code'] = $splitCode;
+    } else {
+        Log::warning("Invalid split detected, skipping", [
+            'split_code' => $splitCode
+        ]);
+
+        $payload['split_code'] = null;
+    }
+}
+
+/* =====================================================
+ * SEND TO PAYSTACK (AFTER VALIDATION)
+ * ===================================================== */
+
         $response = Http::withToken(env('PAYSTACK_SECRET'))
             ->post('https://api.paystack.co/transaction/initialize', $payload);
 
