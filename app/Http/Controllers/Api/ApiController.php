@@ -12729,7 +12729,6 @@ class ApiController extends Controller
     }
 
 
-
 public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): array
 {
     /* =====================================================
@@ -12749,9 +12748,9 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): ar
             $data = $verify->json('data');
 
             $psSubs = $data['subaccounts'] ?? [];
-            $merchantShare = $data['merchant_share'] ?? null;
+            $merchantShare = $data['merchant_share'] ?? 0;
 
-            if (!empty($psSubs) && $merchantShare > 0) {
+            if (!empty($psSubs) && $merchantShare >= 0.01) {
                 return [
                     'split_code' => $existing->split_code,
                     'subaccounts' => json_decode($existing->subaccounts, true),
@@ -12766,7 +12765,7 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): ar
     }
 
     /* =====================================================
-     * 2. CLEAN + NORMALIZE INPUT (IMPORTANT FIX)
+     * 2. CLEAN INPUT
      * ===================================================== */
     $clean = [];
 
@@ -12787,7 +12786,7 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): ar
     }
 
     /* =====================================================
-     * 3. AUTO NORMALIZE TO 100% (CRITICAL FIX)
+     * 3. NORMALIZE TO SAFE PAYSTACK LIMIT (99.99%)
      * ===================================================== */
     $sum = array_sum($clean);
 
@@ -12799,13 +12798,16 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): ar
     $total = 0;
 
     foreach ($clean as $code => $share) {
-        $percent = round(($share / $sum) * 100, 2);
+        $percent = ($share / $sum) * 99.99; // IMPORTANT FIX
+        $percent = round($percent, 2);
+
         $normalized[$code] = $percent;
         $total += $percent;
     }
 
     // fix rounding drift
-    $difference = round(100 - $total, 2);
+    $difference = round(99.99 - $total, 2);
+
     if (!empty($normalized)) {
         $lastKey = array_key_last($normalized);
         $normalized[$lastKey] += $difference;
@@ -12813,8 +12815,9 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): ar
 
     $merchantShare = round(100 - array_sum($normalized), 2);
 
-    if ($merchantShare < 0) {
-        throw new \Exception("Merchant share invalid after normalization");
+    // FORCE MINIMUM MERCHANT SHARE
+    if ($merchantShare < 0.01) {
+        $merchantShare = 0.01;
     }
 
     /* =====================================================
@@ -12825,12 +12828,12 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): ar
     foreach ($normalized as $code => $share) {
         $payloadSubs[] = [
             'subaccount' => $code,
-            'share' => round($share, 2),
+            'share' => $share,
         ];
     }
 
     /* =====================================================
-     * 5. CREATE PAYSTACK SPLIT
+     * 5. CREATE SPLIT
      * ===================================================== */
     $postData = [
         'name' => "Split-{$schid}-{$clsid}",
@@ -12841,14 +12844,16 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): ar
         'bearer_type' => 'account',
     ];
 
-    Log::info('PAYSTACK SPLIT FINAL', $postData);
+    Log::info('PAYSTACK SPLIT FINAL FIXED', $postData);
 
     $response = Http::withToken(env('PAYSTACK_SECRET'))
         ->post('https://api.paystack.co/split', $postData);
 
     if (!$response->successful()) {
+
         Log::error('Paystack split failed', [
             'body' => $response->body(),
+            'payload' => $postData,
         ]);
 
         throw new \Exception("Unable to create Paystack split");
@@ -12881,26 +12886,6 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): ar
         'subaccounts' => $payloadSubs,
     ];
 }
-    public function handleCallback(Request $request)
-    {
-        $reference = $request->query('reference');
-
-        if (!$reference) {
-            return redirect()->to(url('/studentPortal?status=error'));
-        }
-
-        // Get school subdomain
-        $refParts = explode('-', $reference);
-        $schid = $refParts[1] ?? null;
-
-        $school = \DB::table('school')->where('sid', $schid)->first();
-        $subdomain = $school->sbd ?? 'www';
-
-        // Redirect user with reference to frontend
-        $url = request()->getScheme() . "://{$subdomain}.schoolsilomerge.top/studentPortal?status=processing&ref={$reference}";
-        return redirect()->to($url);
-    }
-
 
     private function redirectToError(): \Illuminate\Http\RedirectResponse
     {
@@ -12929,8 +12914,11 @@ public function initializePayment(Request $request)
 
         $totalAmountKobo = (int) round($amount * 100);
 
-        /** Validate subaccounts */
+        /* =====================================================
+         * Validate subaccounts
+         * ===================================================== */
         foreach ($request->subaccount_code as $acc) {
+
             $exists = \DB::table('sub_accounts')
                 ->where('schid', $schid)
                 ->where('clsid', $clsid)
@@ -12945,16 +12933,21 @@ public function initializePayment(Request $request)
             }
         }
 
-        /** Create split */
+        /* =====================================================
+         * CREATE SPLIT
+         * ===================================================== */
         $splitData = $this->createOrGetSplit($schid, $clsid, $request->subaccount_code);
 
         $splitCode = $splitData['split_code'];
-        $subaccountsData = $splitData['subaccounts'];
 
-        /** Build reference */
+        /* =====================================================
+         * SAFE REFERENCE
+         * ===================================================== */
         $ref = uniqid("pay_{$schid}_", true);
 
-        /** Payload */
+        /* =====================================================
+         * PAYSTACK INIT
+         * ===================================================== */
         $payload = [
             'email' => $email,
             'amount' => $totalAmountKobo,
@@ -12970,6 +12963,12 @@ public function initializePayment(Request $request)
             ->post('https://api.paystack.co/transaction/initialize', $payload);
 
         if (!$response->successful()) {
+
+            Log::error('Paystack Init Failed', [
+                'body' => $response->body(),
+                'payload' => $payload,
+            ]);
+
             return response()->json([
                 'status' => false,
                 'message' => 'Payment Initialization Failed',
@@ -12980,7 +12979,7 @@ public function initializePayment(Request $request)
             ['ref' => $ref],
             [
                 'split_code' => $splitCode,
-                'subaccounts' => json_encode($subaccountsData),
+                'subaccounts' => json_encode($splitData['subaccounts']),
                 'amt' => $amount,
                 'time' => now(),
             ]
@@ -13004,7 +13003,6 @@ public function initializePayment(Request $request)
         ], 500);
     }
 }
-
 
     private function getFrontendUrl(int $schid, string $path = ''): string
     {
