@@ -12730,10 +12730,8 @@ class ApiController extends Controller
 
 public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): array
 {
-    $MAX = 99;
-
     /* =====================================================
-     * 1. ALWAYS DELETE OLD SPLIT (SAFE RESET)
+     * 1. ALWAYS REMOVE OLD SPLIT (NO REUSE = NO BUGS)
      * ===================================================== */
     $existing = subaccount_split::where('schid', $schid)
         ->where('clsid', $clsid)
@@ -12745,7 +12743,7 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): ar
                 ->delete("https://api.paystack.co/split/{$existing->split_code}");
         } catch (\Throwable $e) {
             Log::warning('Split delete failed', [
-                'split' => $existing->split_code,
+                'split_code' => $existing->split_code,
                 'error' => $e->getMessage()
             ]);
         }
@@ -12754,7 +12752,7 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): ar
     }
 
     /* =====================================================
-     * 2. MERGE + CLEAN DATA (SINGLE SOURCE OF TRUTH)
+     * 2. MERGE SUBACCOUNTS (SAFE INTEGER MODE)
      * ===================================================== */
     $merged = [];
     $total = 0;
@@ -12774,14 +12772,14 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): ar
     }
 
     /* =====================================================
-     * 3. STRICT VALIDATION (ONLY ONCE)
+     * 3. STRICT VALIDATION
      * ===================================================== */
     if ($total <= 0 || $total >= 100) {
-        throw new \Exception("Invalid split: total must be 1–99%. Current: {$total}%");
+        throw new \Exception("Invalid split total: {$total}% (must be 1–99%)");
     }
 
     /* =====================================================
-     * 4. NORMALIZE
+     * 4. NORMALIZE FOR PAYSTACK
      * ===================================================== */
     $normalized = [];
 
@@ -12793,11 +12791,11 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): ar
     }
 
     /* =====================================================
-     * 5. CREATE SPLIT
+     * 5. CREATE SPLIT (ALWAYS FRESH)
      * ===================================================== */
     $response = Http::withToken(env('PAYSTACK_SECRET'))
         ->post('https://api.paystack.co/split', [
-            'name' => "Split-{$schid}-{$clsid}",
+            'name' => "Split-{$schid}-{$clsid}-" . time(),
             'type' => 'percentage',
             'currency' => 'NGN',
             'subaccounts' => $normalized,
@@ -12815,7 +12813,7 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): ar
     $splitCode = $response->json('data.split_code');
 
     /* =====================================================
-     * 6. VERIFY
+     * 6. VERIFY SPLIT EXISTS
      * ===================================================== */
     $verify = Http::withToken(env('PAYSTACK_SECRET'))
         ->get("https://api.paystack.co/split/{$splitCode}");
@@ -12825,7 +12823,7 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): ar
     }
 
     /* =====================================================
-     * 7. STORE
+     * 7. SAVE LOCALLY
      * ===================================================== */
     subaccount_split::updateOrCreate(
         [
@@ -12893,7 +12891,7 @@ public function initializePayment(Request $request)
         $payheadIds = $request->payhead_ids;
 
         /* =====================================================
-         * SAFE TOTAL VALIDATION (INT SAFE)
+         * SAFE TOTAL VALIDATION
          * ===================================================== */
         $totalShare = collect($subaccounts)
             ->sum(fn($s) => (int) round($s['share']));
@@ -12908,7 +12906,7 @@ public function initializePayment(Request $request)
         $totalAmountKobo = (int) round($amount * 100);
 
         /* =====================================================
-         * VALIDATE SUBACCOUNTS
+         * VALIDATE SUBACCOUNTS EXIST
          * ===================================================== */
         foreach ($subaccounts as $acc) {
             $exists = \DB::table('sub_accounts')
@@ -12926,18 +12924,17 @@ public function initializePayment(Request $request)
         }
 
         /* =====================================================
-         * CREATE SPLIT
+         * CREATE SPLIT (ALWAYS FRESH)
          * ===================================================== */
         $splitData = $this->createOrGetSplit($schid, $clsid, $subaccounts);
 
-        $splitCode = $splitData['split_code'] ?? null;
-        $subaccountsData = $splitData['subaccounts'] ?? [];
+        $splitCode = $splitData['split_code'];
+        $subaccountsData = $splitData['subaccounts'];
 
         /* =====================================================
          * REFERENCE
          * ===================================================== */
         $host = preg_replace('/^api\./', '', $request->getHost());
-
         $ref = "{$host}-{$schid}-{$amount}-" . uniqid('', true);
 
         /* =====================================================
@@ -12952,7 +12949,7 @@ public function initializePayment(Request $request)
         ]);
 
         /* =====================================================
-         * PAYSTACK PAYLOAD
+         * PAYSTACK PAYLOAD (NO SPLIT VALIDATION HERE!)
          * ===================================================== */
         $payload = [
             'email' => $email,
@@ -12966,28 +12963,8 @@ public function initializePayment(Request $request)
         ];
 
         /* =====================================================
- * SPLIT VALIDATION (PUT IT HERE)
- * ===================================================== */
-if (!empty($splitCode)) {
-
-    $verify = Http::withToken(env('PAYSTACK_SECRET'))
-        ->get("https://api.paystack.co/split/{$splitCode}");
-
-    if ($verify->successful() && !empty($verify->json('data'))) {
-        $payload['split_code'] = $splitCode;
-    } else {
-        Log::warning("Invalid split detected, skipping", [
-            'split_code' => $splitCode
-        ]);
-
-        $payload['split_code'] = null;
-    }
-}
-
-/* =====================================================
- * SEND TO PAYSTACK (AFTER VALIDATION)
- * ===================================================== */
-
+         * SEND TO PAYSTACK
+         * ===================================================== */
         $response = Http::withToken(env('PAYSTACK_SECRET'))
             ->post('https://api.paystack.co/transaction/initialize', $payload);
 
@@ -13035,7 +13012,6 @@ if (!empty($splitCode)) {
         ], 500);
     }
 }
-
 
 
     private function getFrontendUrl(int $schid, string $path = ''): string
