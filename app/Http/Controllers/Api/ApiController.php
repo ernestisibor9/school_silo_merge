@@ -12730,73 +12730,58 @@ class ApiController extends Controller
 
 public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): array
 {
-    $MAX_SUBACCOUNT_SHARE = 99;
+    $MAX = 99;
 
     /* =====================================================
-     * 1. CHECK IF VALID SPLIT EXISTS (VERIFY AT PAYSTACK)
+     * 1. ALWAYS DELETE OLD SPLIT (SAFE RESET)
      * ===================================================== */
     $existing = subaccount_split::where('schid', $schid)
         ->where('clsid', $clsid)
         ->first();
 
-    if ($existing && $existing->split_code) {
-        $verify = Http::withToken(env('PAYSTACK_SECRET'))
-            ->get("https://api.paystack.co/split/{$existing->split_code}");
-
-        if ($verify->successful()) {
-            $psSubs = $verify->json('data.subaccounts') ?? [];
-
-            if (!empty($psSubs)) {
-                return [
-                    'split_code' => $existing->split_code,
-                    'subaccounts' => json_decode($existing->subaccounts, true),
-                ];
-            }
+    if ($existing) {
+        try {
+            Http::withToken(env('PAYSTACK_SECRET'))
+                ->delete("https://api.paystack.co/split/{$existing->split_code}");
+        } catch (\Throwable $e) {
+            Log::warning('Split delete failed', [
+                'split' => $existing->split_code,
+                'error' => $e->getMessage()
+            ]);
         }
 
         $existing->delete();
     }
 
     /* =====================================================
-     * 2. CLEAN + MERGE SUBACCOUNTS (INT SAFE)
+     * 2. MERGE + CLEAN DATA (SINGLE SOURCE OF TRUTH)
      * ===================================================== */
     $merged = [];
+    $total = 0;
 
     foreach ($subaccounts as $acc) {
-        if (
-            empty($acc['subaccount']) ||
-            !isset($acc['share'])
-        ) {
+        $share = (int) round((float) $acc['share']);
+
+        if (empty($acc['subaccount']) || $share <= 0) {
             throw new \Exception('Invalid subaccount payload');
         }
 
-        $code = $acc['subaccount'];
-        $share = (int) round((float) $acc['share']);
-
-        if ($share <= 0) {
-            throw new \Exception("Invalid share for {$code}");
-        }
-
-        $merged[$code] = ($merged[$code] ?? 0) + $share;
+        $merged[$acc['subaccount']] = ($merged[$acc['subaccount']] ?? 0) + $share;
     }
 
-    if (empty($merged)) {
-        throw new \Exception('No valid subaccounts supplied');
+    foreach ($merged as $share) {
+        $total += $share;
     }
 
     /* =====================================================
-     * 3. VALIDATE TOTAL (CRITICAL FIX)
+     * 3. STRICT VALIDATION (ONLY ONCE)
      * ===================================================== */
-    $total = array_sum($merged);
-
     if ($total <= 0 || $total >= 100) {
-        throw new \Exception(
-            "Invalid split: total must be 1–99%. Current: {$total}% (merchant share would be negative)"
-        );
+        throw new \Exception("Invalid split: total must be 1–99%. Current: {$total}%");
     }
 
     /* =====================================================
-     * 4. NORMALIZE (PAYSTACK SAFE FORMAT)
+     * 4. NORMALIZE
      * ===================================================== */
     $normalized = [];
 
@@ -12808,7 +12793,7 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): ar
     }
 
     /* =====================================================
-     * 5. CREATE SPLIT AT PAYSTACK
+     * 5. CREATE SPLIT
      * ===================================================== */
     $response = Http::withToken(env('PAYSTACK_SECRET'))
         ->post('https://api.paystack.co/split', [
@@ -12830,17 +12815,17 @@ public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): ar
     $splitCode = $response->json('data.split_code');
 
     /* =====================================================
-     * 6. VERIFY SPLIT AT PAYSTACK
+     * 6. VERIFY
      * ===================================================== */
     $verify = Http::withToken(env('PAYSTACK_SECRET'))
         ->get("https://api.paystack.co/split/{$splitCode}");
 
-    if (!$verify->successful() || empty($verify->json('data.subaccounts'))) {
+    if (!$verify->successful()) {
         throw new \Exception('Split verification failed at Paystack');
     }
 
     /* =====================================================
-     * 7. STORE LOCALLY
+     * 7. STORE
      * ===================================================== */
     subaccount_split::updateOrCreate(
         [
