@@ -12728,6 +12728,7 @@ class ApiController extends Controller
         ]);
     }
 
+
     public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): array
     {
         $MAX_SUBACCOUNT_SHARE = 99.0;
@@ -12841,6 +12842,27 @@ class ApiController extends Controller
             'split_code' => $splitCode,
             'subaccounts' => $normalized,
         ];
+    }
+
+
+       public function handleCallback(Request $request)
+    {
+        $reference = $request->query('reference');
+
+        if (!$reference) {
+            return redirect()->to(url('/studentPortal?status=error'));
+        }
+
+        // Get school subdomain
+        $refParts = explode('-', $reference);
+        $schid = $refParts[1] ?? null;
+
+        $school = \DB::table('school')->where('sid', $schid)->first();
+        $subdomain = $school->sbd ?? 'www';
+
+        // Redirect user with reference to frontend
+        $url = request()->getScheme() . "://{$subdomain}.schoolsilomerge.top/studentPortal?status=processing&ref={$reference}";
+        return redirect()->to($url);
     }
 
 
@@ -13007,6 +13029,7 @@ class ApiController extends Controller
 
 
 
+
     private function getFrontendUrl(int $schid, string $path = ''): string
     {
         // Lookup school subdomain
@@ -13022,6 +13045,7 @@ class ApiController extends Controller
         // Return full URL
         return "{$scheme}://{$host}{$path}";
     }
+
 
 
     /**
