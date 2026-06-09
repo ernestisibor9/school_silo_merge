@@ -12867,41 +12867,41 @@ class ApiController extends Controller
 
 
     public function handleCallback(Request $request)
-{
-    $reference = $request->query('reference');
+    {
+        $reference = $request->query('reference');
 
-    if (!$reference) {
-        return redirect()->to(url('/studentPortal?status=error'));
+        if (!$reference) {
+            return redirect()->to(url('/studentPortal?status=error'));
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | VERIFY TRANSACTION AT PAYSTACK
+        |--------------------------------------------------------------------------
+        */
+        $verify = Http::withToken(env('PAYSTACK_SECRET'))
+            ->get("https://api.paystack.co/transaction/verify/{$reference}");
+
+        Log::info('PAYSTACK VERIFY RESPONSE', [
+            'reference' => $reference,
+            'response' => $verify->json()
+        ]);
+
+        // Get school subdomain
+        $refParts = explode('-', $reference);
+        $schid = $refParts[1] ?? null;
+
+        $school = \DB::table('school')
+            ->where('sid', $schid)
+            ->first();
+
+        $subdomain = $school->sbd ?? 'www';
+
+        $url = request()->getScheme()
+            . "://{$subdomain}.schoolsilomerge.top/studentPortal?status=processing&ref={$reference}";
+
+        return redirect()->to($url);
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | VERIFY TRANSACTION AT PAYSTACK
-    |--------------------------------------------------------------------------
-    */
-    $verify = Http::withToken(env('PAYSTACK_SECRET'))
-        ->get("https://api.paystack.co/transaction/verify/{$reference}");
-
-    Log::info('PAYSTACK VERIFY RESPONSE', [
-        'reference' => $reference,
-        'response' => $verify->json()
-    ]);
-
-    // Get school subdomain
-    $refParts = explode('-', $reference);
-    $schid = $refParts[1] ?? null;
-
-    $school = \DB::table('school')
-        ->where('sid', $schid)
-        ->first();
-
-    $subdomain = $school->sbd ?? 'www';
-
-    $url = request()->getScheme()
-        . "://{$subdomain}.schoolsilomerge.top/studentPortal?status=processing&ref={$reference}";
-
-    return redirect()->to($url);
-}
 
 
     private function redirectToError(): \Illuminate\Http\RedirectResponse
@@ -13062,9 +13062,9 @@ class ApiController extends Controller
 
             $paystackData = $response->json();
 
-Log::info('PAYSTACK INITIALIZE RESPONSE', [
-    'response' => $paystackData
-]);
+            Log::info('PAYSTACK INITIALIZE RESPONSE', [
+                'response' => $paystackData
+            ]);
 
             $paystackData = $response->json();
 
