@@ -12845,7 +12845,7 @@ class ApiController extends Controller
     }
 
 
-       public function handleCallback(Request $request)
+    public function handleCallback(Request $request)
     {
         $reference = $request->query('reference');
 
@@ -12962,6 +12962,20 @@ class ApiController extends Controller
             /** -------------------------------------------------
              * Paystack initialize payload
              * ------------------------------------------------*/
+            // $payload = [
+            //     'email' => $email,
+            //     'amount' => $totalAmountKobo,
+            //     'currency' => 'NGN',
+            //     'reference' => $ref,
+            //     'callback_url' => $this->getFrontendUrl($schid, '/studentPortal'),
+            //     'metadata' => $metadata,
+            //     'channels' => ['card', 'bank', 'ussd'],
+            // ];
+
+            // if (!empty($splitCode)) {
+            //     $payload['split_code'] = $splitCode;
+            // }
+
             $payload = [
                 'email' => $email,
                 'amount' => $totalAmountKobo,
@@ -12972,8 +12986,21 @@ class ApiController extends Controller
                 'channels' => ['card', 'bank', 'ussd'],
             ];
 
-            if (!empty($splitCode)) {
+            /*
+            |--------------------------------------------------------------------------
+            | Small amount protection
+            |--------------------------------------------------------------------------
+            */
+            if ($amount >= 2000 && !empty($splitCode)) {
+
                 $payload['split_code'] = $splitCode;
+
+            } else {
+
+                Log::warning('Split disabled because amount is too small', [
+                    'amount' => $amount,
+                    'split_code' => $splitCode
+                ]);
             }
 
             $response = Http::withToken(env('PAYSTACK_SECRET'))
