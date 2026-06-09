@@ -13003,6 +13003,10 @@ class ApiController extends Controller
                 ]);
             }
 
+            Log::info('PAYSTACK INITIALIZE PAYLOAD', [
+                'payload' => $payload
+            ]);
+
             $response = Http::withToken(env('PAYSTACK_SECRET'))
                 ->post('https://api.paystack.co/transaction/initialize', $payload);
 
