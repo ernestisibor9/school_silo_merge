@@ -12842,7 +12842,8 @@ class ApiController extends Controller
             'subaccounts' => $normalized,
         ];
     }
-  // public function handleCallback(Request $request)
+
+    // public function handleCallback(Request $request)
     // {
     //     $reference = $request->query('reference');
 
@@ -12949,6 +12950,21 @@ class ApiController extends Controller
             $splitCode = $splitData['split_code'] ?? null;
             $subaccountsData = $splitData['subaccounts'] ?? [];
 
+            Log::info('SPLIT USED', [
+                'split_code' => $splitCode,
+                'subaccounts' => $subaccountsData
+            ]);
+
+            if (!empty($splitCode)) {
+
+                $verifySplit = Http::withToken(env('PAYSTACK_SECRET'))
+                    ->get("https://api.paystack.co/split/{$splitCode}");
+
+                Log::info('VERIFY SPLIT', [
+                    'response' => $verifySplit->json()
+                ]);
+            }
+
             /** -------------------------------------------------
              * Build reference
              * ------------------------------------------------*/
@@ -12991,9 +13007,13 @@ class ApiController extends Controller
                 'channels' => ['card', 'bank', 'ussd'],
             ];
 
-            if (!empty($splitCode)) {
-                $payload['split_code'] = $splitCode;
-            }
+            // if (!empty($splitCode)) {
+            //     $payload['split_code'] = $splitCode;
+            // }
+
+            Log::info('PAYLOAD SENT TO PAYSTACK', [
+                'payload' => $payload
+            ]);
 
             $response = Http::withToken(env('PAYSTACK_SECRET'))
                 ->post('https://api.paystack.co/transaction/initialize', $payload);
@@ -13013,8 +13033,8 @@ class ApiController extends Controller
             $paystackData = $response->json();
 
             Log::info('PAYSTACK INIT SUCCESS', [
-    'response' => $paystackData
-]);
+                'response' => $paystackData
+            ]);
 
 
             /** -------------------------------------------------
