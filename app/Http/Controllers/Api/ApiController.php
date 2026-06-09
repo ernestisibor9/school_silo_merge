@@ -13044,6 +13044,12 @@ class ApiController extends Controller
                 'message' => 'Server Error: Unable to initialize payment',
             ], 500);
         }
+
+        $paystackData = $response->json();
+
+Log::info('PAYSTACK INIT SUCCESS', [
+    'response' => $paystackData
+]);
     }
 
 
