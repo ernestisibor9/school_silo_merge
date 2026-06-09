@@ -12728,239 +12728,236 @@ class ApiController extends Controller
         ]);
     }
 
-    public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): array
-    {
-        $MAX_SUBACCOUNT_SHARE = 99.0;
+public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): array
+{
+    $MAX_SUBACCOUNT_SHARE = 99.0;
 
-        Log::info('CREATE_OR_GET_SPLIT START', [
-            'schid' => $schid,
-            'clsid' => $clsid,
-            'raw_subaccounts' => $subaccounts,
+    Log::info('CREATE_OR_GET_SPLIT START', [
+        'schid' => $schid,
+        'clsid' => $clsid,
+        'raw_subaccounts' => $subaccounts,
+    ]);
+
+    /* =====================================================
+     * 1. CHECK EXISTING SPLIT (STRICT VALIDATION)
+     * ===================================================== */
+    $existing = subaccount_split::where('schid', $schid)
+        ->where('clsid', $clsid)
+        ->first();
+
+    if ($existing && $existing->split_code) {
+
+        Log::info('EXISTING SPLIT FOUND', [
+            'split_code' => $existing->split_code
         ]);
 
-        /* =====================================================
-         * 1. CHECK EXISTING SPLIT (STRICT VALIDATION)
-         * ===================================================== */
-        $existing = subaccount_split::where('schid', $schid)
-            ->where('clsid', $clsid)
-            ->first();
-
-        if ($existing && $existing->split_code) {
-
-            Log::info('EXISTING SPLIT FOUND', [
-                'split_code' => $existing->split_code
-            ]);
-
-            $verify = Http::withToken(env('PAYSTACK_SECRET'))
-                ->get("https://api.paystack.co/split/{$existing->split_code}");
-
-            $verifyData = $verify->json('data');
-            $psSubs = $verifyData['subaccounts'] ?? [];
-
-            $localSubs = json_decode($existing->subaccounts, true) ?? [];
-
-            Log::info('EXISTING SPLIT PAYSTACK RESPONSE', [
-                'status' => $verify->status(),
-                'response' => $verify->json()
-            ]);
-
-
-            Log::info('SPLIT COMPARISON DEBUG', [
-                'local_count' => count($localSubs),
-                'paystack_count' => count($psSubs),
-                'local' => $localSubs,
-                'paystack' => $psSubs
-            ]);
-
-            // 👇 ADD IT HERE
-            Log::info('FINAL SPLIT SOURCE OF TRUTH', [
-                'db' => $localSubs,
-                'paystack_raw' => $verify->json(),
-                'paystack_subaccounts' => $psSubs,
-            ]);
-
-
-            /*
-            =====================================================
-            FIX: DO NOT RELY ON COUNT ONLY
-            We must ensure ALL subaccount codes match
-            =====================================================
-            */
-
-            $localCodes = array_column($localSubs, 'subaccount');
-            $paystackCodes = [];
-
-            foreach ($psSubs as $ps) {
-                if (isset($ps['subaccount']['subaccount_code'])) {
-                    $paystackCodes[] = $ps['subaccount']['subaccount_code'];
-                }
-            }
-
-            sort($localCodes);
-            sort($paystackCodes);
-
-            if (
-                $verify->successful() &&
-                isset($verifyData['id']) &&
-                !empty($psSubs) &&
-                $localCodes === $paystackCodes
-            ) {
-
-                Log::info('REUSING VALID SPLIT (FULL MATCH)', [
-                    'split_code' => $existing->split_code
-                ]);
-
-                return [
-                    'split_code' => $existing->split_code,
-                    'subaccounts' => $localSubs,
-                ];
-            }
-
-            Log::warning('SPLIT INVALID - RECREATING', [
-                'split_code' => $existing->split_code,
-                'reason' => 'mismatch_or_structure_changed'
-            ]);
-
-            Log::info('SPLIT NORMALIZED DEBUG CHECK', [
-                'local_codes' => $localCodes,
-                'paystack_codes' => $paystackCodes,
-                'match' => $localCodes === $paystackCodes,
-            ]);
-
-            $existing->delete();
-        }
-
-        /* =====================================================
-         * 2. MERGE SUBACCOUNTS
-         * ===================================================== */
-        $merged = [];
-
-        foreach ($subaccounts as $acc) {
-
-            if (
-                empty($acc['subaccount']) ||
-                !isset($acc['share']) ||
-                floatval($acc['share']) <= 0
-            ) {
-                Log::error('INVALID SUBACCOUNT INPUT', ['acc' => $acc]);
-                throw new \Exception('Invalid subaccount payload');
-            }
-
-            $code = (string) $acc['subaccount'];
-            $share = (float) $acc['share'];
-
-            $merged[$code] = ($merged[$code] ?? 0) + $share;
-        }
-
-        if (empty($merged)) {
-            throw new \Exception('No valid subaccounts supplied');
-        }
-
-        /* =====================================================
-         * 3. TOTAL VALIDATION
-         * ===================================================== */
-        $total = array_sum($merged);
-
-        Log::info('SPLIT TOTAL CHECK', [
-            'total' => $total,
-            'merged' => $merged
-        ]);
-
-        if ($total <= 0 || $total > $MAX_SUBACCOUNT_SHARE) {
-            throw new \Exception("Invalid split percentage (max 99%)");
-        }
-
-        /* =====================================================
-         * 4. NORMALIZE
-         * ===================================================== */
-        $normalized = [];
-
-        foreach ($merged as $code => $share) {
-            $normalized[] = [
-                'subaccount' => trim((string) $code),
-                'share' => round((float) $share, 2),
-            ];
-        }
-
-        Log::info('NORMALIZED SPLIT PAYLOAD', [
-            'normalized' => $normalized
-        ]);
-
-        /* =====================================================
-         * 5. CREATE SPLIT (FORCE FRESH NAME)
-         * ===================================================== */
-        $splitName = "Split-{$schid}-{$clsid}-" . uniqid();
-
-        Log::info('CREATING PAYSTACK SPLIT', [
-            'name' => $splitName
-        ]);
-
-        $response = Http::withToken(env('PAYSTACK_SECRET'))
-            ->post('https://api.paystack.co/split', [
-                'name' => $splitName,
-                'type' => 'percentage',
-                'currency' => 'NGN',
-                'subaccounts' => $normalized,
-                'bearer_type' => 'subaccount',
-            ]);
-
-        Log::info('PAYSTACK SPLIT CREATE RESPONSE', [
-            'status' => $response->status(),
-            'body' => $response->json()
-        ]);
-
-        if (!$response->successful()) {
-            throw new \Exception('Unable to create Paystack split');
-        }
-
-        $splitCode = $response->json('data.split_code');
-
-        /* =====================================================
-         * 6. VERIFY SPLIT
-         * ===================================================== */
         $verify = Http::withToken(env('PAYSTACK_SECRET'))
-            ->get("https://api.paystack.co/split/{$splitCode}");
+            ->get("https://api.paystack.co/split/{$existing->split_code}");
 
         $verifyData = $verify->json('data');
         $psSubs = $verifyData['subaccounts'] ?? [];
 
-        Log::info('NEW SPLIT VERIFY RESPONSE', [
+        $localSubs = json_decode($existing->subaccounts, true) ?? [];
+
+        Log::info('EXISTING SPLIT PAYSTACK RESPONSE', [
+            'status' => $verify->status(),
             'response' => $verify->json()
         ]);
 
-        if (
-            !$verify->successful() ||
-            empty($verifyData) ||
-            !isset($verifyData['id']) ||
-            empty($psSubs)
-        ) {
-            Log::error('SPLIT VERIFICATION FAILED', [
-                'split_code' => $splitCode,
-                'response' => $verify->body()
-            ]);
+        Log::info('SPLIT COMPARISON DEBUG', [
+            'local_count' => count($localSubs),
+            'paystack_count' => count($psSubs),
+            'local' => $localSubs,
+            'paystack' => $psSubs
+        ]);
 
-            throw new \Exception('Split verification failed at Paystack');
-        }
+        // 🔥 FINAL SOURCE OF TRUTH DEBUG
+        Log::info('FINAL SPLIT SOURCE OF TRUTH', [
+            'db' => $localSubs,
+            'paystack_raw' => $verify->json(),
+            'paystack_subaccounts' => $psSubs,
+            'bearer_type' => $verifyData['bearer_type'] ?? null,
+        ]);
 
         /* =====================================================
-         * 7. STORE LOCALLY
+         * STRICT CODE MATCH VALIDATION
          * ===================================================== */
-        subaccount_split::create([
-            'schid' => $schid,
-            'clsid' => $clsid,
-            'split_code' => $splitCode,
-            'subaccounts' => json_encode($normalized),
+        $localCodes = array_column($localSubs, 'subaccount');
+
+        $paystackCodes = [];
+        foreach ($psSubs as $ps) {
+            if (isset($ps['subaccount']['subaccount_code'])) {
+                $paystackCodes[] = $ps['subaccount']['subaccount_code'];
+            }
+        }
+
+        sort($localCodes);
+        sort($paystackCodes);
+
+        if (
+            $verify->successful() &&
+            isset($verifyData['id']) &&
+            !empty($psSubs) &&
+            $localCodes === $paystackCodes
+        ) {
+
+            Log::info('REUSING VALID SPLIT (FULL MATCH)', [
+                'split_code' => $existing->split_code
+            ]);
+
+            return [
+                'split_code' => $existing->split_code,
+                'subaccounts' => $localSubs,
+            ];
+        }
+
+        Log::warning('SPLIT INVALID - RECREATING', [
+            'split_code' => $existing->split_code,
+            'reason' => 'mismatch_or_structure_changed'
         ]);
 
-        Log::info('SPLIT STORED SUCCESSFULLY', [
-            'split_code' => $splitCode
+        Log::info('SPLIT NORMALIZED DEBUG CHECK', [
+            'local_codes' => $localCodes,
+            'paystack_codes' => $paystackCodes,
+            'match' => $localCodes === $paystackCodes,
         ]);
 
-        return [
-            'split_code' => $splitCode,
-            'subaccounts' => $normalized,
+        $existing->delete();
+    }
+
+    /* =====================================================
+     * 2. MERGE SUBACCOUNTS
+     * ===================================================== */
+    $merged = [];
+
+    foreach ($subaccounts as $acc) {
+
+        if (
+            empty($acc['subaccount']) ||
+            !isset($acc['share']) ||
+            floatval($acc['share']) <= 0
+        ) {
+            Log::error('INVALID SUBACCOUNT INPUT', ['acc' => $acc]);
+            throw new \Exception('Invalid subaccount payload');
+        }
+
+        $code = (string) $acc['subaccount'];
+        $share = (float) $acc['share'];
+
+        $merged[$code] = ($merged[$code] ?? 0) + $share;
+    }
+
+    if (empty($merged)) {
+        throw new \Exception('No valid subaccounts supplied');
+    }
+
+    /* =====================================================
+     * 3. TOTAL VALIDATION
+     * ===================================================== */
+    $total = array_sum($merged);
+
+    Log::info('SPLIT TOTAL CHECK', [
+        'total' => $total,
+        'merged' => $merged
+    ]);
+
+    if ($total <= 0 || $total > $MAX_SUBACCOUNT_SHARE) {
+        throw new \Exception("Invalid split percentage (max 99%)");
+    }
+
+    /* =====================================================
+     * 4. NORMALIZE
+     * ===================================================== */
+    $normalized = [];
+
+    foreach ($merged as $code => $share) {
+        $normalized[] = [
+            'subaccount' => trim((string) $code),
+            'share' => round((float) $share, 2),
         ];
     }
+
+    Log::info('NORMALIZED SPLIT PAYLOAD', [
+        'normalized' => $normalized
+    ]);
+
+    /* =====================================================
+     * 5. CREATE SPLIT (FIXED BEARER TYPE)
+     * ===================================================== */
+    $splitName = "Split-{$schid}-{$clsid}-" . uniqid();
+
+    Log::info('CREATING PAYSTACK SPLIT', [
+        'name' => $splitName
+    ]);
+
+    $response = Http::withToken(env('PAYSTACK_SECRET'))
+        ->post('https://api.paystack.co/split', [
+            'name' => $splitName,
+            'type' => 'percentage',
+            'currency' => 'NGN',
+            'subaccounts' => $normalized,
+
+            // ✅ FIXED: keep consistent with Paystack behavior
+            'bearer_type' => 'account',
+        ]);
+
+    Log::info('PAYSTACK SPLIT CREATE RESPONSE', [
+        'status' => $response->status(),
+        'body' => $response->json()
+    ]);
+
+    if (!$response->successful()) {
+        throw new \Exception('Unable to create Paystack split');
+    }
+
+    $splitCode = $response->json('data.split_code');
+
+    /* =====================================================
+     * 6. VERIFY SPLIT
+     * ===================================================== */
+    $verify = Http::withToken(env('PAYSTACK_SECRET'))
+        ->get("https://api.paystack.co/split/{$splitCode}");
+
+    $verifyData = $verify->json('data');
+    $psSubs = $verifyData['subaccounts'] ?? [];
+
+    Log::info('NEW SPLIT VERIFY RESPONSE', [
+        'response' => $verify->json()
+    ]);
+
+    if (
+        !$verify->successful() ||
+        empty($verifyData) ||
+        !isset($verifyData['id']) ||
+        empty($psSubs)
+    ) {
+        Log::error('SPLIT VERIFICATION FAILED', [
+            'split_code' => $splitCode,
+            'response' => $verify->body()
+        ]);
+
+        throw new \Exception('Split verification failed at Paystack');
+    }
+
+    /* =====================================================
+     * 7. STORE LOCALLY
+     * ===================================================== */
+    subaccount_split::create([
+        'schid' => $schid,
+        'clsid' => $clsid,
+        'split_code' => $splitCode,
+        'subaccounts' => json_encode($normalized),
+    ]);
+
+    Log::info('SPLIT STORED SUCCESSFULLY', [
+        'split_code' => $splitCode
+    ]);
+
+    return [
+        'split_code' => $splitCode,
+        'subaccounts' => $normalized,
+    ];
+}
     // public function handleCallback(Request $request)
     // {
     //     $reference = $request->query('reference');
