@@ -25,6 +25,8 @@ Route::get('/uploads/messages/{filename}', function ($filename) {
 
 // -- OPEN ENDPOINTS
 
+Route::get('/payment/callback-test', [ApiController::class, 'handleCallback']);
+
 Route::post('registerSchool', [ApiController::class, 'registerSchool']);
 Route::post('schoolLogin', [ApiController::class, 'schoolLogin']);
 Route::post('sendPasswordResetEmail', [ApiController::class, 'sendPasswordResetEmail']);

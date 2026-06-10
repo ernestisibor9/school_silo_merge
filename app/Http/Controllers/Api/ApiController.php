@@ -12846,9 +12846,12 @@ class ApiController extends Controller
 
     public function handleCallback(Request $request)
     {
-        Log::info('CALLBACK HIT');
-        dd('callback reached');
-        $reference = $request->query('reference');
+    Log::info('CALLBACK HIT', [
+        'full_url' => $request->fullUrl(),
+        'query' => $request->query(),
+    ]);
+
+    dd('callback reached');
 
         if (!$reference) {
             return redirect()->to(url('/studentPortal?status=error'));
@@ -12971,7 +12974,8 @@ class ApiController extends Controller
                 'amount' => $totalAmountKobo,
                 'currency' => 'NGN',
                 'reference' => $ref,
-                'callback_url' => $this->getFrontendUrl($schid, '/studentPortal'),
+                // 'callback_url' => $this->getFrontendUrl($schid, '/studentPortal'),
+                'callback_url' => url('/api/payment/callback-test'),
                 'metadata' => $metadata,
                 'channels' => ['card', 'bank', 'ussd'],
             ];
