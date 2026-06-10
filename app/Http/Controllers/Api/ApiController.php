@@ -12843,60 +12843,33 @@ class ApiController extends Controller
         ];
     }
 
-    // public function handleCallback(Request $request)
-    // {
-    //     $reference = $request->query('reference');
 
-    //     if (!$reference) {
-    //         return redirect()->to(url('/studentPortal?status=error'));
-    //     }
+    public function handleCallback(Request $request)
+    {
+        $reference = $request->query('reference');
 
-    //     // Get school subdomain
-    //     $refParts = explode('-', $reference);
-    //     $schid = $refParts[1] ?? null;
+        if (!$reference) {
+            return redirect()->to(url('/studentPortal?status=error'));
+        }
 
-    //     $school = \DB::table('school')->where('sid', $schid)->first();
-    //     $subdomain = $school->sbd ?? 'www';
-
-    //     // Redirect user with reference to frontend
-    //     $url = request()->getScheme() . "://{$subdomain}.schoolsilomerge.top/studentPortal?status=processing&ref={$reference}";
-    //     return redirect()->to($url);
-    // }
-
-public function handleCallback(Request $request)
-{
-    $reference = $request->query('reference');
-
-    if (!$reference) {
-        return redirect()->to(url('/studentPortal?status=error'));
-    }
-
-    // VERIFY TRANSACTION HERE
+            // 🔥 VERIFY PAYMENT HERE (IMPORTANT)
     $verify = Http::withToken(env('PAYSTACK_SECRET'))
         ->get("https://api.paystack.co/transaction/verify/{$reference}");
 
     Log::info('VERIFY TX', [
-        'reference' => $reference,
         'response' => $verify->json()
     ]);
 
-    // Get school subdomain
-    $refParts = explode('-', $reference);
-    $schid = $refParts[1] ?? null;
+        // Get school subdomain
+        $refParts = explode('-', $reference);
+        $schid = $refParts[1] ?? null;
 
-    $school = \DB::table('school')->where('sid', $schid)->first();
-    $subdomain = $school->sbd ?? 'www';
+        $school = \DB::table('school')->where('sid', $schid)->first();
+        $subdomain = $school->sbd ?? 'www';
 
-    // Redirect user with reference to frontend
-    $url = request()->getScheme() . "://{$subdomain}.schoolsilomerge.top/studentPortal?status=processing&ref={$reference}";
-
-    return redirect()->to($url);
-}
-
-
-    private function redirectToError(): \Illuminate\Http\RedirectResponse
-    {
-        return redirect()->to(url('/studentPortal?status=error'));
+        // Redirect user with reference to frontend
+        $url = request()->getScheme() . "://{$subdomain}.schoolsilomerge.top/studentPortal?status=processing&ref={$reference}";
+        return redirect()->to($url);
     }
 
 
@@ -12959,21 +12932,6 @@ public function handleCallback(Request $request)
             $splitCode = $splitData['split_code'] ?? null;
             $subaccountsData = $splitData['subaccounts'] ?? [];
 
-            Log::info('SPLIT USED', [
-                'split_code' => $splitCode,
-                'subaccounts' => $subaccountsData
-            ]);
-
-            if (!empty($splitCode)) {
-
-                $verifySplit = Http::withToken(env('PAYSTACK_SECRET'))
-                    ->get("https://api.paystack.co/split/{$splitCode}");
-
-                Log::info('VERIFY SPLIT', [
-                    'response' => $verifySplit->json()
-                ]);
-            }
-
             /** -------------------------------------------------
              * Build reference
              * ------------------------------------------------*/
@@ -13013,16 +12971,12 @@ public function handleCallback(Request $request)
                 'reference' => $ref,
                 'callback_url' => $this->getFrontendUrl($schid, '/studentPortal'),
                 'metadata' => $metadata,
-              //  'channels' => ['card', 'bank', 'ussd'],
+                'channels' => ['card', 'bank', 'ussd'],
             ];
 
             // if (!empty($splitCode)) {
             //     $payload['split_code'] = $splitCode;
             // }
-
-            Log::info('PAYLOAD SENT TO PAYSTACK', [
-                'payload' => $payload
-            ]);
 
             $response = Http::withToken(env('PAYSTACK_SECRET'))
                 ->post('https://api.paystack.co/transaction/initialize', $payload);
@@ -13040,11 +12994,6 @@ public function handleCallback(Request $request)
             }
 
             $paystackData = $response->json();
-
-            Log::info('PAYSTACK INIT SUCCESS', [
-                'response' => $paystackData
-            ]);
-
 
             /** -------------------------------------------------
              * Store reference for callback/webhook
