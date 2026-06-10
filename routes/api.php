@@ -132,7 +132,7 @@ Route::get('getStudentSubjectBulk', [ApiController::class, 'getStudentSubjectBul
 
 Route::post('initializePayment', [ApiController::class, 'initializePayment']);
 
-Route::get('/payment/callback', [ApiController::class, 'handleCallback']);
+// Route::get('/payment/callback', [ApiController::class, 'handleCallback']);
 
 
 Route::get('getStudentsId/{schid}/{ssn}/{trm}/{clsm}/{clsa}', [ApiController::class, 'getStudentsId']);
