@@ -12874,7 +12874,6 @@ class ApiController extends Controller
     }
 
 
-
     public function initializePayment(Request $request)
     {
         $request->validate([
@@ -13030,6 +13029,8 @@ class ApiController extends Controller
             ], 500);
         }
     }
+
+
 
 
 
