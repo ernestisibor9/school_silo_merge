@@ -12863,26 +12863,35 @@ class ApiController extends Controller
     //     return redirect()->to($url);
     // }
 
+public function handleCallback(Request $request)
+{
+    $reference = $request->query('reference');
 
-    public function handleCallback(Request $request)
-    {
-        $reference = $request->query('reference');
-
-        if (!$reference) {
-            return redirect()->to(url('/studentPortal?status=error'));
-        }
-
-        // Get school subdomain
-        $refParts = explode('-', $reference);
-        $schid = $refParts[1] ?? null;
-
-        $school = \DB::table('school')->where('sid', $schid)->first();
-        $subdomain = $school->sbd ?? 'www';
-
-        // Redirect user with reference to frontend
-        $url = request()->getScheme() . "://{$subdomain}.schoolsilomerge.top/studentPortal?status=processing&ref={$reference}";
-        return redirect()->to($url);
+    if (!$reference) {
+        return redirect()->to(url('/studentPortal?status=error'));
     }
+
+    // VERIFY TRANSACTION HERE
+    $verify = Http::withToken(env('PAYSTACK_SECRET'))
+        ->get("https://api.paystack.co/transaction/verify/{$reference}");
+
+    Log::info('VERIFY TX', [
+        'reference' => $reference,
+        'response' => $verify->json()
+    ]);
+
+    // Get school subdomain
+    $refParts = explode('-', $reference);
+    $schid = $refParts[1] ?? null;
+
+    $school = \DB::table('school')->where('sid', $schid)->first();
+    $subdomain = $school->sbd ?? 'www';
+
+    // Redirect user with reference to frontend
+    $url = request()->getScheme() . "://{$subdomain}.schoolsilomerge.top/studentPortal?status=processing&ref={$reference}";
+
+    return redirect()->to($url);
+}
 
 
     private function redirectToError(): \Illuminate\Http\RedirectResponse
