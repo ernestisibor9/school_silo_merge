@@ -25,8 +25,6 @@ Route::get('/uploads/messages/{filename}', function ($filename) {
 
 // -- OPEN ENDPOINTS
 
-Route::get('/payment/callback-test', [ApiController::class, 'handleCallback']);
-
 Route::post('registerSchool', [ApiController::class, 'registerSchool']);
 Route::post('schoolLogin', [ApiController::class, 'schoolLogin']);
 Route::post('sendPasswordResetEmail', [ApiController::class, 'sendPasswordResetEmail']);
@@ -132,7 +130,7 @@ Route::get('getStudentSubjectBulk', [ApiController::class, 'getStudentSubjectBul
 
 Route::post('initializePayment', [ApiController::class, 'initializePayment']);
 
-// Route::get('/payment/callback', [ApiController::class, 'handleCallback']);
+Route::get('/payment/callback', [ApiController::class, 'handleCallback']);
 
 
 Route::get('getStudentsId/{schid}/{ssn}/{trm}/{clsm}/{clsa}', [ApiController::class, 'getStudentsId']);
