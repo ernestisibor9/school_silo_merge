@@ -12846,19 +12846,21 @@ class ApiController extends Controller
 
     public function handleCallback(Request $request)
     {
+        Log::info('CALLBACK HIT');
+        dd('callback reached');
         $reference = $request->query('reference');
 
         if (!$reference) {
             return redirect()->to(url('/studentPortal?status=error'));
         }
 
-            // 🔥 VERIFY PAYMENT HERE (IMPORTANT)
-    $verify = Http::withToken(env('PAYSTACK_SECRET'))
-        ->get("https://api.paystack.co/transaction/verify/{$reference}");
+        // 🔥 VERIFY PAYMENT HERE (IMPORTANT)
+        $verify = Http::withToken(env('PAYSTACK_SECRET'))
+            ->get("https://api.paystack.co/transaction/verify/{$reference}");
 
-    Log::info('VERIFY TX', [
-        'response' => $verify->json()
-    ]);
+        Log::info('VERIFY TX', [
+            'response' => $verify->json()
+        ]);
 
         // Get school subdomain
         $refParts = explode('-', $reference);
