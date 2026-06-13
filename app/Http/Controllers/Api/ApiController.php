@@ -37051,7 +37051,14 @@ class ApiController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->typ !== 'a') {
+        // if ($user->typ !== 'a') {
+        //     return response()->json([
+        //         "status" => false,
+        //         "message" => "Unauthorized"
+        //     ], 403);
+        // }
+
+        if (!in_array($user->typ, ['a', 'sa'])) {
             return response()->json([
                 "status" => false,
                 "message" => "Unauthorized"
@@ -37150,7 +37157,7 @@ class ApiController extends Controller
             $message = Message::create([
                 'conversation_id' => $conversation->id,
                 'sender_id' => $user->id,
-                'sender_type' => 'a',
+                'sender_type' => $user->typ, // a or sa
                 'message' => $request->message,
                 'subject' => $request->subject,
                 'attachment' => $filePath,
@@ -37202,9 +37209,9 @@ class ApiController extends Controller
      *                 @OA\Property(
      *                     property="receiver_type",
      *                     type="string",
-     *                     enum={"a", "w", "z", "all_students", "all_staff", "class", "arm"},
+     *                     enum={"a", "sa", "w", "z", "all_students", "all_staff", "class", "arm"},
      *                     example="class",
-     *                     description="Receiver type: a=admin, w=staff, z=student, all_students=all students, all_staff=all staff, class=by class, arm=by class arm"
+     *                     description="Receiver type: a=admin, sa=support_admin,  w=staff, z=student, all_students=all students, all_staff=all staff, class=by class, arm=by class arm"
      *                 ),
      *
      *                 @OA\Property(
@@ -37212,7 +37219,7 @@ class ApiController extends Controller
      *                     type="integer",
      *                     nullable=true,
      *                     example=25,
-     *                     description="Required for single recipient types (a, w, z)"
+     *                     description="Required for single recipient types (a, sa, w, z)"
      *                 ),
      *
      *                 @OA\Property(
@@ -37345,6 +37352,12 @@ class ApiController extends Controller
         if ($request->receiver_type === 'a') {
             $receivers = [$request->receiver_id];
             $finalType = 'a';
+        }
+
+                // DOMAIN ADMIN
+        if ($request->receiver_type === 'sa') {
+            $receivers = [$request->receiver_id];
+            $finalType = 'sa';
         }
 
         // SINGLE STAFF

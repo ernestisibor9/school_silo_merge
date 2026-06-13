@@ -31465,10 +31465,11 @@
                                 ],
                                 "properties": {
                                     "receiver_type": {
-                                        "description": "Receiver type: a=admin, w=staff, z=student, all_students=all students, all_staff=all staff, class=by class, arm=by class arm",
+                                        "description": "Receiver type: a=admin, sa=support_admin,  w=staff, z=student, all_students=all students, all_staff=all staff, class=by class, arm=by class arm",
                                         "type": "string",
                                         "enum": [
                                             "a",
+                                            "sa",
                                             "w",
                                             "z",
                                             "all_students",
@@ -31479,7 +31480,7 @@
                                         "example": "class"
                                     },
                                     "receiver_id": {
-                                        "description": "Required for single recipient types (a, w, z)",
+                                        "description": "Required for single recipient types (a, sa, w, z)",
                                         "type": "integer",
                                         "example": 25,
                                         "nullable": true
