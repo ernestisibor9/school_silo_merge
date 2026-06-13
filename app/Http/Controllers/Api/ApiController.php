@@ -16068,8 +16068,11 @@ class ApiController extends Controller
             "email" => "required|email",
             "password" => "required",
         ]);
-        $typ = 'a';
-        $usr = User::where("email", $request->email)->where('typ', $typ)->first();
+        // $typ = 'a';
+        // $usr = User::where("email", $request->email)->where('typ', $typ)->first();
+        $usr = User::where("email", $request->email)
+            ->whereIn('typ', ['a', 'sa'])
+            ->first();
         if ($usr) {
             $token = JWTAuth::attempt([
                 "email" => $request->email,

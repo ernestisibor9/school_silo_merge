@@ -15,6 +15,7 @@ Started: 28/7/24
 ## USER types
 
 > a = admin
+> sa = support admin
 > p = partners
 > s = school
 > z = Student
