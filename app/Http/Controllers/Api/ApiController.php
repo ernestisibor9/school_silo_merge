@@ -37318,7 +37318,7 @@ class ApiController extends Controller
         }
 
         $request->validate([
-            'receiver_type' => 'required|in:a,w,z,all_students,all_staff,class,arm',
+            'receiver_type' => 'required|in:a,sa,w,z,all_students,all_staff,class,arm',
             'receiver_id' => 'nullable|integer',
             'clsm' => 'nullable|integer',
             'arm' => 'nullable|integer',
