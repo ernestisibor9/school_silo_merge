@@ -32006,8 +32006,8 @@
                 "tags": [
                     "Api"
                 ],
-                "summary": "Get Domain Admins and Support Admins",
-                "description": "Fetch all users where typ is 'a' (Domain Admin) or 'sa' (Support Admin), grouped by user type.",
+                "summary": "Get all domain admins",
+                "description": "Fetch all users where typ = 'a'",
                 "operationId": "getDomainAdmins",
                 "responses": {
                     "200": {
@@ -32025,84 +32025,111 @@
                                             "example": "Success"
                                         },
                                         "pld": {
-                                            "properties": {
-                                                "a": {
-                                                    "description": "Domain Admins",
-                                                    "type": "array",
-                                                    "items": {
-                                                        "properties": {
-                                                            "uid": {
-                                                                "type": "integer",
-                                                                "example": 1
-                                                            },
-                                                            "email": {
-                                                                "type": "string",
-                                                                "example": "domainadmin@example.com"
-                                                            },
-                                                            "typ": {
-                                                                "type": "string",
-                                                                "example": "a"
-                                                            },
-                                                            "verif": {
-                                                                "type": "integer",
-                                                                "example": 1
-                                                            },
-                                                            "created_at": {
-                                                                "type": "string",
-                                                                "format": "date-time"
-                                                            },
-                                                            "updated_at": {
-                                                                "type": "string",
-                                                                "format": "date-time"
-                                                            }
-                                                        },
-                                                        "type": "object"
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "email": {
+                                                        "type": "string",
+                                                        "example": "admin@example.com"
+                                                    },
+                                                    "typ": {
+                                                        "type": "string",
+                                                        "example": "a"
+                                                    },
+                                                    "verif": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    },
+                                                    "updated_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
                                                     }
                                                 },
-                                                "sa": {
-                                                    "description": "Support Admins",
-                                                    "type": "array",
-                                                    "items": {
-                                                        "properties": {
-                                                            "uid": {
-                                                                "type": "integer",
-                                                                "example": 2
-                                                            },
-                                                            "email": {
-                                                                "type": "string",
-                                                                "example": "supportadmin@example.com"
-                                                            },
-                                                            "typ": {
-                                                                "type": "string",
-                                                                "example": "sa"
-                                                            },
-                                                            "verif": {
-                                                                "type": "integer",
-                                                                "example": 1
-                                                            },
-                                                            "created_at": {
-                                                                "type": "string",
-                                                                "format": "date-time"
-                                                            },
-                                                            "updated_at": {
-                                                                "type": "string",
-                                                                "format": "date-time"
-                                                            }
-                                                        },
-                                                        "type": "object"
-                                                    }
-                                                }
-                                            },
-                                            "type": "object"
+                                                "type": "object"
+                                            }
                                         }
                                     },
                                     "type": "object"
                                 }
                             }
                         }
-                    },
-                    "401": {
-                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/getDomainSupportAdmin": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get all domain admins",
+                "description": "Fetch all users where typ = 'sa'",
+                "operationId": "getDomainSupportAdmins",
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "email": {
+                                                        "type": "string",
+                                                        "example": "support_admin@example.com"
+                                                    },
+                                                    "typ": {
+                                                        "type": "string",
+                                                        "example": "sa"
+                                                    },
+                                                    "verif": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    },
+                                                    "updated_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [

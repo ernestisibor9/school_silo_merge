@@ -145,6 +145,7 @@ Route::group([
 ], function () {
 
     Route::get('/getDomainAdmin', [ApiController::class, 'getDomainAdmin']);
+     Route::get('/getDomainSupportAdmin', [ApiController::class, 'getDomainSupportAdmin']);
 
     Route::post('sendEmailVerificationLink', [ApiController::class, 'sendEmailVerificationLink']);
     Route::post('setSchool', [ApiController::class, 'setSchool']);

@@ -37883,88 +37883,101 @@ class ApiController extends Controller
     }
 
 
-/**
- * @OA\Get(
- *     path="/api/getDomainAdmin",
- *     summary="Get Domain Admins and Support Admins",
- *     description="Fetch all users where typ is 'a' (Domain Admin) or 'sa' (Support Admin), grouped by user type.",
- *     operationId="getDomainAdmins",
- *     tags={"Api"},
- *     security={{"bearerAuth":{}}},
- *
- *     @OA\Response(
- *         response=200,
- *         description="Successful response",
- *         @OA\JsonContent(
- *             type="object",
- *
- *             @OA\Property(
- *                 property="status",
- *                 type="boolean",
- *                 example=true
- *             ),
- *
- *             @OA\Property(
- *                 property="message",
- *                 type="string",
- *                 example="Success"
- *             ),
- *
- *             @OA\Property(
- *                 property="pld",
- *                 type="object",
- *
- *                 @OA\Property(
- *                     property="a",
- *                     type="array",
- *                     description="Domain Admins",
- *                     @OA\Items(
- *                         type="object",
- *                         @OA\Property(property="uid", type="integer", example=1),
- *                         @OA\Property(property="email", type="string", example="domainadmin@example.com"),
- *                         @OA\Property(property="typ", type="string", example="a"),
- *                         @OA\Property(property="verif", type="integer", example=1),
- *                         @OA\Property(property="created_at", type="string", format="date-time"),
- *                         @OA\Property(property="updated_at", type="string", format="date-time")
- *                     )
- *                 ),
- *
- *                 @OA\Property(
- *                     property="sa",
- *                     type="array",
- *                     description="Support Admins",
- *                     @OA\Items(
- *                         type="object",
- *                         @OA\Property(property="uid", type="integer", example=2),
- *                         @OA\Property(property="email", type="string", example="supportadmin@example.com"),
- *                         @OA\Property(property="typ", type="string", example="sa"),
- *                         @OA\Property(property="verif", type="integer", example=1),
- *                         @OA\Property(property="created_at", type="string", format="date-time"),
- *                         @OA\Property(property="updated_at", type="string", format="date-time")
- *                     )
- *                 )
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=401,
- *         description="Unauthorized"
- *     )
- * )
- */
-public function getDomainAdmin()
-{
-    $admins = User::whereIn('typ', ['a', 'sa'])
-        ->get()
-        ->groupBy('typ');
 
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "pld" => $admins,
-    ]);
-}
+    /**
+     * @OA\Get(
+     *     path="/api/getDomainAdmin",
+     *     summary="Get all domain admins",
+     *     description="Fetch all users where typ = 'a'",
+     *     operationId="getDomainAdmins",
+     *     tags={"Api"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful response",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="email", type="string", example="admin@example.com"),
+     *                     @OA\Property(property="typ", type="string", example="a"),
+     *                     @OA\Property(property="verif", type="integer", example=1),
+     *                     @OA\Property(property="created_at", type="string", format="date-time"),
+     *                     @OA\Property(property="updated_at", type="string", format="date-time")
+     *                 )
+     *             )
+     *         )
+     *     )
+     * )
+     */
+    public function getDomainAdmin()
+    {
+        $subj = User::where('typ', 'a')->get();
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $subj,
+        ]);
+
+    }
+
+
+
+
+
+
+    /**
+     * @OA\Get(
+     *     path="/api/getDomainSupportAdmin",
+     *     summary="Get all domain admins",
+     *     description="Fetch all users where typ = 'sa'",
+     *     operationId="getDomainSupportAdmins",
+     *     tags={"Api"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful response",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="email", type="string", example="support_admin@example.com"),
+     *                     @OA\Property(property="typ", type="string", example="sa"),
+     *                     @OA\Property(property="verif", type="integer", example=1),
+     *                     @OA\Property(property="created_at", type="string", format="date-time"),
+     *                     @OA\Property(property="updated_at", type="string", format="date-time")
+     *                 )
+     *             )
+     *         )
+     *     )
+     * )
+     */
+        public function getDomainSupportAdmin()
+    {
+        $subj = User::where('typ', 'sa')->get();
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $subj,
+        ]);
+
+    }
 
 
 
