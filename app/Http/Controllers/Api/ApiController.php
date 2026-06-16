@@ -37767,25 +37767,62 @@ class ApiController extends Controller
     // }
 
 
+    // public function inbox()
+    // {
+    //     $user = auth()->user();
+
+    //     $messages = Message::whereHas('recipients', function ($q) use ($user) {
+    //         $q->where('receiver_id', $user->id)
+    //             ->where('receiver_type', $user->typ);
+    //     })
+    //         ->with('conversation')
+    //         ->orderBy('created_at', 'desc')
+    //         ->get();
+
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Inbox fetched successfully",
+    //         "pld" => $messages,
+    //     ]);
+    // }
+
+
     public function inbox()
-    {
-        $user = auth()->user();
+{
+    $user = auth()->user();
 
-        $messages = Message::whereHas('recipients', function ($q) use ($user) {
-            $q->where('receiver_id', $user->id)
-                ->where('receiver_type', $user->typ);
-        })
-            ->with('conversation')
-            ->orderBy('created_at', 'desc')
-            ->get();
+    $messages = Message::whereHas('recipients', function ($q) use ($user) {
 
-        return response()->json([
-            "status" => true,
-            "message" => "Inbox fetched successfully",
-            "pld" => $messages,
-        ]);
-    }
+        $q->where(function ($query) use ($user) {
 
+            // =========================
+            // ROLE-BASED INBOX (ADMIN / SUPPORT)
+            // =========================
+            if (in_array($user->typ, ['a', 'sa'])) {
+                $query->where('receiver_type', $user->typ);
+            }
+
+            // =========================
+            // USER-BASED INBOX (STAFF / STUDENT)
+            // =========================
+            if (in_array($user->typ, ['w', 'z'])) {
+                $query->where('receiver_id', $user->id)
+                      ->where('receiver_type', $user->typ);
+            }
+
+        });
+
+    })
+    ->with('conversation')
+    ->orderBy('created_at', 'desc')
+    ->get();
+
+    return response()->json([
+        "status" => true,
+        "message" => "Inbox fetched successfully",
+        "pld" => $messages,
+    ]);
+}
 
     /**
      * @OA\Get(
