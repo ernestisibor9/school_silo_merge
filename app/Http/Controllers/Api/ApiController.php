@@ -37457,11 +37457,11 @@ class ApiController extends Controller
         ]);
     }
 
+
     /**
      * @OA\Post(
      *     path="/api/messages/{messageId}/reply",
-     *     summary="Reply to a message (threaded private conversation system)",
-     *     description="Creates a private reply under an existing message thread. Replies follow role-based routing: staff replies to original recipient, students reply to class teacher, admin/school has full access.",
+     *     summary="Reply to a message",
      *     tags={"Messaging"},
      *     security={{"bearerAuth":{}}},
      *
@@ -37469,21 +37469,25 @@ class ApiController extends Controller
      *         name="messageId",
      *         in="path",
      *         required=true,
-     *         description="ID of the parent message being replied to",
-     *         @OA\Schema(type="integer", example=10)
+     *         description="Parent Message ID",
+     *         @OA\Schema(type="integer")
      *     ),
      *
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\MediaType(
-     *             mediaType="application/json",
+     *             mediaType="multipart/form-data",
      *             @OA\Schema(
      *                 required={"message"},
-     *
      *                 @OA\Property(
      *                     property="message",
      *                     type="string",
-     *                     example="Thank you, we have received your instruction."
+     *                     example="Thank you for your message."
+     *                 ),
+     *                 @OA\Property(
+     *                     property="attachment",
+     *                     type="string",
+     *                     format="binary"
      *                 )
      *             )
      *         )
@@ -37491,65 +37495,11 @@ class ApiController extends Controller
      *
      *     @OA\Response(
      *         response=200,
-     *         description="Reply created and sent privately",
-     *         @OA\JsonContent(
-     *             type="object",
-     *
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Reply sent correctly"),
-     *
-     *             @OA\Property(
-     *                 property="pld",
-     *                 type="object",
-     *                 description="Created reply message object",
-     *
-     *                 @OA\Property(property="id", type="integer", example=25),
-     *                 @OA\Property(property="conversation_id", type="integer", example=5),
-     *                 @OA\Property(property="sender_id", type="integer", example=2),
-     *                 @OA\Property(property="sender_type", type="string", example="w"),
-     *                 @OA\Property(property="message", type="string", example="We have completed the submission"),
-     *                 @OA\Property(property="subject", type="string", example="Exam Notice"),
-     *                 @OA\Property(property="parent_id", type="integer", example=10),
-     *                 @OA\Property(property="created_at", type="string", format="date-time", example="2026-04-10T10:00:00Z"),
-     *                 @OA\Property(property="updated_at", type="string", format="date-time", example="2026-04-10T10:00:00Z")
-     *             )
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=404,
-     *         description="Original message not found",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="No query results for model Message")
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=401,
-     *         description="Unauthenticated",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Unauthenticated")
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=422,
-     *         description="Validation error",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
-     *             @OA\Property(
-     *                 property="errors",
-     *                 type="object",
-     *                 example={
-     *                     "message": {"The message field is required."}
-     *                 }
-     *             )
-     *         )
+     *         description="Reply sent successfully"
      *     )
      * )
      */
+
 
     // public function reply(Request $request, $messageId)
     // {
@@ -37633,29 +37583,113 @@ class ApiController extends Controller
     // }
 
 
+    // public function reply(Request $request, $messageId)
+    // {
+    //     $user = auth()->user();
+
+    //     $request->validate([
+    //         'message' => 'required|string'
+    //     ]);
+
+    //     $parent = Message::with('recipients')->findOrFail($messageId);
+
+    //     // create reply message
+    //     $reply = Message::create([
+    //         'conversation_id' => $parent->conversation_id,
+    //         'sender_id' => $user->id,
+    //         'sender_type' => $user->typ,
+    //         'message' => $request->message,
+    //         'subject' => $parent->subject,
+    //         'parent_id' => $parent->id
+    //     ]);
+
+    //     $targets = [];
+
+    //     // 1. include all original recipients
+    //     foreach ($parent->recipients as $receiver) {
+    //         $targets[] = [
+    //             'id' => $receiver->receiver_id,
+    //             'type' => $receiver->receiver_type
+    //         ];
+    //     }
+
+    //     // 2. ALWAYS include original sender (IMPORTANT FIX)
+    //     $targets[] = [
+    //         'id' => $parent->sender_id,
+    //         'type' => $parent->sender_type
+    //     ];
+
+    //     // 3. remove duplicates (VERY IMPORTANT)
+    //     $targets = collect($targets)
+    //         ->unique(fn($t) => $t['id'] . '-' . $t['type'])
+    //         ->values();
+
+    //     // 4. save recipients
+    //     foreach ($targets as $target) {
+    //         MessageRecipient::create([
+    //             'message_id' => $reply->id,
+    //             'receiver_id' => $target['id'],
+    //             'receiver_type' => $target['type']
+    //         ]);
+    //     }
+
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Reply sent correctly",
+    //         "pld" => $reply
+    //     ]);
+    // }
+
     public function reply(Request $request, $messageId)
     {
         $user = auth()->user();
 
         $request->validate([
-            'message' => 'required|string'
+            'message' => 'required|string',
+            'attachment' => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc,docx|max:20480'
         ]);
+
+        // =========================
+        // FILE UPLOAD
+        // =========================
+        $filePath = null;
+
+        if ($request->hasFile('attachment')) {
+
+            $file = $request->file('attachment');
+
+            $filename = time() . '_' . preg_replace(
+                '/[^A-Za-z0-9_\-\.]/',
+                '_',
+                $file->getClientOriginalName()
+            );
+
+            $file->move(
+                base_path('../public_html/uploads/messages'),
+                $filename
+            );
+
+            $filePath = url('api/uploads/messages/' . $filename);
+        }
 
         $parent = Message::with('recipients')->findOrFail($messageId);
 
-        // create reply message
+        // =========================
+        // CREATE REPLY
+        // =========================
         $reply = Message::create([
             'conversation_id' => $parent->conversation_id,
             'sender_id' => $user->id,
             'sender_type' => $user->typ,
             'message' => $request->message,
             'subject' => $parent->subject,
+            'attachment' => $filePath,
             'parent_id' => $parent->id
         ]);
 
         $targets = [];
 
-        // 1. include all original recipients
+        // Original recipients
         foreach ($parent->recipients as $receiver) {
             $targets[] = [
                 'id' => $receiver->receiver_id,
@@ -37663,18 +37697,18 @@ class ApiController extends Controller
             ];
         }
 
-        // 2. ALWAYS include original sender (IMPORTANT FIX)
+        // Original sender
         $targets[] = [
             'id' => $parent->sender_id,
             'type' => $parent->sender_type
         ];
 
-        // 3. remove duplicates (VERY IMPORTANT)
+        // Remove duplicates
         $targets = collect($targets)
             ->unique(fn($t) => $t['id'] . '-' . $t['type'])
             ->values();
 
-        // 4. save recipients
+        // Save recipients
         foreach ($targets as $target) {
             MessageRecipient::create([
                 'message_id' => $reply->id,
@@ -37685,7 +37719,7 @@ class ApiController extends Controller
 
         return response()->json([
             "status" => true,
-            "message" => "Reply sent correctly",
+            "message" => "Reply sent successfully",
             "pld" => $reply
         ]);
     }

@@ -31626,25 +31626,23 @@
                 "tags": [
                     "Messaging"
                 ],
-                "summary": "Reply to a message (threaded private conversation system)",
-                "description": "Creates a private reply under an existing message thread. Replies follow role-based routing: staff replies to original recipient, students reply to class teacher, admin/school has full access.",
+                "summary": "Reply to a message",
                 "operationId": "3eef75cff8b0052bd178171ee42db0b4",
                 "parameters": [
                     {
                         "name": "messageId",
                         "in": "path",
-                        "description": "ID of the parent message being replied to",
+                        "description": "Parent Message ID",
                         "required": true,
                         "schema": {
-                            "type": "integer",
-                            "example": 10
+                            "type": "integer"
                         }
                     }
                 ],
                 "requestBody": {
                     "required": true,
                     "content": {
-                        "application/json": {
+                        "multipart/form-data": {
                             "schema": {
                                 "required": [
                                     "message"
@@ -31652,7 +31650,11 @@
                                 "properties": {
                                     "message": {
                                         "type": "string",
-                                        "example": "Thank you, we have received your instruction."
+                                        "example": "Thank you for your message."
+                                    },
+                                    "attachment": {
+                                        "type": "string",
+                                        "format": "binary"
                                     }
                                 },
                                 "type": "object"
@@ -31662,132 +31664,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Reply created and sent privately",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Reply sent correctly"
-                                        },
-                                        "pld": {
-                                            "description": "Created reply message object",
-                                            "properties": {
-                                                "id": {
-                                                    "type": "integer",
-                                                    "example": 25
-                                                },
-                                                "conversation_id": {
-                                                    "type": "integer",
-                                                    "example": 5
-                                                },
-                                                "sender_id": {
-                                                    "type": "integer",
-                                                    "example": 2
-                                                },
-                                                "sender_type": {
-                                                    "type": "string",
-                                                    "example": "w"
-                                                },
-                                                "message": {
-                                                    "type": "string",
-                                                    "example": "We have completed the submission"
-                                                },
-                                                "subject": {
-                                                    "type": "string",
-                                                    "example": "Exam Notice"
-                                                },
-                                                "parent_id": {
-                                                    "type": "integer",
-                                                    "example": 10
-                                                },
-                                                "created_at": {
-                                                    "type": "string",
-                                                    "format": "date-time",
-                                                    "example": "2026-04-10T10:00:00Z"
-                                                },
-                                                "updated_at": {
-                                                    "type": "string",
-                                                    "format": "date-time",
-                                                    "example": "2026-04-10T10:00:00Z"
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Original message not found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "No query results for model Message"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Unauthenticated"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "The given data was invalid."
-                                        },
-                                        "errors": {
-                                            "type": "object",
-                                            "example": {
-                                                "message": [
-                                                    "The message field is required."
-                                                ]
-                                            }
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Reply sent successfully"
                     }
                 },
                 "security": [
