@@ -37354,7 +37354,7 @@ class ApiController extends Controller
             $finalType = 'a';
         }
 
-                // DOMAIN ADMIN
+        // DOMAIN ADMIN
         if ($request->receiver_type === 'sa') {
             $receivers = [$request->receiver_id];
             $finalType = 'sa';
@@ -37788,41 +37788,43 @@ class ApiController extends Controller
 
 
     public function inbox()
-{
-    $user = auth()->user();
+    {
+        $user = auth()->user();
 
-    $messages = Message::whereHas('recipients', function ($q) use ($user) {
+        $messages = Message::whereHas('recipients', function ($q) use ($user) {
 
-        $q->where(function ($query) use ($user) {
+            $q->where(function ($query) use ($user) {
 
-            // =========================
-            // ROLE-BASED INBOX (ADMIN / SUPPORT)
-            // =========================
-            if (in_array($user->typ, ['a', 'sa'])) {
-                $query->where('receiver_type', $user->typ);
-            }
+                // Domain Admin / Support Admin
+                if (in_array($user->typ, ['a', 'sa'])) {
+                    $query->where('receiver_type', $user->typ)
+                        ->where('receiver_id', $user->id);
+                }
 
-            // =========================
-            // USER-BASED INBOX (STAFF / STUDENT)
-            // =========================
-            if (in_array($user->typ, ['w', 'z'])) {
-                $query->where('receiver_id', $user->id)
-                      ->where('receiver_type', $user->typ);
-            }
+                // School
+                if ($user->typ === 's') {
+                    $query->where('receiver_id', $user->id)
+                        ->where('receiver_type', 's');
+                }
 
-        });
+                // Staff / Student
+                if (in_array($user->typ, ['w', 'z'])) {
+                    $query->where('receiver_id', $user->id)
+                        ->where('receiver_type', $user->typ);
+                }
+            });
 
-    })
-    ->with('conversation')
-    ->orderBy('created_at', 'desc')
-    ->get();
+        })
+            ->with('conversation')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-    return response()->json([
-        "status" => true,
-        "message" => "Inbox fetched successfully",
-        "pld" => $messages,
-    ]);
-}
+        return response()->json([
+            "status" => true,
+            "message" => "Inbox fetched successfully",
+            "pld" => $messages,
+        ]);
+    }
 
     /**
      * @OA\Get(
@@ -38004,7 +38006,7 @@ class ApiController extends Controller
      *     )
      * )
      */
-        public function getDomainSupportAdmin()
+    public function getDomainSupportAdmin()
     {
         $subj = User::where('typ', 'sa')->get();
 
