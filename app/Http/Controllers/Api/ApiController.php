@@ -19177,6 +19177,126 @@ class ApiController extends Controller
     }
 
 
+
+    /**
+ * @OA\Post(
+ *     path="/api/setChangePasswordAdmin",
+ *     operationId="setChangePasswordAdmin",
+ *     tags={"Api"},
+ *     summary="Change authenticated admin password",
+ *     description="Allows an authenticated admin to change their password by providing the current password.",
+ *     security={{"bearerAuth":{}}},
+ *
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             required={"old_password","new_password","new_password_confirmation","user_id"},
+ *
+ *             @OA\Property(
+ *                 property="old_password",
+ *                 type="string",
+ *                 example="oldpassword123"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="new_password",
+ *                 type="string",
+ *                 minLength=6,
+ *                 example="newpassword123"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="new_password_confirmation",
+ *                 type="string",
+ *                 example="newpassword123"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="user_id",
+ *                 type="integer",
+ *                 example=1
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Password changed successfully",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="string", example="success"),
+ *             @OA\Property(property="message", type="string", example="Password changed successfully."),
+ *             @OA\Property(property="token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."),
+ *             @OA\Property(property="user_id", type="integer", example=1)
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthorized"
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation error or password mismatch",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="string", example="error"),
+ *             @OA\Property(property="message", type="string", example="New password cannot be the same as the current password.")
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=500,
+ *         description="Internal server error"
+ *     )
+ * )
+ */
+
+
+public function setChangePasswordAdmin(Request $request)
+{
+    // Validate request
+    $request->validate([
+        'old_password' => ['required'],
+        'new_password' => ['required', 'string', 'min:6', 'confirmed'],
+        'user_id' => ['required'],
+    ]);
+
+    // Authenticated user
+    $user = auth()->user();
+
+    // Check old password
+    if (!Hash::check($request->old_password, $user->password)) {
+
+        throw ValidationException::withMessages([
+            'old_password' => ['The current password is incorrect.'],
+        ]);
+    }
+
+    // Prevent using the same password
+    if (Hash::check($request->new_password, $user->password)) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'New password cannot be the same as the current password.'
+        ], 422);
+    }
+
+    // Update password
+    $user->password = Hash::make($request->new_password);
+    $user->save();
+
+    // Generate a fresh JWT token
+    $token = auth()->refresh();
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Password changed successfully.',
+        'token' => $token,
+        'user_id' => $request->user_id
+    ]);
+}
+
+
+
     /**
      * @OA\Post(
      *     path="/api/exitStaff/{schid}/{stid}",

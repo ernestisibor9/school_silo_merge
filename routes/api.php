@@ -232,6 +232,7 @@ Route::group([
     Route::post('setAcceptanceAcct', [ApiController::class, 'setAcceptanceAcct']);
     Route::post('setApplicationAcct', [ApiController::class, 'setApplicationAcct']);
     Route::post('setChangePassword', [ApiController::class, 'setChangePassword']);
+      Route::post('setChangePasswordAdmin', [ApiController::class, 'setChangePasswordAdmin']);
     Route::post('exitStudent/{schid}/{stid}', [ApiController::class, 'exitStudent']);
     Route::post('exitStaff/{schid}/{stid}', [ApiController::class, 'exitStaff']);
     Route::post('restoreStudent/{schid}/{stid}', [ApiController::class, 'restoreStudent']);
