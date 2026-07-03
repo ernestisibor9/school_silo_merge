@@ -3360,47 +3360,86 @@ class ApiController extends Controller
      */
 
 
-    public function setClassSubject(Request $request)
-    {
-        // Data validation
-        $request->validate([
-            "schid" => "required",
-            "subj_id" => "required",
-            "name" => "required",
-            "comp" => "required",
-            "clsid" => "required",
-            "sesn" => "required",
-            "trm" => "required",
-        ]);
+    // public function setClassSubject(Request $request)
+    // {
+    //     // Data validation
+    //     $request->validate([
+    //         "schid" => "required",
+    //         "subj_id" => "required",
+    //         "name" => "required",
+    //         "comp" => "required",
+    //         "clsid" => "required",
+    //         "sesn" => "required",
+    //         "trm" => "required",
+    //     ]);
 
-        // Generate deterministic UID without random number
+    //     // Generate deterministic UID without random number
+    //     $uid = $request->subj_id
+    //         . $request->schid
+    //         . $request->clsid
+    //         . $request->sesn
+    //         . $request->trm;
+
+    //     // Insert or update subject
+    //     $pld = class_subj::updateOrCreate(
+    //         ["uid" => $uid],
+    //         [
+    //             "schid" => $request->schid,
+    //             "subj_id" => $request->subj_id,
+    //             "name" => $request->name,
+    //             "comp" => $request->comp,
+    //             "clsid" => $request->clsid,
+    //             "sesn" => $request->sesn,
+    //             "trm" => $request->trm,
+    //         ]
+    //     );
+
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Subject added successfully",
+    //         "pld" => $pld
+    //     ]);
+    // }
+
+    public function setClassSubject(Request $request)
+{
+    $request->validate([
+        "schid"   => "required",
+        "subj_id" => "required",
+        "name"    => "required",
+        "comp"    => "required",
+        "clsid"   => "required",
+        "sesn"    => "required",
+        "trm"     => "required",
+    ]);
+
         $uid = $request->subj_id
             . $request->schid
             . $request->clsid
             . $request->sesn
             . $request->trm;
 
-        // Insert or update subject
-        $pld = class_subj::updateOrCreate(
-            ["uid" => $uid],
-            [
-                "schid" => $request->schid,
-                "subj_id" => $request->subj_id,
-                "name" => $request->name,
-                "comp" => $request->comp,
-                "clsid" => $request->clsid,
-                "sesn" => $request->sesn,
-                "trm" => $request->trm,
-            ]
-        );
+    $pld = class_subj::updateOrCreate(
+        [
+            'schid'   => $request->schid,
+            'clsid'   => $request->clsid,
+            'sesn'    => $request->sesn,
+            'trm'     => $request->trm,
+            'subj_id' => $request->subj_id,
+        ],
+        [
+            'uid'  => $uid,
+            'name' => $request->name,
+            'comp' => $request->comp,
+        ]
+    );
 
-        return response()->json([
-            "status" => true,
-            "message" => "Subject added successfully",
-            "pld" => $pld
-        ]);
-    }
-
+    return response()->json([
+        "status"  => true,
+        "message" => "Subject added successfully",
+        "pld"     => $pld
+    ]);
+}
 
 
 
@@ -16203,34 +16242,70 @@ class ApiController extends Controller
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
+    // public function setSubj(Request $request)
+    // {
+    //     $request->validate([
+    //         'name' => 'required',
+    //     ]);
+    //     $data = [
+    //         'name' => $request->name,
+    //     ];
+    //     $subj = [];
+    //     if ($request->has('id')) {
+    //         $subj = subj::where('id', $request->id)->first();
+    //         if ($subj) {
+    //             $subj->update($data);
+    //         } else {
+    //             return response()->json([
+    //                 "status" => false,
+    //                 "message" => "Subject Not Found",
+    //             ]);
+    //         }
+    //     } else {
+    //         $subj = subj::create($data);
+    //     }
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => $subj
+    //     ]);
+    // }
+
     public function setSubj(Request $request)
-    {
-        $request->validate([
-            'name' => 'required',
-        ]);
-        $data = [
-            'name' => $request->name,
-        ];
-        $subj = [];
-        if ($request->has('id')) {
-            $subj = subj::where('id', $request->id)->first();
-            if ($subj) {
-                $subj->update($data);
-            } else {
-                return response()->json([
-                    "status" => false,
-                    "message" => "Subject Not Found",
-                ]);
-            }
-        } else {
-            $subj = subj::create($data);
+{
+    $request->validate([
+        'name' => 'required|string|max:30',
+    ]);
+
+    $data = [
+        'name' => $request->name,
+    ];
+
+    if ($request->has('id')) {
+
+        $subj = subj::find($request->id);
+
+        if (!$subj) {
+            return response()->json([
+                "status" => false,
+                "message" => "Subject Not Found",
+            ], 404);
         }
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $subj
-        ]);
+
+        $subj->update($data);
+
+    } else {
+
+        $subj = subj::create($data);
+
     }
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => $subj
+    ]);
+}
 
     /**
      * @OA\Get(
@@ -24794,12 +24869,31 @@ public function setChangePasswordAdmin(Request $request)
         $className = cls::where('id', $clsm)->value('name');
         $classArmName = sch_cls::where('id', $clsa)->value('name');
 
+        // $students = old_student::where([
+        //     ['schid', $schid],
+        //     ['ssn', $ssn],
+        //     ['clsm', $clsm],
+        //     ['clsa', $clsa]
+        // ])->offset($start)->limit($count)->get();
+
         $students = old_student::where([
+        ['schid', $schid],
+        ['ssn', $ssn],
+        ['clsm', $clsm],
+        ['clsa', $clsa]
+    ])
+    ->select('sid')
+    ->distinct()
+    ->get()
+    ->map(function ($item) use ($schid, $ssn, $clsm, $clsa) {
+        return old_student::where([
+            ['sid', $item->sid],
             ['schid', $schid],
             ['ssn', $ssn],
             ['clsm', $clsm],
             ['clsa', $clsa]
-        ])->offset($start)->limit($count)->get();
+        ])->first();
+    });
 
         if ($students->isEmpty()) {
             return response()->json(['message' => 'No students found'], 404);
