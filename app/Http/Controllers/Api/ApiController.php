@@ -16274,7 +16274,7 @@ class ApiController extends Controller
     public function setSubj(Request $request)
 {
     $request->validate([
-        'name' => 'required|string|max:30',
+        'name' => 'required',
     ]);
 
     $data = [
