@@ -11385,21 +11385,24 @@ public function getPaymentStat($schid, $clsid, $ssnid, $trmid)
         }
 
         // Clone query to get total amount
-        $totalAmount = (clone $query)->sum('amt');
+        // $totalAmount = (clone $query)->sum('amt');
+
 
         // Get paginated payment data
         // $pld = $query->skip($start)->take($count)->get();
 
         $ids = (clone $query)
-    ->select(DB::raw('MAX(id) as id'))
-    ->groupBy('schid', 'stid', 'ssnid', 'trmid')
-    ->pluck('id');
+            ->select(DB::raw('MAX(id) as id'))
+            ->groupBy('schid', 'stid', 'ssnid', 'trmid')
+            ->pluck('id');
 
-$pld = payments::whereIn('id', $ids)
-    ->orderByDesc('id')
-    ->skip($start)
-    ->take($count)
-    ->get();
+        $totalAmount = payments::whereIn('id', $ids)->sum('amt');
+
+        $pld = payments::whereIn('id', $ids)
+            ->orderByDesc('id')
+            ->skip($start)
+            ->take($count)
+            ->get();
 
         // Check if there are any payments that match the query
         $paymentsExist = (clone $query)->exists();
