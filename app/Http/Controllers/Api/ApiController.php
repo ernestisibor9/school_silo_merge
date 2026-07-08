@@ -11352,7 +11352,18 @@ class ApiController extends Controller
         $totalAmount = (clone $query)->sum('amt');
 
         // Get paginated payment data
-        $pld = $query->skip($start)->take($count)->get();
+        // $pld = $query->skip($start)->take($count)->get();
+
+        $ids = (clone $query)
+    ->select(DB::raw('MAX(id) as id'))
+    ->groupBy('schid', 'stid', 'ssnid', 'trmid')
+    ->pluck('id');
+
+$pld = payments::whereIn('id', $ids)
+    ->orderByDesc('id')
+    ->skip($start)
+    ->take($count)
+    ->get();
 
         // Check if there are any payments that match the query
         $paymentsExist = (clone $query)->exists();
