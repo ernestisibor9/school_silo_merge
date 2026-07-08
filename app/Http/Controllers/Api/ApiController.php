@@ -11233,36 +11233,70 @@ class ApiController extends Controller
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
+    // public function getPaymentStat($schid, $clsid, $ssnid, $trmid)
+    // {
+    //     $query = payments::query();
+
+    //     if ($schid !== "-1") {
+    //         $query->where('schid', $schid);
+    //     }
+
+    //     if ($clsid !== "-1") {
+    //         $query->where('clsid', $clsid);
+    //     }
+
+    //     if ($ssnid !== "-1") {
+    //         $query->where('ssnid', $ssnid);
+    //     }
+
+    //     if ($trmid !== "-1") {
+    //         $query->where('trmid', $trmid);
+    //     }
+
+    //     $total = $query->count();
+
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => [
+    //             "total" => $total,
+    //         ],
+    //     ]);
+    // }
+
     public function getPaymentStat($schid, $clsid, $ssnid, $trmid)
-    {
-        $query = payments::query();
+{
+    $query = payments::query();
 
-        if ($schid !== "-1") {
-            $query->where('schid', $schid);
-        }
-
-        if ($clsid !== "-1") {
-            $query->where('clsid', $clsid);
-        }
-
-        if ($ssnid !== "-1") {
-            $query->where('ssnid', $ssnid);
-        }
-
-        if ($trmid !== "-1") {
-            $query->where('trmid', $trmid);
-        }
-
-        $total = $query->count();
-
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => [
-                "total" => $total,
-            ],
-        ]);
+    if ($schid !== "-1") {
+        $query->where('schid', $schid);
     }
+
+    if ($clsid !== "-1") {
+        $query->where('clsid', $clsid);
+    }
+
+    if ($ssnid !== "-1") {
+        $query->where('ssnid', $ssnid);
+    }
+
+    if ($trmid !== "-1") {
+        $query->where('trmid', $trmid);
+    }
+
+    $total = (clone $query)
+        ->groupBy('schid', 'stid', 'ssnid', 'trmid')
+        ->get()
+        ->count();
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => [
+            "total" => $total,
+        ],
+    ]);
+}
 
     /**
      * @OA\Get(
