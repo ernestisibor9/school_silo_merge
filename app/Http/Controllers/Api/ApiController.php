@@ -11264,7 +11264,7 @@ class ApiController extends Controller
     //     ]);
     // }
 
-    public function getPaymentStat($schid, $clsid, $ssnid, $trmid)
+public function getPaymentStat($schid, $clsid, $ssnid, $trmid)
 {
     $query = payments::query();
 
@@ -11284,10 +11284,12 @@ class ApiController extends Controller
         $query->where('trmid', $trmid);
     }
 
-    $total = (clone $query)
+    $ids = (clone $query)
+        ->select(DB::raw('MAX(id) as id'))
         ->groupBy('schid', 'stid', 'ssnid', 'trmid')
-        ->get()
-        ->count();
+        ->pluck('id');
+
+    $total = $ids->count();
 
     return response()->json([
         "status" => true,
