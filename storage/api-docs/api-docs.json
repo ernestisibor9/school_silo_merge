@@ -32764,6 +32764,112 @@
                     }
                 ]
             }
+        },
+        "/api/toggle-report-position": {
+            "post": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Toggle report position display",
+                "description": "Enable or disable the display of subject positions on the cumulative report for a specific school, session, and class.",
+                "operationId": "toggleReportPosition",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "schid",
+                                    "ssn",
+                                    "clsid"
+                                ],
+                                "properties": {
+                                    "schid": {
+                                        "description": "School ID",
+                                        "type": "integer",
+                                        "example": 43
+                                    },
+                                    "ssn": {
+                                        "description": "Academic Session",
+                                        "type": "integer",
+                                        "example": 2025
+                                    },
+                                    "clsid": {
+                                        "description": "Class ID",
+                                        "type": "integer",
+                                        "example": 3
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Position display toggled successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Position display enabled successfully."
+                                        },
+                                        "show_position": {
+                                            "type": "boolean",
+                                            "example": true
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "example": {
+                                                "schid": [
+                                                    "The schid field is required."
+                                                ],
+                                                "ssn": [
+                                                    "The ssn field is required."
+                                                ],
+                                                "clsid": [
+                                                    "The clsid field is required."
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {

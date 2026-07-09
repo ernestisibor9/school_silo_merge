@@ -61,6 +61,7 @@ use App\Models\result_meta;
 use App\Models\staff_subj;
 use App\Models\staff_class;
 use App\Models\staff_class_arm;
+use App\Models\ReportSetting;
 use App\Models\sesn;
 use App\Models\trm;
 use App\Models\student;
@@ -24873,6 +24874,15 @@ public function setChangePasswordAdmin(Request $request)
         $start = $request->input('start', 0);
         $count = $request->input('count', 20);
 
+        // SHOW TOGGLE POSITION AND GRADE FOR STUDENTS IN CLASS
+        $showPosition = ReportSetting::where([
+            'schid' => $schid,
+            'ssn'   => $ssn,
+            'clsid' => $clsm
+        ])->value('show_position');
+
+        $showPosition = $showPosition ?? 1;
+
         $gradeList = sch_grade::where([
             ['schid', $schid],
             ['clsid', $clsm],
@@ -25040,7 +25050,10 @@ public function setChangePasswordAdmin(Request $request)
                     '3rd_term_total' => $t3,
                     'yearly_average' => $average,
                     'grade' => $grade,
-                    'position' => $subjectAverages[$subjectId][$stid] ?? null
+                    // 'position' => $subjectAverages[$subjectId][$stid] ?? null
+                        'position' => $showPosition
+                    ? ($subjectAverages[$subjectId][$stid] ?? null)
+                    : null
                 ];
             }
 
@@ -39110,6 +39123,109 @@ public function setChangePasswordAdmin(Request $request)
             "sender_type" => "z"
         ]);
     }
+
+
+
+
+
+    /**
+ * @OA\Post(
+ *     path="/api/toggle-report-position",
+ *     operationId="toggleReportPosition",
+ *     tags={"Api"},
+ *     security={{"bearerAuth":{}}},
+ *     summary="Toggle report position display",
+ *     description="Enable or disable the display of subject positions on the cumulative report for a specific school, session, and class.",
+ *
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             required={"schid","ssn","clsid"},
+ *             @OA\Property(
+ *                 property="schid",
+ *                 type="integer",
+ *                 example=43,
+ *                 description="School ID"
+ *             ),
+ *             @OA\Property(
+ *                 property="ssn",
+ *                 type="integer",
+ *                 example=2025,
+ *                 description="Academic Session"
+ *             ),
+ *             @OA\Property(
+ *                 property="clsid",
+ *                 type="integer",
+ *                 example=3,
+ *                 description="Class ID"
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Position display toggled successfully.",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Position display enabled successfully."),
+ *             @OA\Property(property="show_position", type="boolean", example=true)
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation error",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="message", type="string", example="The given data was invalid."),
+ *             @OA\Property(
+ *                 property="errors",
+ *                 type="object",
+ *                 example={
+ *                     "schid":{"The schid field is required."},
+ *                     "ssn":{"The ssn field is required."},
+ *                     "clsid":{"The clsid field is required."}
+ *                 }
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=500,
+ *         description="Internal Server Error"
+ *     )
+ * )
+ */
+    public function toggleReportPosition(Request $request)
+{
+    $request->validate([
+        'schid' => 'required|integer',
+        'ssn' => 'required|integer',
+        'clsid' => 'required|integer',
+    ]);
+
+    $setting = ReportSetting::firstOrCreate(
+        [
+            'schid' => $request->schid,
+            'ssn'   => $request->ssn,
+            'clsid' => $request->clsid,
+        ],
+        [
+            'show_position' => 1
+        ]
+    );
+
+    // Toggle the value
+    $setting->show_position = !$setting->show_position;
+    $setting->save();
+
+    return response()->json([
+        'status' => true,
+        'message' => $setting->show_position
+            ? 'Position display enabled successfully.'
+            : 'Position display disabled successfully.',
+        'show_position' => (bool)$setting->show_position
+    ]);
+}
 
 }
 
