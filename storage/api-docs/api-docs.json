@@ -2875,6 +2875,9 @@
                                     "subj_pos": {
                                         "type": "string"
                                     },
+                                    "cumulative_pos": {
+                                        "type": "string"
+                                    },
                                     "attend_pos": {
                                         "type": "string"
                                     },

@@ -3244,6 +3244,7 @@ class ApiController extends Controller
      *             @OA\Property(property="sdob", type="string"),
      *             @OA\Property(property="spos", type="string"),
      *             @OA\Property(property="subj_pos", type="string"),
+     *              @OA\Property(property="cumulative_pos", type="string"),
      *            @OA\Property(property="attend_pos", type="string"),
      *             @OA\Property(property="num_of_days", type="string"),
      *         )
