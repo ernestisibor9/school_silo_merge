@@ -3264,6 +3264,7 @@ class ApiController extends Controller
             "sdob" => "required",
             "spos" => "required",
             "subj_pos" => "nullable",
+            "cumulative_pos" => "nullable",
             "attend_pos" => "nullable",
             "num_of_days" => "nullable",
         ]);
@@ -3278,6 +3279,7 @@ class ApiController extends Controller
                 "sdob" => $request->sdob,
                 "spos" => $request->spos,
                 "subj_pos" => $request->subj_pos ?? 'y',
+                "cumulative_pos" => $request->cumulative_pos ?? 'y',
                 "attend_pos" => $request->attend_pos ?? 'y',
                 "num_of_days" => $request->num_of_days,
             ]
@@ -24865,6 +24867,8 @@ public function setChangePasswordAdmin(Request $request)
 
 
 
+
+
     public function getAllStudentCumulativeResult(Request $request)
     {
         $schid = $request->input('schid');
@@ -24873,15 +24877,6 @@ public function setChangePasswordAdmin(Request $request)
         $clsa = $request->input('clsa');
         $start = $request->input('start', 0);
         $count = $request->input('count', 20);
-
-        // SHOW TOGGLE POSITION AND GRADE FOR STUDENTS IN CLASS
-        $showPosition = ReportSetting::where([
-            'schid' => $schid,
-            'ssn'   => $ssn,
-            'clsid' => $clsm
-        ])->value('show_position');
-
-        $showPosition = $showPosition ?? 1;
 
         $gradeList = sch_grade::where([
             ['schid', $schid],
@@ -24929,31 +24924,12 @@ public function setChangePasswordAdmin(Request $request)
         $className = cls::where('id', $clsm)->value('name');
         $classArmName = sch_cls::where('id', $clsa)->value('name');
 
-        // $students = old_student::where([
-        //     ['schid', $schid],
-        //     ['ssn', $ssn],
-        //     ['clsm', $clsm],
-        //     ['clsa', $clsa]
-        // ])->offset($start)->limit($count)->get();
-
         $students = old_student::where([
-        ['schid', $schid],
-        ['ssn', $ssn],
-        ['clsm', $clsm],
-        ['clsa', $clsa]
-    ])
-    ->select('sid')
-    ->distinct()
-    ->get()
-    ->map(function ($item) use ($schid, $ssn, $clsm, $clsa) {
-        return old_student::where([
-            ['sid', $item->sid],
             ['schid', $schid],
             ['ssn', $ssn],
             ['clsm', $clsm],
             ['clsa', $clsa]
-        ])->first();
-    });
+        ])->offset($start)->limit($count)->get();
 
         if ($students->isEmpty()) {
             return response()->json(['message' => 'No students found'], 404);
@@ -25050,10 +25026,7 @@ public function setChangePasswordAdmin(Request $request)
                     '3rd_term_total' => $t3,
                     'yearly_average' => $average,
                     'grade' => $grade,
-                    // 'position' => $subjectAverages[$subjectId][$stid] ?? null
-                        'position' => $showPosition
-                    ? ($subjectAverages[$subjectId][$stid] ?? null)
-                    : null
+                    'position' => $subjectAverages[$subjectId][$stid] ?? null
                 ];
             }
 
