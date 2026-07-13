@@ -24925,12 +24925,31 @@ public function setChangePasswordAdmin(Request $request)
         $className = cls::where('id', $clsm)->value('name');
         $classArmName = sch_cls::where('id', $clsa)->value('name');
 
-        $students = old_student::where([
-            ['schid', $schid],
-            ['ssn', $ssn],
-            ['clsm', $clsm],
-            ['clsa', $clsa]
-        ])->offset($start)->limit($count)->get();
+        // $students = old_student::where([
+        //     ['schid', $schid],
+        //     ['ssn', $ssn],
+        //     ['clsm', $clsm],
+        //     ['clsa', $clsa]
+        // ])->offset($start)->limit($count)->get();
+
+        $students = old_student::where('schid', $schid)
+    ->where('ssn', $ssn)
+    ->where('clsm', $clsm)
+    ->where('clsa', $clsa)
+    ->selectRaw('MIN(uid) as uid, sid, schid, fname, lname, mname, suid, clsm, clsa')
+    ->groupBy(
+        'sid',
+        'schid',
+        'fname',
+        'lname',
+        'mname',
+        'suid',
+        'clsm',
+        'clsa'
+    )
+    ->offset($start)
+    ->limit($count)
+    ->get();
 
         if ($students->isEmpty()) {
             return response()->json(['message' => 'No students found'], 404);
