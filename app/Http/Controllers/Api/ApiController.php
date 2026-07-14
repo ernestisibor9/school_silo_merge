@@ -8966,12 +8966,12 @@ class ApiController extends Controller
             $totalStd = student::join('old_student', 'student.sid', '=', 'old_student.sid')
                 ->where('student.schid', $schid)
                 ->where('student.stat', '1')
-                ->where('student.status', 'active')
+                // ->where('student.status', 'active')
                 ->where('old_student.ssn', $ssn)
                 ->where('old_student.trm', $trm) // ✅ FIXED
                 ->where('old_student.clsm', $clsm)
                 ->where('old_student.clsa', $clsa)
-                ->where('old_student.status', 'active')
+                // ->where('old_student.status', 'active')
                 ->distinct('student.sid') // ✅ VERY IMPORTANT
                 ->count('student.sid');   // ✅ count unique students
 
