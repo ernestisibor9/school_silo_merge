@@ -252,6 +252,9 @@ Route::group([
     Route::post('/autoCommentTemplate', [ApiController::class, 'autoCommentTemplate']);
     Route::get('/autoCommentTemplate', [ApiController::class, 'getAutoCommentTemplate']);
 
+     Route::post('setLessonPlanOption', [ApiController::class, 'setLessonPlanOption']);
+         Route::post('updateLessonPlanOption', [ApiController::class, 'updateLessonPlanOption']);
+
     Route::post('/allStudentResultsComment', [ApiController::class, 'allStudentResultsComment']);
     Route::get('getAllSubjects', [ApiController::class, 'getAllSubjects']);
 
@@ -440,6 +443,12 @@ Route::group([
 
     Route::get('lesson-plans/termly/{schid}/{ssn}/{trm}/{sbj}', [ApiController::class, 'getLessonPlansByTerm']);
     Route::get('lesson-plans/{schid}/{ssn}/{trm}/{clsm}/{sbj}', [ApiController::class, 'getLessonPlanBySubj']);
+
+
+    Route::get('getLessonPlanOption/{schid}/{ssn}/{trm}/{clsm}', [ApiController::class, 'getLessonPlanOption']);
+    Route::get('getSingleLessonPlanOption/{schid}/{ssn}/{trm}/{clsm}/{sbj}/{id}', [ApiController::class, 'getSingleLessonPlanOption']);
+    Route::get('/lesson-plan-option/weekly/{schid}/{ssn}/{trm}/{clsm}', [ApiController::class, 'getWeeklyLessonPlanOption']);
+    Route::get('lesson-plans/termly-option/{schid}/{ssn}/{trm}/{sbj}', [ApiController::class, 'getLessonPlansByTermOption']);
 
 
     Route::get('getLessonNote/{sch_id}/{session}/{term}/{class}/{week}', [ApiController::class, 'getLessonNote']);

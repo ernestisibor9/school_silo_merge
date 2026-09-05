@@ -21513,7 +21513,7 @@
                                             "properties": {
                                                 "punc": {
                                                     "type": "number",
-                                                    "example": 3.67
+                                                    "example": 3.6699999999999999289457264239899814128875732421875
                                                 },
                                                 "hon": {
                                                     "type": "number",
@@ -22092,7 +22092,7 @@
                                                     "final_average": {
                                                         "type": "number",
                                                         "format": "float",
-                                                        "example": 85.6
+                                                        "example": 85.599999999999994315658113919198513031005859375
                                                     },
                                                     "overall_position": {
                                                         "type": "integer",
@@ -25049,13 +25049,13 @@
                                         "description": "Latitude (-90 to 90)",
                                         "type": "number",
                                         "format": "float",
-                                        "example": 6.5244
+                                        "example": 6.5243999999999999772626324556767940521240234375
                                     },
                                     "longi": {
                                         "description": "Longitude (-180 to 180)",
                                         "type": "number",
                                         "format": "float",
-                                        "example": 3.3792
+                                        "example": 3.37919999999999998152588887023739516735076904296875
                                     }
                                 },
                                 "type": "object"
@@ -32865,6 +32865,1207 @@
                     },
                     "500": {
                         "description": "Internal Server Error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/setLessonPlanOption": {
+            "post": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Create or update a lesson plan",
+                "description": "Creates or updates a lesson plan. Array fields accept JSON array strings, single strings, or multipart array values.",
+                "operationId": "86fb2b765347cf5ee6dece89f9db3f2d",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "schid",
+                                    "clsm",
+                                    "ssn",
+                                    "trm",
+                                    "sbj",
+                                    "plan_type",
+                                    "date",
+                                    "time_from",
+                                    "time_to",
+                                    "period",
+                                    "duration",
+                                    "topic",
+                                    "lesson_objectives"
+                                ],
+                                "properties": {
+                                    "schid": {
+                                        "type": "string",
+                                        "example": "12"
+                                    },
+                                    "clsm": {
+                                        "type": "string",
+                                        "example": "11"
+                                    },
+                                    "ssn": {
+                                        "type": "string",
+                                        "example": "2025/2026"
+                                    },
+                                    "trm": {
+                                        "type": "string",
+                                        "example": "1"
+                                    },
+                                    "sbj": {
+                                        "type": "string",
+                                        "example": "ENGLISH LANGUAGE"
+                                    },
+                                    "plan_type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "weekly",
+                                            "termly"
+                                        ],
+                                        "example": "weekly"
+                                    },
+                                    "weekly": {
+                                        "type": "string",
+                                        "example": "Week 1",
+                                        "nullable": true
+                                    },
+                                    "date": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2026-09-03"
+                                    },
+                                    "time_from": {
+                                        "type": "string",
+                                        "example": "07:30"
+                                    },
+                                    "time_to": {
+                                        "type": "string",
+                                        "example": "08:10"
+                                    },
+                                    "period": {
+                                        "type": "string",
+                                        "example": "1st Period"
+                                    },
+                                    "duration": {
+                                        "type": "string",
+                                        "example": "40 minutes"
+                                    },
+                                    "sex": {
+                                        "type": "string",
+                                        "example": "Mixed",
+                                        "nullable": true
+                                    },
+                                    "topic": {
+                                        "type": "string",
+                                        "example": "Parts of Speech"
+                                    },
+                                    "sub_topic": {
+                                        "description": "JSON array string. A single string is also accepted.",
+                                        "type": "string",
+                                        "example": "['What is a noun?','Types of noun','Proper noun','Common noun']",
+                                        "nullable": true
+                                    },
+                                    "lesson_objectives": {
+                                        "description": "JSON array string. A single string is also accepted.",
+                                        "type": "string",
+                                        "example": "['Define a noun','Identify nouns in sentences','Differentiate between common and proper nouns']"
+                                    },
+                                    "instructional_sources_material": {
+                                        "description": "JSON array string. A single string is also accepted.",
+                                        "type": "string",
+                                        "example": "['English Grammar Textbook','Whiteboard','Marker']",
+                                        "nullable": true
+                                    },
+                                    "step1_previous_knowledge": {
+                                        "description": "JSON array string. A single string is also accepted.",
+                                        "type": "string",
+                                        "example": "['Students can identify simple words','Students have basic knowledge of sentences']",
+                                        "nullable": true
+                                    },
+                                    "step1_mode": {
+                                        "type": "string",
+                                        "example": "Question and Answer",
+                                        "nullable": true
+                                    },
+                                    "step1_teacher_activities": {
+                                        "description": "JSON array string. A single string is also accepted.",
+                                        "type": "string",
+                                        "example": "['Teacher asks students what they understand by a noun','Teacher explains the meaning of a noun']",
+                                        "nullable": true
+                                    },
+                                    "step1_student_activities": {
+                                        "description": "JSON array string. A single string is also accepted.",
+                                        "type": "string",
+                                        "example": "['Students answer questions','Students listen to the explanation','Students give examples']",
+                                        "nullable": true
+                                    },
+                                    "step2_mode": {
+                                        "type": "string",
+                                        "example": "Demonstration",
+                                        "nullable": true
+                                    },
+                                    "step2_teacher_activities": {
+                                        "description": "JSON array string. A single string is also accepted.",
+                                        "type": "string",
+                                        "example": "['Teacher writes examples of nouns on the board','Teacher explains proper and common nouns']",
+                                        "nullable": true
+                                    },
+                                    "step2_student_activities": {
+                                        "description": "JSON array string. A single string is also accepted.",
+                                        "type": "string",
+                                        "example": "['Students copy the examples','Students identify proper nouns','Students identify common nouns']",
+                                        "nullable": true
+                                    },
+                                    "step3_mode": {
+                                        "type": "string",
+                                        "example": "Discussion",
+                                        "nullable": true
+                                    },
+                                    "step3_teacher_activities": {
+                                        "description": "JSON array string. A single string is also accepted.",
+                                        "type": "string",
+                                        "example": "['Teacher divides students into groups','Teacher gives each group sentences to analyse','Teacher guides the discussion']",
+                                        "nullable": true
+                                    },
+                                    "step3_student_activities": {
+                                        "description": "JSON array string. A single string is also accepted.",
+                                        "type": "string",
+                                        "example": "['Students work in groups','Students identify nouns in the sentences','Students discuss their answers']",
+                                        "nullable": true
+                                    },
+                                    "step4_mode": {
+                                        "type": "string",
+                                        "example": "Application",
+                                        "nullable": true
+                                    },
+                                    "step4_teacher_activities": {
+                                        "description": "JSON array string. A single string is also accepted.",
+                                        "type": "string",
+                                        "example": "['Teacher gives students practical exercises','Teacher monitors students while they work','Teacher corrects mistakes']",
+                                        "nullable": true
+                                    },
+                                    "step4_student_activities": {
+                                        "description": "JSON array string. A single string is also accepted.",
+                                        "type": "string",
+                                        "example": "['Students complete the exercises','Students identify nouns in sentences','Students correct their answers']",
+                                        "nullable": true
+                                    },
+                                    "step5_mode": {
+                                        "type": "string",
+                                        "example": "Evaluation",
+                                        "nullable": true
+                                    },
+                                    "step5_teacher_activities": {
+                                        "description": "JSON array string. A single string is also accepted.",
+                                        "type": "string",
+                                        "example": "['Teacher asks oral questions','Teacher gives a short written assessment','Teacher evaluates student responses']",
+                                        "nullable": true
+                                    },
+                                    "step5_student_activities": {
+                                        "description": "JSON array string. A single string is also accepted.",
+                                        "type": "string",
+                                        "example": "['Students answer oral questions','Students complete the assessment','Students submit their answers']",
+                                        "nullable": true
+                                    },
+                                    "summary": {
+                                        "description": "JSON array string. A single string is also accepted.",
+                                        "type": "string",
+                                        "example": "['Students learned the meaning of nouns','Students identified common and proper nouns','Students practised using nouns in sentences']",
+                                        "nullable": true
+                                    },
+                                    "conclusion": {
+                                        "description": "JSON array string. A single string is also accepted.",
+                                        "type": "string",
+                                        "example": "['The lesson was successfully completed','Students demonstrated understanding of the topic']",
+                                        "nullable": true
+                                    },
+                                    "assignment": {
+                                        "description": "JSON array string. A single string is also accepted.",
+                                        "type": "string",
+                                        "example": "['Write ten nouns','Classify the nouns as common or proper','Use five nouns in sentences']",
+                                        "nullable": true
+                                    },
+                                    "reference": {
+                                        "description": "JSON array string. A single string is also accepted.",
+                                        "type": "string",
+                                        "example": "['New Oxford Secondary English Course','English Grammar Textbook']",
+                                        "nullable": true
+                                    },
+                                    "topic_tally": {
+                                        "type": "string",
+                                        "enum": [
+                                            "yes",
+                                            "no"
+                                        ],
+                                        "example": "yes",
+                                        "nullable": true
+                                    },
+                                    "other_comments": {
+                                        "type": "string",
+                                        "example": "Students participated actively and demonstrated good understanding.",
+                                        "nullable": true
+                                    },
+                                    "subject_head_signature": {
+                                        "description": "JPG, JPEG or PNG image. Maximum 2MB.",
+                                        "type": "string",
+                                        "format": "binary",
+                                        "nullable": true
+                                    },
+                                    "subject_head_signature_date": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2026-09-03",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Lesson plan saved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Lesson plan saved successfully"
+                                        },
+                                        "pld": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/updateLessonPlanOption": {
+            "post": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Update an existing lesson plan",
+                "description": "Updates an existing lesson plan. Only fields supplied in the request are updated. Array fields accept JSON array strings, single strings, or multipart array values.",
+                "operationId": "2764603a329856644708815a21a43db6",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "schid",
+                                    "clsm",
+                                    "ssn",
+                                    "trm",
+                                    "date",
+                                    "sbj",
+                                    "topic"
+                                ],
+                                "properties": {
+                                    "schid": {
+                                        "type": "string",
+                                        "example": "12"
+                                    },
+                                    "clsm": {
+                                        "type": "string",
+                                        "example": "11"
+                                    },
+                                    "ssn": {
+                                        "type": "string",
+                                        "example": "2025/2026"
+                                    },
+                                    "trm": {
+                                        "type": "string",
+                                        "example": "1"
+                                    },
+                                    "date": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2026-09-03"
+                                    },
+                                    "sbj": {
+                                        "type": "string",
+                                        "example": "ENGLISH LANGUAGE"
+                                    },
+                                    "topic": {
+                                        "type": "string",
+                                        "example": "Parts of Speech"
+                                    },
+                                    "plan_type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "weekly",
+                                            "termly"
+                                        ],
+                                        "example": "weekly",
+                                        "nullable": true
+                                    },
+                                    "weekly": {
+                                        "type": "string",
+                                        "example": "Week 2",
+                                        "nullable": true
+                                    },
+                                    "time_from": {
+                                        "type": "string",
+                                        "example": "08:00",
+                                        "nullable": true
+                                    },
+                                    "time_to": {
+                                        "type": "string",
+                                        "example": "08:40",
+                                        "nullable": true
+                                    },
+                                    "period": {
+                                        "type": "string",
+                                        "example": "2nd Period",
+                                        "nullable": true
+                                    },
+                                    "duration": {
+                                        "type": "string",
+                                        "example": "40 minutes",
+                                        "nullable": true
+                                    },
+                                    "sex": {
+                                        "type": "string",
+                                        "example": "Mixed",
+                                        "nullable": true
+                                    },
+                                    "sub_topic": {
+                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
+                                        "type": "string",
+                                        "example": "Proper noun",
+                                        "nullable": true
+                                    },
+                                    "lesson_objectives": {
+                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
+                                        "type": "string",
+                                        "example": "Identify proper nouns",
+                                        "nullable": true
+                                    },
+                                    "instructional_sources_material": {
+                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
+                                        "type": "string",
+                                        "example": "English Grammar Textbook",
+                                        "nullable": true
+                                    },
+                                    "step1_previous_knowledge": {
+                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
+                                        "type": "string",
+                                        "example": "Students understand basic nouns",
+                                        "nullable": true
+                                    },
+                                    "step1_mode": {
+                                        "type": "string",
+                                        "example": "Question and Answer",
+                                        "nullable": true
+                                    },
+                                    "step1_teacher_activities": {
+                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
+                                        "type": "string",
+                                        "example": "Teacher explains proper nouns",
+                                        "nullable": true
+                                    },
+                                    "step1_student_activities": {
+                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
+                                        "type": "string",
+                                        "example": "Students give examples",
+                                        "nullable": true
+                                    },
+                                    "step2_mode": {
+                                        "type": "string",
+                                        "example": "Demonstration",
+                                        "nullable": true
+                                    },
+                                    "step2_teacher_activities": {
+                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
+                                        "type": "string",
+                                        "example": "Teacher writes examples on the board",
+                                        "nullable": true
+                                    },
+                                    "step2_student_activities": {
+                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
+                                        "type": "string",
+                                        "example": "Students identify proper nouns",
+                                        "nullable": true
+                                    },
+                                    "step3_mode": {
+                                        "type": "string",
+                                        "example": "Discussion",
+                                        "nullable": true
+                                    },
+                                    "step3_teacher_activities": {
+                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
+                                        "type": "string",
+                                        "example": "Teacher guides group discussion",
+                                        "nullable": true
+                                    },
+                                    "step3_student_activities": {
+                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
+                                        "type": "string",
+                                        "example": "Students discuss their answers",
+                                        "nullable": true
+                                    },
+                                    "step4_mode": {
+                                        "type": "string",
+                                        "example": "Application",
+                                        "nullable": true
+                                    },
+                                    "step4_teacher_activities": {
+                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
+                                        "type": "string",
+                                        "example": "Teacher gives practical exercises",
+                                        "nullable": true
+                                    },
+                                    "step4_student_activities": {
+                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
+                                        "type": "string",
+                                        "example": "Students complete the exercises",
+                                        "nullable": true
+                                    },
+                                    "step5_mode": {
+                                        "type": "string",
+                                        "example": "Evaluation",
+                                        "nullable": true
+                                    },
+                                    "step5_teacher_activities": {
+                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
+                                        "type": "string",
+                                        "example": "Teacher asks oral questions",
+                                        "nullable": true
+                                    },
+                                    "step5_student_activities": {
+                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
+                                        "type": "string",
+                                        "example": "Students answer the questions",
+                                        "nullable": true
+                                    },
+                                    "summary": {
+                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
+                                        "type": "string",
+                                        "example": "Students understood proper nouns",
+                                        "nullable": true
+                                    },
+                                    "conclusion": {
+                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
+                                        "type": "string",
+                                        "example": "Students demonstrated good understanding",
+                                        "nullable": true
+                                    },
+                                    "assignment": {
+                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
+                                        "type": "string",
+                                        "example": "Write five proper nouns",
+                                        "nullable": true
+                                    },
+                                    "reference": {
+                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
+                                        "type": "string",
+                                        "example": "English Grammar Textbook",
+                                        "nullable": true
+                                    },
+                                    "topic_tally": {
+                                        "type": "string",
+                                        "enum": [
+                                            "yes",
+                                            "no"
+                                        ],
+                                        "example": "yes",
+                                        "nullable": true
+                                    },
+                                    "other_comments": {
+                                        "type": "string",
+                                        "example": "Students participated actively.",
+                                        "nullable": true
+                                    },
+                                    "subject_head_signature": {
+                                        "description": "JPG, JPEG or PNG image. Maximum 2MB.",
+                                        "type": "string",
+                                        "format": "binary",
+                                        "nullable": true
+                                    },
+                                    "subject_head_signature_date": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2026-09-05",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Lesson plan updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Lesson Plan updated successfully"
+                                        },
+                                        "pld": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Lesson plan not found"
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/getLessonPlanOption/{schid}/{ssn}/{trm}/{clsm}": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get lesson plans for a specific school, session, term, and class",
+                "description": "Fetches lesson plans using school ID, session, term, and class with optional pagination parameters.",
+                "operationId": "b73301bad4680464820813c74d7c2f5f",
+                "parameters": [
+                    {
+                        "name": "schid",
+                        "in": "path",
+                        "description": "School ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "SCH001"
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "path",
+                        "description": "Session",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "2025"
+                    },
+                    {
+                        "name": "trm",
+                        "in": "path",
+                        "description": "Term ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "2"
+                    },
+                    {
+                        "name": "clsm",
+                        "in": "path",
+                        "description": "Class ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "2"
+                    },
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Pagination start index",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 0
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "Number of lesson plans to retrieve",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 20
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of lesson plans retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/getSingleLessonPlanOption/{schid}/{ssn}/{trm}/{clsm}/{sbj}/{id}": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get a single lesson plan by school ID, session, term ID, class, subject, and plan ID",
+                "operationId": "2b5833426fcbd1384fa2cf0eea5fb9ac",
+                "parameters": [
+                    {
+                        "name": "schid",
+                        "in": "path",
+                        "description": "School ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "path",
+                        "description": "Academic session (e.g. 2024/2025)",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "path",
+                        "description": "Term ID (e.g. 1, 2, 3)",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "clsm",
+                        "in": "path",
+                        "description": "11",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "sbj",
+                        "in": "path",
+                        "description": "Subject (e.g. Mathematics, English)",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Lesson plan ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lesson plan retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Lesson plan not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Lesson plan not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/lesson-plan-option/weekly/{schid}/{ssn}/{trm}/{clsm}": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get weekly lesson plans",
+                "description": "Fetch weekly lesson plans for a specific school, class, session, and term. Optionally filter by subject and week_start date.",
+                "operationId": "1ddfb57a59fa4d9afc35ba0bcfcb61fd",
+                "parameters": [
+                    {
+                        "name": "schid",
+                        "in": "path",
+                        "description": "School ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "12"
+                        }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "path",
+                        "description": "Session/academic year",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "2025"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "path",
+                        "description": "Term number",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "clsm",
+                        "in": "path",
+                        "description": "Class/grade",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "11"
+                        }
+                    },
+                    {
+                        "name": "sbj",
+                        "in": "query",
+                        "description": "Subject name (optional). Leave empty to fetch all subjects",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "ENGLISH LANGUAGE"
+                        }
+                    },
+                    {
+                        "name": "week_start",
+                        "in": "query",
+                        "description": "Start date of the week (YYYY-MM-DD) to filter lesson plans",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date",
+                            "example": "2026-02-09"
+                        }
+                    },
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Pagination start index",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 0
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "Number of lesson plans to return",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 20
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Weekly lesson plans retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "schid": {
+                                                    "type": "string",
+                                                    "example": "12"
+                                                },
+                                                "ssn": {
+                                                    "type": "string",
+                                                    "example": "2025"
+                                                },
+                                                "trm": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "clsm": {
+                                                    "type": "string",
+                                                    "example": "11"
+                                                },
+                                                "sbj": {
+                                                    "type": "string",
+                                                    "example": "ENGLISH LANGUAGE",
+                                                    "nullable": true
+                                                },
+                                                "count": {
+                                                    "type": "integer",
+                                                    "example": 3
+                                                },
+                                                "lesson_plans": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/lesson-plans-option/termly/{schid}/{ssn}/{trm}/{sbj}": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get termly lesson plans by subject",
+                "description": "Fetch all termly lesson plans for a specific school, session, term, and subject. Weekly lesson plans are excluded.",
+                "operationId": "getTermlyLessonPlansOption",
+                "parameters": [
+                    {
+                        "name": "schid",
+                        "in": "path",
+                        "description": "School ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "12"
+                        }
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "path",
+                        "description": "Academic session",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "2025"
+                        }
+                    },
+                    {
+                        "name": "trm",
+                        "in": "path",
+                        "description": "Academic term",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "sbj",
+                        "in": "path",
+                        "description": "Subject name to filter lesson plans",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "ENGLISH LANGUAGE"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Termly lesson plans fetched successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Termly lesson plans fetched successfully"
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "plan_type": {
+                                                    "type": "string",
+                                                    "example": "termly"
+                                                },
+                                                "schid": {
+                                                    "type": "string",
+                                                    "example": "12"
+                                                },
+                                                "ssn": {
+                                                    "type": "string",
+                                                    "example": "2025"
+                                                },
+                                                "trm": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "sbj": {
+                                                    "type": "string",
+                                                    "example": "ENGLISH LANGUAGE"
+                                                },
+                                                "count": {
+                                                    "type": "integer",
+                                                    "example": 3
+                                                },
+                                                "lesson_plans": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer",
+                                                                "example": 1
+                                                            },
+                                                            "schid": {
+                                                                "type": "string",
+                                                                "example": "12"
+                                                            },
+                                                            "clsm": {
+                                                                "type": "string",
+                                                                "example": "11"
+                                                            },
+                                                            "ssn": {
+                                                                "type": "string",
+                                                                "example": "2025"
+                                                            },
+                                                            "trm": {
+                                                                "type": "integer",
+                                                                "example": 1
+                                                            },
+                                                            "plan_type": {
+                                                                "type": "string",
+                                                                "example": "termly"
+                                                            },
+                                                            "sbj": {
+                                                                "type": "string",
+                                                                "example": "ENGLISH LANGUAGE"
+                                                            },
+                                                            "topic": {
+                                                                "type": "string",
+                                                                "example": "Parts of Speech"
+                                                            },
+                                                            "sub_topic": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "string"
+                                                                },
+                                                                "example": [
+                                                                    "Nouns",
+                                                                    "Verbs"
+                                                                ]
+                                                            },
+                                                            "date": {
+                                                                "type": "string",
+                                                                "format": "date",
+                                                                "example": "2025-09-03"
+                                                            },
+                                                            "no_of_class": {
+                                                                "type": "integer",
+                                                                "example": 35
+                                                            },
+                                                            "average_age": {
+                                                                "type": "number",
+                                                                "example": 12
+                                                            },
+                                                            "time_from": {
+                                                                "type": "string",
+                                                                "format": "time",
+                                                                "example": "07:30"
+                                                            },
+                                                            "time_to": {
+                                                                "type": "string",
+                                                                "format": "time",
+                                                                "example": "08:10"
+                                                            },
+                                                            "duration": {
+                                                                "type": "string",
+                                                                "example": "40 minutes"
+                                                            },
+                                                            "learning_materials": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "string"
+                                                                },
+                                                                "example": [
+                                                                    "Textbook",
+                                                                    "Board"
+                                                                ]
+                                                            },
+                                                            "lesson_objectives": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "type": "string"
+                                                                },
+                                                                "example": [
+                                                                    "Identify nouns",
+                                                                    "Recognize verbs"
+                                                                ]
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No lesson plans found for the specified filters"
                     }
                 },
                 "security": [

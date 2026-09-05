@@ -33,7 +33,7 @@ use App\Models\payhead;
 use App\Models\Message;
 use App\Models\subaccount_split;
 use App\Models\broadsheet_control;
-
+use App\Models\LessonPlanOption;
 use App\Models\clspay;
 use App\Models\auto_comment_template;
 use App\Models\accts;
@@ -8955,32 +8955,26 @@ class ApiController extends Controller
                 }
             }
 
-            // $totalStd = student::join('old_student', 'student.sid', '=', 'old_student.sid')
-            //     ->where('student.schid', $schid)
-            //     ->where('student.stat', '1')
-            //     ->where('old_student.ssn', $ssn)
-            //     ->where('old_student.clsm', $clsm)
-            //     ->where('old_student.clsa', $clsa)
-            //     ->count();
+$totalStd = student::join('old_student', 'student.sid', '=', 'old_student.sid')
+    ->where('student.schid', $schid)
+    ->where('student.stat', '1')
+    ->where('student.status', 'active')
+    ->where('old_student.ssn', $ssn)
+    ->where('old_student.trm', $trm)
+    ->where('old_student.clsm', $clsm)
+    ->where('old_student.status', 'active')
+    ->where('old_student.clsa', $clsa)
+    ->distinct()
+    ->count('student.sid');
 
-            $totalStd = student::join('old_student', 'student.sid', '=', 'old_student.sid')
-                ->where('student.schid', $schid)
-                ->where('student.stat', '1')
-                // ->where('student.status', 'active')
-                ->where('old_student.ssn', $ssn)
-                ->where('old_student.trm', $trm) // ✅ FIXED
-                ->where('old_student.clsm', $clsm)
-                ->where('old_student.clsa', $clsa)
-                // ->where('old_student.status', 'active')
-                ->distinct('student.sid') // ✅ VERY IMPORTANT
-                ->count('student.sid');   // ✅ count unique students
-
-            $std = old_student::where('schid', $schid)
-                ->where('ssn', $ssn)
-                ->where('clsm', $clsm)
-                ->where('clsa', $clsa)
-                ->where('sid', $stid)
-                ->first();
+$std = old_student::where('schid', $schid)
+    ->where('ssn', $ssn)
+    ->where('trm', $trm)
+    ->where('clsm', $clsm)
+    ->where('clsa', $clsa)
+    ->where('status', 'active')
+    ->where('sid', $stid)
+    ->first();
 
             if (!$std) {
                 return response()->json([
@@ -24712,28 +24706,57 @@ public function setChangePasswordAdmin(Request $request)
             }
 
             // Current student's scores
+            // $current = collect($averagesWithTerms)->firstWhere('stid', $stid);
+
+            // if ($current) {
+            //     $grade = $assignGrade($current['average']);
+            //     $studentSubjectAverages[] = $current['average'];
+
+            //     $positions = [];
+            //     foreach ($averagesWithTerms as $index => $entry) {
+            //         $positions[$entry['stid']] = $index + 1;
+            //     }
+
+            //     $result[] = [
+            //         'subject_id' => $subjectId,
+            //         'subject_name' => $subjectNames[$subjectId] ?? 'Unknown',
+            //         '1st_term_total' => $current['t1'],
+            //         '2nd_term_total' => $current['t2'],
+            //         '3rd_term_total' => $current['t3'],
+            //         'yearly_average' => $current['average'],
+            //         'grade' => $grade,
+            //         'position' => $positions[$stid] ?? null,
+            //     ];
+            // }
+
             $current = collect($averagesWithTerms)->firstWhere('stid', $stid);
 
-            if ($current) {
-                $grade = $assignGrade($current['average']);
-                $studentSubjectAverages[] = $current['average'];
+if ($current) {
 
-                $positions = [];
-                foreach ($averagesWithTerms as $index => $entry) {
-                    $positions[$entry['stid']] = $index + 1;
-                }
+    // Skip subjects that have zero across all terms
+    if (($current['t1'] + $current['t2'] + $current['t3']) == 0) {
+        continue;
+    }
 
-                $result[] = [
-                    'subject_id' => $subjectId,
-                    'subject_name' => $subjectNames[$subjectId] ?? 'Unknown',
-                    '1st_term_total' => $current['t1'],
-                    '2nd_term_total' => $current['t2'],
-                    '3rd_term_total' => $current['t3'],
-                    'yearly_average' => $current['average'],
-                    'grade' => $grade,
-                    'position' => $positions[$stid] ?? null,
-                ];
-            }
+    $grade = $assignGrade($current['average']);
+    $studentSubjectAverages[] = $current['average'];
+
+    $positions = [];
+    foreach ($averagesWithTerms as $index => $entry) {
+        $positions[$entry['stid']] = $index + 1;
+    }
+
+    $result[] = [
+        'subject_id' => $subjectId,
+        'subject_name' => $subjectNames[$subjectId] ?? 'Unknown',
+        '1st_term_total' => $current['t1'],
+        '2nd_term_total' => $current['t2'],
+        '3rd_term_total' => $current['t3'],
+        'yearly_average' => $current['average'],
+        'grade' => $grade,
+        'position' => $positions[$stid] ?? null,
+    ];
+}
         }
 
         // Final averages
@@ -39220,5 +39243,2698 @@ public function setChangePasswordAdmin(Request $request)
     ]);
 }
 
+/**
+ * @OA\Post(
+ *     path="/api/setLessonPlanOption",
+ *     summary="Create or update a lesson plan",
+ *     tags={"Api"},
+ *     security={{"bearerAuth":{}}},
+ *     description="Creates or updates a lesson plan. Array fields accept JSON array strings, single strings, or multipart array values.",
+ *
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\MediaType(
+ *             mediaType="multipart/form-data",
+ *             @OA\Schema(
+ *                 type="object",
+ *                 required={
+ *                     "schid",
+ *                     "clsm",
+ *                     "ssn",
+ *                     "trm",
+ *                     "sbj",
+ *                     "plan_type",
+ *                     "date",
+ *                     "time_from",
+ *                     "time_to",
+ *                     "period",
+ *                     "duration",
+ *                     "topic",
+ *                     "lesson_objectives"
+ *                 },
+ *
+ *                 @OA\Property(
+ *                     property="schid",
+ *                     type="string",
+ *                     example="12"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="clsm",
+ *                     type="string",
+ *                     example="11"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="ssn",
+ *                     type="string",
+ *                     example="2025/2026"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="trm",
+ *                     type="string",
+ *                     example="1"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="sbj",
+ *                     type="string",
+ *                     example="ENGLISH LANGUAGE"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="plan_type",
+ *                     type="string",
+ *                     enum={"weekly","termly"},
+ *                     example="weekly"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="weekly",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Week 1"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="date",
+ *                     type="string",
+ *                     format="date",
+ *                     example="2026-09-03"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="time_from",
+ *                     type="string",
+ *                     example="07:30"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="time_to",
+ *                     type="string",
+ *                     example="08:10"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="period",
+ *                     type="string",
+ *                     example="1st Period"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="duration",
+ *                     type="string",
+ *                     example="40 minutes"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="sex",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Mixed"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="topic",
+ *                     type="string",
+ *                     example="Parts of Speech"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="sub_topic",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="['What is a noun?','Types of noun','Proper noun','Common noun']",
+ *                     description="JSON array string. A single string is also accepted."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="lesson_objectives",
+ *                     type="string",
+ *                     example="['Define a noun','Identify nouns in sentences','Differentiate between common and proper nouns']",
+ *                     description="JSON array string. A single string is also accepted."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="instructional_sources_material",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="['English Grammar Textbook','Whiteboard','Marker']",
+ *                     description="JSON array string. A single string is also accepted."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step1_previous_knowledge",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="['Students can identify simple words','Students have basic knowledge of sentences']",
+ *                     description="JSON array string. A single string is also accepted."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step1_mode",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Question and Answer"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step1_teacher_activities",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="['Teacher asks students what they understand by a noun','Teacher explains the meaning of a noun']",
+ *                     description="JSON array string. A single string is also accepted."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step1_student_activities",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="['Students answer questions','Students listen to the explanation','Students give examples']",
+ *                     description="JSON array string. A single string is also accepted."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step2_mode",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Demonstration"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step2_teacher_activities",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="['Teacher writes examples of nouns on the board','Teacher explains proper and common nouns']",
+ *                     description="JSON array string. A single string is also accepted."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step2_student_activities",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="['Students copy the examples','Students identify proper nouns','Students identify common nouns']",
+ *                     description="JSON array string. A single string is also accepted."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step3_mode",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Discussion"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step3_teacher_activities",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="['Teacher divides students into groups','Teacher gives each group sentences to analyse','Teacher guides the discussion']",
+ *                     description="JSON array string. A single string is also accepted."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step3_student_activities",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="['Students work in groups','Students identify nouns in the sentences','Students discuss their answers']",
+ *                     description="JSON array string. A single string is also accepted."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step4_mode",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Application"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step4_teacher_activities",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="['Teacher gives students practical exercises','Teacher monitors students while they work','Teacher corrects mistakes']",
+ *                     description="JSON array string. A single string is also accepted."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step4_student_activities",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="['Students complete the exercises','Students identify nouns in sentences','Students correct their answers']",
+ *                     description="JSON array string. A single string is also accepted."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step5_mode",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Evaluation"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step5_teacher_activities",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="['Teacher asks oral questions','Teacher gives a short written assessment','Teacher evaluates student responses']",
+ *                     description="JSON array string. A single string is also accepted."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step5_student_activities",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="['Students answer oral questions','Students complete the assessment','Students submit their answers']",
+ *                     description="JSON array string. A single string is also accepted."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="summary",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="['Students learned the meaning of nouns','Students identified common and proper nouns','Students practised using nouns in sentences']",
+ *                     description="JSON array string. A single string is also accepted."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="conclusion",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="['The lesson was successfully completed','Students demonstrated understanding of the topic']",
+ *                     description="JSON array string. A single string is also accepted."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="assignment",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="['Write ten nouns','Classify the nouns as common or proper','Use five nouns in sentences']",
+ *                     description="JSON array string. A single string is also accepted."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="reference",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="['New Oxford Secondary English Course','English Grammar Textbook']",
+ *                     description="JSON array string. A single string is also accepted."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="topic_tally",
+ *                     type="string",
+ *                     enum={"yes","no"},
+ *                     nullable=true,
+ *                     example="yes"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="other_comments",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Students participated actively and demonstrated good understanding."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="subject_head_signature",
+ *                     type="string",
+ *                     format="binary",
+ *                     nullable=true,
+ *                     description="JPG, JPEG or PNG image. Maximum 2MB."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="subject_head_signature_date",
+ *                     type="string",
+ *                     format="date",
+ *                     nullable=true,
+ *                     example="2026-09-03"
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Lesson plan saved successfully",
+ *         @OA\JsonContent(
+ *             type="object",
+ *
+ *             @OA\Property(
+ *                 property="status",
+ *                 type="boolean",
+ *                 example=true
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="Lesson plan saved successfully"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="object"
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation error",
+ *         @OA\JsonContent(
+ *             type="object",
+ *
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="The given data was invalid."
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="errors",
+ *                 type="object"
+ *             )
+ *         )
+ *     )
+ * )
+ */
+public function setLessonPlanOption(Request $request)
+{
+    /*
+    |--------------------------------------------------------------------------
+    | ARRAY FIELDS
+    |--------------------------------------------------------------------------
+    |
+    | These fields are stored as arrays in the database.
+    |
+    | The API accepts:
+    |
+    | 1. A single string
+    |    Example:
+    |    Proper noun
+    |
+    | 2. A JSON array string
+    |    Example:
+    |    ["Proper noun","Common noun"]
+    |
+    | 3. A multipart array
+    |    Example:
+    |    sub_topic[]
+    |
+    |    Every accepted format is converted to a PHP array
+    |    before validation.
+    |
+    */
+
+    $arrayFields = [
+        'sub_topic',
+        'lesson_objectives',
+        'instructional_sources_material',
+
+        'step1_previous_knowledge',
+        'step1_teacher_activities',
+        'step1_student_activities',
+
+        'step2_teacher_activities',
+        'step2_student_activities',
+
+        'step3_teacher_activities',
+        'step3_student_activities',
+
+        'step4_teacher_activities',
+        'step4_student_activities',
+
+        'step5_teacher_activities',
+        'step5_student_activities',
+
+        'summary',
+        'conclusion',
+        'assignment',
+        'reference',
+    ];
+
+    /*
+    |--------------------------------------------------------------------------
+    | NORMALIZE ARRAY FIELDS
+    |--------------------------------------------------------------------------
+    */
+
+    foreach ($arrayFields as $field) {
+
+        /*
+        |--------------------------------------------------------------------------
+        | FIELD NOT SENT
+        |--------------------------------------------------------------------------
+        */
+
+        if (!$request->has($field)) {
+            continue;
+        }
+
+        $value = $request->input($field);
+
+        /*
+        |--------------------------------------------------------------------------
+        | ALREADY AN ARRAY
+        |--------------------------------------------------------------------------
+        |
+        | This supports:
+        |
+        | field[]
+        |
+        */
+
+        if (is_array($value)) {
+            continue;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | STRING VALUE
+        |--------------------------------------------------------------------------
+        */
+
+        if (is_string($value)) {
+
+            $value = trim($value);
+
+            /*
+            |--------------------------------------------------------------------------
+            | EMPTY STRING
+            |--------------------------------------------------------------------------
+            */
+
+            if ($value === '') {
+
+                $request->merge([
+                    $field => [],
+                ]);
+
+                continue;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | TRY JSON ARRAY
+            |--------------------------------------------------------------------------
+            |
+            | Example:
+            |
+            | ["Proper noun","Common noun"]
+            |
+            */
+
+            $decoded = json_decode(
+                $value,
+                true
+            );
+
+            /*
+            |--------------------------------------------------------------------------
+            | VALID JSON ARRAY
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                json_last_error() === JSON_ERROR_NONE &&
+                is_array($decoded)
+            ) {
+
+                $request->merge([
+                    $field => $decoded,
+                ]);
+
+                continue;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | NORMAL SINGLE STRING
+            |--------------------------------------------------------------------------
+            |
+            | Example:
+            |
+            | Proper noun
+            |
+            | Automatically becomes:
+            |
+            | ["Proper noun"]
+            |
+            */
+
+            $request->merge([
+                $field => [$value],
+            ]);
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | VALIDATION
+    |--------------------------------------------------------------------------
+    */
+
+    $request->validate([
+
+        /*
+        |--------------------------------------------------------------------------
+        | SCHOOL / CLASS INFORMATION
+        |--------------------------------------------------------------------------
+        */
+
+        'schid' => [
+            'required',
+            'string',
+            'max:255',
+        ],
+
+        'clsm' => [
+            'required',
+            'string',
+            'max:255',
+        ],
+
+        'ssn' => [
+            'required',
+            'string',
+            'max:255',
+        ],
+
+        'trm' => [
+            'required',
+            'string',
+            'max:255',
+        ],
+
+        'sbj' => [
+            'required',
+            'string',
+            'max:255',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | PLAN TYPE
+        |--------------------------------------------------------------------------
+        */
+
+        'plan_type' => [
+            'required',
+            'in:weekly,termly',
+        ],
+
+        'weekly' => [
+            'nullable',
+            'required_if:plan_type,weekly',
+            'string',
+            'max:100',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | LESSON INFORMATION
+        |--------------------------------------------------------------------------
+        */
+
+        'date' => [
+            'required',
+            'date',
+        ],
+
+        'time_from' => [
+            'required',
+            'date_format:H:i',
+        ],
+
+        'time_to' => [
+            'required',
+            'date_format:H:i',
+            'after:time_from',
+        ],
+
+        'period' => [
+            'required',
+            'string',
+            'max:255',
+        ],
+
+        'duration' => [
+            'required',
+            'string',
+            'max:255',
+        ],
+
+        'sex' => [
+            'nullable',
+            'string',
+            'max:50',
+        ],
+
+        'topic' => [
+            'required',
+            'string',
+            'max:255',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | SUB TOPIC
+        |--------------------------------------------------------------------------
+        */
+
+        'sub_topic' => [
+            'nullable',
+            'array',
+        ],
+
+        'sub_topic.*' => [
+            'nullable',
+            'string',
+            'max:1000',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | LESSON OBJECTIVES
+        |--------------------------------------------------------------------------
+        */
+
+        'lesson_objectives' => [
+            'required',
+            'array',
+            'min:1',
+        ],
+
+        'lesson_objectives.*' => [
+            'required',
+            'string',
+            'max:2000',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | INSTRUCTIONAL SOURCES / MATERIALS
+        |--------------------------------------------------------------------------
+        */
+
+        'instructional_sources_material' => [
+            'nullable',
+            'array',
+        ],
+
+        'instructional_sources_material.*' => [
+            'nullable',
+            'string',
+            'max:1000',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 1
+        |--------------------------------------------------------------------------
+        */
+
+        'step1_previous_knowledge' => [
+            'nullable',
+            'array',
+        ],
+
+        'step1_previous_knowledge.*' => [
+            'nullable',
+            'string',
+            'max:2000',
+        ],
+
+        'step1_mode' => [
+            'nullable',
+            'string',
+            'max:255',
+        ],
+
+        'step1_teacher_activities' => [
+            'nullable',
+            'array',
+        ],
+
+        'step1_teacher_activities.*' => [
+            'nullable',
+            'string',
+            'max:3000',
+        ],
+
+        'step1_student_activities' => [
+            'nullable',
+            'array',
+        ],
+
+        'step1_student_activities.*' => [
+            'nullable',
+            'string',
+            'max:3000',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 2
+        |--------------------------------------------------------------------------
+        */
+
+        'step2_mode' => [
+            'nullable',
+            'string',
+            'max:255',
+        ],
+
+        'step2_teacher_activities' => [
+            'nullable',
+            'array',
+        ],
+
+        'step2_teacher_activities.*' => [
+            'nullable',
+            'string',
+            'max:3000',
+        ],
+
+        'step2_student_activities' => [
+            'nullable',
+            'array',
+        ],
+
+        'step2_student_activities.*' => [
+            'nullable',
+            'string',
+            'max:3000',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 3
+        |--------------------------------------------------------------------------
+        */
+
+        'step3_mode' => [
+            'nullable',
+            'string',
+            'max:255',
+        ],
+
+        'step3_teacher_activities' => [
+            'nullable',
+            'array',
+        ],
+
+        'step3_teacher_activities.*' => [
+            'nullable',
+            'string',
+            'max:3000',
+        ],
+
+        'step3_student_activities' => [
+            'nullable',
+            'array',
+        ],
+
+        'step3_student_activities.*' => [
+            'nullable',
+            'string',
+            'max:3000',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 4
+        |--------------------------------------------------------------------------
+        */
+
+        'step4_mode' => [
+            'nullable',
+            'string',
+            'max:255',
+        ],
+
+        'step4_teacher_activities' => [
+            'nullable',
+            'array',
+        ],
+
+        'step4_teacher_activities.*' => [
+            'nullable',
+            'string',
+            'max:3000',
+        ],
+
+        'step4_student_activities' => [
+            'nullable',
+            'array',
+        ],
+
+        'step4_student_activities.*' => [
+            'nullable',
+            'string',
+            'max:3000',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 5
+        |--------------------------------------------------------------------------
+        */
+
+        'step5_mode' => [
+            'nullable',
+            'string',
+            'max:255',
+        ],
+
+        'step5_teacher_activities' => [
+            'nullable',
+            'array',
+        ],
+
+        'step5_teacher_activities.*' => [
+            'nullable',
+            'string',
+            'max:3000',
+        ],
+
+        'step5_student_activities' => [
+            'nullable',
+            'array',
+        ],
+
+        'step5_student_activities.*' => [
+            'nullable',
+            'string',
+            'max:3000',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | SUMMARY
+        |--------------------------------------------------------------------------
+        */
+
+        'summary' => [
+            'nullable',
+            'array',
+        ],
+
+        'summary.*' => [
+            'nullable',
+            'string',
+            'max:3000',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | CONCLUSION
+        |--------------------------------------------------------------------------
+        */
+
+        'conclusion' => [
+            'nullable',
+            'array',
+        ],
+
+        'conclusion.*' => [
+            'nullable',
+            'string',
+            'max:3000',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | ASSIGNMENT
+        |--------------------------------------------------------------------------
+        */
+
+        'assignment' => [
+            'nullable',
+            'array',
+        ],
+
+        'assignment.*' => [
+            'nullable',
+            'string',
+            'max:3000',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | REFERENCE
+        |--------------------------------------------------------------------------
+        */
+
+        'reference' => [
+            'nullable',
+            'array',
+        ],
+
+        'reference.*' => [
+            'nullable',
+            'string',
+            'max:2000',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | SUBJECT HEAD
+        |--------------------------------------------------------------------------
+        */
+
+        'topic_tally' => [
+            'nullable',
+            'in:yes,no',
+        ],
+
+        'other_comments' => [
+            'nullable',
+            'string',
+            'max:5000',
+        ],
+
+        'subject_head_signature' => [
+            'nullable',
+            'image',
+            'mimes:jpg,jpeg,png',
+            'max:2048',
+        ],
+
+        'subject_head_signature_date' => [
+            'nullable',
+            'date',
+        ],
+    ]);
+
+    /*
+    |--------------------------------------------------------------------------
+    | PREPARE DATA
+    |--------------------------------------------------------------------------
+    */
+
+    $data = $request->only([
+        'schid',
+        'clsm',
+        'ssn',
+        'trm',
+        'sbj',
+
+        'plan_type',
+        'weekly',
+
+        'date',
+        'time_from',
+        'time_to',
+        'period',
+        'duration',
+        'sex',
+        'topic',
+
+        'step1_mode',
+        'step2_mode',
+        'step3_mode',
+        'step4_mode',
+        'step5_mode',
+
+        'topic_tally',
+        'other_comments',
+        'subject_head_signature_date',
+    ]);
+
+    /*
+    |--------------------------------------------------------------------------
+    | ARRAY FIELDS
+    |--------------------------------------------------------------------------
+    */
+
+    foreach ($arrayFields as $field) {
+
+        $data[$field] = $request->input(
+            $field,
+            []
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | TERMLY PLAN
+    |--------------------------------------------------------------------------
+    */
+
+    if ($request->plan_type === 'termly') {
+        $data['weekly'] = null;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | SUBJECT HEAD SIGNATURE
+    |--------------------------------------------------------------------------
+    */
+
+    if ($request->hasFile('subject_head_signature')) {
+
+        $signature = $request->file(
+            'subject_head_signature'
+        );
+
+        $signatureDirectory = public_path(
+            'uploads/lesson-plan-signatures'
+        );
+
+        if (!is_dir($signatureDirectory)) {
+
+            mkdir(
+                $signatureDirectory,
+                0755,
+                true
+            );
+        }
+
+        $filename =
+            'signature_' .
+            time() .
+            '_' .
+            Str::random(12) .
+            '.' .
+            $signature->getClientOriginalExtension();
+
+        $signature->move(
+            $signatureDirectory,
+            $filename
+        );
+
+        $data['subject_head_signature'] =
+            'uploads/lesson-plan-signatures/' . $filename;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | CREATE OR UPDATE
+    |--------------------------------------------------------------------------
+    */
+
+    $lessonPlan = LessonPlanOption::updateOrCreate(
+        [
+            'schid' => $request->schid,
+            'clsm' => $request->clsm,
+            'date' => $request->date,
+            'sbj' => $request->sbj,
+            'topic' => $request->topic,
+        ],
+        $data
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | RESPONSE
+    |--------------------------------------------------------------------------
+    */
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Lesson plan saved successfully',
+        'pld' => $lessonPlan,
+    ], 200);
 }
 
+
+/**
+ * @OA\Post(
+ *     path="/api/updateLessonPlanOption",
+ *     summary="Update an existing lesson plan",
+ *     tags={"Api"},
+ *     security={{"bearerAuth":{}}},
+ *     description="Updates an existing lesson plan. Only fields supplied in the request are updated. Array fields accept JSON array strings, single strings, or multipart array values.",
+ *
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\MediaType(
+ *             mediaType="multipart/form-data",
+ *             @OA\Schema(
+ *                 type="object",
+ *                 required={
+ *                     "schid",
+ *                     "clsm",
+ *                     "ssn",
+ *                     "trm",
+ *                     "date",
+ *                     "sbj",
+ *                     "topic"
+ *                 },
+ *
+ *                 @OA\Property(
+ *                     property="schid",
+ *                     type="string",
+ *                     example="12"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="clsm",
+ *                     type="string",
+ *                     example="11"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="ssn",
+ *                     type="string",
+ *                     example="2025/2026"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="trm",
+ *                     type="string",
+ *                     example="1"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="date",
+ *                     type="string",
+ *                     format="date",
+ *                     example="2026-09-03"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="sbj",
+ *                     type="string",
+ *                     example="ENGLISH LANGUAGE"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="topic",
+ *                     type="string",
+ *                     example="Parts of Speech"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="plan_type",
+ *                     type="string",
+ *                     enum={"weekly","termly"},
+ *                     nullable=true,
+ *                     example="weekly"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="weekly",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Week 2"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="time_from",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="08:00"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="time_to",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="08:40"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="period",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="2nd Period"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="duration",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="40 minutes"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="sex",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Mixed"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="sub_topic",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Proper noun",
+ *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="lesson_objectives",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Identify proper nouns",
+ *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="instructional_sources_material",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="English Grammar Textbook",
+ *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step1_previous_knowledge",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Students understand basic nouns",
+ *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step1_mode",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Question and Answer"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step1_teacher_activities",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Teacher explains proper nouns",
+ *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step1_student_activities",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Students give examples",
+ *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step2_mode",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Demonstration"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step2_teacher_activities",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Teacher writes examples on the board",
+ *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step2_student_activities",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Students identify proper nouns",
+ *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step3_mode",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Discussion"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step3_teacher_activities",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Teacher guides group discussion",
+ *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step3_student_activities",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Students discuss their answers",
+ *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step4_mode",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Application"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step4_teacher_activities",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Teacher gives practical exercises",
+ *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step4_student_activities",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Students complete the exercises",
+ *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step5_mode",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Evaluation"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step5_teacher_activities",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Teacher asks oral questions",
+ *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="step5_student_activities",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Students answer the questions",
+ *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="summary",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Students understood proper nouns",
+ *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="conclusion",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Students demonstrated good understanding",
+ *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="assignment",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Write five proper nouns",
+ *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="reference",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="English Grammar Textbook",
+ *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="topic_tally",
+ *                     type="string",
+ *                     enum={"yes","no"},
+ *                     nullable=true,
+ *                     example="yes"
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="other_comments",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="Students participated actively."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="subject_head_signature",
+ *                     type="string",
+ *                     format="binary",
+ *                     nullable=true,
+ *                     description="JPG, JPEG or PNG image. Maximum 2MB."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="subject_head_signature_date",
+ *                     type="string",
+ *                     format="date",
+ *                     nullable=true,
+ *                     example="2026-09-05"
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Lesson plan updated successfully",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(
+ *                 property="status",
+ *                 type="boolean",
+ *                 example=true
+ *             ),
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="Lesson Plan updated successfully"
+ *             ),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="object"
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=404,
+ *         description="Lesson plan not found"
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation error",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="The given data was invalid."
+ *             ),
+ *             @OA\Property(
+ *                 property="errors",
+ *                 type="object"
+ *             )
+ *         )
+ *     )
+ * )
+ */
+public function updateLessonPlanOption(Request $request)
+{
+    /*
+    |--------------------------------------------------------------------------
+    | ARRAY FIELDS
+    |--------------------------------------------------------------------------
+    */
+
+    $arrayFields = [
+        'sub_topic',
+        'lesson_objectives',
+        'instructional_sources_material',
+
+        'step1_previous_knowledge',
+        'step1_teacher_activities',
+        'step1_student_activities',
+
+        'step2_teacher_activities',
+        'step2_student_activities',
+
+        'step3_teacher_activities',
+        'step3_student_activities',
+
+        'step4_teacher_activities',
+        'step4_student_activities',
+
+        'step5_teacher_activities',
+        'step5_student_activities',
+
+        'summary',
+        'conclusion',
+        'assignment',
+        'reference',
+    ];
+
+    /*
+    |--------------------------------------------------------------------------
+    | NORMALIZE ARRAY FIELDS
+    |--------------------------------------------------------------------------
+    |
+    | Supports:
+    |
+    | 1. Single string
+    | 2. JSON array string
+    | 3. Multipart array field[]
+    |
+    */
+
+    foreach ($arrayFields as $field) {
+
+        if (!$request->has($field)) {
+            continue;
+        }
+
+        $value = $request->input($field);
+
+        /*
+        |--------------------------------------------------------------------------
+        | ALREADY ARRAY
+        |--------------------------------------------------------------------------
+        */
+
+        if (is_array($value)) {
+            continue;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | STRING
+        |--------------------------------------------------------------------------
+        */
+
+        if (is_string($value)) {
+
+            $value = trim($value);
+
+            /*
+            |--------------------------------------------------------------------------
+            | EMPTY STRING
+            |--------------------------------------------------------------------------
+            */
+
+            if ($value === '') {
+
+                $request->merge([
+                    $field => [],
+                ]);
+
+                continue;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | TRY JSON
+            |--------------------------------------------------------------------------
+            */
+
+            $decoded = json_decode(
+                $value,
+                true
+            );
+
+            /*
+            |--------------------------------------------------------------------------
+            | VALID JSON ARRAY
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                json_last_error() === JSON_ERROR_NONE &&
+                is_array($decoded)
+            ) {
+
+                $request->merge([
+                    $field => $decoded,
+                ]);
+
+                continue;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | SINGLE STRING
+            |--------------------------------------------------------------------------
+            */
+
+            $request->merge([
+                $field => [$value],
+            ]);
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | VALIDATION
+    |--------------------------------------------------------------------------
+    */
+
+    $validated = $request->validate([
+
+        /*
+        |--------------------------------------------------------------------------
+        | IDENTIFICATION
+        |--------------------------------------------------------------------------
+        */
+
+        'schid' => [
+            'required',
+            'string',
+            'max:255',
+        ],
+
+        'clsm' => [
+            'required',
+            'string',
+            'max:255',
+        ],
+
+        'ssn' => [
+            'required',
+            'string',
+            'max:255',
+        ],
+
+        'trm' => [
+            'required',
+            'string',
+            'max:255',
+        ],
+
+        'date' => [
+            'required',
+            'date',
+        ],
+
+        'sbj' => [
+            'required',
+            'string',
+            'max:255',
+        ],
+
+        'topic' => [
+            'required',
+            'string',
+            'max:255',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | PLAN
+        |--------------------------------------------------------------------------
+        */
+
+        'plan_type' => [
+            'nullable',
+            'in:weekly,termly',
+        ],
+
+        'weekly' => [
+            'nullable',
+            'string',
+            'max:100',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | TIME
+        |--------------------------------------------------------------------------
+        */
+
+        'time_from' => [
+            'nullable',
+            'date_format:H:i',
+        ],
+
+        'time_to' => [
+            'nullable',
+            'date_format:H:i',
+            'after:time_from',
+        ],
+
+        'period' => [
+            'nullable',
+            'string',
+            'max:255',
+        ],
+
+        'duration' => [
+            'nullable',
+            'string',
+            'max:255',
+        ],
+
+        'sex' => [
+            'nullable',
+            'string',
+            'max:50',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | ARRAY FIELDS
+        |--------------------------------------------------------------------------
+        */
+
+        'sub_topic' => [
+            'nullable',
+            'array',
+        ],
+
+        'sub_topic.*' => [
+            'nullable',
+            'string',
+            'max:1000',
+        ],
+
+        'lesson_objectives' => [
+            'nullable',
+            'array',
+        ],
+
+        'lesson_objectives.*' => [
+            'nullable',
+            'string',
+            'max:2000',
+        ],
+
+        'instructional_sources_material' => [
+            'nullable',
+            'array',
+        ],
+
+        'instructional_sources_material.*' => [
+            'nullable',
+            'string',
+            'max:1000',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 1
+        |--------------------------------------------------------------------------
+        */
+
+        'step1_previous_knowledge' => [
+            'nullable',
+            'array',
+        ],
+
+        'step1_previous_knowledge.*' => [
+            'nullable',
+            'string',
+            'max:2000',
+        ],
+
+        'step1_mode' => [
+            'nullable',
+            'string',
+            'max:255',
+        ],
+
+        'step1_teacher_activities' => [
+            'nullable',
+            'array',
+        ],
+
+        'step1_teacher_activities.*' => [
+            'nullable',
+            'string',
+            'max:3000',
+        ],
+
+        'step1_student_activities' => [
+            'nullable',
+            'array',
+        ],
+
+        'step1_student_activities.*' => [
+            'nullable',
+            'string',
+            'max:3000',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 2
+        |--------------------------------------------------------------------------
+        */
+
+        'step2_mode' => [
+            'nullable',
+            'string',
+            'max:255',
+        ],
+
+        'step2_teacher_activities' => [
+            'nullable',
+            'array',
+        ],
+
+        'step2_teacher_activities.*' => [
+            'nullable',
+            'string',
+            'max:3000',
+        ],
+
+        'step2_student_activities' => [
+            'nullable',
+            'array',
+        ],
+
+        'step2_student_activities.*' => [
+            'nullable',
+            'string',
+            'max:3000',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 3
+        |--------------------------------------------------------------------------
+        */
+
+        'step3_mode' => [
+            'nullable',
+            'string',
+            'max:255',
+        ],
+
+        'step3_teacher_activities' => [
+            'nullable',
+            'array',
+        ],
+
+        'step3_teacher_activities.*' => [
+            'nullable',
+            'string',
+            'max:3000',
+        ],
+
+        'step3_student_activities' => [
+            'nullable',
+            'array',
+        ],
+
+        'step3_student_activities.*' => [
+            'nullable',
+            'string',
+            'max:3000',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 4
+        |--------------------------------------------------------------------------
+        */
+
+        'step4_mode' => [
+            'nullable',
+            'string',
+            'max:255',
+        ],
+
+        'step4_teacher_activities' => [
+            'nullable',
+            'array',
+        ],
+
+        'step4_teacher_activities.*' => [
+            'nullable',
+            'string',
+            'max:3000',
+        ],
+
+        'step4_student_activities' => [
+            'nullable',
+            'array',
+        ],
+
+        'step4_student_activities.*' => [
+            'nullable',
+            'string',
+            'max:3000',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 5
+        |--------------------------------------------------------------------------
+        */
+
+        'step5_mode' => [
+            'nullable',
+            'string',
+            'max:255',
+        ],
+
+        'step5_teacher_activities' => [
+            'nullable',
+            'array',
+        ],
+
+        'step5_teacher_activities.*' => [
+            'nullable',
+            'string',
+            'max:3000',
+        ],
+
+        'step5_student_activities' => [
+            'nullable',
+            'array',
+        ],
+
+        'step5_student_activities.*' => [
+            'nullable',
+            'string',
+            'max:3000',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | SUMMARY
+        |--------------------------------------------------------------------------
+        */
+
+        'summary' => [
+            'nullable',
+            'array',
+        ],
+
+        'summary.*' => [
+            'nullable',
+            'string',
+            'max:3000',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | CONCLUSION
+        |--------------------------------------------------------------------------
+        */
+
+        'conclusion' => [
+            'nullable',
+            'array',
+        ],
+
+        'conclusion.*' => [
+            'nullable',
+            'string',
+            'max:3000',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | ASSIGNMENT
+        |--------------------------------------------------------------------------
+        */
+
+        'assignment' => [
+            'nullable',
+            'array',
+        ],
+
+        'assignment.*' => [
+            'nullable',
+            'string',
+            'max:3000',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | REFERENCE
+        |--------------------------------------------------------------------------
+        */
+
+        'reference' => [
+            'nullable',
+            'array',
+        ],
+
+        'reference.*' => [
+            'nullable',
+            'string',
+            'max:2000',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | SUBJECT HEAD
+        |--------------------------------------------------------------------------
+        */
+
+        'topic_tally' => [
+            'nullable',
+            'in:yes,no',
+        ],
+
+        'other_comments' => [
+            'nullable',
+            'string',
+            'max:5000',
+        ],
+
+        'subject_head_signature' => [
+            'nullable',
+            'image',
+            'mimes:jpg,jpeg,png',
+            'max:2048',
+        ],
+
+        'subject_head_signature_date' => [
+            'nullable',
+            'date',
+        ],
+    ]);
+
+    /*
+    |--------------------------------------------------------------------------
+    | FIND EXISTING LESSON PLAN
+    |--------------------------------------------------------------------------
+    */
+
+    $lessonPlan = LessonPlanOption::where(
+        'schid',
+        $request->schid
+    )
+        ->where('clsm', $request->clsm)
+        ->where('ssn', $request->ssn)
+        ->where('trm', $request->trm)
+        ->where('sbj', $request->sbj)
+        ->first();
+
+    /*
+    |--------------------------------------------------------------------------
+    | LESSON PLAN NOT FOUND
+    |--------------------------------------------------------------------------
+    */
+
+    if (!$lessonPlan) {
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Lesson Plan not found',
+        ], 404);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | PREPARE UPDATE DATA
+    |--------------------------------------------------------------------------
+    |
+    | Only fields that are actually supplied will be updated.
+    |
+    */
+
+    $updateFields = [
+        'plan_type',
+        'weekly',
+
+        'time_from',
+        'time_to',
+        'period',
+        'duration',
+        'sex',
+
+        'sub_topic',
+        'lesson_objectives',
+        'instructional_sources_material',
+
+        'step1_previous_knowledge',
+        'step1_mode',
+        'step1_teacher_activities',
+        'step1_student_activities',
+
+        'step2_mode',
+        'step2_teacher_activities',
+        'step2_student_activities',
+
+        'step3_mode',
+        'step3_teacher_activities',
+        'step3_student_activities',
+
+        'step4_mode',
+        'step4_teacher_activities',
+        'step4_student_activities',
+
+        'step5_mode',
+        'step5_teacher_activities',
+        'step5_student_activities',
+
+        'summary',
+        'conclusion',
+        'assignment',
+        'reference',
+
+        'topic_tally',
+        'other_comments',
+        'subject_head_signature_date',
+    ];
+
+    $fieldsToUpdate = [];
+
+    foreach ($updateFields as $field) {
+
+        if ($request->exists($field)) {
+
+            $fieldsToUpdate[$field] = $request->input($field);
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | SUBJECT HEAD SIGNATURE
+    |--------------------------------------------------------------------------
+    */
+
+    if ($request->hasFile('subject_head_signature')) {
+
+        $signature = $request->file(
+            'subject_head_signature'
+        );
+
+        $signatureDirectory = public_path(
+            'uploads/lesson-plan-signatures'
+        );
+
+        if (!is_dir($signatureDirectory)) {
+
+            mkdir(
+                $signatureDirectory,
+                0755,
+                true
+            );
+        }
+
+        $filename =
+            'signature_' .
+            time() .
+            '_' .
+            Str::random(12) .
+            '.' .
+            $signature->getClientOriginalExtension();
+
+        $signature->move(
+            $signatureDirectory,
+            $filename
+        );
+
+        $fieldsToUpdate['subject_head_signature'] =
+            'uploads/lesson-plan-signatures/' . $filename;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | TERMLY PLAN
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        $request->exists('plan_type') &&
+        $request->plan_type === 'termly'
+    ) {
+
+        $fieldsToUpdate['weekly'] = null;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | NOTHING TO UPDATE
+    |--------------------------------------------------------------------------
+    */
+
+    if (empty($fieldsToUpdate)) {
+
+        return response()->json([
+            'status' => false,
+            'message' => 'No valid fields provided for update',
+        ], 400);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | UPDATE
+    |--------------------------------------------------------------------------
+    */
+
+    $lessonPlan->update($fieldsToUpdate);
+
+    /*
+    |--------------------------------------------------------------------------
+    | REFRESH MODEL
+    |--------------------------------------------------------------------------
+    */
+
+    $lessonPlan->refresh();
+
+    /*
+    |--------------------------------------------------------------------------
+    | RESPONSE
+    |--------------------------------------------------------------------------
+    */
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Lesson Plan updated successfully',
+        'pld' => $lessonPlan,
+    ], 200);
+}
+
+
+
+
+
+
+    /**
+     * @OA\Get(
+     *     path="/api/getLessonPlanOption/{schid}/{ssn}/{trm}/{clsm}",
+     *     summary="Get lesson plans for a specific school, session, term, and class",
+     *     description="Fetches lesson plans using school ID, session, term, and class with optional pagination parameters.",
+     *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="path",
+     *         required=true,
+     *         description="School ID",
+     *         @OA\Schema(type="string"),
+     *         example="SCH001"
+     *     ),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="path",
+     *         required=true,
+     *         description="Session",
+     *         @OA\Schema(type="string"),
+     *         example="2025"
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Term ID",
+     *         @OA\Schema(type="string"),
+     *         example="2"
+     *     ),
+     *     @OA\Parameter(
+     *         name="clsm",
+     *         in="path",
+     *         required=true,
+     *         description="Class ID",
+     *         @OA\Schema(type="string"),
+     *         example="2"
+     *     ),
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         required=false,
+     *         description="Pagination start index",
+     *         @OA\Schema(type="integer"),
+     *         example=0
+     *     ),
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         required=false,
+     *         description="Number of lesson plans to retrieve",
+     *         @OA\Schema(type="integer"),
+     *         example=20
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="List of lesson plans retrieved successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(property="pld", type="array", @OA\Items(type="object"))
+     *         )
+     *     )
+     * )
+     */
+
+
+    public function getLessonPlanOption($schid, $ssn, $trm, $clsm)
+    {
+        $start = 0;
+        $count = 20;
+        if (request()->has('start') && request()->has('count')) {
+            $start = request()->input('start');
+            $count = request()->input('count');
+        }
+
+        $lessonPlan = LessonPlanOption::where('schid', $schid)
+            ->where("clsm", $clsm)
+            ->where("ssn", $ssn)
+            ->where("trm", $trm)
+            ->take($count)->skip($start)->get();
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $lessonPlan,
+        ]);
+    }
+
+
+
+
+
+
+
+    /**
+     * @OA\Get(
+     *     path="/api/getSingleLessonPlanOption/{schid}/{ssn}/{trm}/{clsm}/{sbj}/{id}",
+     *     summary="Get a single lesson plan by school ID, session, term ID, class, subject, and plan ID",
+     *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="path",
+     *         required=true,
+     *         description="School ID",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="path",
+     *         required=true,
+     *         description="Academic session (e.g. 2024/2025)",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Term ID (e.g. 1, 2, 3)",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="clsm",
+     *         in="path",
+     *         required=true,
+     *         description="11",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="sbj",
+     *         in="path",
+     *         required=true,
+     *         description="Subject (e.g. Mathematics, English)",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="Lesson plan ID",
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Lesson plan retrieved successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(property="pld", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Lesson plan not found",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Lesson plan not found")
+     *         )
+     *     )
+     * )
+     */
+
+    public function getSingleLessonPlanOption($schid, $ssn, $trm, $clsm, $sbj, $id)
+    {
+        $lessonPlan = LessonPlanOption::where('schid', $schid)
+            ->where('clsm', $clsm)
+            ->where('ssn', $ssn)
+            ->where('trm', $trm)
+            ->where('sbj', $sbj)
+            ->where('id', $id) // This line fetches the individual lesson plan
+            ->first();
+
+        if (!$lessonPlan) {
+            return response()->json([
+                "status" => false,
+                "message" => "Lesson plan not found",
+            ], 404);
+        }
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => $lessonPlan,
+        ], 200);
+    }
+
+
+
+
+        /**
+     * @OA\Get(
+     *     path="/api/lesson-plan-option/weekly/{schid}/{ssn}/{trm}/{clsm}",
+     *     summary="Get weekly lesson plans",
+     *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
+     *     description="Fetch weekly lesson plans for a specific school, class, session, and term. Optionally filter by subject and week_start date.",
+     *
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="path",
+     *         required=true,
+     *         description="School ID",
+     *         @OA\Schema(type="string", example="12")
+     *     ),
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="path",
+     *         required=true,
+     *         description="Session/academic year",
+     *         @OA\Schema(type="string", example="2025")
+     *     ),
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Term number",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Parameter(
+     *         name="clsm",
+     *         in="path",
+     *         required=true,
+     *         description="Class/grade",
+     *         @OA\Schema(type="string", example="11")
+     *     ),
+     *     @OA\Parameter(
+     *         name="sbj",
+     *         in="query",
+     *         required=false,
+     *         description="Subject name (optional). Leave empty to fetch all subjects",
+     *         @OA\Schema(type="string", example="ENGLISH LANGUAGE")
+     *     ),
+     *     @OA\Parameter(
+     *         name="week_start",
+     *         in="query",
+     *         required=false,
+     *         description="Start date of the week (YYYY-MM-DD) to filter lesson plans",
+     *         @OA\Schema(type="string", format="date", example="2026-02-09")
+     *     ),
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         required=false,
+     *         description="Pagination start index",
+     *         @OA\Schema(type="integer", example=0)
+     *     ),
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         required=false,
+     *         description="Number of lesson plans to return",
+     *         @OA\Schema(type="integer", example=20)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Weekly lesson plans retrieved successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 @OA\Property(property="schid", type="string", example="12"),
+     *                 @OA\Property(property="ssn", type="string", example="2025"),
+     *                 @OA\Property(property="trm", type="integer", example=1),
+     *                 @OA\Property(property="clsm", type="string", example="11"),
+     *                 @OA\Property(property="sbj", type="string", nullable=true, example="ENGLISH LANGUAGE"),
+     *                 @OA\Property(property="count", type="integer", example=3),
+     *                 @OA\Property(
+     *                     property="lesson_plans",
+     *                     type="array",
+     *                     @OA\Items(type="object")
+     *                 )
+     *             )
+     *         )
+     *     )
+     * )
+     */
+    public function getWeeklyLessonPlanOption($schid, $ssn, $trm, $clsm)
+    {
+        $start = request()->input('start', 0);
+        $count = request()->input('count', 20);
+        $sbj = request()->input('sbj', null); // subject from query
+
+        $query = LessonPlanOption::where('schid', $schid)
+            ->where('clsm', $clsm)
+            ->where('ssn', $ssn)
+            ->where('trm', $trm)
+            ->where('plan_type', 'weekly');
+
+        if ($sbj !== null) {
+            $query->where('sbj', trim(urldecode($sbj)));
+        }
+
+        if (request()->has('week_start')) {
+            try {
+                $weekStart = Carbon::parse(request()->input('week_start'))->startOfWeek();
+                $weekEnd = Carbon::parse(request()->input('week_start'))->endOfWeek();
+                $query->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()]);
+            } catch (\Exception $e) {
+                // ignore invalid week_start
+            }
+        }
+
+        $lessonPlan = $query->skip($start)->take($count)->get();
+
+        return response()->json([
+            "status" => true,
+            "message" => "Success",
+            "pld" => [
+                'schid' => $schid,
+                'ssn' => $ssn,
+                'trm' => (int) $trm,
+                'clsm' => $clsm,
+                'sbj' => $sbj,
+                'count' => $lessonPlan->count(),
+                'lesson_plans' => $lessonPlan,
+            ],
+        ]);
+    }
+
+
+
+
+
+    /**
+     * @OA\Get(
+     *     path="/api/lesson-plans-option/termly/{schid}/{ssn}/{trm}/{sbj}",
+     *     operationId="getTermlyLessonPlansOption",
+     *     tags={"Api"},
+     *     security={{"bearerAuth": {}}},
+     *     summary="Get termly lesson plans by subject",
+     *     description="Fetch all termly lesson plans for a specific school, session, term, and subject. Weekly lesson plans are excluded.",
+     *
+     *     @OA\Parameter(
+     *         name="schid",
+     *         in="path",
+     *         required=true,
+     *         description="School ID",
+     *         @OA\Schema(type="string", example="12")
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="ssn",
+     *         in="path",
+     *         required=true,
+     *         description="Academic session",
+     *         @OA\Schema(type="string", example="2025")
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="trm",
+     *         in="path",
+     *         required=true,
+     *         description="Academic term",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="sbj",
+     *         in="path",
+     *         required=true,
+     *         description="Subject name to filter lesson plans",
+     *         @OA\Schema(type="string", example="ENGLISH LANGUAGE")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Termly lesson plans fetched successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Termly lesson plans fetched successfully"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 @OA\Property(property="plan_type", type="string", example="termly"),
+     *                 @OA\Property(property="schid", type="string", example="12"),
+     *                 @OA\Property(property="ssn", type="string", example="2025"),
+     *                 @OA\Property(property="trm", type="integer", example=1),
+     *                 @OA\Property(property="sbj", type="string", example="ENGLISH LANGUAGE"),
+     *                 @OA\Property(property="count", type="integer", example=3),
+     *                 @OA\Property(
+     *                     property="lesson_plans",
+     *                     type="array",
+     *                     @OA\Items(
+     *                         type="object",
+     *                         @OA\Property(property="id", type="integer", example=1),
+     *                         @OA\Property(property="schid", type="string", example="12"),
+     *                         @OA\Property(property="clsm", type="string", example="11"),
+     *                         @OA\Property(property="ssn", type="string", example="2025"),
+     *                         @OA\Property(property="trm", type="integer", example=1),
+     *                         @OA\Property(property="plan_type", type="string", example="termly"),
+     *                         @OA\Property(property="sbj", type="string", example="ENGLISH LANGUAGE"),
+     *                         @OA\Property(property="topic", type="string", example="Parts of Speech"),
+     *                         @OA\Property(property="sub_topic", type="array", @OA\Items(type="string"), example={"Nouns","Verbs"}),
+     *                         @OA\Property(property="date", type="string", format="date", example="2025-09-03"),
+     *                         @OA\Property(property="no_of_class", type="integer", example=35),
+     *                         @OA\Property(property="average_age", type="number", example=12),
+     *                         @OA\Property(property="time_from", type="string", format="time", example="07:30"),
+     *                         @OA\Property(property="time_to", type="string", format="time", example="08:10"),
+     *                         @OA\Property(property="duration", type="string", example="40 minutes"),
+     *                         @OA\Property(property="learning_materials", type="array", @OA\Items(type="string"), example={"Textbook","Board"}),
+     *                         @OA\Property(property="lesson_objectives", type="array", @OA\Items(type="string"), example={"Identify nouns","Recognize verbs"})
+     *                     )
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="No lesson plans found for the specified filters"
+     *     )
+     * )
+     */
+    public function getLessonPlansByTermOption($schid, $ssn, $trm, $sbj)
+    {
+        // Fetch termly lesson plans for the specific subject
+        $lessonPlans = LessonPlanOption::where('plan_type', 'termly')
+            ->whereNull('weekly') // termly plans only
+            ->where('schid', $schid)
+            ->where('ssn', $ssn)
+            ->where('trm', $trm)
+            ->where('sbj', $sbj) // filter by subject
+            ->orderBy('date', 'asc')
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Termly lesson plans fetched successfully',
+            'pld' => [
+                'plan_type' => 'termly',
+                'schid' => $schid,
+                'ssn' => $ssn,
+                'trm' => (int) $trm,
+                'sbj' => $sbj,
+                'count' => $lessonPlans->count(),
+                'lesson_plans' => $lessonPlans,
+            ],
+        ], 200);
+    }
+
+
+
+}
