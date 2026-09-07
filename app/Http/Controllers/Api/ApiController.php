@@ -41956,29 +41956,81 @@ public function updateLessonPlanOption(Request $request)
      * )
      */
 
-    public function getSingleLessonPlanOption($schid, $ssn, $trm, $clsm, $sbj, $id)
-    {
-        $lessonPlan = LessonPlanOption::where('schid', $schid)
-            ->where('clsm', $clsm)
-            ->where('ssn', $ssn)
-            ->where('trm', $trm)
-            ->where('sbj', $sbj)
-            ->where('id', $id) // This line fetches the individual lesson plan
-            ->first();
+public function getSingleLessonPlanOption(
+    $schid,
+    $ssn,
+    $trm,
+    $clsm,
+    $sbj,
+    $id
+) {
+    /*
+    |--------------------------------------------------------------------------
+    | GET LESSON PLAN
+    |--------------------------------------------------------------------------
+    |
+    | lesson_plan_options.clsm contains the class ID.
+    | cls.id contains the class ID.
+    | cls.name contains the class name.
+    |
+    */
 
-        if (!$lessonPlan) {
-            return response()->json([
-                "status" => false,
-                "message" => "Lesson plan not found",
-            ], 404);
-        }
+    $lessonPlan = LessonPlanOption::query()
+        ->leftJoin('cls', 'lesson_plan_options.clsm', '=', 'cls.id')
 
-       return response()->apiJson([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $lessonPlan,
-        ], 200);
+        ->where('lesson_plan_options.schid', $schid)
+        ->where('lesson_plan_options.clsm', $clsm)
+        ->where('lesson_plan_options.ssn', $ssn)
+        ->where('lesson_plan_options.trm', $trm)
+        ->where('lesson_plan_options.sbj', $sbj)
+        ->where('lesson_plan_options.id', $id)
+
+        /*
+        |--------------------------------------------------------------------------
+        | SELECT LESSON PLAN FIELDS
+        |--------------------------------------------------------------------------
+        */
+
+        ->select(
+            'lesson_plan_options.*',
+
+            /*
+            |--------------------------------------------------------------------------
+            | CLASS NAME
+            |--------------------------------------------------------------------------
+            */
+
+            'cls.name as clsm_name'
+        )
+
+        ->first();
+
+    /*
+    |--------------------------------------------------------------------------
+    | LESSON PLAN NOT FOUND
+    |--------------------------------------------------------------------------
+    */
+
+    if (!$lessonPlan) {
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Lesson plan not found',
+        ], 404);
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | RESPONSE
+    |--------------------------------------------------------------------------
+    */
+
+    return response()->apiJson([
+        'status' => true,
+        'message' => 'Success',
+        'pld' => $lessonPlan,
+    ], 200);
+}
 
 
 
