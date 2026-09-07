@@ -39904,7 +39904,7 @@ public function setLessonPlanOption(Request $request)
     |--------------------------------------------------------------------------
     */
 
-    return response()->json([
+    return response()->apiJson([
         'status' => true,
         'message' => 'Lesson plan saved successfully',
         'pld' => $lessonPlan,
@@ -41033,7 +41033,7 @@ public function updateLessonPlanOption(Request $request)
     |--------------------------------------------------------------------------
     */
 
-    return response()->json([
+    return response()->apiJson([
         'status' => true,
         'message' => 'Lesson Plan updated successfully',
         'pld' => $lessonPlan,
@@ -41128,7 +41128,7 @@ public function updateLessonPlanOption(Request $request)
             ->where("trm", $trm)
             ->take($count)->skip($start)->get();
 
-        return response()->json([
+        return response()->apiJson([
             "status" => true,
             "message" => "Success",
             "pld" => $lessonPlan,
@@ -41226,7 +41226,7 @@ public function updateLessonPlanOption(Request $request)
             ], 404);
         }
 
-        return response()->json([
+       return response()->apiJson([
             "status" => true,
             "message" => "Success",
             "pld" => $lessonPlan,
@@ -41384,7 +41384,7 @@ public function getWeeklyLessonPlanOption($schid, $ssn, $trm, $clsm)
         ->take($count)
         ->get();
 
-    return response()->json([
+    return response()->apiJson([
         "status" => true,
         "message" => "Success",
         "pld" => [
@@ -41507,7 +41507,7 @@ public function getWeeklyLessonPlanOption($schid, $ssn, $trm, $clsm)
             ->orderBy('date', 'asc')
             ->get();
 
-        return response()->json([
+        return response()->apiJson([
             'status' => true,
             'message' => 'Termly lesson plans fetched successfully',
             'pld' => [
@@ -41630,7 +41630,7 @@ public function getWeeklyLessonPlanOption($schid, $ssn, $trm, $clsm)
             ->orderBy('date', 'asc')
             ->get();
 
-        return response()->json([
+       return response()->apiJson([
             'status' => true,
             'message' => 'Lesson plans fetched successfully',
             'pld' => [
@@ -41757,7 +41757,7 @@ public function getWeeklyLessonPlanOption($schid, $ssn, $trm, $clsm)
             ->take($count)
             ->get();
 
-        return response()->json([
+       return response()->apiJson([
             'status' => true,
             'message' => 'Lesson plans fetched successfully',
             'pld' => [
