@@ -126,6 +126,11 @@ return [
 
     'cipher' => 'AES-256-CBC',
 
+        'uploads_path' => env(
+        'UPLOADS_PATH',
+        public_path('uploads')
+    ),
+
     /*
     |--------------------------------------------------------------------------
     | Maintenance Mode Driver
