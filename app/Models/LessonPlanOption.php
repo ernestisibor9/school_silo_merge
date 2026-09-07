@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class LessonPlanOption extends Model
 {
@@ -173,4 +174,14 @@ class LessonPlanOption extends Model
         'assignment' => 'array',
         'reference' => 'array',
     ];
+
+    // Append custom attribute to JSON responses
+    protected $appends = ['subject_head_signature_url'];
+
+    public function getSubjectHeadSignatureUrlAttribute()
+    {
+        return $this->subject_head_signature 
+            ? asset($this->subject_head_signature) 
+            : null;
+    }
 }

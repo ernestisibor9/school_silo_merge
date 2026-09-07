@@ -39630,19 +39630,13 @@ public function setLessonPlanOption(Request $request)
     | The API accepts:
     |
     | 1. A single string
-    |    Example:
-    |    Proper noun
+    |    Example: Proper noun
     |
     | 2. A JSON array string
-    |    Example:
-    |    ["Proper noun","Common noun"]
+    |    Example: ["Proper noun","Common noun"]
     |
     | 3. A multipart array
-    |    Example:
-    |    sub_topic[]
-    |
-    |    Every accepted format is converted to a PHP array
-    |    before validation.
+    |    Example: sub_topic[]
     |
     */
 
@@ -39681,106 +39675,44 @@ public function setLessonPlanOption(Request $request)
 
     foreach ($arrayFields as $field) {
 
-        /*
-        |--------------------------------------------------------------------------
-        | FIELD NOT SENT
-        |--------------------------------------------------------------------------
-        */
-
         if (!$request->has($field)) {
             continue;
         }
 
         $value = $request->input($field);
 
-        /*
-        |--------------------------------------------------------------------------
-        | ALREADY AN ARRAY
-        |--------------------------------------------------------------------------
-        |
-        | This supports:
-        |
-        | field[]
-        |
-        */
-
         if (is_array($value)) {
             continue;
         }
-
-        /*
-        |--------------------------------------------------------------------------
-        | STRING VALUE
-        |--------------------------------------------------------------------------
-        */
 
         if (is_string($value)) {
 
             $value = trim($value);
 
-            /*
-            |--------------------------------------------------------------------------
-            | EMPTY STRING
-            |--------------------------------------------------------------------------
-            */
-
             if ($value === '') {
-
                 $request->merge([
                     $field => [],
                 ]);
-
                 continue;
             }
 
             /*
-            |--------------------------------------------------------------------------
-            | TRY JSON ARRAY
-            |--------------------------------------------------------------------------
-            |
-            | Example:
-            |
-            | ["Proper noun","Common noun"]
-            |
+            | Normalize single quotes to double quotes in case incoming JSON
+            | uses single quotes (e.g. "['item1','item2']")
             */
+            $jsonCandidate = str_replace("'", '"', $value);
 
-            $decoded = json_decode(
-                $value,
-                true
-            );
-
-            /*
-            |--------------------------------------------------------------------------
-            | VALID JSON ARRAY
-            |--------------------------------------------------------------------------
-            */
+            $decoded = json_decode($jsonCandidate, true);
 
             if (
                 json_last_error() === JSON_ERROR_NONE &&
                 is_array($decoded)
             ) {
-
                 $request->merge([
                     $field => $decoded,
                 ]);
-
                 continue;
             }
-
-            /*
-            |--------------------------------------------------------------------------
-            | NORMAL SINGLE STRING
-            |--------------------------------------------------------------------------
-            |
-            | Example:
-            |
-            | Proper noun
-            |
-            | Automatically becomes:
-            |
-            | ["Proper noun"]
-            |
-            */
 
             $request->merge([
                 $field => [$value],
@@ -39796,435 +39728,80 @@ public function setLessonPlanOption(Request $request)
 
     $request->validate([
 
-        /*
-        |--------------------------------------------------------------------------
-        | SCHOOL / CLASS INFORMATION
-        |--------------------------------------------------------------------------
-        */
-
-        'schid' => [
-            'required',
-            'string',
-            'max:255',
-        ],
-
-        'clsm' => [
-            'required',
-            'string',
-            'max:255',
-        ],
-
-        'ssn' => [
-            'required',
-            'string',
-            'max:255',
-        ],
-
-        'trm' => [
-            'required',
-            'string',
-            'max:255',
-        ],
-
-        'sbj' => [
-            'required',
-            'string',
-            'max:255',
-        ],
-
-        /*
-        |--------------------------------------------------------------------------
-        | PLAN TYPE
-        |--------------------------------------------------------------------------
-        */
-
-        'plan_type' => [
-            'required',
-            'in:weekly,termly',
-        ],
-
-        'weekly' => [
-            'nullable',
-            'required_if:plan_type,weekly',
-            'string',
-            'max:100',
-        ],
-
-        /*
-        |--------------------------------------------------------------------------
-        | LESSON INFORMATION
-        |--------------------------------------------------------------------------
-        */
-
-        'date' => [
-            'required',
-            'date',
-        ],
-
-        'time_from' => [
-            'required',
-            'date_format:H:i',
-        ],
-
-        'time_to' => [
-            'required',
-            'date_format:H:i',
-            'after:time_from',
-        ],
-
-        'period' => [
-            'required',
-            'string',
-            'max:255',
-        ],
-
-        'duration' => [
-            'required',
-            'string',
-            'max:255',
-        ],
-
-        'sex' => [
-            'nullable',
-            'string',
-            'max:50',
-        ],
-
-        'topic' => [
-            'required',
-            'string',
-            'max:255',
-        ],
-
-        /*
-        |--------------------------------------------------------------------------
-        | SUB TOPIC
-        |--------------------------------------------------------------------------
-        */
-
-        'sub_topic' => [
-            'nullable',
-            'array',
-        ],
-
-        'sub_topic.*' => [
-            'nullable',
-            'string',
-            'max:1000',
-        ],
-
-        /*
-        |--------------------------------------------------------------------------
-        | LESSON OBJECTIVES
-        |--------------------------------------------------------------------------
-        */
-
-        'lesson_objectives' => [
-            'required',
-            'array',
-            'min:1',
-        ],
-
-        'lesson_objectives.*' => [
-            'required',
-            'string',
-            'max:2000',
-        ],
-
-        /*
-        |--------------------------------------------------------------------------
-        | INSTRUCTIONAL SOURCES / MATERIALS
-        |--------------------------------------------------------------------------
-        */
-
-        'instructional_sources_material' => [
-            'nullable',
-            'array',
-        ],
-
-        'instructional_sources_material.*' => [
-            'nullable',
-            'string',
-            'max:1000',
-        ],
-
-        /*
-        |--------------------------------------------------------------------------
-        | STEP 1
-        |--------------------------------------------------------------------------
-        */
-
-        'step1_previous_knowledge' => [
-            'nullable',
-            'array',
-        ],
-
-        'step1_previous_knowledge.*' => [
-            'nullable',
-            'string',
-            'max:2000',
-        ],
-
-        'step1_mode' => [
-            'nullable',
-            'string',
-            'max:255',
-        ],
-
-        'step1_teacher_activities' => [
-            'nullable',
-            'array',
-        ],
-
-        'step1_teacher_activities.*' => [
-            'nullable',
-            'string',
-            'max:3000',
-        ],
-
-        'step1_student_activities' => [
-            'nullable',
-            'array',
-        ],
-
-        'step1_student_activities.*' => [
-            'nullable',
-            'string',
-            'max:3000',
-        ],
-
-        /*
-        |--------------------------------------------------------------------------
-        | STEP 2
-        |--------------------------------------------------------------------------
-        */
-
-        'step2_mode' => [
-            'nullable',
-            'string',
-            'max:255',
-        ],
-
-        'step2_teacher_activities' => [
-            'nullable',
-            'array',
-        ],
-
-        'step2_teacher_activities.*' => [
-            'nullable',
-            'string',
-            'max:3000',
-        ],
-
-        'step2_student_activities' => [
-            'nullable',
-            'array',
-        ],
-
-        'step2_student_activities.*' => [
-            'nullable',
-            'string',
-            'max:3000',
-        ],
-
-        /*
-        |--------------------------------------------------------------------------
-        | STEP 3
-        |--------------------------------------------------------------------------
-        */
-
-        'step3_mode' => [
-            'nullable',
-            'string',
-            'max:255',
-        ],
-
-        'step3_teacher_activities' => [
-            'nullable',
-            'array',
-        ],
-
-        'step3_teacher_activities.*' => [
-            'nullable',
-            'string',
-            'max:3000',
-        ],
-
-        'step3_student_activities' => [
-            'nullable',
-            'array',
-        ],
-
-        'step3_student_activities.*' => [
-            'nullable',
-            'string',
-            'max:3000',
-        ],
-
-        /*
-        |--------------------------------------------------------------------------
-        | STEP 4
-        |--------------------------------------------------------------------------
-        */
-
-        'step4_mode' => [
-            'nullable',
-            'string',
-            'max:255',
-        ],
-
-        'step4_teacher_activities' => [
-            'nullable',
-            'array',
-        ],
-
-        'step4_teacher_activities.*' => [
-            'nullable',
-            'string',
-            'max:3000',
-        ],
-
-        'step4_student_activities' => [
-            'nullable',
-            'array',
-        ],
-
-        'step4_student_activities.*' => [
-            'nullable',
-            'string',
-            'max:3000',
-        ],
-
-        /*
-        |--------------------------------------------------------------------------
-        | STEP 5
-        |--------------------------------------------------------------------------
-        */
-
-        'step5_mode' => [
-            'nullable',
-            'string',
-            'max:255',
-        ],
-
-        'step5_teacher_activities' => [
-            'nullable',
-            'array',
-        ],
-
-        'step5_teacher_activities.*' => [
-            'nullable',
-            'string',
-            'max:3000',
-        ],
-
-        'step5_student_activities' => [
-            'nullable',
-            'array',
-        ],
-
-        'step5_student_activities.*' => [
-            'nullable',
-            'string',
-            'max:3000',
-        ],
-
-        /*
-        |--------------------------------------------------------------------------
-        | SUMMARY
-        |--------------------------------------------------------------------------
-        */
-
-        'summary' => [
-            'nullable',
-            'array',
-        ],
-
-        'summary.*' => [
-            'nullable',
-            'string',
-            'max:3000',
-        ],
-
-        /*
-        |--------------------------------------------------------------------------
-        | CONCLUSION
-        |--------------------------------------------------------------------------
-        */
-
-        'conclusion' => [
-            'nullable',
-            'array',
-        ],
-
-        'conclusion.*' => [
-            'nullable',
-            'string',
-            'max:3000',
-        ],
-
-        /*
-        |--------------------------------------------------------------------------
-        | ASSIGNMENT
-        |--------------------------------------------------------------------------
-        */
-
-        'assignment' => [
-            'nullable',
-            'array',
-        ],
-
-        'assignment.*' => [
-            'nullable',
-            'string',
-            'max:3000',
-        ],
-
-        /*
-        |--------------------------------------------------------------------------
-        | REFERENCE
-        |--------------------------------------------------------------------------
-        */
-
-        'reference' => [
-            'nullable',
-            'array',
-        ],
-
-        'reference.*' => [
-            'nullable',
-            'string',
-            'max:2000',
-        ],
-
-        /*
-        |--------------------------------------------------------------------------
-        | SUBJECT HEAD
-        |--------------------------------------------------------------------------
-        */
-
-        'topic_tally' => [
-            'nullable',
-            'in:yes,no',
-        ],
-
-        'other_comments' => [
-            'nullable',
-            'string',
-            'max:5000',
-        ],
-
-        'subject_head_signature' => [
-            'nullable',
-            'image',
-            'mimes:jpg,jpeg,png',
-            'max:2048',
-        ],
-
-        'subject_head_signature_date' => [
-            'nullable',
-            'date',
-        ],
+        'schid' => ['required', 'string', 'max:255'],
+        'clsm' => ['required', 'string', 'max:255'],
+        'ssn' => ['required', 'string', 'max:255'],
+        'trm' => ['required', 'string', 'max:255'],
+        'sbj' => ['required', 'string', 'max:255'],
+
+        'plan_type' => ['required', 'in:weekly,termly'],
+        'weekly' => ['nullable', 'required_if:plan_type,weekly', 'string', 'max:100'],
+
+        'date' => ['required', 'date'],
+        'time_from' => ['required', 'date_format:H:i'],
+        'time_to' => ['required', 'date_format:H:i', 'after:time_from'],
+        'period' => ['required', 'string', 'max:255'],
+        'duration' => ['required', 'string', 'max:255'],
+        'sex' => ['nullable', 'string', 'max:50'],
+        'topic' => ['required', 'string', 'max:255'],
+
+        'sub_topic' => ['nullable', 'array'],
+        'sub_topic.*' => ['nullable', 'string', 'max:1000'],
+
+        'lesson_objectives' => ['required', 'array', 'min:1'],
+        'lesson_objectives.*' => ['required', 'string', 'max:2000'],
+
+        'instructional_sources_material' => ['nullable', 'array'],
+        'instructional_sources_material.*' => ['nullable', 'string', 'max:1000'],
+
+        'step1_previous_knowledge' => ['nullable', 'array'],
+        'step1_previous_knowledge.*' => ['nullable', 'string', 'max:2000'],
+        'step1_mode' => ['nullable', 'string', 'max:255'],
+        'step1_teacher_activities' => ['nullable', 'array'],
+        'step1_teacher_activities.*' => ['nullable', 'string', 'max:3000'],
+        'step1_student_activities' => ['nullable', 'array'],
+        'step1_student_activities.*' => ['nullable', 'string', 'max:3000'],
+
+        'step2_mode' => ['nullable', 'string', 'max:255'],
+        'step2_teacher_activities' => ['nullable', 'array'],
+        'step2_teacher_activities.*' => ['nullable', 'string', 'max:3000'],
+        'step2_student_activities' => ['nullable', 'array'],
+        'step2_student_activities.*' => ['nullable', 'string', 'max:3000'],
+
+        'step3_mode' => ['nullable', 'string', 'max:255'],
+        'step3_teacher_activities' => ['nullable', 'array'],
+        'step3_teacher_activities.*' => ['nullable', 'string', 'max:3000'],
+        'step3_student_activities' => ['nullable', 'array'],
+        'step3_student_activities.*' => ['nullable', 'string', 'max:3000'],
+
+        'step4_mode' => ['nullable', 'string', 'max:255'],
+        'step4_teacher_activities' => ['nullable', 'array'],
+        'step4_teacher_activities.*' => ['nullable', 'string', 'max:3000'],
+        'step4_student_activities' => ['nullable', 'array'],
+        'step4_student_activities.*' => ['nullable', 'string', 'max:3000'],
+
+        'step5_mode' => ['nullable', 'string', 'max:255'],
+        'step5_teacher_activities' => ['nullable', 'array'],
+        'step5_teacher_activities.*' => ['nullable', 'string', 'max:3000'],
+        'step5_student_activities' => ['nullable', 'array'],
+        'step5_student_activities.*' => ['nullable', 'string', 'max:3000'],
+
+        'summary' => ['nullable', 'array'],
+        'summary.*' => ['nullable', 'string', 'max:3000'],
+
+        'conclusion' => ['nullable', 'array'],
+        'conclusion.*' => ['nullable', 'string', 'max:3000'],
+
+        'assignment' => ['nullable', 'array'],
+        'assignment.*' => ['nullable', 'string', 'max:3000'],
+
+        'reference' => ['nullable', 'array'],
+        'reference.*' => ['nullable', 'string', 'max:2000'],
+
+        'topic_tally' => ['nullable', 'in:yes,no'],
+        'other_comments' => ['nullable', 'string', 'max:5000'],
+        'subject_head_signature' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
+        'subject_head_signature_date' => ['nullable', 'date'],
     ]);
 
     /*
@@ -40269,11 +39846,7 @@ public function setLessonPlanOption(Request $request)
     */
 
     foreach ($arrayFields as $field) {
-
-        $data[$field] = $request->input(
-            $field,
-            []
-        );
+        $data[$field] = $request->input($field, []);
     }
 
     /*
@@ -40294,38 +39867,18 @@ public function setLessonPlanOption(Request $request)
 
     if ($request->hasFile('subject_head_signature')) {
 
-        $signature = $request->file(
-            'subject_head_signature'
-        );
-
-        $signatureDirectory = public_path(
-            'uploads/lesson-plan-signatures'
-        );
+        $signature = $request->file('subject_head_signature');
+        $signatureDirectory = public_path('uploads/lesson-plan-signatures');
 
         if (!is_dir($signatureDirectory)) {
-
-            mkdir(
-                $signatureDirectory,
-                0755,
-                true
-            );
+            mkdir($signatureDirectory, 0755, true);
         }
 
-        $filename =
-            'signature_' .
-            time() .
-            '_' .
-            Str::random(12) .
-            '.' .
-            $signature->getClientOriginalExtension();
+        $filename = 'signature_' . time() . '_' . Str::random(12) . '.' . $signature->getClientOriginalExtension();
 
-        $signature->move(
-            $signatureDirectory,
-            $filename
-        );
+        $signature->move($signatureDirectory, $filename);
 
-        $data['subject_head_signature'] =
-            'uploads/lesson-plan-signatures/' . $filename;
+        $data['subject_head_signature'] = 'uploads/lesson-plan-signatures/' . $filename;
     }
 
     /*
@@ -40775,7 +40328,6 @@ public function updateLessonPlanOption(Request $request)
     |--------------------------------------------------------------------------
     |
     | Supports:
-    |
     | 1. Single string
     | 2. JSON array string
     | 3. Multipart array field[]
@@ -40829,10 +40381,14 @@ public function updateLessonPlanOption(Request $request)
             |--------------------------------------------------------------------------
             | TRY JSON
             |--------------------------------------------------------------------------
+            | Normalize single quotes to double quotes in case incoming JSON
+            | uses single quotes (e.g. "['item1','item2']")
             */
 
+            $jsonCandidate = str_replace("'", '"', $value);
+
             $decoded = json_decode(
-                $value,
+                $jsonCandidate,
                 true
             );
 
@@ -41297,10 +40853,7 @@ public function updateLessonPlanOption(Request $request)
     |--------------------------------------------------------------------------
     */
 
-    $lessonPlan = LessonPlanOption::where(
-        'schid',
-        $request->schid
-    )
+    $lessonPlan = LessonPlanOption::where('schid', $request->schid)
         ->where('clsm', $request->clsm)
         ->where('ssn', $request->ssn)
         ->where('trm', $request->trm)
@@ -41393,9 +40946,7 @@ public function updateLessonPlanOption(Request $request)
 
     if ($request->hasFile('subject_head_signature')) {
 
-        $signature = $request->file(
-            'subject_head_signature'
-        );
+        $signature = $request->file('subject_head_signature');
 
         $signatureDirectory = public_path(
             'uploads/lesson-plan-signatures'
@@ -41408,6 +40959,11 @@ public function updateLessonPlanOption(Request $request)
                 0755,
                 true
             );
+        }
+
+        // Delete previous signature image if it exists
+        if ($lessonPlan->subject_head_signature && file_exists(public_path($lessonPlan->subject_head_signature))) {
+            @unlink(public_path($lessonPlan->subject_head_signature));
         }
 
         $filename =
