@@ -449,7 +449,8 @@ Route::group([
     Route::get('getSingleLessonPlanOption/{schid}/{ssn}/{trm}/{clsm}/{sbj}/{id}', [ApiController::class, 'getSingleLessonPlanOption']);
     Route::get('/lesson-plan-option/weekly/{schid}/{ssn}/{trm}/{clsm}', [ApiController::class, 'getWeeklyLessonPlanOption']);
     Route::get('lesson-plans/termly-option/{schid}/{ssn}/{trm}/{sbj}', [ApiController::class, 'getLessonPlansByTermOption']);
-
+        Route::get('lesson-plans-option/weekly/{schid}/{ssn}/{trm}/{week}', [ApiController::class, 'getLessonPlansByWeekFilterOption']);
+        Route::get('lesson-plans-option/{schid}/{ssn}/{trm}/{clsm}/{sbj}', [ApiController::class, 'getLessonPlanBySubjOption']);
 
     Route::get('getLessonNote/{sch_id}/{session}/{term}/{class}/{week}', [ApiController::class, 'getLessonNote']);
     Route::get('getSingleLessonNote/{sch_id}/{session}/{term}/{class}/{week}/{lessonNoteId}', [ApiController::class, 'getSingleLessonNote']);
