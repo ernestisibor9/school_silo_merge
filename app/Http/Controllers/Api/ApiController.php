@@ -34397,63 +34397,88 @@ public function promoteStudent(Request $request)
 
 
 
-
     /**
-     * @OA\Get(
-     *     path="/api/getOldStudentsAndSubjects/{schid}/{ssn}/{trm}/{clsm}/{clsa}/{stf}",
-     *     summary="Get old students and their subjects",
-     *     tags={"Api"},
-     *    security={{"bearerAuth":{}}},
-     *
-     *     @OA\Parameter(
-     *         name="schid",
-     *         in="path",
-     *         required=true,
-     *         description="School ID",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="ssn",
-     *         in="path",
-     *         required=true,
-     *         description="Session (academic year)",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="trm",
-     *         in="path",
-     *         required=true,
-     *         description="Term number",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Parameter(
-     *         name="clsm",
-     *         in="path",
-     *         required=true,
-     *         description="Class (e.g., 11)",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="clsa",
-     *         in="path",
-     *         required=true,
-     *         description="Class section (`-1` means all sections)",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="stf",
-     *         in="path",
-     *         required=true,
-     *         description="Staff ID (`-1` if not used)",
-     *         @OA\Schema(type="string")
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="Success"
-     *     )
-     * )
-     */
+ * @OA\Get(
+ *     path="/api/getOldStudentsAndSubjects/{schid}/{ssn}/{trm}/{clsm}/{clsa}/{stf}",
+ *     summary="Get old students and their subjects",
+ *     tags={"Api"},
+ *     security={{"bearerAuth":{}}},
+ *
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="path",
+ *         required=true,
+ *         description="School ID",
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Parameter(
+ *         name="ssn",
+ *         in="path",
+ *         required=true,
+ *         description="Session (academic year)",
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Parameter(
+ *         name="trm",
+ *         in="path",
+ *         required=true,
+ *         description="Term number",
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Parameter(
+ *         name="clsm",
+ *         in="path",
+ *         required=true,
+ *         description="Class (e.g., 11)",
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Parameter(
+ *         name="clsa",
+ *         in="path",
+ *         required=true,
+ *         description="Class section (`-1` means all sections)",
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Parameter(
+ *         name="stf",
+ *         in="path",
+ *         required=true,
+ *         description="Staff ID (`-1` if not used)",
+ *         @OA\Schema(type="string")
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="start",
+ *         in="query",
+ *         required=false,
+ *         description="Starting position for pagination. Default: 0",
+ *         @OA\Schema(
+ *             type="integer",
+ *             default=0,
+ *             minimum=0
+ *         )
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="count",
+ *         in="query",
+ *         required=false,
+ *         description="Number of students to return. Default: all students",
+ *         @OA\Schema(
+ *             type="integer",
+ *             default=20,
+ *             minimum=1
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Success"
+ *     )
+ * )
+ */
+
+
     // public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf)
     // {
     //     // 🔹 Pagination

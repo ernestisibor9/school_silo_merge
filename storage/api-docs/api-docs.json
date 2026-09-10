@@ -29330,6 +29330,28 @@
                         "schema": {
                             "type": "string"
                         }
+                    },
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Starting position for pagination. Default: 0",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 0,
+                            "minimum": 0
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "Number of students to return. Default: all students",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 20,
+                            "minimum": 1
+                        }
                     }
                 ],
                 "responses": {
