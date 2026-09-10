@@ -27320,114 +27320,156 @@ if ($current) {
      */
 
 
+public function promoteStudent(Request $request)
+{
+    $request->validate([
+        'sid'  => 'required',
+        'schid' => 'required',
+        'sesn' => 'required',
+        'trm'  => 'required',
+        'clsm' => 'required',
+        'clsa' => 'required',
+        'suid' => 'required',
+    ]);
 
-    public function promoteStudent(Request $request)
-    {
-        $request->validate([
-            'sid' => 'required',
-            'schid' => 'required',
-            'sesn' => 'required',  // session
-            'trm' => 'required',  // term
-            'clsm' => 'required',  // new main class
-            'clsa' => 'required',  // requested new class arm (sch_cls.id)
-            'suid' => 'required',  // student unique id
-        ]);
+    // ---------------------------------------------------------
+    // 1. Find the student
+    // ---------------------------------------------------------
 
-        // 1. Find the student
-        $student = student::where('sid', $request->sid)->firstOrFail();
+    $student = student::where('sid', $request->sid)->first();
 
-        // 2. Make sure this arm belongs to the new class
-        $validArm = DB::table('sch_cls')
-            ->where('id', $request->clsa)
-            ->where('cls_id', $request->clsm)   // ensure arm belongs to this class
-            ->where('schid', $request->schid)
-            ->first();
-
-        if (!$validArm) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Invalid class arm for the selected class',
-            ], 422);
-        }
-
-        // 3. Check if already promoted for this session + term
-        $alreadyPromoted = old_student::where('sid', $request->sid)
-            ->where('schid', $request->schid)
-            ->where('ssn', $request->sesn)
-            ->where('trm', $request->trm)
-            ->where('clsm', $request->clsm)
-            ->where('clsa', $request->clsa)
-            ->first();
-
-        if ($alreadyPromoted) {
-            return response()->json([
-                'status' => false,
-                'message' => 'This student has already been promoted for the selected session and term',
-            ], ); // conflict
-        }
-
-        // 4. Generate deterministic UID (no random numbers)
-        $uid = $request->sesn . $request->trm . $request->sid . $request->clsm;
-
-        // ✅ Check if this combination already exists
-        $exists = old_student::where([
-            'sid' => $request->sid,
-            'ssn' => $request->sesn,
-            'trm' => $request->trm,
-            'clsm' => $request->clsm,
-            'clsa' => $request->id,
-        ])->exists();
-
-        if ($exists) {
-            return response()->json([
-                'status' => false,
-                'message' => 'This student has already been promoted for the selected session, term, and class.',
-            ], ); //  Conflict
-        }
-
-        // 5. Create promotion record
-        $promotion = old_student::updateOrCreate(
-            [
-                'sid' => $request->sid,
-                'schid' => $request->schid,
-                'ssn' => $request->sesn,
-                'trm' => $request->trm,
-                'clsm' => $request->clsm,
-                'clsa' => $request->clsa,
-            ],
-            [
-                'uid' => $uid,
-                'fname' => $student->fname,
-                'mname' => $student->mname,
-                'lname' => $student->lname,
-                'status' => 'active',
-                'suid' => $request->suid,
-                'more' => '',
-            ]
-        );
-
-        // 6. Update student_academic_data table
-        student_academic_data::where('user_id', $request->sid)
-            ->update([
-                'new_class_main' => $request->clsm,
-                'new_class' => $validArm->id,
-            ]);
-
+    if (!$student) {
         return response()->json([
-            'status' => true,
-            'message' => 'Student promoted successfully for this term',
-            'data' => [
-                'sid' => $promotion->sid,
-                'suid' => $promotion->suid,
-                'ssn' => $promotion->ssn,
-                'trm' => $promotion->trm,
-                'clsm' => $promotion->clsm,
-                'clsa' => $promotion->clsa,
-                'clsa_name' => $validArm->name,   // arm name
-            ],
-        ]);
+            'status' => false,
+            'message' => 'Student not found.',
+            'sid' => $request->sid,
+        ], 404);
     }
 
+
+    // ---------------------------------------------------------
+    // 2. Make sure the selected class arm belongs to the class
+    // ---------------------------------------------------------
+
+    $validArm = DB::table('sch_cls')
+        ->where('id', $request->clsa)
+        ->where('cls_id', $request->clsm)
+        ->where('schid', $request->schid)
+        ->first();
+
+    if (!$validArm) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Invalid class arm for the selected class.',
+        ], 422);
+    }
+
+
+    // ---------------------------------------------------------
+    // 3. Check whether student has already been promoted
+    // ---------------------------------------------------------
+
+    $alreadyPromoted = old_student::where('sid', $request->sid)
+        ->where('schid', $request->schid)
+        ->where('ssn', $request->sesn)
+        ->where('trm', $request->trm)
+        ->where('clsm', $request->clsm)
+        ->where('clsa', $request->clsa)
+        ->first();
+
+    if ($alreadyPromoted) {
+        return response()->json([
+            'status' => false,
+            'message' => 'This student has already been promoted for the selected session, term and class.',
+        ], 409);
+    }
+
+
+    // ---------------------------------------------------------
+    // 4. Generate deterministic UID
+    // ---------------------------------------------------------
+
+    $uid = $request->sesn
+        . $request->trm
+        . $request->sid
+        . $request->clsm;
+
+
+    // ---------------------------------------------------------
+    // 5. Double-check duplicate combination
+    // ---------------------------------------------------------
+
+    $exists = old_student::where('sid', $request->sid)
+        ->where('schid', $request->schid)
+        ->where('ssn', $request->sesn)
+        ->where('trm', $request->trm)
+        ->where('clsm', $request->clsm)
+        ->where('clsa', $request->clsa)
+        ->exists();
+
+    if ($exists) {
+        return response()->json([
+            'status' => false,
+            'message' => 'This student has already been promoted for the selected session, term and class.',
+        ], 409);
+    }
+
+
+    // ---------------------------------------------------------
+    // 6. Create promotion record
+    // ---------------------------------------------------------
+
+    $promotion = old_student::create([
+        'uid' => $uid,
+        'sid' => $request->sid,
+        'schid' => $request->schid,
+
+        'fname' => $student->fname,
+        'mname' => $student->mname,
+        'lname' => $student->lname,
+
+        'suid' => $request->suid,
+
+        'ssn' => $request->sesn,
+        'trm' => $request->trm,
+        'clsm' => $request->clsm,
+        'clsa' => $request->clsa,
+
+        'status' => 'active',
+        'more' => '',
+    ]);
+
+
+    // ---------------------------------------------------------
+    // 7. Update student academic data
+    // ---------------------------------------------------------
+
+    student_academic_data::where('user_id', $request->sid)
+        ->update([
+            'new_class_main' => $request->clsm,
+            'new_class' => $validArm->id,
+        ]);
+
+
+    // ---------------------------------------------------------
+    // 8. Return response
+    // ---------------------------------------------------------
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Student promoted successfully for this term',
+
+        'data' => [
+            'sid' => $promotion->sid,
+            'suid' => $promotion->suid,
+            'ssn' => $promotion->ssn,
+            'trm' => $promotion->trm,
+            'clsm' => $promotion->clsm,
+            'clsa' => $promotion->clsa,
+            'clsa_name' => $validArm->name,
+        ],
+    ]);
+}
 
 
 
@@ -34412,91 +34454,190 @@ if ($current) {
      *     )
      * )
      */
-    public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf)
-    {
-        // 🔹 Pagination
-        $start = request()->input('start', 0);   // default 0
-        $count = request()->input('count', 20);  // default 20
+    // public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf)
+    // {
+    //     // 🔹 Pagination
+    //     $start = request()->input('start', 0);   // default 0
+    //     $count = request()->input('count', 20);  // default 20
 
-        //  Get students with filters
-        $ostdQuery = old_student::where("schid", $schid)
-            ->where("ssn", $ssn)
-            ->where("trm", $trm)
-            ->where("clsm", $clsm)
-            ->when($clsa != '-1', function ($q) use ($clsa) {
-                $q->where("clsa", $clsa);
-            })
-            ->where("status", "active")
-            ->orderBy('lname', 'asc');
+    //     //  Get students with filters
+    //     $ostdQuery = old_student::where("schid", $schid)
+    //         ->where("ssn", $ssn)
+    //         ->where("trm", $trm)
+    //         ->where("clsm", $clsm)
+    //         ->when($clsa != '-1', function ($q) use ($clsa) {
+    //             $q->where("clsa", $clsa);
+    //         })
+    //         ->where("status", "active")
+    //         ->orderBy('lname', 'asc');
 
-        $totalStudents = $ostdQuery->count();
+    //     $totalStudents = $ostdQuery->count();
 
-        // Apply pagination
-        $ostd = $ostdQuery->skip($start)->take($count)->get();
+    //     // Apply pagination
+    //     $ostd = $ostdQuery->skip($start)->take($count)->get();
 
-        //  Get class subjects (IDs + details)
-        $classSubjects = class_subj::where("schid", $schid)
-            ->where("clsid", $clsm)
-            ->where("sesn", $ssn)
-            ->where("trm", $trm)
-            ->get();
+    //     //  Get class subjects (IDs + details)
+    //     $classSubjects = class_subj::where("schid", $schid)
+    //         ->where("clsid", $clsm)
+    //         ->where("sesn", $ssn)
+    //         ->where("trm", $trm)
+    //         ->get();
 
-        $classSubjectIds = $classSubjects->pluck('subj_id')->map(fn($id) => (string) $id)->toArray();
+    //     $classSubjectIds = $classSubjects->pluck('subj_id')->map(fn($id) => (string) $id)->toArray();
 
-        // Get all student subjects at once (include term/session)
-        $studentSubjectsMap = student_subj::whereIn('stid', $ostd->pluck('sid'))
-            ->where("schid", $schid)
-            ->where("clsid", $clsm)
-            ->where("ssn", $ssn)
-            ->where("trm", $trm)
-            ->get()
-            ->groupBy('stid')
-            ->map(function ($items) {
-                return $items->pluck('sbj')->map(fn($id) => (string) $id)->toArray();
-            });
+    //     // Get all student subjects at once (include term/session)
+    //     $studentSubjectsMap = student_subj::whereIn('stid', $ostd->pluck('sid'))
+    //         ->where("schid", $schid)
+    //         ->where("clsid", $clsm)
+    //         ->where("ssn", $ssn)
+    //         ->where("trm", $trm)
+    //         ->get()
+    //         ->groupBy('stid')
+    //         ->map(function ($items) {
+    //             return $items->pluck('sbj')->map(fn($id) => (string) $id)->toArray();
+    //         });
 
-        // Prepare student payload
-        $stdPld = [];
-        foreach ($ostd as $std) {
-            $user_id = $std->sid;
+    //     // Prepare student payload
+    //     $stdPld = [];
+    //     foreach ($ostd as $std) {
+    //         $user_id = $std->sid;
 
-            // Get subjects actually assigned to this student
-            $studentSubjects = $studentSubjectsMap[$user_id] ?? [];
+    //         // Get subjects actually assigned to this student
+    //         $studentSubjects = $studentSubjectsMap[$user_id] ?? [];
 
-            // Only include subjects that are both in classSubjects and actually assigned
-            $filteredSubjects = array_values(array_filter($classSubjectIds, fn($id) => in_array($id, $studentSubjects)));
+    //         // Only include subjects that are both in classSubjects and actually assigned
+    //         $filteredSubjects = array_values(array_filter($classSubjectIds, fn($id) => in_array($id, $studentSubjects)));
 
-            $stdPld[] = [
-                'std' => $std,
-                'sbj' => $filteredSubjects,
-            ];
-        }
+    //         $stdPld[] = [
+    //             'std' => $std,
+    //             'sbj' => $filteredSubjects,
+    //         ];
+    //     }
 
-        // Prepare class subject payload
-        $clsSbj = $classSubjects->map(function ($subj) {
-            return [
-                'id' => (string) $subj->subj_id,
-                'name' => $subj->name,
-                'comp' => (string) $subj->comp,
-            ];
+    //     // Prepare class subject payload
+    //     $clsSbj = $classSubjects->map(function ($subj) {
+    //         return [
+    //             'id' => (string) $subj->subj_id,
+    //             'name' => $subj->name,
+    //             'comp' => (string) $subj->comp,
+    //         ];
+    //     });
+
+    //     // 6️⃣ Return structured JSON
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => [
+    //             "std-pld" => $stdPld,
+    //             "cls-sbj" => $clsSbj,
+    //         ],
+    //         "pagination" => [
+    //             "start" => $start,
+    //             "count" => $count,
+    //             "total" => $totalStudents,
+    //             "returned" => count($stdPld),
+    //         ],
+    //     ]);
+    // }
+
+
+public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf)
+{
+    // Get all students with filters
+    $ostdQuery = old_student::where("schid", $schid)
+        ->where("ssn", $ssn)
+        ->where("trm", $trm)
+        ->where("clsm", $clsm)
+        ->when($clsa != '-1', function ($q) use ($clsa) {
+            $q->where("clsa", $clsa);
+        })
+        ->where("status", "active")
+        ->orderBy('lname', 'asc');
+
+    // Get ALL students in the class
+    $ostd = $ostdQuery->get();
+
+    $totalStudents = $ostd->count();
+
+    // Get class subjects (IDs + details)
+    $classSubjects = class_subj::where("schid", $schid)
+        ->where("clsid", $clsm)
+        ->where("sesn", $ssn)
+        ->where("trm", $trm)
+        ->get();
+
+    $classSubjectIds = $classSubjects
+        ->pluck('subj_id')
+        ->map(fn($id) => (string) $id)
+        ->toArray();
+
+    // Get all student subjects at once
+    $studentSubjectsMap = student_subj::whereIn('stid', $ostd->pluck('sid'))
+        ->where("schid", $schid)
+        ->where("clsid", $clsm)
+        ->where("ssn", $ssn)
+        ->where("trm", $trm)
+        ->get()
+        ->groupBy('stid')
+        ->map(function ($items) {
+            return $items
+                ->pluck('sbj')
+                ->map(fn($id) => (string) $id)
+                ->toArray();
         });
 
-        // 6️⃣ Return structured JSON
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => [
-                "std-pld" => $stdPld,
-                "cls-sbj" => $clsSbj,
-            ],
-            "pagination" => [
-                "start" => $start,
-                "count" => $count,
-                "total" => $totalStudents,
-                "returned" => count($stdPld),
-            ],
-        ]);
+    // Prepare student payload
+    $stdPld = [];
+
+    foreach ($ostd as $std) {
+
+        $user_id = $std->sid;
+
+        // Get subjects actually assigned to this student
+        $studentSubjects = $studentSubjectsMap[$user_id] ?? [];
+
+        // Only include subjects that are both:
+        // 1. In the class subjects
+        // 2. Actually assigned to the student
+        $filteredSubjects = array_values(
+            array_filter(
+                $classSubjectIds,
+                fn($id) => in_array($id, $studentSubjects)
+            )
+        );
+
+        $stdPld[] = [
+            'std' => $std,
+            'sbj' => $filteredSubjects,
+        ];
     }
+
+    // Prepare class subject payload
+    $clsSbj = $classSubjects->map(function ($subj) {
+        return [
+            'id' => (string) $subj->subj_id,
+            'name' => $subj->name,
+            'comp' => (string) $subj->comp,
+        ];
+    });
+
+    // Return structured JSON
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => [
+            "std-pld" => $stdPld,
+            "cls-sbj" => $clsSbj,
+        ],
+        "pagination" => [
+            "start" => 0,
+            "count" => $totalStudents,
+            "total" => $totalStudents,
+            "returned" => count($stdPld),
+        ],
+    ]);
+}
+
 
 
 
