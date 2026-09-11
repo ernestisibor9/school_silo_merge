@@ -27695,16 +27695,21 @@ public function BulkPromoteStudent(Request $request)
         'suid'  => 'required',
     ]);
 
-    // ---------------------------------------------------------
-    // 1. Convert sid to array
-    // ---------------------------------------------------------
+    // =========================================================
+    // 1. NORMALIZE STUDENT IDs
+    // =========================================================
 
     $studentIds = is_array($request->sid)
         ? $request->sid
         : [$request->sid];
 
-    // Remove duplicates and empty values
-    $studentIds = array_values(array_unique(array_filter($studentIds)));
+    $studentIds = array_values(
+        array_unique(
+            array_filter($studentIds, function ($value) {
+                return $value !== null && $value !== '';
+            })
+        )
+    );
 
     if (empty($studentIds)) {
         return response()->json([
@@ -27714,29 +27719,49 @@ public function BulkPromoteStudent(Request $request)
     }
 
 
-    // ---------------------------------------------------------
-    // 2. Convert suid to array
-    //
-    // If one SUID is supplied, use the same SUID for every
-    // student.
-    //
-    // If multiple SUIDs are supplied, match them by index:
-    //
-    // sid[0] -> suid[0]
-    // sid[1] -> suid[1]
-    // sid[2] -> suid[2]
-    // ---------------------------------------------------------
+    // =========================================================
+    // 2. NORMALIZE SUID
+    // =========================================================
 
     $suids = is_array($request->suid)
         ? array_values($request->suid)
         : [$request->suid];
 
 
-    // ---------------------------------------------------------
-    // 3. Validate SUID count when multiple SUIDs are supplied
-    // ---------------------------------------------------------
+    // =========================================================
+    // 3. CLEAN SUID VALUES
+    // =========================================================
+
+    $suids = array_map(function ($value) {
+
+        // If something unexpected is an array/object,
+        // do NOT allow it to reach the database.
+
+        if (is_array($value)) {
+            return null;
+        }
+
+        if (is_object($value)) {
+            return null;
+        }
+
+        return trim((string) $value);
+
+    }, $suids);
+
+
+    // =========================================================
+    // 4. VALIDATE SUID COUNT
+    //
+    // One SUID:
+    //     use the same SUID for every student.
+    //
+    // Multiple SUIDs:
+    //     one SUID for each student.
+    // =========================================================
 
     if (count($suids) > 1 && count($suids) !== count($studentIds)) {
+
         return response()->json([
             'status' => false,
             'message' => 'The number of SUIDs must match the number of student IDs.',
@@ -27744,9 +27769,9 @@ public function BulkPromoteStudent(Request $request)
     }
 
 
-    // ---------------------------------------------------------
-    // 4. Make sure the selected class arm belongs to the class
-    // ---------------------------------------------------------
+    // =========================================================
+    // 5. VALIDATE CLASS ARM
+    // =========================================================
 
     $validArm = DB::table('sch_cls')
         ->where('id', $request->clsa)
@@ -27755,6 +27780,7 @@ public function BulkPromoteStudent(Request $request)
         ->first();
 
     if (!$validArm) {
+
         return response()->json([
             'status' => false,
             'message' => 'Invalid class arm for the selected class.',
@@ -27762,45 +27788,84 @@ public function BulkPromoteStudent(Request $request)
     }
 
 
-    // ---------------------------------------------------------
-    // 5. Prepare bulk result
-    // ---------------------------------------------------------
+    // =========================================================
+    // 6. RESULT ARRAYS
+    // =========================================================
 
     $promoted = [];
     $failed = [];
 
 
-    // ---------------------------------------------------------
-    // 6. Process every student
-    // ---------------------------------------------------------
+    // =========================================================
+    // 7. PROCESS EACH STUDENT
+    // =========================================================
 
     foreach ($studentIds as $index => $sid) {
 
         // -----------------------------------------------------
-        // Determine SUID for this student
+        // Make sure SID itself is scalar
+        // -----------------------------------------------------
+
+        if (is_array($sid) || is_object($sid)) {
+
+            $failed[] = [
+                'sid' => null,
+                'message' => 'Invalid student ID supplied.',
+            ];
+
+            continue;
+        }
+
+        $sid = trim((string) $sid);
+
+
+        // -----------------------------------------------------
+        // Determine SUID
         // -----------------------------------------------------
 
         if (count($suids) === 1) {
 
-            // One SUID supplied:
-            // use the same SUID for every student
+            // One SUID = same SUID for every student
 
             $suid = $suids[0];
 
         } else {
 
-            // Multiple SUIDs supplied:
-            // match SUID to student by array position
+            // Multiple SUIDs = match by index
 
             $suid = $suids[$index] ?? null;
         }
 
 
         // -----------------------------------------------------
-        // Make sure SUID exists for this student
+        // ABSOLUTE SAFETY CHECK
+        //
+        // Never allow an array/object to reach the database.
         // -----------------------------------------------------
 
-        if (empty($suid)) {
+        if (is_array($suid) || is_object($suid)) {
+
+            $failed[] = [
+                'sid' => $sid,
+                'message' => 'Invalid SUID supplied for this student.',
+            ];
+
+            continue;
+        }
+
+
+        // -----------------------------------------------------
+        // Convert SUID to a guaranteed string
+        // -----------------------------------------------------
+
+        $suid = trim((string) $suid);
+
+
+        // -----------------------------------------------------
+        // Check empty SUID
+        // -----------------------------------------------------
+
+        if ($suid === '') {
 
             $failed[] = [
                 'sid' => $sid,
@@ -27812,7 +27877,7 @@ public function BulkPromoteStudent(Request $request)
 
 
         // -----------------------------------------------------
-        // Find the student
+        // Find student
         // -----------------------------------------------------
 
         $student = student::where('sid', $sid)->first();
@@ -27821,7 +27886,7 @@ public function BulkPromoteStudent(Request $request)
 
             $failed[] = [
                 'sid' => $sid,
-                'message' => 'Something went wrong.',
+                'message' => 'Student record was not found.',
             ];
 
             continue;
@@ -27829,7 +27894,7 @@ public function BulkPromoteStudent(Request $request)
 
 
         // -----------------------------------------------------
-        // Check whether student has already been promoted
+        // Check if already promoted
         // -----------------------------------------------------
 
         $alreadyPromoted = old_student::where('sid', $sid)
@@ -27838,7 +27903,7 @@ public function BulkPromoteStudent(Request $request)
             ->where('trm', $request->trm)
             ->where('clsm', $request->clsm)
             ->where('clsa', $request->clsa)
-            ->first();
+            ->exists();
 
         if ($alreadyPromoted) {
 
@@ -27852,17 +27917,19 @@ public function BulkPromoteStudent(Request $request)
 
 
         // -----------------------------------------------------
-        // Generate deterministic UID
+        // Generate UID
         // -----------------------------------------------------
 
-        $uid = $request->sesn
+        $uid = (string) (
+            $request->sesn
             . $request->trm
             . $sid
-            . $request->clsm;
+            . $request->clsm
+        );
 
 
         // -----------------------------------------------------
-        // Double-check duplicate combination
+        // Double-check duplicate
         // -----------------------------------------------------
 
         $exists = old_student::where('sid', $sid)
@@ -27883,28 +27950,22 @@ public function BulkPromoteStudent(Request $request)
             continue;
         }
 
-        Log::info('BULK PROMOTION SUID CHECK', [
-    'sid' => $sid,
-    'index' => $index,
-    'suid' => $suid,
-    'suid_type' => gettype($suid),
-    'request_suid' => $request->suid,
-]);
 
+        // =====================================================
+        // FINAL INSERT SAFETY CHECK
+        // =====================================================
 
-        // -----------------------------------------------------
-        // Create promotion record
-        // -----------------------------------------------------
-
-        $promotion = old_student::create([
+        $insertData = [
             'uid' => $uid,
             'sid' => $sid,
             'schid' => $request->schid,
 
-            'fname' => $student->fname,
-            'mname' => $student->mname,
-            'lname' => $student->lname,
+            'fname' => (string) ($student->fname ?? ''),
+            'mname' => (string) ($student->mname ?? ''),
+            'lname' => (string) ($student->lname ?? ''),
 
+            // IMPORTANT:
+            // This is now guaranteed to be a string.
             'suid' => $suid,
 
             'ssn' => $request->sesn,
@@ -27914,49 +27975,114 @@ public function BulkPromoteStudent(Request $request)
 
             'status' => 'active',
             'more' => '',
+
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
+
+
+        // -----------------------------------------------------
+        // Log exactly what is going into the database
+        // -----------------------------------------------------
+
+        Log::info('BULK PROMOTION INSERT DATA', [
+            'sid' => $sid,
+            'suid' => $insertData['suid'],
+            'suid_type' => gettype($insertData['suid']),
+            'uid' => $insertData['uid'],
+            'uid_type' => gettype($insertData['uid']),
+            'data' => $insertData,
         ]);
 
 
-        // -----------------------------------------------------
-        // Update student academic data
-        // -----------------------------------------------------
+        // =====================================================
+        // INSERT DIRECTLY INTO DATABASE
+        //
+        // Using DB::table() prevents an Eloquent model event,
+        // observer, cast, mutator, or trait from changing
+        // the SUID before the INSERT.
+        // =====================================================
 
-        student_academic_data::where('user_id', $sid)
-            ->update([
-                'new_class_main' => $request->clsm,
-                'new_class' => $validArm->id,
+        try {
+
+            DB::table('old_student')->insert($insertData);
+
+        } catch (\Throwable $e) {
+
+            Log::error('BULK PROMOTION INSERT FAILED', [
+                'sid' => $sid,
+                'suid' => $suid,
+                'suid_type' => gettype($suid),
+                'insert_data' => $insertData,
+                'error' => $e->getMessage(),
             ]);
 
+            $failed[] = [
+                'sid' => $sid,
+                'message' => 'Student promotion failed: ' . $e->getMessage(),
+            ];
 
-        // -----------------------------------------------------
-        // Add successful promotion
-        // -----------------------------------------------------
+            continue;
+        }
+
+
+        // =====================================================
+        // UPDATE STUDENT ACADEMIC DATA
+        // =====================================================
+
+        try {
+
+            student_academic_data::where('user_id', $sid)
+                ->update([
+                    'new_class_main' => $request->clsm,
+                    'new_class' => $validArm->id,
+                ]);
+
+        } catch (\Throwable $e) {
+
+            Log::error('BULK PROMOTION ACADEMIC UPDATE FAILED', [
+                'sid' => $sid,
+                'error' => $e->getMessage(),
+            ]);
+
+            // The promotion record was already inserted.
+            // We therefore report the promotion as successful
+            // but log the academic-data update problem.
+        }
+
+
+        // =====================================================
+        // ADD SUCCESSFUL PROMOTION
+        // =====================================================
 
         $promoted[] = [
             'status' => true,
             'message' => 'Student promoted successfully for this term',
 
             'data' => [
-                'sid' => $promotion->sid,
-                'suid' => $promotion->suid,
-                'ssn' => $promotion->ssn,
-                'trm' => $promotion->trm,
-                'clsm' => $promotion->clsm,
-                'clsa' => $promotion->clsa,
+                'sid' => $sid,
+                'suid' => $suid,
+                'ssn' => $request->sesn,
+                'trm' => $request->trm,
+                'clsm' => $request->clsm,
+                'clsa' => $request->clsa,
                 'clsa_name' => $validArm->name,
             ],
         ];
     }
 
 
-    // ---------------------------------------------------------
-    // 7. Return bulk response
-    // ---------------------------------------------------------
+    // =========================================================
+    // 8. FINAL RESPONSE
+    // =========================================================
 
     return response()->json([
         'status' => count($promoted) > 0,
-        'message' => count($promoted) . ' student(s) promoted successfully, '
-            . count($failed) . ' failed.',
+
+        'message' => count($promoted)
+            . ' student(s) promoted successfully, '
+            . count($failed)
+            . ' failed.',
 
         'data' => $promoted,
 
