@@ -259,6 +259,7 @@ Route::group([
     Route::get('getAllSubjects', [ApiController::class, 'getAllSubjects']);
 
     Route::post('promoteStudent', [ApiController::class, 'promoteStudent']);
+    Route::post('BulkPromoteStudent', [ApiController::class, 'BulkPromoteStudent']);
     Route::post('repeatStudent', [ApiController::class, 'repeatStudent']);
     Route::post('rePromoteStudent', [ApiController::class, 'rePromoteStudent']);
     Route::post('resetPass', [ApiController::class, 'resetPass']);

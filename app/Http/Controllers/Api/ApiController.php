@@ -27341,7 +27341,7 @@ public function promoteStudent(Request $request)
     if (!$student) {
         return response()->json([
             'status' => false,
-            'message' => 'Student not found.',
+            'message' => 'Something went wrong.',
             'sid' => $request->sid,
         ], 404);
     }
@@ -27470,6 +27470,430 @@ public function promoteStudent(Request $request)
         ],
     ]);
 }
+
+
+
+
+
+
+/**
+ * @OA\Post(
+ *     path="/api/BulkPromoteStudent",
+ *     summary="Promote one or multiple students",
+ *     description="Promotes one or multiple students to the selected class and class arm. The sid field can contain either a single student ID or an array of student IDs. Each student is processed independently, so if one student fails, the other students can still be promoted.",
+ *     operationId="BulkPromoteStudent",
+ *     tags={"Api"},
+ *     security={{"bearerAuth":{}}},
+ *
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             required={"sid","schid","sesn","trm","clsm","clsa","suid"},
+ *
+ *             @OA\Property(
+ *                 property="sid",
+ *                 description="Student ID or an array of student IDs to promote.",
+ *                 oneOf={
+ *                     @OA\Schema(
+ *                         type="integer",
+ *                         example=1000
+ *                     ),
+ *                     @OA\Schema(
+ *                         type="array",
+ *                         description="Array of student IDs for bulk promotion.",
+ *                         @OA\Items(
+ *                             type="integer",
+ *                             example=1000
+ *                         ),
+ *                         example={1000,1001,1002,1003}
+ *                     )
+ *                 }
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="schid",
+ *                 type="integer",
+ *                 example=13,
+ *                 description="School ID"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="sesn",
+ *                 type="string",
+ *                 example="2026",
+ *                 description="Academic session"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="trm",
+ *                 type="integer",
+ *                 example=1,
+ *                 description="Term number"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="clsm",
+ *                 type="integer",
+ *                 example=12,
+ *                 description="Main class ID"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="clsa",
+ *                 type="integer",
+ *                 example=972,
+ *                 description="Class arm/section ID"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="suid",
+ *                 type="string",
+ *                 example="HRS/2026/1/68",
+ *                 description="Student unique ID"
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Promotion request processed successfully",
+ *         @OA\JsonContent(
+ *             @OA\Property(
+ *                 property="status",
+ *                 type="boolean",
+ *                 example=true,
+ *                 description="True when at least one student was successfully promoted."
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="4 student(s) promoted successfully, 1 failed."
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="data",
+ *                 type="array",
+ *                 description="List of successfully promoted students.",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(
+ *                         property="status",
+ *                         type="boolean",
+ *                         example=true
+ *                     ),
+ *                     @OA\Property(
+ *                         property="message",
+ *                         type="string",
+ *                         example="Student promoted successfully for this term"
+ *                     ),
+ *                     @OA\Property(
+ *                         property="data",
+ *                         type="object",
+ *                         @OA\Property(
+ *                             property="sid",
+ *                             type="integer",
+ *                             example=1000
+ *                         ),
+ *                         @OA\Property(
+ *                             property="suid",
+ *                             type="string",
+ *                             example="HRS/2026/1/68"
+ *                         ),
+ *                         @OA\Property(
+ *                             property="ssn",
+ *                             type="string",
+ *                             example="2026"
+ *                         ),
+ *                         @OA\Property(
+ *                             property="trm",
+ *                             type="integer",
+ *                             example=1
+ *                         ),
+ *                         @OA\Property(
+ *                             property="clsm",
+ *                             type="integer",
+ *                             example=12
+ *                         ),
+ *                         @OA\Property(
+ *                             property="clsa",
+ *                             type="integer",
+ *                             example=972
+ *                         ),
+ *                         @OA\Property(
+ *                             property="clsa_name",
+ *                             type="string",
+ *                             example="A"
+ *                         )
+ *                     )
+ *                 )
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="failed",
+ *                 type="array",
+ *                 description="List of students that could not be promoted.",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(
+ *                         property="sid",
+ *                         type="integer",
+ *                         example=1001
+ *                     ),
+ *                     @OA\Property(
+ *                         property="message",
+ *                         type="string",
+ *                         example="This student has already been promoted for the selected session, term and class."
+ *                     )
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=404,
+ *         description="Student not found"
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=409,
+ *         description="Student has already been promoted"
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation error or invalid class arm",
+ *         @OA\JsonContent(
+ *             @OA\Property(
+ *                 property="status",
+ *                 type="boolean",
+ *                 example=false
+ *             ),
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="Invalid class arm for the selected class."
+ *             ),
+ *             @OA\Property(
+ *                 property="errors",
+ *                 type="object"
+ *             )
+ *         )
+ *     )
+ * )
+ */
+
+
+public function BulkPromoteStudent(Request $request)
+{
+    $request->validate([
+        'sid'   => 'required',
+        'schid' => 'required',
+        'sesn'  => 'required',
+        'trm'   => 'required',
+        'clsm'  => 'required',
+        'clsa'  => 'required',
+        'suid'  => 'required',
+    ]);
+
+    // ---------------------------------------------------------
+    // 1. Convert sid to array
+    // ---------------------------------------------------------
+
+    $studentIds = is_array($request->sid)
+        ? $request->sid
+        : [$request->sid];
+
+    // Remove duplicates and empty values
+    $studentIds = array_values(array_unique(array_filter($studentIds)));
+
+    if (empty($studentIds)) {
+        return response()->json([
+            'status' => false,
+            'message' => 'No student ID was provided.',
+        ], 422);
+    }
+
+
+    // ---------------------------------------------------------
+    // 2. Make sure the selected class arm belongs to the class
+    // ---------------------------------------------------------
+
+    $validArm = DB::table('sch_cls')
+        ->where('id', $request->clsa)
+        ->where('cls_id', $request->clsm)
+        ->where('schid', $request->schid)
+        ->first();
+
+    if (!$validArm) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Invalid class arm for the selected class.',
+        ], 422);
+    }
+
+
+    // ---------------------------------------------------------
+    // 3. Prepare bulk result
+    // ---------------------------------------------------------
+
+    $promoted = [];
+    $failed = [];
+
+
+    // ---------------------------------------------------------
+    // 4. Process every student
+    // ---------------------------------------------------------
+
+    foreach ($studentIds as $sid) {
+
+        // -----------------------------------------------------
+        // Find the student
+        // -----------------------------------------------------
+
+        $student = student::where('sid', $sid)->first();
+
+        if (!$student) {
+
+            $failed[] = [
+                'sid' => $sid,
+                'message' => 'Something went wrong.',
+            ];
+
+            continue;
+        }
+
+
+        // -----------------------------------------------------
+        // Check whether student has already been promoted
+        // -----------------------------------------------------
+
+        $alreadyPromoted = old_student::where('sid', $sid)
+            ->where('schid', $request->schid)
+            ->where('ssn', $request->sesn)
+            ->where('trm', $request->trm)
+            ->where('clsm', $request->clsm)
+            ->where('clsa', $request->clsa)
+            ->first();
+
+        if ($alreadyPromoted) {
+
+            $failed[] = [
+                'sid' => $sid,
+                'message' => 'This student has already been promoted for the selected session, term and class.',
+            ];
+
+            continue;
+        }
+
+
+        // -----------------------------------------------------
+        // Generate deterministic UID
+        // -----------------------------------------------------
+
+        $uid = $request->sesn
+            . $request->trm
+            . $sid
+            . $request->clsm;
+
+
+        // -----------------------------------------------------
+        // Double-check duplicate combination
+        // -----------------------------------------------------
+
+        $exists = old_student::where('sid', $sid)
+            ->where('schid', $request->schid)
+            ->where('ssn', $request->sesn)
+            ->where('trm', $request->trm)
+            ->where('clsm', $request->clsm)
+            ->where('clsa', $request->clsa)
+            ->exists();
+
+        if ($exists) {
+
+            $failed[] = [
+                'sid' => $sid,
+                'message' => 'This student has already been promoted for the selected session, term and class.',
+            ];
+
+            continue;
+        }
+
+
+        // -----------------------------------------------------
+        // Create promotion record
+        // -----------------------------------------------------
+
+        $promotion = old_student::create([
+            'uid' => $uid,
+            'sid' => $sid,
+            'schid' => $request->schid,
+
+            'fname' => $student->fname,
+            'mname' => $student->mname,
+            'lname' => $student->lname,
+
+            'suid' => $request->suid,
+
+            'ssn' => $request->sesn,
+            'trm' => $request->trm,
+            'clsm' => $request->clsm,
+            'clsa' => $request->clsa,
+
+            'status' => 'active',
+            'more' => '',
+        ]);
+
+
+        // -----------------------------------------------------
+        // Update student academic data
+        // -----------------------------------------------------
+
+        student_academic_data::where('user_id', $sid)
+            ->update([
+                'new_class_main' => $request->clsm,
+                'new_class' => $validArm->id,
+            ]);
+
+
+        // -----------------------------------------------------
+        // Add successful promotion
+        // -----------------------------------------------------
+
+        $promoted[] = [
+            'status' => true,
+            'message' => 'Student promoted successfully for this term',
+
+            'data' => [
+                'sid' => $promotion->sid,
+                'suid' => $promotion->suid,
+                'ssn' => $promotion->ssn,
+                'trm' => $promotion->trm,
+                'clsm' => $promotion->clsm,
+                'clsa' => $promotion->clsa,
+                'clsa_name' => $validArm->name,
+            ],
+        ];
+    }
+
+
+    // ---------------------------------------------------------
+    // 5. Return bulk response
+    // ---------------------------------------------------------
+
+    return response()->json([
+        'status' => count($promoted) > 0,
+        'message' => count($promoted) . ' student(s) promoted successfully, '
+            . count($failed) . ' failed.',
+
+        'data' => $promoted,
+
+        'failed' => $failed,
+    ]);
+}
+
+
+
 
 
 

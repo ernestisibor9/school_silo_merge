@@ -23471,6 +23471,214 @@
                 ]
             }
         },
+        "/api/BulkPromoteStudent": {
+            "post": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Promote one or multiple students",
+                "description": "Promotes one or multiple students to the selected class and class arm. The sid field can contain either a single student ID or an array of student IDs. Each student is processed independently, so if one student fails, the other students can still be promoted.",
+                "operationId": "BulkPromoteStudent",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "sid",
+                                    "schid",
+                                    "sesn",
+                                    "trm",
+                                    "clsm",
+                                    "clsa",
+                                    "suid"
+                                ],
+                                "properties": {
+                                    "sid": {
+                                        "description": "Student ID or an array of student IDs to promote.",
+                                        "oneOf": [
+                                            {
+                                                "type": "integer",
+                                                "example": 1000
+                                            },
+                                            {
+                                                "description": "Array of student IDs for bulk promotion.",
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "integer",
+                                                    "example": 1000
+                                                },
+                                                "example": [
+                                                    1000,
+                                                    1001,
+                                                    1002,
+                                                    1003
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "schid": {
+                                        "description": "School ID",
+                                        "type": "integer",
+                                        "example": 13
+                                    },
+                                    "sesn": {
+                                        "description": "Academic session",
+                                        "type": "string",
+                                        "example": "2026"
+                                    },
+                                    "trm": {
+                                        "description": "Term number",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "clsm": {
+                                        "description": "Main class ID",
+                                        "type": "integer",
+                                        "example": 12
+                                    },
+                                    "clsa": {
+                                        "description": "Class arm/section ID",
+                                        "type": "integer",
+                                        "example": 972
+                                    },
+                                    "suid": {
+                                        "description": "Student unique ID",
+                                        "type": "string",
+                                        "example": "HRS/2026/1/68"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Promotion request processed successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "description": "True when at least one student was successfully promoted.",
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "4 student(s) promoted successfully, 1 failed."
+                                        },
+                                        "data": {
+                                            "description": "List of successfully promoted students.",
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "status": {
+                                                        "type": "boolean",
+                                                        "example": true
+                                                    },
+                                                    "message": {
+                                                        "type": "string",
+                                                        "example": "Student promoted successfully for this term"
+                                                    },
+                                                    "data": {
+                                                        "properties": {
+                                                            "sid": {
+                                                                "type": "integer",
+                                                                "example": 1000
+                                                            },
+                                                            "suid": {
+                                                                "type": "string",
+                                                                "example": "HRS/2026/1/68"
+                                                            },
+                                                            "ssn": {
+                                                                "type": "string",
+                                                                "example": "2026"
+                                                            },
+                                                            "trm": {
+                                                                "type": "integer",
+                                                                "example": 1
+                                                            },
+                                                            "clsm": {
+                                                                "type": "integer",
+                                                                "example": 12
+                                                            },
+                                                            "clsa": {
+                                                                "type": "integer",
+                                                                "example": 972
+                                                            },
+                                                            "clsa_name": {
+                                                                "type": "string",
+                                                                "example": "A"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "failed": {
+                                            "description": "List of students that could not be promoted.",
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "sid": {
+                                                        "type": "integer",
+                                                        "example": 1001
+                                                    },
+                                                    "message": {
+                                                        "type": "string",
+                                                        "example": "This student has already been promoted for the selected session, term and class."
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Student not found"
+                    },
+                    "409": {
+                        "description": "Student has already been promoted"
+                    },
+                    "422": {
+                        "description": "Validation error or invalid class arm",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid class arm for the selected class."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/exitStudent/{schid}/{stid}": {
             "post": {
                 "tags": [
