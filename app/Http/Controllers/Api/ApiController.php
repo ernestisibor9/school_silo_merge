@@ -27683,7 +27683,6 @@ public function promoteStudent(Request $request)
  * )
  */
 
-
 public function BulkPromoteStudent(Request $request)
 {
     $request->validate([
@@ -27716,7 +27715,37 @@ public function BulkPromoteStudent(Request $request)
 
 
     // ---------------------------------------------------------
-    // 2. Make sure the selected class arm belongs to the class
+    // 2. Convert suid to array
+    //
+    // If one SUID is supplied, use the same SUID for every
+    // student.
+    //
+    // If multiple SUIDs are supplied, match them by index:
+    //
+    // sid[0] -> suid[0]
+    // sid[1] -> suid[1]
+    // sid[2] -> suid[2]
+    // ---------------------------------------------------------
+
+    $suids = is_array($request->suid)
+        ? array_values($request->suid)
+        : [$request->suid];
+
+
+    // ---------------------------------------------------------
+    // 3. Validate SUID count when multiple SUIDs are supplied
+    // ---------------------------------------------------------
+
+    if (count($suids) > 1 && count($suids) !== count($studentIds)) {
+        return response()->json([
+            'status' => false,
+            'message' => 'The number of SUIDs must match the number of student IDs.',
+        ], 422);
+    }
+
+
+    // ---------------------------------------------------------
+    // 4. Make sure the selected class arm belongs to the class
     // ---------------------------------------------------------
 
     $validArm = DB::table('sch_cls')
@@ -27734,7 +27763,7 @@ public function BulkPromoteStudent(Request $request)
 
 
     // ---------------------------------------------------------
-    // 3. Prepare bulk result
+    // 5. Prepare bulk result
     // ---------------------------------------------------------
 
     $promoted = [];
@@ -27742,10 +27771,45 @@ public function BulkPromoteStudent(Request $request)
 
 
     // ---------------------------------------------------------
-    // 4. Process every student
+    // 6. Process every student
     // ---------------------------------------------------------
 
-    foreach ($studentIds as $sid) {
+    foreach ($studentIds as $index => $sid) {
+
+        // -----------------------------------------------------
+        // Determine SUID for this student
+        // -----------------------------------------------------
+
+        if (count($suids) === 1) {
+
+            // One SUID supplied:
+            // use the same SUID for every student
+
+            $suid = $suids[0];
+
+        } else {
+
+            // Multiple SUIDs supplied:
+            // match SUID to student by array position
+
+            $suid = $suids[$index] ?? null;
+        }
+
+
+        // -----------------------------------------------------
+        // Make sure SUID exists for this student
+        // -----------------------------------------------------
+
+        if (empty($suid)) {
+
+            $failed[] = [
+                'sid' => $sid,
+                'message' => 'No SUID was provided for this student.',
+            ];
+
+            continue;
+        }
+
 
         // -----------------------------------------------------
         // Find the student
@@ -27819,6 +27883,14 @@ public function BulkPromoteStudent(Request $request)
             continue;
         }
 
+        Log::info('BULK PROMOTION SUID CHECK', [
+    'sid' => $sid,
+    'index' => $index,
+    'suid' => $suid,
+    'suid_type' => gettype($suid),
+    'request_suid' => $request->suid,
+]);
+
 
         // -----------------------------------------------------
         // Create promotion record
@@ -27833,7 +27905,7 @@ public function BulkPromoteStudent(Request $request)
             'mname' => $student->mname,
             'lname' => $student->lname,
 
-            'suid' => $request->suid,
+            'suid' => $suid,
 
             'ssn' => $request->sesn,
             'trm' => $request->trm,
@@ -27878,7 +27950,7 @@ public function BulkPromoteStudent(Request $request)
 
 
     // ---------------------------------------------------------
-    // 5. Return bulk response
+    // 7. Return bulk response
     // ---------------------------------------------------------
 
     return response()->json([
@@ -27891,7 +27963,6 @@ public function BulkPromoteStudent(Request $request)
         'failed' => $failed,
     ]);
 }
-
 
 
 
