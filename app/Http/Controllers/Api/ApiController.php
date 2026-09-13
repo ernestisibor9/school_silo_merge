@@ -40036,7 +40036,7 @@ public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf
  *     summary="Create or update a lesson plan",
  *     tags={"Api"},
  *     security={{"bearerAuth":{}}},
- *     description="Creates or updates a lesson plan. Array fields accept JSON array strings, single strings, or multipart array values.",
+ *     description="Creates or updates a lesson plan. Array fields accept JSON array strings, single strings, or multipart array values. A subject head signature image is no longer uploaded through this endpoint; any existing signature remains unchanged.",
  *
  *     @OA\RequestBody(
  *         required=true,
@@ -40101,7 +40101,8 @@ public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf
  *                     property="weekly",
  *                     type="string",
  *                     nullable=true,
- *                     example="Week 1"
+ *                     example="Week 1",
+ *                     description="Required when plan_type is weekly. Not used for termly plans."
  *                 ),
  *
  *                 @OA\Property(
@@ -40342,19 +40343,12 @@ public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf
  *                 ),
  *
  *                 @OA\Property(
- *                     property="subject_head_signature",
- *                     type="string",
- *                     format="binary",
- *                     nullable=true,
- *                     description="JPG, JPEG or PNG image. Maximum 2MB."
- *                 ),
- *
- *                 @OA\Property(
  *                     property="subject_head_signature_date",
  *                     type="string",
  *                     format="date",
  *                     nullable=true,
- *                     example="2026-09-03"
+ *                     example="2026-09-03",
+ *                     description="Date associated with the existing subject head signature."
  *                 )
  *             )
  *         )
@@ -40838,15 +40832,15 @@ public function setLessonPlanOption(Request $request)
             'array',
         ],
 
+        'step4_student_activities' => [
+            'nullable',
+            'array',
+        ],
+
         'step4_teacher_activities.*' => [
             'nullable',
             'string',
             'max:3000',
-        ],
-
-        'step4_student_activities' => [
-            'nullable',
-            'array',
         ],
 
         'step4_student_activities.*' => [
@@ -40976,16 +40970,16 @@ public function setLessonPlanOption(Request $request)
 
         /*
         |--------------------------------------------------------------------------
-        | SUBJECT HEAD SIGNATURE
+        | SUBJECT HEAD SIGNATURE DATE
         |--------------------------------------------------------------------------
+        |
+        | IMPORTANT:
+        |
+        | There is NO subject_head_signature upload anymore.
+        |
+        | The existing signature in the database is preserved.
+        |
         */
-
-        'subject_head_signature' => [
-            'nullable',
-            'file',
-            'mimes:jpg,jpeg,png,webp',
-            'max:2048',
-        ],
 
         'subject_head_signature_date' => [
             'nullable',
@@ -41052,142 +41046,29 @@ public function setLessonPlanOption(Request $request)
     */
 
     if ($request->plan_type === 'termly') {
+
         $data['weekly'] = null;
     }
 
     /*
     |--------------------------------------------------------------------------
-    | SUBJECT HEAD SIGNATURE
+    | IMPORTANT - SUBJECT HEAD SIGNATURE
     |--------------------------------------------------------------------------
     |
-    | IMPORTANT:
+    | We intentionally DO NOT touch:
     |
-    | We are NOT using:
+    | subject_head_signature
     |
-    | Storage::disk('public')
+    | No new image is uploaded.
     |
-    | We are NOT using:
+    | No existing image is deleted.
     |
-    | storage:link
+    | No new value is written to the column.
     |
-    | We are NOT using:
-    |
-    | public_path()
-    |
-    | directly.
-    |
-    | Instead, the physical upload directory comes from:
-    |
-    | config('app.uploads_path')
+    | Therefore, when updateOrCreate() updates an existing lesson plan,
+    | the existing subject_head_signature remains unchanged.
     |
     */
-
-    if ($request->hasFile('subject_head_signature')) {
-
-        $signature = $request->file(
-            'subject_head_signature'
-        );
-
-        /*
-        |--------------------------------------------------------------------------
-        | CHECK FILE VALIDITY
-        |--------------------------------------------------------------------------
-        */
-
-        if (!$signature->isValid()) {
-
-            return response()->json([
-                'status' => false,
-                'message' => 'Invalid subject head signature file.',
-            ], 422);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | GET UPLOADS DIRECTORY
-        |--------------------------------------------------------------------------
-        */
-
-        $uploadsPath = config('app.uploads_path');
-
-        /*
-        |--------------------------------------------------------------------------
-        | MAKE SURE UPLOAD PATH EXISTS
-        |--------------------------------------------------------------------------
-        */
-
-        if (empty($uploadsPath)) {
-
-            return response()->json([
-                'status' => false,
-                'message' => 'Upload directory is not configured.',
-            ], 500);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | SIGNATURE DIRECTORY
-        |--------------------------------------------------------------------------
-        */
-
-        $signatureDirectory =
-            $uploadsPath .
-            DIRECTORY_SEPARATOR .
-            'lesson-plan-signatures';
-
-        /*
-        |--------------------------------------------------------------------------
-        | CREATE DIRECTORY
-        |--------------------------------------------------------------------------
-        */
-
-        if (!is_dir($signatureDirectory)) {
-
-            mkdir(
-                $signatureDirectory,
-                0755,
-                true
-            );
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | GENERATE UNIQUE FILE NAME
-        |--------------------------------------------------------------------------
-        */
-
-        $extension = strtolower(
-            $signature->getClientOriginalExtension()
-        );
-
-        $filename =
-            'signature_' .
-            time() .
-            '_' .
-            \Illuminate\Support\Str::random(12) .
-            '.' .
-            $extension;
-
-        /*
-        |--------------------------------------------------------------------------
-        | MOVE FILE DIRECTLY TO WEB-ACCESSIBLE DIRECTORY
-        |--------------------------------------------------------------------------
-        */
-
-        $signature->move(
-            $signatureDirectory,
-            $filename
-        );
-
-        /*
-        |--------------------------------------------------------------------------
-        | STORE RELATIVE PATH IN DATABASE
-        |--------------------------------------------------------------------------
-        */
-
-        $data['subject_head_signature'] =
-            'lesson-plan-signatures/' . $filename;
-    }
 
     /*
     |--------------------------------------------------------------------------
@@ -41224,15 +41105,13 @@ public function setLessonPlanOption(Request $request)
     ], 200);
 }
 
-
-
 /**
  * @OA\Post(
  *     path="/api/updateLessonPlanOption",
  *     summary="Update an existing lesson plan",
  *     tags={"Api"},
  *     security={{"bearerAuth":{}}},
- *     description="Updates an existing lesson plan. Only fields supplied in the request are updated. Array fields accept JSON array strings, single strings, or multipart array values.",
+ *     description="Updates an existing lesson plan. Only fields supplied in the request are updated. Array fields accept JSON array strings, single strings, or multipart array values. A subject head signature image is no longer uploaded or replaced through this endpoint; any existing signature remains unchanged.",
  *
  *     @OA\RequestBody(
  *         required=true,
@@ -41538,19 +41417,12 @@ public function setLessonPlanOption(Request $request)
  *                 ),
  *
  *                 @OA\Property(
- *                     property="subject_head_signature",
- *                     type="string",
- *                     format="binary",
- *                     nullable=true,
- *                     description="JPG, JPEG or PNG image. Maximum 2MB."
- *                 ),
- *
- *                 @OA\Property(
  *                     property="subject_head_signature_date",
  *                     type="string",
  *                     format="date",
  *                     nullable=true,
- *                     example="2026-09-05"
+ *                     example="2026-09-05",
+ *                     description="Date associated with the existing subject head signature. The signature image itself is not uploaded or replaced by this endpoint."
  *                 )
  *             )
  *         )
@@ -41580,7 +41452,20 @@ public function setLessonPlanOption(Request $request)
  *
  *     @OA\Response(
  *         response=404,
- *         description="Lesson plan not found"
+ *         description="Lesson plan not found",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(
+ *                 property="status",
+ *                 type="boolean",
+ *                 example=false
+ *             ),
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="Lesson Plan not found"
+ *             )
+ *         )
  *     ),
  *
  *     @OA\Response(
@@ -42051,6 +41936,12 @@ public function updateLessonPlanOption(Request $request)
 
         'step5_teacher_activities' => [
             'nullable',
+            'string',
+            'max:255',
+        ],
+
+        'step5_teacher_activities' => [
+            'nullable',
             'array',
         ],
 
@@ -42158,16 +42049,9 @@ public function updateLessonPlanOption(Request $request)
 
         /*
         |--------------------------------------------------------------------------
-        | SUBJECT HEAD SIGNATURE
+        | SUBJECT HEAD SIGNATURE DATE
         |--------------------------------------------------------------------------
         */
-
-        'subject_head_signature' => [
-            'nullable',
-            'file',
-            'mimes:jpg,jpeg,png,webp',
-            'max:2048',
-        ],
 
         'subject_head_signature_date' => [
             'nullable',
@@ -42297,218 +42181,16 @@ public function updateLessonPlanOption(Request $request)
 
     /*
     |--------------------------------------------------------------------------
-    | SUBJECT HEAD SIGNATURE
+    | IMPORTANT:
+    | SUBJECT HEAD SIGNATURE IS NOT TOUCHED
     |--------------------------------------------------------------------------
+    |
+    | No signature upload is performed here.
+    |
+    | The existing subject_head_signature in the database
+    | remains unchanged when the lesson plan is updated.
+    |
     */
-
-    if ($request->hasFile('subject_head_signature')) {
-
-        $signature = $request->file(
-            'subject_head_signature'
-        );
-
-        /*
-        |--------------------------------------------------------------------------
-        | CHECK FILE VALIDITY
-        |--------------------------------------------------------------------------
-        */
-
-        if (!$signature->isValid()) {
-
-            return response()->json([
-                'status' => false,
-                'message' => 'Invalid subject head signature file.',
-            ], 422);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | GET CONFIGURED UPLOAD DIRECTORY
-        |--------------------------------------------------------------------------
-        |
-        | Local:
-        |
-        | public/uploads
-        |
-        | Production:
-        |
-        | /home/schoolsilomerge/public_html/
-        | api.schoolsilomerge.top/uploads
-        |
-        */
-
-        $uploadsPath = config(
-            'app.uploads_path'
-        );
-
-        /*
-        |--------------------------------------------------------------------------
-        | CHECK UPLOAD DIRECTORY CONFIGURATION
-        |--------------------------------------------------------------------------
-        */
-
-        if (empty($uploadsPath)) {
-
-            return response()->json([
-                'status' => false,
-                'message' => 'Upload directory is not configured.',
-            ], 500);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | SIGNATURE DIRECTORY
-        |--------------------------------------------------------------------------
-        */
-
-        $signatureDirectory =
-            $uploadsPath .
-            DIRECTORY_SEPARATOR .
-            'lesson-plan-signatures';
-
-        /*
-        |--------------------------------------------------------------------------
-        | CREATE DIRECTORY IF IT DOES NOT EXIST
-        |--------------------------------------------------------------------------
-        */
-
-        if (!is_dir($signatureDirectory)) {
-
-            if (!mkdir(
-                $signatureDirectory,
-                0755,
-                true
-            ) && !is_dir($signatureDirectory)) {
-
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unable to create signature upload directory.',
-                ], 500);
-            }
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | GENERATE UNIQUE FILE NAME
-        |--------------------------------------------------------------------------
-        */
-
-        $extension = strtolower(
-            $signature->getClientOriginalExtension()
-        );
-
-        $filename =
-            'signature_' .
-            time() .
-            '_' .
-            \Illuminate\Support\Str::random(12) .
-            '.' .
-            $extension;
-
-        /*
-        |--------------------------------------------------------------------------
-        | MOVE NEW SIGNATURE
-        |--------------------------------------------------------------------------
-        */
-
-        try {
-
-            $signature->move(
-                $signatureDirectory,
-                $filename
-            );
-
-        } catch (\Throwable $e) {
-
-            return response()->json([
-                'status' => false,
-                'message' => 'Unable to upload subject head signature.',
-            ], 500);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | DELETE OLD SIGNATURE
-        |--------------------------------------------------------------------------
-        |
-        | The database normally contains:
-        |
-        | lesson-plan-signatures/signature_xxx.jpeg
-        |
-        | We convert that relative path into the configured
-        | physical uploads path.
-        |
-        */
-
-        if (!empty($lessonPlan->subject_head_signature)) {
-
-            $oldSignatureRelativePath =
-                ltrim(
-                    $lessonPlan->subject_head_signature,
-                    '/\\'
-                );
-
-            /*
-            |--------------------------------------------------------------------------
-            | SAFETY CHECK
-            |--------------------------------------------------------------------------
-            |
-            | Only delete files inside the configured uploads directory.
-            |
-            */
-
-            $oldSignaturePath =
-                $uploadsPath .
-                DIRECTORY_SEPARATOR .
-                str_replace(
-                    ['/', '\\'],
-                    DIRECTORY_SEPARATOR,
-                    $oldSignatureRelativePath
-                );
-
-            $realUploadsPath = realpath(
-                $uploadsPath
-            );
-
-            $realOldSignatureDirectory =
-                realpath(
-                    dirname($oldSignaturePath)
-                );
-
-            if (
-                $realUploadsPath !== false &&
-                $realOldSignatureDirectory !== false &&
-                strpos(
-                    $realOldSignatureDirectory,
-                    $realUploadsPath
-                ) === 0 &&
-                file_exists($oldSignaturePath) &&
-                is_file($oldSignaturePath)
-            ) {
-
-                @unlink(
-                    $oldSignaturePath
-                );
-            }
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | STORE RELATIVE PATH IN DATABASE
-        |--------------------------------------------------------------------------
-        |
-        | IMPORTANT:
-        |
-        | Do NOT store "uploads/..." here.
-        |
-        | The model accessor adds /uploads/ when generating the URL.
-        |
-        */
-
-        $fieldsToUpdate['subject_head_signature'] =
-            'lesson-plan-signatures/' .
-            $filename;
-    }
 
     /*
     |--------------------------------------------------------------------------
@@ -42572,7 +42254,6 @@ public function updateLessonPlanOption(Request $request)
         'pld' => $lessonPlan,
     ], 200);
 }
-
 
 
 

@@ -33110,7 +33110,7 @@
                     "Api"
                 ],
                 "summary": "Create or update a lesson plan",
-                "description": "Creates or updates a lesson plan. Array fields accept JSON array strings, single strings, or multipart array values.",
+                "description": "Creates or updates a lesson plan. Array fields accept JSON array strings, single strings, or multipart array values. A subject head signature image is no longer uploaded through this endpoint; any existing signature remains unchanged.",
                 "operationId": "86fb2b765347cf5ee6dece89f9db3f2d",
                 "requestBody": {
                     "required": true,
@@ -33162,6 +33162,7 @@
                                         "example": "weekly"
                                     },
                                     "weekly": {
+                                        "description": "Required when plan_type is weekly. Not used for termly plans.",
                                         "type": "string",
                                         "example": "Week 1",
                                         "nullable": true
@@ -33342,13 +33343,8 @@
                                         "example": "Students participated actively and demonstrated good understanding.",
                                         "nullable": true
                                     },
-                                    "subject_head_signature": {
-                                        "description": "JPG, JPEG or PNG image. Maximum 2MB.",
-                                        "type": "string",
-                                        "format": "binary",
-                                        "nullable": true
-                                    },
                                     "subject_head_signature_date": {
+                                        "description": "Date associated with the existing subject head signature.",
                                         "type": "string",
                                         "format": "date",
                                         "example": "2026-09-03",
@@ -33417,7 +33413,7 @@
                     "Api"
                 ],
                 "summary": "Update an existing lesson plan",
-                "description": "Updates an existing lesson plan. Only fields supplied in the request are updated. Array fields accept JSON array strings, single strings, or multipart array values.",
+                "description": "Updates an existing lesson plan. Only fields supplied in the request are updated. Array fields accept JSON array strings, single strings, or multipart array values. A subject head signature image is no longer uploaded or replaced through this endpoint; any existing signature remains unchanged.",
                 "operationId": "2764603a329856644708815a21a43db6",
                 "requestBody": {
                     "required": true,
@@ -33649,13 +33645,8 @@
                                         "example": "Students participated actively.",
                                         "nullable": true
                                     },
-                                    "subject_head_signature": {
-                                        "description": "JPG, JPEG or PNG image. Maximum 2MB.",
-                                        "type": "string",
-                                        "format": "binary",
-                                        "nullable": true
-                                    },
                                     "subject_head_signature_date": {
+                                        "description": "Date associated with the existing subject head signature. The signature image itself is not uploaded or replaced by this endpoint.",
                                         "type": "string",
                                         "format": "date",
                                         "example": "2026-09-05",
@@ -33692,7 +33683,24 @@
                         }
                     },
                     "404": {
-                        "description": "Lesson plan not found"
+                        "description": "Lesson plan not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Lesson Plan not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "422": {
                         "description": "Validation error",
