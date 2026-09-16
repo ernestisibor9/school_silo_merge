@@ -33110,7 +33110,7 @@
                     "Api"
                 ],
                 "summary": "Create or update a lesson plan",
-                "description": "Creates or updates a lesson plan. Array fields accept JSON array strings, single strings, or multipart array values. A subject head signature image is no longer uploaded through this endpoint; any existing signature remains unchanged.",
+                "description": "Creates or updates a lesson plan. Array fields accept JSON array strings, single strings, or multipart array values. The subject_head_signature field accepts a JPG, JPEG, or PNG image up to 15 MB. The uploaded signature is stored in the web-accessible uploads/lesson-plan-signatures directory and its relative path and public URL are returned in the response.",
                 "operationId": "86fb2b765347cf5ee6dece89f9db3f2d",
                 "requestBody": {
                     "required": true,
@@ -33173,10 +33173,12 @@
                                         "example": "2026-09-03"
                                     },
                                     "time_from": {
+                                        "description": "Lesson start time in H:i format.",
                                         "type": "string",
                                         "example": "07:30"
                                     },
                                     "time_to": {
+                                        "description": "Lesson end time in H:i format. Must be after time_from.",
                                         "type": "string",
                                         "example": "08:10"
                                     },
@@ -33343,8 +33345,14 @@
                                         "example": "Students participated actively and demonstrated good understanding.",
                                         "nullable": true
                                     },
+                                    "subject_head_signature": {
+                                        "description": "Subject head signature image. Accepted formats: JPG, JPEG, PNG. Maximum file size: 15 MB.",
+                                        "type": "string",
+                                        "format": "binary",
+                                        "nullable": true
+                                    },
                                     "subject_head_signature_date": {
-                                        "description": "Date associated with the existing subject head signature.",
+                                        "description": "Date associated with the subject head signature.",
                                         "type": "string",
                                         "format": "date",
                                         "example": "2026-09-03",
@@ -33372,6 +33380,21 @@
                                             "example": "Lesson plan saved successfully"
                                         },
                                         "pld": {
+                                            "properties": {
+                                                "subject_head_signature": {
+                                                    "description": "Relative path of the uploaded subject head signature stored in the database.",
+                                                    "type": "string",
+                                                    "example": "lesson-plan-signatures/subject-head-signature-68ca12345.jpg",
+                                                    "nullable": true
+                                                },
+                                                "subject_head_signature_url": {
+                                                    "description": "Public URL of the uploaded subject head signature image.",
+                                                    "type": "string",
+                                                    "format": "uri",
+                                                    "example": "https://api.schoolsilomerge.top/uploads/lesson-plan-signatures/subject-head-signature-68ca12345.jpg",
+                                                    "nullable": true
+                                                }
+                                            },
                                             "type": "object"
                                         }
                                     },

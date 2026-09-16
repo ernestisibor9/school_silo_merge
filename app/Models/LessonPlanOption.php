@@ -174,14 +174,22 @@ class LessonPlanOption extends Model
         'reference' => 'array',
     ];
 
-protected $appends = [
-    'subject_head_signature_url'
-];
+    protected $appends = [
+        'subject_head_signature_url',
+    ];
 
-public function getSubjectHeadSignatureUrlAttribute()
-{
-    return $this->subject_head_signature
-        ? rtrim(env('API_URL', env('APP_URL')), '/') . '/uploads/' . $this->subject_head_signature
-        : null;
-}
+    public function getSubjectHeadSignatureUrlAttribute()
+    {
+        if (!$this->subject_head_signature) {
+            return null;
+        }
+
+        return rtrim(
+            env('API_URL', env('APP_URL')),
+            '/'
+        ) . '/uploads/' . ltrim(
+            $this->subject_head_signature,
+            '/'
+        );
+    }
 }

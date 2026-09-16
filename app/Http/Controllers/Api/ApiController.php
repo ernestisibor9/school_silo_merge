@@ -40030,13 +40030,14 @@ public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf
     ]);
 }
 
+
 /**
  * @OA\Post(
  *     path="/api/setLessonPlanOption",
  *     summary="Create or update a lesson plan",
  *     tags={"Api"},
  *     security={{"bearerAuth":{}}},
- *     description="Creates or updates a lesson plan. Array fields accept JSON array strings, single strings, or multipart array values. A subject head signature image is no longer uploaded through this endpoint; any existing signature remains unchanged.",
+ *     description="Creates or updates a lesson plan. Array fields accept JSON array strings, single strings, or multipart array values. The subject_head_signature field accepts a JPG, JPEG, or PNG image up to 15 MB. The uploaded signature is stored in the web-accessible uploads/lesson-plan-signatures directory and its relative path and public URL are returned in the response.",
  *
  *     @OA\RequestBody(
  *         required=true,
@@ -40115,13 +40116,15 @@ public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf
  *                 @OA\Property(
  *                     property="time_from",
  *                     type="string",
- *                     example="07:30"
+ *                     example="07:30",
+ *                     description="Lesson start time in H:i format."
  *                 ),
  *
  *                 @OA\Property(
  *                     property="time_to",
  *                     type="string",
- *                     example="08:10"
+ *                     example="08:10",
+ *                     description="Lesson end time in H:i format. Must be after time_from."
  *                 ),
  *
  *                 @OA\Property(
@@ -40343,12 +40346,20 @@ public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf
  *                 ),
  *
  *                 @OA\Property(
+ *                     property="subject_head_signature",
+ *                     type="string",
+ *                     format="binary",
+ *                     nullable=true,
+ *                     description="Subject head signature image. Accepted formats: JPG, JPEG, PNG. Maximum file size: 15 MB."
+ *                 ),
+ *
+ *                 @OA\Property(
  *                     property="subject_head_signature_date",
  *                     type="string",
  *                     format="date",
  *                     nullable=true,
  *                     example="2026-09-03",
- *                     description="Date associated with the existing subject head signature."
+ *                     description="Date associated with the subject head signature."
  *                 )
  *             )
  *         )
@@ -40374,7 +40385,24 @@ public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf
  *
  *             @OA\Property(
  *                 property="pld",
- *                 type="object"
+ *                 type="object",
+ *
+ *                 @OA\Property(
+ *                     property="subject_head_signature",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="lesson-plan-signatures/subject-head-signature-68ca12345.jpg",
+ *                     description="Relative path of the uploaded subject head signature stored in the database."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="subject_head_signature_url",
+ *                     type="string",
+ *                     format="uri",
+ *                     nullable=true,
+ *                     example="https://api.schoolsilomerge.top/uploads/lesson-plan-signatures/subject-head-signature-68ca12345.jpg",
+ *                     description="Public URL of the uploaded subject head signature image."
+ *                 )
  *             )
  *         )
  *     ),
@@ -40400,29 +40428,13 @@ public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf
  * )
  */
 
+
 public function setLessonPlanOption(Request $request)
 {
     /*
     |--------------------------------------------------------------------------
     | ARRAY FIELDS
     |--------------------------------------------------------------------------
-    |
-    | These fields are stored as arrays in the database.
-    |
-    | The API accepts:
-    |
-    | 1. A single string
-    |    Example:
-    |    Proper noun
-    |
-    | 2. A JSON array string
-    |    Example:
-    |    ["Proper noun","Common noun"]
-    |
-    | 3. A multipart array
-    |    Example:
-    |    sub_topic[]
-    |
     */
 
     $arrayFields = [
@@ -40505,13 +40517,6 @@ public function setLessonPlanOption(Request $request)
             |--------------------------------------------------------------------------
             | Try JSON array
             |--------------------------------------------------------------------------
-            |
-            | Example:
-            | ["Proper noun","Common noun"]
-            |
-            | Also supports:
-            | ['Proper noun','Common noun']
-            |
             */
 
             $jsonCandidate = str_replace("'", '"', $value);
@@ -40866,15 +40871,15 @@ public function setLessonPlanOption(Request $request)
             'array',
         ],
 
+        'step5_student_activities' => [
+            'nullable',
+            'array',
+        ],
+
         'step5_teacher_activities.*' => [
             'nullable',
             'string',
             'max:3000',
-        ],
-
-        'step5_student_activities' => [
-            'nullable',
-            'array',
         ],
 
         'step5_student_activities.*' => [
@@ -40970,15 +40975,26 @@ public function setLessonPlanOption(Request $request)
 
         /*
         |--------------------------------------------------------------------------
-        | SUBJECT HEAD SIGNATURE DATE
+        | SUBJECT HEAD SIGNATURE
         |--------------------------------------------------------------------------
         |
-        | IMPORTANT:
+        | The signature is uploaded as an image.
         |
-        | There is NO subject_head_signature upload anymore.
+        | Maximum size: 15 MB
         |
-        | The existing signature in the database is preserved.
-        |
+        */
+
+        'subject_head_signature' => [
+            'nullable',
+            'image',
+            'mimes:jpg,jpeg,png',
+            'max:15360',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | SUBJECT HEAD SIGNATURE DATE
+        |--------------------------------------------------------------------------
         */
 
         'subject_head_signature_date' => [
@@ -41040,9 +41056,6 @@ public function setLessonPlanOption(Request $request)
     |--------------------------------------------------------------------------
     | TERMLY PLAN
     |--------------------------------------------------------------------------
-    |
-    | A termly lesson does not have a weekly value.
-    |
     */
 
     if ($request->plan_type === 'termly') {
@@ -41052,33 +41065,91 @@ public function setLessonPlanOption(Request $request)
 
     /*
     |--------------------------------------------------------------------------
-    | IMPORTANT - SUBJECT HEAD SIGNATURE
+    | SUBJECT HEAD SIGNATURE UPLOAD
     |--------------------------------------------------------------------------
     |
-    | We intentionally DO NOT touch:
+    | The image is saved directly into the web-accessible uploads
+    | directory on the live server.
     |
-    | subject_head_signature
+    | Example physical location:
     |
-    | No new image is uploaded.
+    | /home/schoolsilomerge/public_html/
+    | api.schoolsilomerge.top/uploads/
+    | lesson-plan-signatures/
     |
-    | No existing image is deleted.
+    | Database value:
     |
-    | No new value is written to the column.
-    |
-    | Therefore, when updateOrCreate() updates an existing lesson plan,
-    | the existing subject_head_signature remains unchanged.
+    | lesson-plan-signatures/filename.jpg
     |
     */
+
+    if ($request->hasFile('subject_head_signature')) {
+
+        $signature = $request->file('subject_head_signature');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Generate unique filename
+        |--------------------------------------------------------------------------
+        */
+
+        $filename =
+            'subject-head-signature-' .
+            uniqid() .
+            '.' .
+            $signature->getClientOriginalExtension();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Get configured uploads directory
+        |--------------------------------------------------------------------------
+        */
+
+        $uploadDirectory = rtrim(
+            config('app.uploads_path'),
+            '/'
+        ) . '/lesson-plan-signatures';
+
+        /*
+        |--------------------------------------------------------------------------
+        | Create directory if it does not exist
+        |--------------------------------------------------------------------------
+        */
+
+        if (!is_dir($uploadDirectory)) {
+
+            mkdir(
+                $uploadDirectory,
+                0755,
+                true
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Move image directly to public uploads directory
+        |--------------------------------------------------------------------------
+        */
+
+        $signature->move(
+            $uploadDirectory,
+            $filename
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Store relative path in database
+        |--------------------------------------------------------------------------
+        */
+
+        $data['subject_head_signature'] =
+            'lesson-plan-signatures/' . $filename;
+    }
 
     /*
     |--------------------------------------------------------------------------
     | CREATE OR UPDATE LESSON PLAN
     |--------------------------------------------------------------------------
-    |
-    | The lesson plan is identified by:
-    |
-    | schid + clsm + date + sbj + topic
-    |
     */
 
     $lessonPlan = LessonPlanOption::updateOrCreate(
@@ -41098,12 +41169,15 @@ public function setLessonPlanOption(Request $request)
     |--------------------------------------------------------------------------
     */
 
-    return response()->apiJson([
-        'status' => true,
-        'message' => 'Lesson plan saved successfully',
-        'pld' => $lessonPlan,
-    ], 200);
+return response()->json([
+    'status' => true,
+    'message' => 'Lesson plan saved successfully',
+    'pld' => $lessonPlan,
+], 200);
 }
+
+
+
 
 /**
  * @OA\Post(
