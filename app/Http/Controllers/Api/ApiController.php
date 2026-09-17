@@ -43624,4 +43624,195 @@ public function getLessonPlanOption($schid, $ssn, $trm, $clsm)
 
 
 
+/**
+ * @OA\Get(
+ *     path="/api/getSingleLessonPlanOption/{schid}/{ssn}/{trm}/{clsm}/{sbj}/{id}",
+ *     summary="Get a single lesson plan by school ID, session, term ID, class, subject, and plan ID",
+ *     tags={"Api"},
+ *     security={{"bearerAuth": {}}},
+ *
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="path",
+ *         required=true,
+ *         description="School ID",
+ *         @OA\Schema(type="string")
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="ssn",
+ *         in="path",
+ *         required=true,
+ *         description="Academic session (e.g. 2024/2025)",
+ *         @OA\Schema(type="string")
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="trm",
+ *         in="path",
+ *         required=true,
+ *         description="Term ID (e.g. 1, 2, 3)",
+ *         @OA\Schema(type="string")
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="clsm",
+ *         in="path",
+ *         required=true,
+ *         description="Class ID (e.g. 11)",
+ *         @OA\Schema(type="string")
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="sbj",
+ *         in="path",
+ *         required=true,
+ *         description="Subject (e.g. Mathematics, English)",
+ *         @OA\Schema(type="string")
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="id",
+ *         in="path",
+ *         required=true,
+ *         description="Lesson plan ID",
+ *         @OA\Schema(type="integer")
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Lesson plan retrieved successfully",
+ *         @OA\JsonContent(
+ *             @OA\Property(
+ *                 property="status",
+ *                 type="boolean",
+ *                 example=true
+ *             ),
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="Success"
+ *             ),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="object"
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=404,
+ *         description="Lesson plan not found",
+ *         @OA\JsonContent(
+ *             @OA\Property(
+ *                 property="status",
+ *                 type="boolean",
+ *                 example=false
+ *             ),
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="Lesson plan not found"
+ *             )
+ *         )
+ *     )
+ * )
+ */
+public function getSingleLessonPlanOption(
+    $schid,
+    $ssn,
+    $trm,
+    $clsm,
+    $sbj,
+    $id
+) {
+    /*
+    |--------------------------------------------------------------------------
+    | GET LESSON PLAN
+    |--------------------------------------------------------------------------
+    |
+    | lesson_plan_options.clsm contains the class ID.
+    | cls.id contains the class ID.
+    | cls.name contains the class name.
+    |
+    */
+
+    $lessonPlan = LessonPlanOption::query()
+        ->leftJoin(
+            'cls',
+            'lesson_plan_options.clsm',
+            '=',
+            'cls.id'
+        )
+        ->where(
+            'lesson_plan_options.schid',
+            $schid
+        )
+        ->where(
+            'lesson_plan_options.clsm',
+            $clsm
+        )
+        ->where(
+            'lesson_plan_options.ssn',
+            $ssn
+        )
+        ->where(
+            'lesson_plan_options.trm',
+            $trm
+        )
+        ->where(
+            'lesson_plan_options.sbj',
+            $sbj
+        )
+        ->where(
+            'lesson_plan_options.id',
+            $id
+        )
+
+        /*
+        |--------------------------------------------------------------------------
+        | SELECT LESSON PLAN FIELDS
+        |--------------------------------------------------------------------------
+        */
+
+        ->select(
+            'lesson_plan_options.*',
+
+            /*
+            |--------------------------------------------------------------------------
+            | CLASS NAME
+            |--------------------------------------------------------------------------
+            */
+
+            'cls.name as clsm_name'
+        )
+        ->first();
+
+    /*
+    |--------------------------------------------------------------------------
+    | LESSON PLAN NOT FOUND
+    |--------------------------------------------------------------------------
+    */
+
+    if (!$lessonPlan) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Lesson plan not found',
+        ], 404);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | RESPONSE
+    |--------------------------------------------------------------------------
+    */
+
+    return response()->apiJson([
+        'status' => true,
+        'message' => 'Success',
+        'pld' => $lessonPlan,
+    ], 200);
+}
+
+
 }
