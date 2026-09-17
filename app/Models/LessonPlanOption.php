@@ -180,16 +180,12 @@ class LessonPlanOption extends Model
 
     public function getSubjectHeadSignatureUrlAttribute()
     {
-        if (!$this->subject_head_signature) {
+        if (empty($this->subject_head_signature)) {
             return null;
         }
 
-        return rtrim(
-            env('API_URL', env('APP_URL')),
-            '/'
-        ) . '/uploads/' . ltrim(
-            $this->subject_head_signature,
-            '/'
-        );
+        return rtrim(config('app.url'), '/')
+            . '/uploads/'
+            . ltrim($this->subject_head_signature, '/');
     }
 }
