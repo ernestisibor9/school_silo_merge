@@ -6,8 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class cls extends Model
 {
-    protected $table = 'cls'; 
+    protected $table = 'cls';
     protected $fillable = [
         'name'
     ];
+
+
 }

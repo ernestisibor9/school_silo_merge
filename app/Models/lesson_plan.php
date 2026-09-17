@@ -37,4 +37,9 @@ class lesson_plan extends Model
         'time_from' => 'datetime:H:i',
         'time_to' => 'datetime:H:i',
     ];
+
+    public function classData()
+{
+    return $this->belongsTo(cls::class, 'clsm', 'id');
+}
 }
