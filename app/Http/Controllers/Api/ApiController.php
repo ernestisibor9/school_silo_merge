@@ -22601,7 +22601,8 @@ public function setChangePasswordAdmin(Request $request)
     //         "pld" => $lessonPlan,
     //     ], 200);
     // }
-public function getLessonPlanOption(
+
+    public function getSingleLessonPlan(
     $schid,
     $ssn,
     $trm,
@@ -22640,6 +22641,7 @@ public function getLessonPlanOption(
         "pld" => $lessonPlan,
     ]);
 }
+
 
 
     ////////////////////////////////////////////////////
