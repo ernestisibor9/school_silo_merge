@@ -41759,123 +41759,182 @@ public function updateLessonPlanOption(Request $request)
         'reference',
     ];
 
-    /*
-    |--------------------------------------------------------------------------
-    | NORMALIZE ARRAY FIELDS
-    |--------------------------------------------------------------------------
-    |
-    | Supports:
-    |
-    | 1. Single string
-    | 2. JSON array string
-    | 3. Multipart array field[]
-    |
-    */
+/*
+|--------------------------------------------------------------------------
+| NORMALIZE ARRAY FIELDS
+|--------------------------------------------------------------------------
+|
+| Supports:
+|
+| 1. Single string
+| 2. JSON array string
+| 3. Multipart array field[]
+| 4. Comma-separated string
+|
+*/
 
-    foreach ($arrayFields as $field) {
+foreach ($arrayFields as $field) {
 
-        if (!$request->has($field)) {
-            continue;
-        }
-
-        $value = $request->input($field);
-
-        /*
-        |--------------------------------------------------------------------------
-        | ALREADY ARRAY
-        |--------------------------------------------------------------------------
-        */
-
-        if (is_array($value)) {
-            continue;
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | STRING
-        |--------------------------------------------------------------------------
-        */
-
-        if (is_string($value)) {
-
-            $value = trim($value);
-
-            /*
-            |--------------------------------------------------------------------------
-            | EMPTY STRING
-            |--------------------------------------------------------------------------
-            */
-
-            if ($value === '') {
-
-                $request->merge([
-                    $field => [],
-                ]);
-
-                continue;
-            }
-
-            /*
-            |--------------------------------------------------------------------------
-            | TRY JSON
-            |--------------------------------------------------------------------------
-            |
-            | Supports:
-            |
-            | ["item1","item2"]
-            |
-            | and:
-            |
-            | ['item1','item2']
-            |
-            */
-
-            $jsonCandidate = str_replace(
-                "'",
-                '"',
-                $value
-            );
-
-            $decoded = json_decode(
-                $jsonCandidate,
-                true
-            );
-
-            /*
-            |--------------------------------------------------------------------------
-            | VALID JSON ARRAY
-            |--------------------------------------------------------------------------
-            */
-
-            if (
-                json_last_error() === JSON_ERROR_NONE &&
-                is_array($decoded)
-            ) {
-
-                $request->merge([
-                    $field => $decoded,
-                ]);
-
-                continue;
-            }
-
-            /*
-            |--------------------------------------------------------------------------
-            | SINGLE STRING
-            |--------------------------------------------------------------------------
-            */
-
-            $request->merge([
-                $field => [$value],
-            ]);
-        }
+    if (!$request->has($field)) {
+        continue;
     }
 
-    Log::info('STEP 4 TEACHER ACTIVITIES DEBUG', [
-    'value' => $request->input('step4_teacher_activities'),
-    'type' => gettype($request->input('step4_teacher_activities')),
-    'all_request' => $request->all(),
-]);
+    $value = $request->input($field);
+
+    /*
+    |--------------------------------------------------------------------------
+    | ALREADY ARRAY
+    |--------------------------------------------------------------------------
+    */
+
+    if (is_array($value)) {
+
+        /*
+        |--------------------------------------------------------------------------
+        | CLEAN ARRAY VALUES
+        |--------------------------------------------------------------------------
+        */
+
+        $value = array_map(function ($item) {
+            return is_string($item)
+                ? trim($item)
+                : $item;
+        }, $value);
+
+        $request->merge([
+            $field => $value,
+        ]);
+
+        continue;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | STRING
+    |--------------------------------------------------------------------------
+    */
+
+    if (is_string($value)) {
+
+        $value = trim($value);
+
+        /*
+        |--------------------------------------------------------------------------
+        | EMPTY STRING
+        |--------------------------------------------------------------------------
+        */
+
+        if ($value === '') {
+
+            $request->merge([
+                $field => [],
+            ]);
+
+            continue;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | TRY JSON
+        |--------------------------------------------------------------------------
+        |
+        | Supports:
+        |
+        | ["item1","item2"]
+        |
+        | and:
+        |
+        | ['item1','item2']
+        |
+        */
+
+        $jsonCandidate = str_replace(
+            "'",
+            '"',
+            $value
+        );
+
+        $decoded = json_decode(
+            $jsonCandidate,
+            true
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | VALID JSON ARRAY
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            json_last_error() === JSON_ERROR_NONE &&
+            is_array($decoded)
+        ) {
+
+            $decoded = array_map(function ($item) {
+                return is_string($item)
+                    ? trim($item)
+                    : $item;
+            }, $decoded);
+
+            $request->merge([
+                $field => $decoded,
+            ]);
+
+            continue;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | COMMA-SEPARATED STRING
+        |--------------------------------------------------------------------------
+        |
+        | Supports values such as:
+        |
+        | Students complete the exercises,Good,Better,Best
+        |
+        */
+
+        if (str_contains($value, ',')) {
+
+            $items = array_map(
+                'trim',
+                explode(',', $value)
+            );
+
+            /*
+            |--------------------------------------------------------------------------
+            | REMOVE EMPTY VALUES
+            |--------------------------------------------------------------------------
+            */
+
+            $items = array_values(
+                array_filter(
+                    $items,
+                    function ($item) {
+                        return $item !== '';
+                    }
+                )
+            );
+
+            $request->merge([
+                $field => $items,
+            ]);
+
+            continue;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | SINGLE STRING
+        |--------------------------------------------------------------------------
+        */
+
+        $request->merge([
+            $field => [$value],
+        ]);
+    }
+}
+
 
     /*
     |--------------------------------------------------------------------------
