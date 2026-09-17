@@ -43164,4 +43164,464 @@ public function getWeeklyLessonPlanOption($schid, $ssn, $trm, $clsm)
 
 
 
+/**
+ * @OA\Get(
+ *     path="/api/getLessonPlanOption/{schid}/{ssn}/{trm}/{clsm}",
+ *     summary="Get lesson plans for a specific school, session, term, and class",
+ *     description="Fetches lesson plans using school ID, session, term, and class with optional pagination parameters. Each lesson plan includes the stored subject head signature path and, when a signature exists, its public web-accessible URL.",
+ *     tags={"Api"},
+ *     security={{"bearerAuth": {}}},
+ *
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="path",
+ *         required=true,
+ *         description="School ID",
+ *         @OA\Schema(type="string"),
+ *         example="SCH001"
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="ssn",
+ *         in="path",
+ *         required=true,
+ *         description="Session",
+ *         @OA\Schema(type="string"),
+ *         example="2025"
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="trm",
+ *         in="path",
+ *         required=true,
+ *         description="Term ID",
+ *         @OA\Schema(type="string"),
+ *         example="2"
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="clsm",
+ *         in="path",
+ *         required=true,
+ *         description="Class ID",
+ *         @OA\Schema(type="string"),
+ *         example="2"
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="start",
+ *         in="query",
+ *         required=false,
+ *         description="Pagination start index. Defaults to 0.",
+ *         @OA\Schema(type="integer"),
+ *         example=0
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="count",
+ *         in="query",
+ *         required=false,
+ *         description="Number of lesson plans to retrieve. Defaults to 20.",
+ *         @OA\Schema(type="integer"),
+ *         example=20
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="List of lesson plans retrieved successfully",
+ *         @OA\JsonContent(
+ *             type="object",
+ *
+ *             @OA\Property(
+ *                 property="status",
+ *                 type="boolean",
+ *                 example=true
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="Success"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     type="object",
+ *
+ *                     @OA\Property(
+ *                         property="id",
+ *                         type="integer",
+ *                         example=4
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="schid",
+ *                         type="string",
+ *                         example="12"
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="clsm",
+ *                         type="string",
+ *                         example="11"
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="ssn",
+ *                         type="string",
+ *                         example="2026"
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="trm",
+ *                         type="string",
+ *                         example="1"
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="sbj",
+ *                         type="string",
+ *                         example="ENGLISH LANGUAGE"
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="plan_type",
+ *                         type="string",
+ *                         nullable=true,
+ *                         example="weekly"
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="weekly",
+ *                         type="string",
+ *                         nullable=true,
+ *                         example="Week 2"
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="date",
+ *                         type="string",
+ *                         format="date",
+ *                         nullable=true,
+ *                         example="2026-09-03"
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="time_from",
+ *                         type="string",
+ *                         nullable=true,
+ *                         example="08:00:00"
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="time_to",
+ *                         type="string",
+ *                         nullable=true,
+ *                         example="08:40:00"
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="period",
+ *                         type="string",
+ *                         nullable=true,
+ *                         example="2nd Period"
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="duration",
+ *                         type="string",
+ *                         nullable=true,
+ *                         example="40 minutes"
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="sex",
+ *                         type="string",
+ *                         nullable=true,
+ *                         example="Mixed"
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="topic",
+ *                         type="string",
+ *                         nullable=true,
+ *                         example="Parts of Speech"
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="sub_topic",
+ *                         type="array",
+ *                         nullable=true,
+ *                         @OA\Items(type="string"),
+ *                         example={"Proper noun"}
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="lesson_objectives",
+ *                         type="array",
+ *                         nullable=true,
+ *                         @OA\Items(type="string"),
+ *                         example={"Identify proper nouns"}
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="instructional_sources_material",
+ *                         type="array",
+ *                         nullable=true,
+ *                         @OA\Items(type="string"),
+ *                         example={"English Grammar Textbook"}
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="step1_previous_knowledge",
+ *                         type="array",
+ *                         nullable=true,
+ *                         @OA\Items(type="string"),
+ *                         example={"Students understand basic nouns"}
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="step1_mode",
+ *                         type="string",
+ *                         nullable=true,
+ *                         example="Question and Answer"
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="step1_teacher_activities",
+ *                         type="array",
+ *                         nullable=true,
+ *                         @OA\Items(type="string"),
+ *                         example={"Teacher explains proper nouns"}
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="step1_student_activities",
+ *                         type="array",
+ *                         nullable=true,
+ *                         @OA\Items(type="string"),
+ *                         example={"Students give examples"}
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="step2_mode",
+ *                         type="string",
+ *                         nullable=true,
+ *                         example="Demonstration"
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="step2_teacher_activities",
+ *                         type="array",
+ *                         nullable=true,
+ *                         @OA\Items(type="string"),
+ *                         example={"Teacher writes examples on the board"}
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="step2_student_activities",
+ *                         type="array",
+ *                         nullable=true,
+ *                         @OA\Items(type="string"),
+ *                         example={"Students identify proper nouns"}
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="step3_mode",
+ *                         type="string",
+ *                         nullable=true,
+ *                         example="Discussion"
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="step3_teacher_activities",
+ *                         type="array",
+ *                         nullable=true,
+ *                         @OA\Items(type="string"),
+ *                         example={"Teacher guides group discussion"}
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="step3_student_activities",
+ *                         type="array",
+ *                         nullable=true,
+ *                         @OA\Items(type="string"),
+ *                         example={"Students discuss their answers"}
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="step4_mode",
+ *                         type="string",
+ *                         nullable=true,
+ *                         example="Application"
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="step4_teacher_activities",
+ *                         type="array",
+ *                         nullable=true,
+ *                         @OA\Items(type="string"),
+ *                         example={"Teacher gives practical exercises"}
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="step4_student_activities",
+ *                         type="array",
+ *                         nullable=true,
+ *                         @OA\Items(type="string"),
+ *                         example={"Students complete the exercises"}
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="step5_mode",
+ *                         type="string",
+ *                         nullable=true,
+ *                         example="Evaluation"
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="step5_teacher_activities",
+ *                         type="array",
+ *                         nullable=true,
+ *                         @OA\Items(type="string"),
+ *                         example={"Teacher asks oral questions"}
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="step5_student_activities",
+ *                         type="array",
+ *                         nullable=true,
+ *                         @OA\Items(type="string"),
+ *                         example={"Students answer the questions"}
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="summary",
+ *                         type="array",
+ *                         nullable=true,
+ *                         @OA\Items(type="string"),
+ *                         example={"Students understood proper nouns"}
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="conclusion",
+ *                         type="array",
+ *                         nullable=true,
+ *                         @OA\Items(type="string"),
+ *                         example={"Students demonstrated good understanding"}
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="assignment",
+ *                         type="array",
+ *                         nullable=true,
+ *                         @OA\Items(type="string"),
+ *                         example={"Write five proper nouns"}
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="reference",
+ *                         type="array",
+ *                         nullable=true,
+ *                         @OA\Items(type="string"),
+ *                         example={"English Grammar Textbook"}
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="topic_tally",
+ *                         type="string",
+ *                         nullable=true,
+ *                         enum={"yes","no"},
+ *                         example="yes"
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="other_comments",
+ *                         type="string",
+ *                         nullable=true,
+ *                         example="Students participated actively."
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="subject_head_signature",
+ *                         type="string",
+ *                         nullable=true,
+ *                         example="lesson-plan-signatures/subject-head-signature-6aab12345.jpg",
+ *                         description="Relative path of the subject head signature stored in the database."
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="subject_head_signature_url",
+ *                         type="string",
+ *                         format="uri",
+ *                         nullable=true,
+ *                         example="https://api.schoolsilomerge.top/uploads/lesson-plan-signatures/subject-head-signature-6aab12345.jpg",
+ *                         description="Public web-accessible URL of the subject head signature. Returns null when no signature exists."
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="subject_head_signature_date",
+ *                         type="string",
+ *                         format="date",
+ *                         nullable=true,
+ *                         example="2026-09-05"
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="created_at",
+ *                         type="string",
+ *                         format="date-time",
+ *                         nullable=true,
+ *                         example="2026-09-16T11:23:11.000000Z"
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="updated_at",
+ *                         type="string",
+ *                         format="date-time",
+ *                         nullable=true,
+ *                         example="2026-09-17T04:56:53.000000Z"
+ *                     )
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthenticated"
+ *     )
+ * )
+ */
+
+
+public function getLessonPlanOption($schid, $ssn, $trm, $clsm)
+{
+    $start = 0;
+    $count = 20;
+
+    if (request()->has('start') && request()->has('count')) {
+        $start = request()->input('start');
+        $count = request()->input('count');
+    }
+
+    $lessonPlan = LessonPlanOption::where('schid', $schid)
+        ->where('clsm', $clsm)
+        ->where('ssn', $ssn)
+        ->where('trm', $trm)
+        ->take($count)
+        ->skip($start)
+        ->get();
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => $lessonPlan,
+    ]);
+}
+
+
+
 }

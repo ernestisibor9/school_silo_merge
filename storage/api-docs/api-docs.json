@@ -34619,6 +34619,436 @@
                     }
                 ]
             }
+        },
+        "/api/getLessonPlanOption/{schid}/{ssn}/{trm}/{clsm}": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get lesson plans for a specific school, session, term, and class",
+                "description": "Fetches lesson plans using school ID, session, term, and class with optional pagination parameters. Each lesson plan includes the stored subject head signature path and, when a signature exists, its public web-accessible URL.",
+                "operationId": "b73301bad4680464820813c74d7c2f5f",
+                "parameters": [
+                    {
+                        "name": "schid",
+                        "in": "path",
+                        "description": "School ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "SCH001"
+                    },
+                    {
+                        "name": "ssn",
+                        "in": "path",
+                        "description": "Session",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "2025"
+                    },
+                    {
+                        "name": "trm",
+                        "in": "path",
+                        "description": "Term ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "2"
+                    },
+                    {
+                        "name": "clsm",
+                        "in": "path",
+                        "description": "Class ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "2"
+                    },
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Pagination start index. Defaults to 0.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 0
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "Number of lesson plans to retrieve. Defaults to 20.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "example": 20
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of lesson plans retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 4
+                                                    },
+                                                    "schid": {
+                                                        "type": "string",
+                                                        "example": "12"
+                                                    },
+                                                    "clsm": {
+                                                        "type": "string",
+                                                        "example": "11"
+                                                    },
+                                                    "ssn": {
+                                                        "type": "string",
+                                                        "example": "2026"
+                                                    },
+                                                    "trm": {
+                                                        "type": "string",
+                                                        "example": "1"
+                                                    },
+                                                    "sbj": {
+                                                        "type": "string",
+                                                        "example": "ENGLISH LANGUAGE"
+                                                    },
+                                                    "plan_type": {
+                                                        "type": "string",
+                                                        "example": "weekly",
+                                                        "nullable": true
+                                                    },
+                                                    "weekly": {
+                                                        "type": "string",
+                                                        "example": "Week 2",
+                                                        "nullable": true
+                                                    },
+                                                    "date": {
+                                                        "type": "string",
+                                                        "format": "date",
+                                                        "example": "2026-09-03",
+                                                        "nullable": true
+                                                    },
+                                                    "time_from": {
+                                                        "type": "string",
+                                                        "example": "08:00:00",
+                                                        "nullable": true
+                                                    },
+                                                    "time_to": {
+                                                        "type": "string",
+                                                        "example": "08:40:00",
+                                                        "nullable": true
+                                                    },
+                                                    "period": {
+                                                        "type": "string",
+                                                        "example": "2nd Period",
+                                                        "nullable": true
+                                                    },
+                                                    "duration": {
+                                                        "type": "string",
+                                                        "example": "40 minutes",
+                                                        "nullable": true
+                                                    },
+                                                    "sex": {
+                                                        "type": "string",
+                                                        "example": "Mixed",
+                                                        "nullable": true
+                                                    },
+                                                    "topic": {
+                                                        "type": "string",
+                                                        "example": "Parts of Speech",
+                                                        "nullable": true
+                                                    },
+                                                    "sub_topic": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        },
+                                                        "example": [
+                                                            "Proper noun"
+                                                        ],
+                                                        "nullable": true
+                                                    },
+                                                    "lesson_objectives": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        },
+                                                        "example": [
+                                                            "Identify proper nouns"
+                                                        ],
+                                                        "nullable": true
+                                                    },
+                                                    "instructional_sources_material": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        },
+                                                        "example": [
+                                                            "English Grammar Textbook"
+                                                        ],
+                                                        "nullable": true
+                                                    },
+                                                    "step1_previous_knowledge": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        },
+                                                        "example": [
+                                                            "Students understand basic nouns"
+                                                        ],
+                                                        "nullable": true
+                                                    },
+                                                    "step1_mode": {
+                                                        "type": "string",
+                                                        "example": "Question and Answer",
+                                                        "nullable": true
+                                                    },
+                                                    "step1_teacher_activities": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        },
+                                                        "example": [
+                                                            "Teacher explains proper nouns"
+                                                        ],
+                                                        "nullable": true
+                                                    },
+                                                    "step1_student_activities": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        },
+                                                        "example": [
+                                                            "Students give examples"
+                                                        ],
+                                                        "nullable": true
+                                                    },
+                                                    "step2_mode": {
+                                                        "type": "string",
+                                                        "example": "Demonstration",
+                                                        "nullable": true
+                                                    },
+                                                    "step2_teacher_activities": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        },
+                                                        "example": [
+                                                            "Teacher writes examples on the board"
+                                                        ],
+                                                        "nullable": true
+                                                    },
+                                                    "step2_student_activities": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        },
+                                                        "example": [
+                                                            "Students identify proper nouns"
+                                                        ],
+                                                        "nullable": true
+                                                    },
+                                                    "step3_mode": {
+                                                        "type": "string",
+                                                        "example": "Discussion",
+                                                        "nullable": true
+                                                    },
+                                                    "step3_teacher_activities": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        },
+                                                        "example": [
+                                                            "Teacher guides group discussion"
+                                                        ],
+                                                        "nullable": true
+                                                    },
+                                                    "step3_student_activities": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        },
+                                                        "example": [
+                                                            "Students discuss their answers"
+                                                        ],
+                                                        "nullable": true
+                                                    },
+                                                    "step4_mode": {
+                                                        "type": "string",
+                                                        "example": "Application",
+                                                        "nullable": true
+                                                    },
+                                                    "step4_teacher_activities": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        },
+                                                        "example": [
+                                                            "Teacher gives practical exercises"
+                                                        ],
+                                                        "nullable": true
+                                                    },
+                                                    "step4_student_activities": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        },
+                                                        "example": [
+                                                            "Students complete the exercises"
+                                                        ],
+                                                        "nullable": true
+                                                    },
+                                                    "step5_mode": {
+                                                        "type": "string",
+                                                        "example": "Evaluation",
+                                                        "nullable": true
+                                                    },
+                                                    "step5_teacher_activities": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        },
+                                                        "example": [
+                                                            "Teacher asks oral questions"
+                                                        ],
+                                                        "nullable": true
+                                                    },
+                                                    "step5_student_activities": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        },
+                                                        "example": [
+                                                            "Students answer the questions"
+                                                        ],
+                                                        "nullable": true
+                                                    },
+                                                    "summary": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        },
+                                                        "example": [
+                                                            "Students understood proper nouns"
+                                                        ],
+                                                        "nullable": true
+                                                    },
+                                                    "conclusion": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        },
+                                                        "example": [
+                                                            "Students demonstrated good understanding"
+                                                        ],
+                                                        "nullable": true
+                                                    },
+                                                    "assignment": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        },
+                                                        "example": [
+                                                            "Write five proper nouns"
+                                                        ],
+                                                        "nullable": true
+                                                    },
+                                                    "reference": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        },
+                                                        "example": [
+                                                            "English Grammar Textbook"
+                                                        ],
+                                                        "nullable": true
+                                                    },
+                                                    "topic_tally": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "yes",
+                                                            "no"
+                                                        ],
+                                                        "example": "yes",
+                                                        "nullable": true
+                                                    },
+                                                    "other_comments": {
+                                                        "type": "string",
+                                                        "example": "Students participated actively.",
+                                                        "nullable": true
+                                                    },
+                                                    "subject_head_signature": {
+                                                        "description": "Relative path of the subject head signature stored in the database.",
+                                                        "type": "string",
+                                                        "example": "lesson-plan-signatures/subject-head-signature-6aab12345.jpg",
+                                                        "nullable": true
+                                                    },
+                                                    "subject_head_signature_url": {
+                                                        "description": "Public web-accessible URL of the subject head signature. Returns null when no signature exists.",
+                                                        "type": "string",
+                                                        "format": "uri",
+                                                        "example": "https://api.schoolsilomerge.top/uploads/lesson-plan-signatures/subject-head-signature-6aab12345.jpg",
+                                                        "nullable": true
+                                                    },
+                                                    "subject_head_signature_date": {
+                                                        "type": "string",
+                                                        "format": "date",
+                                                        "example": "2026-09-05",
+                                                        "nullable": true
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2026-09-16T11:23:11.000000Z",
+                                                        "nullable": true
+                                                    },
+                                                    "updated_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2026-09-17T04:56:53.000000Z",
+                                                        "nullable": true
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
