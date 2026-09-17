@@ -33436,7 +33436,7 @@
                     "Api"
                 ],
                 "summary": "Update an existing lesson plan",
-                "description": "Updates an existing lesson plan. Only fields supplied in the request are updated. Array fields accept JSON array strings, single strings, or multipart array values. The subject_head_signature field accepts a JPG, JPEG, or PNG image up to 15 MB. When a new signature is supplied, it is stored in the web-accessible uploads/lesson-plan-signatures directory, and its relative path and public URL are returned in the response. If no new signature is supplied, the existing signature remains unchanged.",
+                "description": "Updates an existing lesson plan. Only fields supplied in the request are updated. Repeatable lesson-plan fields are arrays of strings. For multipart/form-data requests, submit array values using repeated field names with [] such as step4_student_activities[]. The subject_head_signature field accepts a JPG, JPEG, or PNG image up to 15 MB. When a new signature is supplied, it replaces the existing signature. If no new signature is supplied, the existing signature remains unchanged.",
                 "operationId": "2764603a329856644708815a21a43db6",
                 "requestBody": {
                     "required": true,
@@ -33522,27 +33522,52 @@
                                         "nullable": true
                                     },
                                     "sub_topic": {
-                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
-                                        "type": "string",
-                                        "example": "Proper noun",
+                                        "description": "Array of sub-topics. For multipart/form-data, submit repeated fields using sub_topic[].",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "Proper noun",
+                                            "Common noun"
+                                        ],
                                         "nullable": true
                                     },
                                     "lesson_objectives": {
-                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
-                                        "type": "string",
-                                        "example": "Identify proper nouns",
+                                        "description": "Array of lesson objectives. For multipart/form-data, submit repeated fields using lesson_objectives[].",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "Identify proper nouns",
+                                            "Differentiate proper nouns from common nouns"
+                                        ],
                                         "nullable": true
                                     },
                                     "instructional_sources_material": {
-                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
-                                        "type": "string",
-                                        "example": "English Grammar Textbook",
+                                        "description": "Array of instructional sources/materials. For multipart/form-data, submit repeated fields using instructional_sources_material[].",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "English Grammar Textbook",
+                                            "Whiteboard",
+                                            "Marker"
+                                        ],
                                         "nullable": true
                                     },
                                     "step1_previous_knowledge": {
-                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
-                                        "type": "string",
-                                        "example": "Students understand basic nouns",
+                                        "description": "Array of previous-knowledge items for Step 1. For multipart/form-data, submit repeated fields using step1_previous_knowledge[].",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "Students understand basic nouns",
+                                            "Students can identify simple words"
+                                        ],
                                         "nullable": true
                                     },
                                     "step1_mode": {
@@ -33551,15 +33576,27 @@
                                         "nullable": true
                                     },
                                     "step1_teacher_activities": {
-                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
-                                        "type": "string",
-                                        "example": "Teacher explains proper nouns",
+                                        "description": "Array of teacher activities for Step 1. For multipart/form-data, submit repeated fields using step1_teacher_activities[].",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "Teacher explains proper nouns",
+                                            "Teacher gives examples"
+                                        ],
                                         "nullable": true
                                     },
                                     "step1_student_activities": {
-                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
-                                        "type": "string",
-                                        "example": "Students give examples",
+                                        "description": "Array of student activities for Step 1. For multipart/form-data, submit repeated fields using step1_student_activities[].",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "Students give examples",
+                                            "Students answer questions"
+                                        ],
                                         "nullable": true
                                     },
                                     "step2_mode": {
@@ -33568,15 +33605,27 @@
                                         "nullable": true
                                     },
                                     "step2_teacher_activities": {
-                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
-                                        "type": "string",
-                                        "example": "Teacher writes examples on the board",
+                                        "description": "Array of teacher activities for Step 2. For multipart/form-data, submit repeated fields using step2_teacher_activities[].",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "Teacher writes examples on the board",
+                                            "Teacher explains each example"
+                                        ],
                                         "nullable": true
                                     },
                                     "step2_student_activities": {
-                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
-                                        "type": "string",
-                                        "example": "Students identify proper nouns",
+                                        "description": "Array of student activities for Step 2. For multipart/form-data, submit repeated fields using step2_student_activities[].",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "Students identify proper nouns",
+                                            "Students write their own examples"
+                                        ],
                                         "nullable": true
                                     },
                                     "step3_mode": {
@@ -33585,15 +33634,27 @@
                                         "nullable": true
                                     },
                                     "step3_teacher_activities": {
-                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
-                                        "type": "string",
-                                        "example": "Teacher guides group discussion",
+                                        "description": "Array of teacher activities for Step 3. For multipart/form-data, submit repeated fields using step3_teacher_activities[].",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "Teacher guides group discussion",
+                                            "Teacher corrects students' responses"
+                                        ],
                                         "nullable": true
                                     },
                                     "step3_student_activities": {
-                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
-                                        "type": "string",
-                                        "example": "Students discuss their answers",
+                                        "description": "Array of student activities for Step 3. For multipart/form-data, submit repeated fields using step3_student_activities[].",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "Students discuss their answers",
+                                            "Students share their responses"
+                                        ],
                                         "nullable": true
                                     },
                                     "step4_mode": {
@@ -33602,15 +33663,29 @@
                                         "nullable": true
                                     },
                                     "step4_teacher_activities": {
-                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
-                                        "type": "string",
-                                        "example": "Teacher gives practical exercises",
+                                        "description": "Array of teacher activities for Step 4. For multipart/form-data, submit repeated fields using step4_teacher_activities[].",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "Teacher gives practical exercises",
+                                            "Teacher supervises the exercises"
+                                        ],
                                         "nullable": true
                                     },
                                     "step4_student_activities": {
-                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
-                                        "type": "string",
-                                        "example": "Students complete the exercises",
+                                        "description": "Array of student activities for Step 4. For multipart/form-data, submit repeated fields using step4_student_activities[].",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "Students complete the exercises",
+                                            "Good",
+                                            "Better",
+                                            "Best"
+                                        ],
                                         "nullable": true
                                     },
                                     "step5_mode": {
@@ -33619,39 +33694,77 @@
                                         "nullable": true
                                     },
                                     "step5_teacher_activities": {
-                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
-                                        "type": "string",
-                                        "example": "Teacher asks oral questions",
+                                        "description": "Array of teacher activities for Step 5. For multipart/form-data, submit repeated fields using step5_teacher_activities[].",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "Teacher asks oral questions",
+                                            "Teacher evaluates students' responses"
+                                        ],
                                         "nullable": true
                                     },
                                     "step5_student_activities": {
-                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
-                                        "type": "string",
-                                        "example": "Students answer the questions",
+                                        "description": "Array of student activities for Step 5. For multipart/form-data, submit repeated fields using step5_student_activities[].",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "Students answer the questions",
+                                            "Good",
+                                            "Better",
+                                            "Best"
+                                        ],
                                         "nullable": true
                                     },
                                     "summary": {
-                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
-                                        "type": "string",
-                                        "example": "Students understood proper nouns",
+                                        "description": "Array of summary items. For multipart/form-data, submit repeated fields using summary[].",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "Students understood proper nouns",
+                                            "Students participated actively"
+                                        ],
                                         "nullable": true
                                     },
                                     "conclusion": {
-                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
-                                        "type": "string",
-                                        "example": "Students demonstrated good understanding",
+                                        "description": "Array of conclusion items. For multipart/form-data, submit repeated fields using conclusion[].",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "Students demonstrated good understanding",
+                                            "Lesson objectives were achieved"
+                                        ],
                                         "nullable": true
                                     },
                                     "assignment": {
-                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
-                                        "type": "string",
-                                        "example": "Write five proper nouns",
+                                        "description": "Array of assignment items. For multipart/form-data, submit repeated fields using assignment[].",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "Write five proper nouns",
+                                            "Write five common nouns"
+                                        ],
                                         "nullable": true
                                     },
                                     "reference": {
-                                        "description": "Accepts a single string, a JSON array string, or multipart array values.",
-                                        "type": "string",
-                                        "example": "English Grammar Textbook",
+                                        "description": "Array of references. For multipart/form-data, submit repeated fields using reference[].",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "English Grammar Textbook",
+                                            "Teacher's Guide"
+                                        ],
                                         "nullable": true
                                     },
                                     "topic_tally": {

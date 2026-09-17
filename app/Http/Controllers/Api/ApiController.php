@@ -41177,14 +41177,13 @@ return response()->json([
 }
 
 
-
 /**
  * @OA\Post(
  *     path="/api/updateLessonPlanOption",
  *     summary="Update an existing lesson plan",
  *     tags={"Api"},
  *     security={{"bearerAuth":{}}},
- *     description="Updates an existing lesson plan. Only fields supplied in the request are updated. Array fields accept JSON array strings, single strings, or multipart array values. The subject_head_signature field accepts a JPG, JPEG, or PNG image up to 15 MB. When a new signature is supplied, it is stored in the web-accessible uploads/lesson-plan-signatures directory, and its relative path and public URL are returned in the response. If no new signature is supplied, the existing signature remains unchanged.",
+ *     description="Updates an existing lesson plan. Only fields supplied in the request are updated. Repeatable lesson-plan fields are arrays of strings. For multipart/form-data requests, submit array values using repeated field names with [] such as step4_student_activities[]. The subject_head_signature field accepts a JPG, JPEG, or PNG image up to 15 MB. When a new signature is supplied, it replaces the existing signature. If no new signature is supplied, the existing signature remains unchanged.",
  *
  *     @OA\RequestBody(
  *         required=true,
@@ -41297,34 +41296,59 @@ return response()->json([
  *
  *                 @OA\Property(
  *                     property="sub_topic",
- *                     type="string",
+ *                     type="array",
  *                     nullable=true,
- *                     example="Proper noun",
- *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                     description="Array of sub-topics. For multipart/form-data, submit repeated fields using sub_topic[].",
+ *                     @OA\Items(
+ *                         type="string"
+ *                     ),
+ *                     example={
+ *                         "Proper noun",
+ *                         "Common noun"
+ *                     }
  *                 ),
  *
  *                 @OA\Property(
  *                     property="lesson_objectives",
- *                     type="string",
+ *                     type="array",
  *                     nullable=true,
- *                     example="Identify proper nouns",
- *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                     description="Array of lesson objectives. For multipart/form-data, submit repeated fields using lesson_objectives[].",
+ *                     @OA\Items(
+ *                         type="string"
+ *                     ),
+ *                     example={
+ *                         "Identify proper nouns",
+ *                         "Differentiate proper nouns from common nouns"
+ *                     }
  *                 ),
  *
  *                 @OA\Property(
  *                     property="instructional_sources_material",
- *                     type="string",
+ *                     type="array",
  *                     nullable=true,
- *                     example="English Grammar Textbook",
- *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                     description="Array of instructional sources/materials. For multipart/form-data, submit repeated fields using instructional_sources_material[].",
+ *                     @OA\Items(
+ *                         type="string"
+ *                     ),
+ *                     example={
+ *                         "English Grammar Textbook",
+ *                         "Whiteboard",
+ *                         "Marker"
+ *                     }
  *                 ),
  *
  *                 @OA\Property(
  *                     property="step1_previous_knowledge",
- *                     type="string",
+ *                     type="array",
  *                     nullable=true,
- *                     example="Students understand basic nouns",
- *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                     description="Array of previous-knowledge items for Step 1. For multipart/form-data, submit repeated fields using step1_previous_knowledge[].",
+ *                     @OA\Items(
+ *                         type="string"
+ *                     ),
+ *                     example={
+ *                         "Students understand basic nouns",
+ *                         "Students can identify simple words"
+ *                     }
  *                 ),
  *
  *                 @OA\Property(
@@ -41336,18 +41360,30 @@ return response()->json([
  *
  *                 @OA\Property(
  *                     property="step1_teacher_activities",
- *                     type="string",
+ *                     type="array",
  *                     nullable=true,
- *                     example="Teacher explains proper nouns",
- *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                     description="Array of teacher activities for Step 1. For multipart/form-data, submit repeated fields using step1_teacher_activities[].",
+ *                     @OA\Items(
+ *                         type="string"
+ *                     ),
+ *                     example={
+ *                         "Teacher explains proper nouns",
+ *                         "Teacher gives examples"
+ *                     }
  *                 ),
  *
  *                 @OA\Property(
  *                     property="step1_student_activities",
- *                     type="string",
+ *                     type="array",
  *                     nullable=true,
- *                     example="Students give examples",
- *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                     description="Array of student activities for Step 1. For multipart/form-data, submit repeated fields using step1_student_activities[].",
+ *                     @OA\Items(
+ *                         type="string"
+ *                     ),
+ *                     example={
+ *                         "Students give examples",
+ *                         "Students answer questions"
+ *                     }
  *                 ),
  *
  *                 @OA\Property(
@@ -41359,18 +41395,30 @@ return response()->json([
  *
  *                 @OA\Property(
  *                     property="step2_teacher_activities",
- *                     type="string",
+ *                     type="array",
  *                     nullable=true,
- *                     example="Teacher writes examples on the board",
- *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                     description="Array of teacher activities for Step 2. For multipart/form-data, submit repeated fields using step2_teacher_activities[].",
+ *                     @OA\Items(
+ *                         type="string"
+ *                     ),
+ *                     example={
+ *                         "Teacher writes examples on the board",
+ *                         "Teacher explains each example"
+ *                     }
  *                 ),
  *
  *                 @OA\Property(
  *                     property="step2_student_activities",
- *                     type="string",
+ *                     type="array",
  *                     nullable=true,
- *                     example="Students identify proper nouns",
- *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                     description="Array of student activities for Step 2. For multipart/form-data, submit repeated fields using step2_student_activities[].",
+ *                     @OA\Items(
+ *                         type="string"
+ *                     ),
+ *                     example={
+ *                         "Students identify proper nouns",
+ *                         "Students write their own examples"
+ *                     }
  *                 ),
  *
  *                 @OA\Property(
@@ -41382,18 +41430,30 @@ return response()->json([
  *
  *                 @OA\Property(
  *                     property="step3_teacher_activities",
- *                     type="string",
+ *                     type="array",
  *                     nullable=true,
- *                     example="Teacher guides group discussion",
- *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                     description="Array of teacher activities for Step 3. For multipart/form-data, submit repeated fields using step3_teacher_activities[].",
+ *                     @OA\Items(
+ *                         type="string"
+ *                     ),
+ *                     example={
+ *                         "Teacher guides group discussion",
+ *                         "Teacher corrects students' responses"
+ *                     }
  *                 ),
  *
  *                 @OA\Property(
  *                     property="step3_student_activities",
- *                     type="string",
+ *                     type="array",
  *                     nullable=true,
- *                     example="Students discuss their answers",
- *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                     description="Array of student activities for Step 3. For multipart/form-data, submit repeated fields using step3_student_activities[].",
+ *                     @OA\Items(
+ *                         type="string"
+ *                     ),
+ *                     example={
+ *                         "Students discuss their answers",
+ *                         "Students share their responses"
+ *                     }
  *                 ),
  *
  *                 @OA\Property(
@@ -41405,18 +41465,32 @@ return response()->json([
  *
  *                 @OA\Property(
  *                     property="step4_teacher_activities",
- *                     type="string",
+ *                     type="array",
  *                     nullable=true,
- *                     example="Teacher gives practical exercises",
- *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                     description="Array of teacher activities for Step 4. For multipart/form-data, submit repeated fields using step4_teacher_activities[].",
+ *                     @OA\Items(
+ *                         type="string"
+ *                     ),
+ *                     example={
+ *                         "Teacher gives practical exercises",
+ *                         "Teacher supervises the exercises"
+ *                     }
  *                 ),
  *
  *                 @OA\Property(
  *                     property="step4_student_activities",
- *                     type="string",
+ *                     type="array",
  *                     nullable=true,
- *                     example="Students complete the exercises",
- *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                     description="Array of student activities for Step 4. For multipart/form-data, submit repeated fields using step4_student_activities[].",
+ *                     @OA\Items(
+ *                         type="string"
+ *                     ),
+ *                     example={
+ *                         "Students complete the exercises",
+ *                         "Good",
+ *                         "Better",
+ *                         "Best"
+ *                     }
  *                 ),
  *
  *                 @OA\Property(
@@ -41428,50 +41502,88 @@ return response()->json([
  *
  *                 @OA\Property(
  *                     property="step5_teacher_activities",
- *                     type="string",
+ *                     type="array",
  *                     nullable=true,
- *                     example="Teacher asks oral questions",
- *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                     description="Array of teacher activities for Step 5. For multipart/form-data, submit repeated fields using step5_teacher_activities[].",
+ *                     @OA\Items(
+ *                         type="string"
+ *                     ),
+ *                     example={
+ *                         "Teacher asks oral questions",
+ *                         "Teacher evaluates students' responses"
+ *                     }
  *                 ),
  *
  *                 @OA\Property(
  *                     property="step5_student_activities",
- *                     type="string",
+ *                     type="array",
  *                     nullable=true,
- *                     example="Students answer the questions",
- *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                     description="Array of student activities for Step 5. For multipart/form-data, submit repeated fields using step5_student_activities[].",
+ *                     @OA\Items(
+ *                         type="string"
+ *                     ),
+ *                     example={
+ *                         "Students answer the questions",
+ *                         "Good",
+ *                         "Better",
+ *                         "Best"
+ *                     }
  *                 ),
  *
  *                 @OA\Property(
  *                     property="summary",
- *                     type="string",
+ *                     type="array",
  *                     nullable=true,
- *                     example="Students understood proper nouns",
- *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                     description="Array of summary items. For multipart/form-data, submit repeated fields using summary[].",
+ *                     @OA\Items(
+ *                         type="string"
+ *                     ),
+ *                     example={
+ *                         "Students understood proper nouns",
+ *                         "Students participated actively"
+ *                     }
  *                 ),
  *
  *                 @OA\Property(
  *                     property="conclusion",
- *                     type="string",
+ *                     type="array",
  *                     nullable=true,
- *                     example="Students demonstrated good understanding",
- *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                     description="Array of conclusion items. For multipart/form-data, submit repeated fields using conclusion[].",
+ *                     @OA\Items(
+ *                         type="string"
+ *                     ),
+ *                     example={
+ *                         "Students demonstrated good understanding",
+ *                         "Lesson objectives were achieved"
+ *                     }
  *                 ),
  *
  *                 @OA\Property(
  *                     property="assignment",
- *                     type="string",
+ *                     type="array",
  *                     nullable=true,
- *                     example="Write five proper nouns",
- *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                     description="Array of assignment items. For multipart/form-data, submit repeated fields using assignment[].",
+ *                     @OA\Items(
+ *                         type="string"
+ *                     ),
+ *                     example={
+ *                         "Write five proper nouns",
+ *                         "Write five common nouns"
+ *                     }
  *                 ),
  *
  *                 @OA\Property(
  *                     property="reference",
- *                     type="string",
+ *                     type="array",
  *                     nullable=true,
- *                     example="English Grammar Textbook",
- *                     description="Accepts a single string, a JSON array string, or multipart array values."
+ *                     description="Array of references. For multipart/form-data, submit repeated fields using reference[].",
+ *                     @OA\Items(
+ *                         type="string"
+ *                     ),
+ *                     example={
+ *                         "English Grammar Textbook",
+ *                         "Teacher's Guide"
+ *                     }
  *                 ),
  *
  *                 @OA\Property(
@@ -41611,7 +41723,6 @@ return response()->json([
  *     )
  * )
  */
-
 
 public function updateLessonPlanOption(Request $request)
 {
