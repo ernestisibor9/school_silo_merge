@@ -22601,65 +22601,45 @@ public function setChangePasswordAdmin(Request $request)
     //         "pld" => $lessonPlan,
     //     ], 200);
     // }
-
-    public function getSingleLessonPlan(
+public function getLessonPlanOption(
     $schid,
     $ssn,
     $trm,
-    $clsm,
-    $sbj,
-    $id
+    $clsm
 ) {
-    $lessonPlan = lesson_plan::leftJoin(
-        'cls',
-        'lesson_plan.clsm',
-        '=',
-        'cls.id'
-    )
-        ->where(
-            'lesson_plan.schid',
-            $schid
-        )
-        ->where(
+    $start = 0;
+    $count = 20;
+
+    if (request()->has('start') && request()->has('count')) {
+        $start = request()->input('start');
+        $count = request()->input('count');
+    }
+
+    $lessonPlan = DB::table('lesson_plan')
+        ->leftJoin(
+            'cls',
             'lesson_plan.clsm',
-            $clsm
+            '=',
+            'cls.id'
         )
-        ->where(
-            'lesson_plan.ssn',
-            $ssn
-        )
-        ->where(
-            'lesson_plan.trm',
-            $trm
-        )
-        ->where(
-            'lesson_plan.sbj',
-            $sbj
-        )
-        ->where(
-            'lesson_plan.id',
-            $id
-        )
+        ->where('lesson_plan.schid', $schid)
+        ->where('lesson_plan.clsm', $clsm)
+        ->where('lesson_plan.ssn', $ssn)
+        ->where('lesson_plan.trm', $trm)
         ->select(
             'lesson_plan.*',
             'cls.name as clsm_name'
         )
-        ->first();
-
-    if (!$lessonPlan) {
-        return response()->json([
-            "status" => false,
-            "message" => "Lesson plan not found",
-        ], 404);
-    }
+        ->take($count)
+        ->skip($start)
+        ->get();
 
     return response()->json([
         "status" => true,
         "message" => "Success",
         "pld" => $lessonPlan,
-    ], 200);
+    ]);
 }
-
 
 
     ////////////////////////////////////////////////////
