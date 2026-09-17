@@ -22578,29 +22578,87 @@ public function setChangePasswordAdmin(Request $request)
      * )
      */
 
-    public function getSingleLessonPlan($schid, $ssn, $trm, $clsm, $sbj, $id)
-    {
-        $lessonPlan = lesson_plan::where('schid', $schid)
-            ->where('clsm', $clsm)
-            ->where('ssn', $ssn)
-            ->where('trm', $trm)
-            ->where('sbj', $sbj)
-            ->where('id', $id) // This line fetches the individual lesson plan
-            ->first();
+    // public function getSingleLessonPlan($schid, $ssn, $trm, $clsm, $sbj, $id)
+    // {
+    //     $lessonPlan = lesson_plan::where('schid', $schid)
+    //         ->where('clsm', $clsm)
+    //         ->where('ssn', $ssn)
+    //         ->where('trm', $trm)
+    //         ->where('sbj', $sbj)
+    //         ->where('id', $id) // This line fetches the individual lesson plan
+    //         ->first();
 
-        if (!$lessonPlan) {
-            return response()->json([
-                "status" => false,
-                "message" => "Lesson plan not found",
-            ], 404);
-        }
+    //     if (!$lessonPlan) {
+    //         return response()->json([
+    //             "status" => false,
+    //             "message" => "Lesson plan not found",
+    //         ], 404);
+    //     }
 
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => $lessonPlan,
+    //     ], 200);
+    // }
+
+    public function getSingleLessonPlan(
+    $schid,
+    $ssn,
+    $trm,
+    $clsm,
+    $sbj,
+    $id
+) {
+    $lessonPlan = lesson_plan::leftJoin(
+        'cls',
+        'lesson_plan.clsm',
+        '=',
+        'cls.id'
+    )
+        ->where(
+            'lesson_plan.schid',
+            $schid
+        )
+        ->where(
+            'lesson_plan.clsm',
+            $clsm
+        )
+        ->where(
+            'lesson_plan.ssn',
+            $ssn
+        )
+        ->where(
+            'lesson_plan.trm',
+            $trm
+        )
+        ->where(
+            'lesson_plan.sbj',
+            $sbj
+        )
+        ->where(
+            'lesson_plan.id',
+            $id
+        )
+        ->select(
+            'lesson_plan.*',
+            'cls.name as clsm_name'
+        )
+        ->first();
+
+    if (!$lessonPlan) {
         return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $lessonPlan,
-        ], 200);
+            "status" => false,
+            "message" => "Lesson plan not found",
+        ], 404);
     }
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => $lessonPlan,
+    ], 200);
+}
 
 
 
@@ -42617,7 +42675,7 @@ foreach ($arrayFields as $field) {
     |--------------------------------------------------------------------------
     */
 
-    return response()->apiJson([
+    return response()->json([
         'status' => true,
         'message' => 'Lesson Plan updated successfully',
         'pld' => $lessonPlan,
@@ -42774,7 +42832,7 @@ public function getWeeklyLessonPlanOption($schid, $ssn, $trm, $clsm)
         ->take($count)
         ->get();
 
-    return response()->apiJson([
+    return response()->json([
         "status" => true,
         "message" => "Success",
         "pld" => [
@@ -42897,7 +42955,7 @@ public function getWeeklyLessonPlanOption($schid, $ssn, $trm, $clsm)
             ->orderBy('date', 'asc')
             ->get();
 
-        return response()->apiJson([
+        return response()->json([
             'status' => true,
             'message' => 'Termly lesson plans fetched successfully',
             'pld' => [
@@ -43020,7 +43078,7 @@ public function getWeeklyLessonPlanOption($schid, $ssn, $trm, $clsm)
             ->orderBy('date', 'asc')
             ->get();
 
-       return response()->apiJson([
+       return response()->json([
             'status' => true,
             'message' => 'Lesson plans fetched successfully',
             'pld' => [
@@ -43807,7 +43865,7 @@ public function getSingleLessonPlanOption(
     |--------------------------------------------------------------------------
     */
 
-    return response()->apiJson([
+    return response()->json([
         'status' => true,
         'message' => 'Success',
         'pld' => $lessonPlan,
