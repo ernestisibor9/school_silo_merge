@@ -22602,7 +22602,7 @@ public function setChangePasswordAdmin(Request $request)
     //     ], 200);
     // }
 
-public function getSingleLessonPlan($schid, $ssn, $trm, $clsm)
+public function getSingleLessonPlan($schid, $ssn, $trm, $clsm, $sbj, $id)
 {
     $start = 0;
     $count = 20;
@@ -22617,6 +22617,8 @@ public function getSingleLessonPlan($schid, $ssn, $trm, $clsm)
         ->where('clsm', $clsm)
         ->where('ssn', $ssn)
         ->where('trm', $trm)
+        ->where('sbj', $sbj)
+        ->where('id', $id)
         ->take($count)
         ->skip($start)
         ->get();
@@ -22627,7 +22629,6 @@ public function getSingleLessonPlan($schid, $ssn, $trm, $clsm)
         "pld" => $lessonPlan,
     ]);
 }
-
 
 
     ////////////////////////////////////////////////////
