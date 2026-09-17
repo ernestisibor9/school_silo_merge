@@ -42,4 +42,10 @@ class lesson_plan extends Model
     {
         return $this->belongsTo(cls::class, 'clsm', 'id');
     }
+    protected $appends = ['clsm_name'];
+
+    public function getClsmNameAttribute()
+    {
+        return $this->classData ? $this->classData->name : null;
+    }
 }
