@@ -22602,16 +22602,17 @@ public function setChangePasswordAdmin(Request $request)
     //     ], 200);
     // }
 
-    public function getSingleLessonPlan($schid,$ssn,$trm,$clsm) {
-        $start = 0;
-        $count = 20;
+public function getSingleLessonPlan($schid, $ssn, $trm, $clsm)
+{
+    $start = 0;
+    $count = 20;
 
-        if (request()->has('start') && request()->has('count')) {
+    if (request()->has('start') && request()->has('count')) {
         $start = request()->input('start');
         $count = request()->input('count');
-        }
+    }
 
-        $lessonPlan = lesson_plan::with('classData')
+    $lessonPlan = lesson_plan::with('classData')
         ->where('schid', $schid)
         ->where('clsm', $clsm)
         ->where('ssn', $ssn)
@@ -22620,12 +22621,12 @@ public function setChangePasswordAdmin(Request $request)
         ->skip($start)
         ->get();
 
-        return response()->json([
+    return response()->json([
         "status" => true,
         "message" => "Success",
         "pld" => $lessonPlan,
-        ]);
-    }
+    ]);
+}
 
 
 

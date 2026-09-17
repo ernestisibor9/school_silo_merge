@@ -39,7 +39,12 @@ class lesson_plan extends Model
     ];
 
     public function classData()
-{
-    return $this->belongsTo(cls::class, 'clsm', 'id');
-}
+    {
+        return $this->belongsTo(cls::class, 'clsm', 'id');
+    }
+
+    public function getClsmNameAttribute()
+    {
+        return $this->classData ? $this->classData->name : null;
+    }
 }
