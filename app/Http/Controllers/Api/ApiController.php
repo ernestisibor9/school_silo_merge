@@ -41178,14 +41178,13 @@ return response()->json([
 
 
 
-
 /**
  * @OA\Post(
  *     path="/api/updateLessonPlanOption",
  *     summary="Update an existing lesson plan",
  *     tags={"Api"},
  *     security={{"bearerAuth":{}}},
- *     description="Updates an existing lesson plan. Only fields supplied in the request are updated. Array fields accept JSON array strings, single strings, or multipart array values. A subject head signature image is no longer uploaded or replaced through this endpoint; any existing signature remains unchanged.",
+ *     description="Updates an existing lesson plan. Only fields supplied in the request are updated. Array fields accept JSON array strings, single strings, or multipart array values. The subject_head_signature field accepts a JPG, JPEG, or PNG image up to 15 MB. When a new signature is supplied, it is stored in the web-accessible uploads/lesson-plan-signatures directory, and its relative path and public URL are returned in the response. If no new signature is supplied, the existing signature remains unchanged.",
  *
  *     @OA\RequestBody(
  *         required=true,
@@ -41491,12 +41490,20 @@ return response()->json([
  *                 ),
  *
  *                 @OA\Property(
+ *                     property="subject_head_signature",
+ *                     type="string",
+ *                     format="binary",
+ *                     nullable=true,
+ *                     description="Subject head signature image file to upload. Accepted formats: JPG, JPEG, PNG. Maximum file size: 15 MB. If supplied, the new signature replaces the existing signature."
+ *                 ),
+ *
+ *                 @OA\Property(
  *                     property="subject_head_signature_date",
  *                     type="string",
  *                     format="date",
  *                     nullable=true,
  *                     example="2026-09-05",
- *                     description="Date associated with the existing subject head signature. The signature image itself is not uploaded or replaced by this endpoint."
+ *                     description="Date associated with the subject head signature."
  *                 )
  *             )
  *         )
@@ -41507,19 +41514,39 @@ return response()->json([
  *         description="Lesson plan updated successfully",
  *         @OA\JsonContent(
  *             type="object",
+ *
  *             @OA\Property(
  *                 property="status",
  *                 type="boolean",
  *                 example=true
  *             ),
+ *
  *             @OA\Property(
  *                 property="message",
  *                 type="string",
  *                 example="Lesson Plan updated successfully"
  *             ),
+ *
  *             @OA\Property(
  *                 property="pld",
- *                 type="object"
+ *                 type="object",
+ *
+ *                 @OA\Property(
+ *                     property="subject_head_signature",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="lesson-plan-signatures/subject-head-signature-68ca12345.jpg",
+ *                     description="Relative path of the uploaded subject head signature stored in the database."
+ *                 ),
+ *
+ *                 @OA\Property(
+ *                     property="subject_head_signature_url",
+ *                     type="string",
+ *                     format="uri",
+ *                     nullable=true,
+ *                     example="https://api.schoolsilomerge.top/uploads/lesson-plan-signatures/subject-head-signature-68ca12345.jpg",
+ *                     description="Public URL of the uploaded subject head signature image."
+ *                 )
  *             )
  *         )
  *     ),
@@ -41529,11 +41556,13 @@ return response()->json([
  *         description="Lesson plan not found",
  *         @OA\JsonContent(
  *             type="object",
+ *
  *             @OA\Property(
  *                 property="status",
  *                 type="boolean",
  *                 example=false
  *             ),
+ *
  *             @OA\Property(
  *                 property="message",
  *                 type="string",
@@ -41543,15 +41572,37 @@ return response()->json([
  *     ),
  *
  *     @OA\Response(
+ *         response=400,
+ *         description="No valid fields provided for update",
+ *         @OA\JsonContent(
+ *             type="object",
+ *
+ *             @OA\Property(
+ *                 property="status",
+ *                 type="boolean",
+ *                 example=false
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="No valid fields provided for update"
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
  *         response=422,
  *         description="Validation error",
  *         @OA\JsonContent(
  *             type="object",
+ *
  *             @OA\Property(
  *                 property="message",
  *                 type="string",
  *                 example="The given data was invalid."
  *             ),
+ *
  *             @OA\Property(
  *                 property="errors",
  *                 type="object"
@@ -41560,6 +41611,7 @@ return response()->json([
  *     )
  * )
  */
+
 
 public function updateLessonPlanOption(Request $request)
 {
@@ -41707,6 +41759,12 @@ public function updateLessonPlanOption(Request $request)
             ]);
         }
     }
+
+    Log::info('STEP 4 TEACHER ACTIVITIES DEBUG', [
+    'value' => $request->input('step4_teacher_activities'),
+    'type' => gettype($request->input('step4_teacher_activities')),
+    'all_request' => $request->all(),
+]);
 
     /*
     |--------------------------------------------------------------------------
@@ -41981,8 +42039,13 @@ public function updateLessonPlanOption(Request $request)
 
         'step4_teacher_activities' => [
             'nullable',
+            'array',
+        ],
+
+        'step4_teacher_activities.*' => [
+            'nullable',
             'string',
-            'max:255',
+            'max:3000',
         ],
 
         'step4_student_activities' => [
@@ -42003,12 +42066,6 @@ public function updateLessonPlanOption(Request $request)
         */
 
         'step5_mode' => [
-            'nullable',
-            'string',
-            'max:255',
-        ],
-
-        'step5_teacher_activities' => [
             'nullable',
             'string',
             'max:255',
@@ -42119,6 +42176,19 @@ public function updateLessonPlanOption(Request $request)
             'nullable',
             'string',
             'max:5000',
+        ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | SUBJECT HEAD SIGNATURE
+        |--------------------------------------------------------------------------
+        */
+
+        'subject_head_signature' => [
+            'nullable',
+            'image',
+            'mimes:jpg,jpeg,png',
+            'max:15360',
         ],
 
         /*
@@ -42255,16 +42325,71 @@ public function updateLessonPlanOption(Request $request)
 
     /*
     |--------------------------------------------------------------------------
-    | IMPORTANT:
-    | SUBJECT HEAD SIGNATURE IS NOT TOUCHED
+    | SUBJECT HEAD SIGNATURE UPLOAD
     |--------------------------------------------------------------------------
     |
-    | No signature upload is performed here.
+    | If a new signature image is supplied:
     |
-    | The existing subject_head_signature in the database
-    | remains unchanged when the lesson plan is updated.
+    | 1. Generate a unique filename.
+    | 2. Save it directly into the public uploads directory.
+    | 3. Store the relative path in the database.
+    |
+    | If no new image is supplied, the existing signature remains unchanged.
     |
     */
+
+    if ($request->hasFile('subject_head_signature')) {
+
+        $signature = $request->file(
+            'subject_head_signature'
+        );
+
+        $filename =
+            'subject-head-signature-' .
+            uniqid() .
+            '.' .
+            $signature->getClientOriginalExtension();
+
+        $uploadDirectory = rtrim(
+            config('app.uploads_path'),
+            '/'
+        ) . '/lesson-plan-signatures';
+
+        /*
+        |--------------------------------------------------------------------------
+        | CREATE UPLOAD DIRECTORY IF IT DOES NOT EXIST
+        |--------------------------------------------------------------------------
+        */
+
+        if (!is_dir($uploadDirectory)) {
+
+            mkdir(
+                $uploadDirectory,
+                0755,
+                true
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | MOVE IMAGE TO PUBLIC UPLOAD DIRECTORY
+        |--------------------------------------------------------------------------
+        */
+
+        $signature->move(
+            $uploadDirectory,
+            $filename
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | STORE RELATIVE PATH
+        |--------------------------------------------------------------------------
+        */
+
+        $fieldsToUpdate['subject_head_signature'] =
+            'lesson-plan-signatures/' . $filename;
+    }
 
     /*
     |--------------------------------------------------------------------------
@@ -42328,252 +42453,6 @@ public function updateLessonPlanOption(Request $request)
         'pld' => $lessonPlan,
     ], 200);
 }
-
-
-
-
-
-
-    /**
-     * @OA\Get(
-     *     path="/api/getLessonPlanOption/{schid}/{ssn}/{trm}/{clsm}",
-     *     summary="Get lesson plans for a specific school, session, term, and class",
-     *     description="Fetches lesson plans using school ID, session, term, and class with optional pagination parameters.",
-     *     tags={"Api"},
-     *     security={{"bearerAuth": {}}},
-     *     @OA\Parameter(
-     *         name="schid",
-     *         in="path",
-     *         required=true,
-     *         description="School ID",
-     *         @OA\Schema(type="string"),
-     *         example="SCH001"
-     *     ),
-     *     @OA\Parameter(
-     *         name="ssn",
-     *         in="path",
-     *         required=true,
-     *         description="Session",
-     *         @OA\Schema(type="string"),
-     *         example="2025"
-     *     ),
-     *     @OA\Parameter(
-     *         name="trm",
-     *         in="path",
-     *         required=true,
-     *         description="Term ID",
-     *         @OA\Schema(type="string"),
-     *         example="2"
-     *     ),
-     *     @OA\Parameter(
-     *         name="clsm",
-     *         in="path",
-     *         required=true,
-     *         description="Class ID",
-     *         @OA\Schema(type="string"),
-     *         example="2"
-     *     ),
-     *     @OA\Parameter(
-     *         name="start",
-     *         in="query",
-     *         required=false,
-     *         description="Pagination start index",
-     *         @OA\Schema(type="integer"),
-     *         example=0
-     *     ),
-     *     @OA\Parameter(
-     *         name="count",
-     *         in="query",
-     *         required=false,
-     *         description="Number of lesson plans to retrieve",
-     *         @OA\Schema(type="integer"),
-     *         example=20
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="List of lesson plans retrieved successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Success"),
-     *             @OA\Property(property="pld", type="array", @OA\Items(type="object"))
-     *         )
-     *     )
-     * )
-     */
-
-
-    public function getLessonPlanOption($schid, $ssn, $trm, $clsm)
-    {
-        $start = 0;
-        $count = 20;
-        if (request()->has('start') && request()->has('count')) {
-            $start = request()->input('start');
-            $count = request()->input('count');
-        }
-
-        $lessonPlan = LessonPlanOption::where('schid', $schid)
-            ->where("clsm", $clsm)
-            ->where("ssn", $ssn)
-            ->where("trm", $trm)
-            ->take($count)->skip($start)->get();
-
-        return response()->apiJson([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $lessonPlan,
-        ]);
-    }
-
-
-
-
-
-
-
-    /**
-     * @OA\Get(
-     *     path="/api/getSingleLessonPlanOption/{schid}/{ssn}/{trm}/{clsm}/{sbj}/{id}",
-     *     summary="Get a single lesson plan by school ID, session, term ID, class, subject, and plan ID",
-     *     tags={"Api"},
-     *     security={{"bearerAuth": {}}},
-     *     @OA\Parameter(
-     *         name="schid",
-     *         in="path",
-     *         required=true,
-     *         description="School ID",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="ssn",
-     *         in="path",
-     *         required=true,
-     *         description="Academic session (e.g. 2024/2025)",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="trm",
-     *         in="path",
-     *         required=true,
-     *         description="Term ID (e.g. 1, 2, 3)",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="clsm",
-     *         in="path",
-     *         required=true,
-     *         description="11",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="sbj",
-     *         in="path",
-     *         required=true,
-     *         description="Subject (e.g. Mathematics, English)",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *         description="Lesson plan ID",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Lesson plan retrieved successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Success"),
-     *             @OA\Property(property="pld", type="object")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Lesson plan not found",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Lesson plan not found")
-     *         )
-     *     )
-     * )
-     */
-
-public function getSingleLessonPlanOption(
-    $schid,
-    $ssn,
-    $trm,
-    $clsm,
-    $sbj,
-    $id
-) {
-    /*
-    |--------------------------------------------------------------------------
-    | GET LESSON PLAN
-    |--------------------------------------------------------------------------
-    |
-    | lesson_plan_options.clsm contains the class ID.
-    | cls.id contains the class ID.
-    | cls.name contains the class name.
-    |
-    */
-
-    $lessonPlan = LessonPlanOption::query()
-        ->leftJoin('cls', 'lesson_plan_options.clsm', '=', 'cls.id')
-
-        ->where('lesson_plan_options.schid', $schid)
-        ->where('lesson_plan_options.clsm', $clsm)
-        ->where('lesson_plan_options.ssn', $ssn)
-        ->where('lesson_plan_options.trm', $trm)
-        ->where('lesson_plan_options.sbj', $sbj)
-        ->where('lesson_plan_options.id', $id)
-
-        /*
-        |--------------------------------------------------------------------------
-        | SELECT LESSON PLAN FIELDS
-        |--------------------------------------------------------------------------
-        */
-
-        ->select(
-            'lesson_plan_options.*',
-
-            /*
-            |--------------------------------------------------------------------------
-            | CLASS NAME
-            |--------------------------------------------------------------------------
-            */
-
-            'cls.name as clsm_name'
-        )
-
-        ->first();
-
-    /*
-    |--------------------------------------------------------------------------
-    | LESSON PLAN NOT FOUND
-    |--------------------------------------------------------------------------
-    */
-
-    if (!$lessonPlan) {
-
-        return response()->json([
-            'status' => false,
-            'message' => 'Lesson plan not found',
-        ], 404);
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | RESPONSE
-    |--------------------------------------------------------------------------
-    */
-
-    return response()->apiJson([
-        'status' => true,
-        'message' => 'Success',
-        'pld' => $lessonPlan,
-    ], 200);
-}
-
 
 
 

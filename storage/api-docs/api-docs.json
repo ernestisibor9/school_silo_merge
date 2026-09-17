@@ -33436,7 +33436,7 @@
                     "Api"
                 ],
                 "summary": "Update an existing lesson plan",
-                "description": "Updates an existing lesson plan. Only fields supplied in the request are updated. Array fields accept JSON array strings, single strings, or multipart array values. A subject head signature image is no longer uploaded or replaced through this endpoint; any existing signature remains unchanged.",
+                "description": "Updates an existing lesson plan. Only fields supplied in the request are updated. Array fields accept JSON array strings, single strings, or multipart array values. The subject_head_signature field accepts a JPG, JPEG, or PNG image up to 15 MB. When a new signature is supplied, it is stored in the web-accessible uploads/lesson-plan-signatures directory, and its relative path and public URL are returned in the response. If no new signature is supplied, the existing signature remains unchanged.",
                 "operationId": "2764603a329856644708815a21a43db6",
                 "requestBody": {
                     "required": true,
@@ -33668,8 +33668,14 @@
                                         "example": "Students participated actively.",
                                         "nullable": true
                                     },
+                                    "subject_head_signature": {
+                                        "description": "Subject head signature image file to upload. Accepted formats: JPG, JPEG, PNG. Maximum file size: 15 MB. If supplied, the new signature replaces the existing signature.",
+                                        "type": "string",
+                                        "format": "binary",
+                                        "nullable": true
+                                    },
                                     "subject_head_signature_date": {
-                                        "description": "Date associated with the existing subject head signature. The signature image itself is not uploaded or replaced by this endpoint.",
+                                        "description": "Date associated with the subject head signature.",
                                         "type": "string",
                                         "format": "date",
                                         "example": "2026-09-05",
@@ -33697,6 +33703,21 @@
                                             "example": "Lesson Plan updated successfully"
                                         },
                                         "pld": {
+                                            "properties": {
+                                                "subject_head_signature": {
+                                                    "description": "Relative path of the uploaded subject head signature stored in the database.",
+                                                    "type": "string",
+                                                    "example": "lesson-plan-signatures/subject-head-signature-68ca12345.jpg",
+                                                    "nullable": true
+                                                },
+                                                "subject_head_signature_url": {
+                                                    "description": "Public URL of the uploaded subject head signature image.",
+                                                    "type": "string",
+                                                    "format": "uri",
+                                                    "example": "https://api.schoolsilomerge.top/uploads/lesson-plan-signatures/subject-head-signature-68ca12345.jpg",
+                                                    "nullable": true
+                                                }
+                                            },
                                             "type": "object"
                                         }
                                     },
@@ -33725,6 +33746,26 @@
                             }
                         }
                     },
+                    "400": {
+                        "description": "No valid fields provided for update",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No valid fields provided for update"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
                     "422": {
                         "description": "Validation error",
                         "content": {
@@ -33737,226 +33778,6 @@
                                         },
                                         "errors": {
                                             "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/api/getLessonPlanOption/{schid}/{ssn}/{trm}/{clsm}": {
-            "get": {
-                "tags": [
-                    "Api"
-                ],
-                "summary": "Get lesson plans for a specific school, session, term, and class",
-                "description": "Fetches lesson plans using school ID, session, term, and class with optional pagination parameters.",
-                "operationId": "b73301bad4680464820813c74d7c2f5f",
-                "parameters": [
-                    {
-                        "name": "schid",
-                        "in": "path",
-                        "description": "School ID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        },
-                        "example": "SCH001"
-                    },
-                    {
-                        "name": "ssn",
-                        "in": "path",
-                        "description": "Session",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        },
-                        "example": "2025"
-                    },
-                    {
-                        "name": "trm",
-                        "in": "path",
-                        "description": "Term ID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        },
-                        "example": "2"
-                    },
-                    {
-                        "name": "clsm",
-                        "in": "path",
-                        "description": "Class ID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        },
-                        "example": "2"
-                    },
-                    {
-                        "name": "start",
-                        "in": "query",
-                        "description": "Pagination start index",
-                        "required": false,
-                        "schema": {
-                            "type": "integer"
-                        },
-                        "example": 0
-                    },
-                    {
-                        "name": "count",
-                        "in": "query",
-                        "description": "Number of lesson plans to retrieve",
-                        "required": false,
-                        "schema": {
-                            "type": "integer"
-                        },
-                        "example": 20
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List of lesson plans retrieved successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Success"
-                                        },
-                                        "pld": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object"
-                                            }
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/api/getSingleLessonPlanOption/{schid}/{ssn}/{trm}/{clsm}/{sbj}/{id}": {
-            "get": {
-                "tags": [
-                    "Api"
-                ],
-                "summary": "Get a single lesson plan by school ID, session, term ID, class, subject, and plan ID",
-                "operationId": "2b5833426fcbd1384fa2cf0eea5fb9ac",
-                "parameters": [
-                    {
-                        "name": "schid",
-                        "in": "path",
-                        "description": "School ID",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "ssn",
-                        "in": "path",
-                        "description": "Academic session (e.g. 2024/2025)",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "trm",
-                        "in": "path",
-                        "description": "Term ID (e.g. 1, 2, 3)",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "clsm",
-                        "in": "path",
-                        "description": "11",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "sbj",
-                        "in": "path",
-                        "description": "Subject (e.g. Mathematics, English)",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "description": "Lesson plan ID",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Lesson plan retrieved successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Success"
-                                        },
-                                        "pld": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Lesson plan not found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Lesson plan not found"
                                         }
                                     },
                                     "type": "object"

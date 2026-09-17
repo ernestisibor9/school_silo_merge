@@ -147,7 +147,7 @@ Route::group([
 ], function () {
 
     Route::get('/getDomainAdmin', [ApiController::class, 'getDomainAdmin']);
-     Route::get('/getDomainSupportAdmin', [ApiController::class, 'getDomainSupportAdmin']);
+    Route::get('/getDomainSupportAdmin', [ApiController::class, 'getDomainSupportAdmin']);
 
     Route::post('sendEmailVerificationLink', [ApiController::class, 'sendEmailVerificationLink']);
     Route::post('setSchool', [ApiController::class, 'setSchool']);
@@ -234,7 +234,7 @@ Route::group([
     Route::post('setAcceptanceAcct', [ApiController::class, 'setAcceptanceAcct']);
     Route::post('setApplicationAcct', [ApiController::class, 'setApplicationAcct']);
     Route::post('setChangePassword', [ApiController::class, 'setChangePassword']);
-      Route::post('setChangePasswordAdmin', [ApiController::class, 'setChangePasswordAdmin']);
+    Route::post('setChangePasswordAdmin', [ApiController::class, 'setChangePasswordAdmin']);
     Route::post('exitStudent/{schid}/{stid}', [ApiController::class, 'exitStudent']);
     Route::post('exitStaff/{schid}/{stid}', [ApiController::class, 'exitStaff']);
     Route::post('restoreStudent/{schid}/{stid}', [ApiController::class, 'restoreStudent']);
@@ -252,8 +252,8 @@ Route::group([
     Route::post('/autoCommentTemplate', [ApiController::class, 'autoCommentTemplate']);
     Route::get('/autoCommentTemplate', [ApiController::class, 'getAutoCommentTemplate']);
 
-     Route::post('setLessonPlanOption', [ApiController::class, 'setLessonPlanOption']);
-         Route::post('updateLessonPlanOption', [ApiController::class, 'updateLessonPlanOption']);
+    Route::post('setLessonPlanOption', [ApiController::class, 'setLessonPlanOption']);
+    Route::post('updateLessonPlanOption', [ApiController::class, 'updateLessonPlanOption']);
 
     Route::post('/allStudentResultsComment', [ApiController::class, 'allStudentResultsComment']);
     Route::get('getAllSubjects', [ApiController::class, 'getAllSubjects']);
@@ -450,8 +450,8 @@ Route::group([
     Route::get('getSingleLessonPlanOption/{schid}/{ssn}/{trm}/{clsm}/{sbj}/{id}', [ApiController::class, 'getSingleLessonPlanOption']);
     Route::get('/lesson-plan-option/weekly/{schid}/{ssn}/{trm}/{clsm}', [ApiController::class, 'getWeeklyLessonPlanOption']);
     Route::get('lesson-plans-option/termly/{schid}/{ssn}/{trm}/{sbj}', [ApiController::class, 'getLessonPlansByTermOption']);
-        Route::get('lesson-plans-option/weekly/{schid}/{ssn}/{trm}/{week}', [ApiController::class, 'getLessonPlansByWeekFilterOption']);
-        Route::get('lesson-plans-option/{schid}/{ssn}/{trm}/{clsm}/{sbj}', [ApiController::class, 'getLessonPlanBySubjOption']);
+    Route::get('lesson-plans-option/weekly/{schid}/{ssn}/{trm}/{week}', [ApiController::class, 'getLessonPlansByWeekFilterOption']);
+    Route::get('lesson-plans-option/{schid}/{ssn}/{trm}/{clsm}/{sbj}', [ApiController::class, 'getLessonPlanBySubjOption']);
 
     Route::get('getLessonNote/{sch_id}/{session}/{term}/{class}/{week}', [ApiController::class, 'getLessonNote']);
     Route::get('getSingleLessonNote/{sch_id}/{session}/{term}/{class}/{week}/{lessonNoteId}', [ApiController::class, 'getSingleLessonNote']);
@@ -547,10 +547,3 @@ Route::group([
     Route::get('logout', [ApiController::class, 'logout']);
     Route::get('checkTokenValidity', [ApiController::class, 'checkTokenValidity']);
 });
-
-
-
-
-
-
-
