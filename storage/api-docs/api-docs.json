@@ -18595,43 +18595,48 @@
                         "description": "School ID",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "example": "12"
                         }
                     },
                     {
                         "name": "ssn",
                         "in": "path",
-                        "description": "Academic session (e.g. 2024/2025)",
+                        "description": "Academic session",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "example": "2025"
                         }
                     },
                     {
                         "name": "trm",
                         "in": "path",
-                        "description": "Term ID (e.g. 1, 2, 3)",
+                        "description": "Term ID",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "example": "1"
                         }
                     },
                     {
                         "name": "clsm",
                         "in": "path",
-                        "description": "11",
+                        "description": "Class ID. This corresponds to the ID in the cls table.",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "example": "11"
                         }
                     },
                     {
                         "name": "sbj",
                         "in": "path",
-                        "description": "Subject (e.g. Mathematics, English)",
+                        "description": "Subject",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "example": "ENGLISH LANGUAGE"
                         }
                     },
                     {
@@ -18640,7 +18645,8 @@
                         "description": "Lesson plan ID",
                         "required": true,
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "example": 7
                         }
                     }
                 ],
@@ -18660,6 +18666,126 @@
                                             "example": "Success"
                                         },
                                         "pld": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 7
+                                                },
+                                                "schid": {
+                                                    "type": "string",
+                                                    "example": "12"
+                                                },
+                                                "clsm": {
+                                                    "type": "string",
+                                                    "example": "11"
+                                                },
+                                                "clsm_name": {
+                                                    "type": "string",
+                                                    "example": "JSS 1",
+                                                    "nullable": true
+                                                },
+                                                "ssn": {
+                                                    "type": "string",
+                                                    "example": "2025"
+                                                },
+                                                "trm": {
+                                                    "type": "string",
+                                                    "example": "1"
+                                                },
+                                                "plan_type": {
+                                                    "type": "string",
+                                                    "example": "weekly"
+                                                },
+                                                "weekly": {
+                                                    "type": "string",
+                                                    "example": "1",
+                                                    "nullable": true
+                                                },
+                                                "sbj": {
+                                                    "type": "string",
+                                                    "example": "ENGLISH LANGUAGE"
+                                                },
+                                                "topic": {
+                                                    "type": "string",
+                                                    "example": "Parts of Speech"
+                                                },
+                                                "sub_topic": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    },
+                                                    "example": [
+                                                        "Nouns",
+                                                        "Pronouns"
+                                                    ],
+                                                    "nullable": true
+                                                },
+                                                "date": {
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "example": "2025-09-15",
+                                                    "nullable": true
+                                                },
+                                                "no_of_class": {
+                                                    "type": "integer",
+                                                    "example": 35,
+                                                    "nullable": true
+                                                },
+                                                "average_age": {
+                                                    "type": "integer",
+                                                    "example": 12,
+                                                    "nullable": true
+                                                },
+                                                "time_from": {
+                                                    "type": "string",
+                                                    "example": "08:00",
+                                                    "nullable": true
+                                                },
+                                                "time_to": {
+                                                    "type": "string",
+                                                    "example": "09:00",
+                                                    "nullable": true
+                                                },
+                                                "duration": {
+                                                    "type": "string",
+                                                    "example": "60 minutes",
+                                                    "nullable": true
+                                                },
+                                                "learning_materials": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    },
+                                                    "example": [
+                                                        "Textbook",
+                                                        "Whiteboard",
+                                                        "Charts"
+                                                    ],
+                                                    "nullable": true
+                                                },
+                                                "lesson_objectives": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    },
+                                                    "example": [
+                                                        "Students should be able to identify nouns"
+                                                    ],
+                                                    "nullable": true
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2025-09-15T08:30:00.000000Z",
+                                                    "nullable": true
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2025-09-15T08:30:00.000000Z",
+                                                    "nullable": true
+                                                }
+                                            },
                                             "type": "object"
                                         }
                                     },
@@ -18681,6 +18807,26 @@
                                         "message": {
                                             "type": "string",
                                             "example": "Lesson plan not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated"
                                         }
                                     },
                                     "type": "object"

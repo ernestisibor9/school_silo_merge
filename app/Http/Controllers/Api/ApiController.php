@@ -22510,73 +22510,259 @@ public function setChangePasswordAdmin(Request $request)
 
 
 
-    /**
-     * @OA\Get(
-     *     path="/api/getSingleLessonPlan/{schid}/{ssn}/{trm}/{clsm}/{sbj}/{id}",
-     *     summary="Get a single lesson plan by school ID, session, term ID, class, subject, and plan ID",
-     *     tags={"Api"},
-     *     security={{"bearerAuth": {}}},
-     *     @OA\Parameter(
-     *         name="schid",
-     *         in="path",
-     *         required=true,
-     *         description="School ID",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="ssn",
-     *         in="path",
-     *         required=true,
-     *         description="Academic session (e.g. 2024/2025)",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="trm",
-     *         in="path",
-     *         required=true,
-     *         description="Term ID (e.g. 1, 2, 3)",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="clsm",
-     *         in="path",
-     *         required=true,
-     *         description="11",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="sbj",
-     *         in="path",
-     *         required=true,
-     *         description="Subject (e.g. Mathematics, English)",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *         description="Lesson plan ID",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Lesson plan retrieved successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Success"),
-     *             @OA\Property(property="pld", type="object")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Lesson plan not found",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Lesson plan not found")
-     *         )
-     *     )
-     * )
-     */
+/**
+ * @OA\Get(
+ *     path="/api/getSingleLessonPlan/{schid}/{ssn}/{trm}/{clsm}/{sbj}/{id}",
+ *     summary="Get a single lesson plan by school ID, session, term ID, class, subject, and plan ID",
+ *     tags={"Api"},
+ *     security={{"bearerAuth": {}}},
+ *
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="path",
+ *         required=true,
+ *         description="School ID",
+ *         @OA\Schema(
+ *             type="string",
+ *             example="12"
+ *         )
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="ssn",
+ *         in="path",
+ *         required=true,
+ *         description="Academic session",
+ *         @OA\Schema(
+ *             type="string",
+ *             example="2025"
+ *         )
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="trm",
+ *         in="path",
+ *         required=true,
+ *         description="Term ID",
+ *         @OA\Schema(
+ *             type="string",
+ *             example="1"
+ *         )
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="clsm",
+ *         in="path",
+ *         required=true,
+ *         description="Class ID. This corresponds to the ID in the cls table.",
+ *         @OA\Schema(
+ *             type="string",
+ *             example="11"
+ *         )
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="sbj",
+ *         in="path",
+ *         required=true,
+ *         description="Subject",
+ *         @OA\Schema(
+ *             type="string",
+ *             example="ENGLISH LANGUAGE"
+ *         )
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="id",
+ *         in="path",
+ *         required=true,
+ *         description="Lesson plan ID",
+ *         @OA\Schema(
+ *             type="integer",
+ *             example=7
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Lesson plan retrieved successfully",
+ *         @OA\JsonContent(
+ *             @OA\Property(
+ *                 property="status",
+ *                 type="boolean",
+ *                 example=true
+ *             ),
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="Success"
+ *             ),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="object",
+ *                 @OA\Property(
+ *                     property="id",
+ *                     type="integer",
+ *                     example=7
+ *                 ),
+ *                 @OA\Property(
+ *                     property="schid",
+ *                     type="string",
+ *                     example="12"
+ *                 ),
+ *                 @OA\Property(
+ *                     property="clsm",
+ *                     type="string",
+ *                     example="11"
+ *                 ),
+ *                 @OA\Property(
+ *                     property="clsm_name",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="JSS 1"
+ *                 ),
+ *                 @OA\Property(
+ *                     property="ssn",
+ *                     type="string",
+ *                     example="2025"
+ *                 ),
+ *                 @OA\Property(
+ *                     property="trm",
+ *                     type="string",
+ *                     example="1"
+ *                 ),
+ *                 @OA\Property(
+ *                     property="plan_type",
+ *                     type="string",
+ *                     example="weekly"
+ *                 ),
+ *                 @OA\Property(
+ *                     property="weekly",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="1"
+ *                 ),
+ *                 @OA\Property(
+ *                     property="sbj",
+ *                     type="string",
+ *                     example="ENGLISH LANGUAGE"
+ *                 ),
+ *                 @OA\Property(
+ *                     property="topic",
+ *                     type="string",
+ *                     example="Parts of Speech"
+ *                 ),
+ *                 @OA\Property(
+ *                     property="sub_topic",
+ *                     type="array",
+ *                     nullable=true,
+ *                     @OA\Items(type="string"),
+ *                     example={"Nouns", "Pronouns"}
+ *                 ),
+ *                 @OA\Property(
+ *                     property="date",
+ *                     type="string",
+ *                     format="date",
+ *                     nullable=true,
+ *                     example="2025-09-15"
+ *                 ),
+ *                 @OA\Property(
+ *                     property="no_of_class",
+ *                     type="integer",
+ *                     nullable=true,
+ *                     example=35
+ *                 ),
+ *                 @OA\Property(
+ *                     property="average_age",
+ *                     type="integer",
+ *                     nullable=true,
+ *                     example=12
+ *                 ),
+ *                 @OA\Property(
+ *                     property="time_from",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="08:00"
+ *                 ),
+ *                 @OA\Property(
+ *                     property="time_to",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="09:00"
+ *                 ),
+ *                 @OA\Property(
+ *                     property="duration",
+ *                     type="string",
+ *                     nullable=true,
+ *                     example="60 minutes"
+ *                 ),
+ *                 @OA\Property(
+ *                     property="learning_materials",
+ *                     type="array",
+ *                     nullable=true,
+ *                     @OA\Items(type="string"),
+ *                     example={"Textbook", "Whiteboard", "Charts"}
+ *                 ),
+ *                 @OA\Property(
+ *                     property="lesson_objectives",
+ *                     type="array",
+ *                     nullable=true,
+ *                     @OA\Items(type="string"),
+ *                     example={"Students should be able to identify nouns"}
+ *                 ),
+ *                 @OA\Property(
+ *                     property="created_at",
+ *                     type="string",
+ *                     format="date-time",
+ *                     nullable=true,
+ *                     example="2025-09-15T08:30:00.000000Z"
+ *                 ),
+ *                 @OA\Property(
+ *                     property="updated_at",
+ *                     type="string",
+ *                     format="date-time",
+ *                     nullable=true,
+ *                     example="2025-09-15T08:30:00.000000Z"
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=404,
+ *         description="Lesson plan not found",
+ *         @OA\JsonContent(
+ *             @OA\Property(
+ *                 property="status",
+ *                 type="boolean",
+ *                 example=false
+ *             ),
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="Lesson plan not found"
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthenticated",
+ *         @OA\JsonContent(
+ *             @OA\Property(
+ *                 property="status",
+ *                 type="boolean",
+ *                 example=false
+ *             ),
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="Unauthenticated"
+ *             )
+ *         )
+ *     )
+ * )
+ */
 
     // public function getSingleLessonPlan($schid, $ssn, $trm, $clsm, $sbj, $id)
     // {
