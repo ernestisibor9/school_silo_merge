@@ -178,13 +178,24 @@ class LessonPlanOption extends Model
         'subject_head_signature_url',
     ];
 
+    // public function getSubjectHeadSignatureUrlAttribute()
+    // {
+    //     if (empty($this->subject_head_signature)) {
+    //         return null;
+    //     }
+
+    //     return rtrim(config('app.url'), '/')
+    //         . '/uploads/'
+    //         . ltrim($this->subject_head_signature, '/');
+    // }
+
     public function getSubjectHeadSignatureUrlAttribute()
     {
         if (empty($this->subject_head_signature)) {
             return null;
         }
 
-        return rtrim(config('app.url'), '/')
+        return rtrim(config('app.api_url'), '/')
             . '/uploads/'
             . ltrim($this->subject_head_signature, '/');
     }
