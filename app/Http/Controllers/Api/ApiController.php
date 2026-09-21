@@ -3994,7 +3994,7 @@ class ApiController extends Controller
             ->where('arm_result_conf.ssn', $ssn)
             ->where('arm_result_conf.trm', $trm)
             ->where('arm_result_conf.arm', $arm)
-            ->where('student.status', 'active')
+            // ->where('student.status', 'active')
             ->select('arm_result_conf.*')
             ->first();
 
@@ -4276,7 +4276,7 @@ class ApiController extends Controller
         $members = student::join('old_student', 'student.sid', '=', 'old_student.sid')
             ->where('student.schid', $schid)
             ->where('student.stat', "1")
-            ->where('student.status', "active")
+            // ->where('student.status', "active")
             ->where('old_student.ssn', $ssn)
             ->where('old_student.trm', $trm)   // filter by term
             ->where('old_student.clsm', $clsid)
@@ -4329,7 +4329,7 @@ class ApiController extends Controller
                 ->where("ssn", $ssn)
                 ->where("trm", $trm) // make sure it's the selected term
                 ->where("clsm", $clsid)
-                ->where("status", "active")
+                // ->where("status", "active")
                 ->where("clsa", $arm)
                 ->where("sid", $user_id)
                 ->first();
@@ -8958,11 +8958,11 @@ class ApiController extends Controller
 $totalStd = student::join('old_student', 'student.sid', '=', 'old_student.sid')
     ->where('student.schid', $schid)
     ->where('student.stat', '1')
-    ->where('student.status', 'active')
+    // ->where('student.status', 'active')
     ->where('old_student.ssn', $ssn)
     ->where('old_student.trm', $trm)
     ->where('old_student.clsm', $clsm)
-    ->where('old_student.status', 'active')
+    // ->where('old_student.status', 'active')
     ->where('old_student.clsa', $clsa)
     ->distinct()
     ->count('student.sid');
@@ -8972,7 +8972,7 @@ $std = old_student::where('schid', $schid)
     ->where('trm', $trm)
     ->where('clsm', $clsm)
     ->where('clsa', $clsa)
-    ->where('status', 'active')
+    // ->where('status', 'active')
     ->where('sid', $stid)
     ->first();
 
@@ -27895,6 +27895,7 @@ public function promoteStudent(Request $request)
 
 public function BulkPromoteStudent(Request $request)
 {
+
     $request->validate([
         'sid'   => 'required',
         'schid' => 'required',
@@ -44058,8 +44059,8 @@ public function getSingleLessonPlanOption(
     */
 
     return response()->json([
-        'status' => true,
-        'message' => 'Success',
+      'status' => true,
+       'message' => 'Success',
         'pld' => $lessonPlan,
     ], 200);
 }
