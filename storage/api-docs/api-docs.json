@@ -2203,77 +2203,166 @@
         "/api/setStudentAtOnce": {
             "post": {
                 "tags": [
-                    "Api"
+                    "Students"
                 ],
-                "summary": "Set all info about a student",
-                "operationId": "970eae33f5eaa6c180e5989fdc961499",
+                "summary": "Create student account and student records",
+                "description": "Creates a student user account, generates a unique school email address, creates or updates the student's academic, basic, and acceptance fee records.",
+                "operationId": "setStudentAtOnce",
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
+                                "required": [
+                                    "schid",
+                                    "password",
+                                    "fname",
+                                    "lname",
+                                    "term",
+                                    "ssn",
+                                    "sch3",
+                                    "stat",
+                                    "last_school",
+                                    "last_class",
+                                    "new_class",
+                                    "new_class_main",
+                                    "dob",
+                                    "sex",
+                                    "height",
+                                    "country",
+                                    "state",
+                                    "lga",
+                                    "addr"
+                                ],
                                 "properties": {
                                     "schid": {
-                                        "type": "string"
-                                    },
-                                    "last_school": {
-                                        "type": "string"
-                                    },
-                                    "last_class": {
-                                        "type": "string"
-                                    },
-                                    "new_class": {
-                                        "type": "string"
-                                    },
-                                    "new_class_main": {
-                                        "type": "string"
-                                    },
-                                    "dob": {
-                                        "type": "string"
-                                    },
-                                    "sex": {
-                                        "type": "string"
-                                    },
-                                    "height": {
-                                        "type": "string"
-                                    },
-                                    "country": {
-                                        "type": "string"
-                                    },
-                                    "state": {
-                                        "type": "string"
-                                    },
-                                    "lga": {
-                                        "type": "string"
-                                    },
-                                    "addr": {
-                                        "type": "string"
-                                    },
-                                    "email": {
+                                        "description": "School ID",
                                         "type": "string",
-                                        "format": "email"
-                                    },
-                                    "fname": {
-                                        "type": "string"
-                                    },
-                                    "lname": {
-                                        "type": "string"
-                                    },
-                                    "term": {
-                                        "type": "string"
-                                    },
-                                    "ssn": {
-                                        "type": "string"
-                                    },
-                                    "sch3": {
-                                        "type": "string"
-                                    },
-                                    "stat": {
-                                        "type": "string"
+                                        "example": "3531"
                                     },
                                     "password": {
-                                        "description": "The password for the student",
-                                        "type": "string"
+                                        "description": "Student account password. Minimum 6 characters.",
+                                        "type": "string",
+                                        "format": "password",
+                                        "minLength": 6,
+                                        "example": "password123"
+                                    },
+                                    "fname": {
+                                        "description": "Student first name",
+                                        "type": "string",
+                                        "maxLength": 100,
+                                        "example": "Daniel"
+                                    },
+                                    "lname": {
+                                        "description": "Student surname/last name",
+                                        "type": "string",
+                                        "maxLength": 100,
+                                        "example": "Okafor"
+                                    },
+                                    "mname": {
+                                        "description": "Student middle name",
+                                        "type": "string",
+                                        "maxLength": 100,
+                                        "example": "Chinedu",
+                                        "nullable": true
+                                    },
+                                    "term": {
+                                        "description": "Academic term",
+                                        "type": "string",
+                                        "example": "1"
+                                    },
+                                    "ssn": {
+                                        "description": "Academic session",
+                                        "type": "string",
+                                        "example": "2026"
+                                    },
+                                    "sch3": {
+                                        "description": "School code used when generating the student ID",
+                                        "type": "string",
+                                        "example": "ABC"
+                                    },
+                                    "stat": {
+                                        "description": "Student status / registration status",
+                                        "type": "string",
+                                        "example": "NEW"
+                                    },
+                                    "last_school": {
+                                        "description": "Student's previous school",
+                                        "type": "string",
+                                        "example": "Previous Secondary School"
+                                    },
+                                    "last_class": {
+                                        "description": "Student's previous class",
+                                        "type": "string",
+                                        "example": "JSS3"
+                                    },
+                                    "new_class": {
+                                        "description": "Student's new class",
+                                        "type": "string",
+                                        "example": "SS1"
+                                    },
+                                    "new_class_main": {
+                                        "description": "New class ID",
+                                        "type": "string",
+                                        "example": "12"
+                                    },
+                                    "dob": {
+                                        "description": "Student date of birth. Format: YYYY-MM-DD",
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2010-05-15"
+                                    },
+                                    "sex": {
+                                        "description": "Student gender",
+                                        "type": "string",
+                                        "enum": [
+                                            "MALE",
+                                            "FEMALE"
+                                        ],
+                                        "example": "MALE"
+                                    },
+                                    "height": {
+                                        "description": "Student height",
+                                        "type": "string",
+                                        "example": "150"
+                                    },
+                                    "country": {
+                                        "description": "Country of residence",
+                                        "type": "string",
+                                        "example": "Nigeria"
+                                    },
+                                    "state": {
+                                        "description": "State of residence",
+                                        "type": "string",
+                                        "example": "Lagos"
+                                    },
+                                    "lga": {
+                                        "description": "Local Government Area",
+                                        "type": "string",
+                                        "example": "Ikeja"
+                                    },
+                                    "addr": {
+                                        "description": "Residential address",
+                                        "type": "string",
+                                        "example": "12 Allen Avenue, Ikeja"
+                                    },
+                                    "count": {
+                                        "description": "Student registration count. If omitted, it is generated automatically.",
+                                        "type": "string",
+                                        "example": "15",
+                                        "nullable": true
+                                    },
+                                    "cuid": {
+                                        "description": "Existing/custom student ID. Optional.",
+                                        "type": "string",
+                                        "example": "ABC/2026/0015",
+                                        "nullable": true
+                                    },
+                                    "trm": {
+                                        "description": "Term used for acceptance fee record.",
+                                        "type": "string",
+                                        "example": "1",
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -2283,17 +2372,83 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Student data set successfully"
+                        "description": "Student account created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "400": {
-                        "description": "Validation error"
+                        "description": "Bad request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "properties": {
+                                                "status": {
+                                                    "type": "boolean",
+                                                    "example": false
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "Account already exists"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "properties": {
+                                                "status": {
+                                                    "type": "boolean",
+                                                    "example": false
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "Password must be at least 6 characters"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation or school configuration error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "School not found."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
+                }
             }
         },
         "/api/setStudentBasicInfo": {
