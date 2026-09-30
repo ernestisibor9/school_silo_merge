@@ -1908,6 +1908,7 @@
                     "Unprotected"
                 ],
                 "summary": "Register a new student",
+                "description": "Registers a new student account. Surname, first name, and middle name are automatically converted to uppercase before being saved.",
                 "operationId": "be7cf7d821314e08bcf500e402daf894",
                 "requestBody": {
                     "required": true,
@@ -1916,34 +1917,69 @@
                             "schema": {
                                 "properties": {
                                     "schid": {
-                                        "description": "School ID which this student belongs",
-                                        "type": "string"
+                                        "description": "School ID which this student belongs to",
+                                        "type": "string",
+                                        "example": "3531"
                                     },
                                     "email": {
+                                        "description": "Student email address. Must be unique.",
                                         "type": "string",
-                                        "format": "email"
-                                    },
-                                    "fname": {
-                                        "type": "string"
-                                    },
-                                    "lname": {
-                                        "type": "string"
-                                    },
-                                    "term": {
-                                        "type": "string"
-                                    },
-                                    "ssn": {
-                                        "type": "string"
-                                    },
-                                    "sch3": {
-                                        "type": "string"
-                                    },
-                                    "stat": {
-                                        "type": "string"
+                                        "format": "email",
+                                        "example": "student@example.com"
                                     },
                                     "password": {
-                                        "description": "The password for the student",
-                                        "type": "string"
+                                        "description": "Student password. Must be at least 6 characters.",
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "password123"
+                                    },
+                                    "fname": {
+                                        "description": "Student first name. Automatically converted to uppercase.",
+                                        "type": "string",
+                                        "example": "JOHN"
+                                    },
+                                    "lname": {
+                                        "description": "Student surname. Automatically converted to uppercase.",
+                                        "type": "string",
+                                        "example": "DOE"
+                                    },
+                                    "mname": {
+                                        "description": "Student middle name. Optional and automatically converted to uppercase.",
+                                        "type": "string",
+                                        "example": "MICHAEL",
+                                        "nullable": true
+                                    },
+                                    "term": {
+                                        "description": "Student academic term.",
+                                        "type": "string",
+                                        "example": "1"
+                                    },
+                                    "ssn": {
+                                        "description": "Student session/year.",
+                                        "type": "string",
+                                        "example": "2026"
+                                    },
+                                    "sch3": {
+                                        "description": "School code.",
+                                        "type": "string",
+                                        "example": "ABC"
+                                    },
+                                    "stat": {
+                                        "description": "Student registration/status fee value.",
+                                        "type": "string",
+                                        "example": "5000"
+                                    },
+                                    "cuid": {
+                                        "description": "Existing/unique student ID. Optional. Must be unique when provided.",
+                                        "type": "string",
+                                        "example": "ABC/2026/1/001",
+                                        "nullable": true
+                                    },
+                                    "count": {
+                                        "description": "Student registration count. Optional. If not supplied, it is generated automatically.",
+                                        "type": "string",
+                                        "example": "1",
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -1953,7 +1989,63 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Password reset token sent to mail"
+                        "description": "Student registered successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User created successfully"
+                                        },
+                                        "token": {
+                                            "description": "JWT authentication token.",
+                                            "type": "string",
+                                            "example": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+                                            "nullable": true
+                                        },
+                                        "sid": {
+                                            "description": "Generated student ID.",
+                                            "type": "string",
+                                            "example": "ABC/2026/1/1"
+                                        },
+                                        "user_id": {
+                                            "description": "Newly created user ID.",
+                                            "type": "string",
+                                            "example": "12345"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Account already exists or password is too short",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Account already exists"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error"
                     }
                 }
             }

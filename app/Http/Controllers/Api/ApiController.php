@@ -2005,31 +2005,172 @@ class ApiController extends Controller
         ]);
     }
 
-    //--STUDENT
+//--STUDENT
 
-    /**
-     * @OA\Post(
-     *     path="/api/registerStudent",
-     *     tags={"Unprotected"},
-     *     summary="Register a new student",
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="schid", type="string", description="School ID which this student belongs"),
-     *             @OA\Property(property="email", type="string", format="email"),
-     *             @OA\Property(property="fname", type="string"),
-     *             @OA\Property(property="lname", type="string"),
-     *             @OA\Property(property="term", type="string"),
-     *             @OA\Property(property="ssn", type="string"),
-     *             @OA\Property(property="sch3", type="string"),
-     *             @OA\Property(property="stat", type="string"),
-     *             @OA\Property(property="password", type="string", description="The password for the student"),
-     *         )
-     *     ),
-     *     @OA\Response(response="200", description="Password reset token sent to mail"),
-     * )
-     */
+/**
+ * @OA\Post(
+ *     path="/api/registerStudent",
+ *     tags={"Unprotected"},
+ *     summary="Register a new student",
+ *     description="Registers a new student account. Surname, first name, and middle name are automatically converted to uppercase before being saved.",
+ *
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             type="object",
+ *
+ *             @OA\Property(
+ *                 property="schid",
+ *                 type="string",
+ *                 description="School ID which this student belongs to",
+ *                 example="3531"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="email",
+ *                 type="string",
+ *                 format="email",
+ *                 description="Student email address. Must be unique.",
+ *                 example="student@example.com"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="password",
+ *                 type="string",
+ *                 format="password",
+ *                 description="Student password. Must be at least 6 characters.",
+ *                 example="password123"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="fname",
+ *                 type="string",
+ *                 description="Student first name. Automatically converted to uppercase.",
+ *                 example="JOHN"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="lname",
+ *                 type="string",
+ *                 description="Student surname. Automatically converted to uppercase.",
+ *                 example="DOE"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="mname",
+ *                 type="string",
+ *                 nullable=true,
+ *                 description="Student middle name. Optional and automatically converted to uppercase.",
+ *                 example="MICHAEL"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="term",
+ *                 type="string",
+ *                 description="Student academic term.",
+ *                 example="1"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="ssn",
+ *                 type="string",
+ *                 description="Student session/year.",
+ *                 example="2026"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="sch3",
+ *                 type="string",
+ *                 description="School code.",
+ *                 example="ABC"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="stat",
+ *                 type="string",
+ *                 description="Student registration/status fee value.",
+ *                 example="5000"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="cuid",
+ *                 type="string",
+ *                 nullable=true,
+ *                 description="Existing/unique student ID. Optional. Must be unique when provided.",
+ *                 example="ABC/2026/1/001"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="count",
+ *                 type="string",
+ *                 nullable=true,
+ *                 description="Student registration count. Optional. If not supplied, it is generated automatically.",
+ *                 example="1"
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Student registered successfully",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(
+ *                 property="status",
+ *                 type="boolean",
+ *                 example=true
+ *             ),
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="User created successfully"
+ *             ),
+ *             @OA\Property(
+ *                 property="token",
+ *                 type="string",
+ *                 nullable=true,
+ *                 description="JWT authentication token.",
+ *                 example="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+ *             ),
+ *             @OA\Property(
+ *                 property="sid",
+ *                 type="string",
+ *                 description="Generated student ID.",
+ *                 example="ABC/2026/1/1"
+ *             ),
+ *             @OA\Property(
+ *                 property="user_id",
+ *                 type="string",
+ *                 description="Newly created user ID.",
+ *                 example="12345"
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=400,
+ *         description="Account already exists or password is too short",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(
+ *                 property="status",
+ *                 type="boolean",
+ *                 example=false
+ *             ),
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="Account already exists"
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation error"
+ *     )
+ * )
+ */
 
 
     // public function registerStudent(Request $request)
