@@ -2139,19 +2139,16 @@ class ApiController extends Controller
     // }
 
 
-    public function registerStudent(Request $request)
+public function registerStudent(Request $request)
 {
     // Data validation
     $request->validate([
         "schid" => "required",
         "email" => "required|email|unique:users,email",
         "password" => "required",
-
-        // Names
-        "fname" => "required|string|max:100|regex:/^[A-Za-z\s]+$/",
-        "lname" => "required|string|max:100|regex:/^[A-Za-z\s]+$/",
-        "mname" => "nullable|string|max:100|regex:/^[A-Za-z\s]+$/",
-
+        "fname" => "required|string|max:100",
+        "lname" => "required|string|max:100",
+        "mname" => "nullable|string|max:100",
         "term" => "required",
         "ssn" => "required",
         "sch3" => "required",
@@ -2161,7 +2158,7 @@ class ApiController extends Controller
 
     /*
     |--------------------------------------------------------------------------
-    | Convert names to uppercase
+    | Convert Names to Uppercase
     |--------------------------------------------------------------------------
     */
 
@@ -2172,9 +2169,10 @@ class ApiController extends Controller
         ? strtoupper(trim($request->mname))
         : null;
 
+
     /*
     |--------------------------------------------------------------------------
-    | Password validation
+    | Password Validation
     |--------------------------------------------------------------------------
     */
 
@@ -2185,18 +2183,36 @@ class ApiController extends Controller
         ], 400);
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Check Existing User
+    |--------------------------------------------------------------------------
+    */
+
     $typ = 'z';
 
     $usr = User::where("typ", $typ)
         ->where("email", $request->email)
         ->first();
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Check Existing Student
+    |--------------------------------------------------------------------------
+    */
+
     $tstd = null;
 
     if ($request->cuid) {
+
         $tstd = student::where("cuid", $request->cuid)->first();
+
     } else {
+
         if ($request->count) {
+
             $tstd = student::where("sch3", $request->sch3)
                 ->where("year", $request->ssn)
                 ->where("term", $request->term)
@@ -2204,6 +2220,13 @@ class ApiController extends Controller
                 ->first();
         }
     }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Create Student
+    |--------------------------------------------------------------------------
+    */
 
     if (!$usr && !$tstd) {
 
@@ -2214,19 +2237,40 @@ class ApiController extends Controller
             "password" => bcrypt($request->password),
         ]);
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Generate Student Count
+        |--------------------------------------------------------------------------
+        */
+
         $count = $request->count;
 
         if (!$count) {
             $count = student::where('schid', $request->schid)->count() + 1;
         }
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Student SSN / Year
+        |--------------------------------------------------------------------------
+        */
+
         $ssn = $request->ssn;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Create Student Record
+        |--------------------------------------------------------------------------
+        */
 
         student::create([
             "sid" => strval($usr->id),
             "schid" => $request->schid,
 
-            // Store names in uppercase
+            // Names are now saved as uppercase
             "fname" => $fname,
             "mname" => $mname,
             "lname" => $lname,
@@ -2235,54 +2279,106 @@ class ApiController extends Controller
             "year" => $ssn,
             "term" => $request->term,
             "sch3" => $request->sch3,
+
             "s_basic" => '0',
             "s_medical" => '0',
             "s_parent" => '0',
             "s_academic" => '0',
+
             "rfee" => $request->stat,
             "stat" => $request->stat,
             "cuid" => $request->cuid,
         ]);
 
-        $sid = $request->sch3 . '/' . $ssn . '/' . $request->term . '/' . strval($count);
 
-        // Wrap the email sending logic in a try-catch block
+        /*
+        |--------------------------------------------------------------------------
+        | Generate Student ID
+        |--------------------------------------------------------------------------
+        */
+
+        $sid = $request->sch3
+            . '/'
+            . $ssn
+            . '/'
+            . $request->term
+            . '/'
+            . strval($count);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Send Welcome Email
+        |--------------------------------------------------------------------------
+        */
+
         try {
 
             if ($request->cuid) {
 
                 $data = [
                     'name' => $fname,
+
                     'subject' => 'Welcome Back, Your ID remains ' . $request->cuid,
+
                     'body' => "Welcome back to your school's platform. Your account was created successfully. If you havent already, please login to your dashboard using the link below and complete your student profile. If the link isnt clickable, please copy the link to your browser. If this arrived in spam folder, please mark as Not Spam. Your Student ID is " . $request->cuid,
-                    'link' => env('PORTAL_URL') . '/studentLogin' . '/' . $request->schid,
+
+                    'link' => env('PORTAL_URL')
+                        . '/studentLogin'
+                        . '/'
+                        . $request->schid,
                 ];
 
-                Mail::to($request->email)->send(new SSSMails($data));
+                Mail::to($request->email)->send(
+                    new SSSMails($data)
+                );
 
             } else {
 
                 $data = [
                     'name' => $fname,
+
                     'subject' => 'Welcome, Your ID is ' . $sid,
-                    'body' => "Welcome to your school's platform. Your account was created successfully. If you havent already, please login to your dashboard using the link below and complete your student profile. If the link isnt clickable, please copy the link to your browser. If this arrived in spam folder, please mark as Not Spam. Your Student ID is " . $sid,
-                    'link' => env('PORTAL_URL') . '/studentLogin' . '/' . $request->schid,
+
+                    'body' => "Welcome to your school's platform. Your account was created successfully. If you havent already, please login to your dashboard and complete your student profile. If the link isnt clickable, please copy the link to your browser. If this arrived in spam folder, please mark as Not Spam. Your Student ID is " . $sid,
+
+                    'link' => env('PORTAL_URL')
+                        . '/studentLogin'
+                        . '/'
+                        . $request->schid,
                 ];
 
-                Mail::to($request->email)->send(new SSSMails($data));
+                Mail::to($request->email)->send(
+                    new SSSMails($data)
+                );
             }
 
         } catch (\Exception $e) {
 
             // Log the email error, but don't stop the process
-            Log::error('Failed to send email: ' . $e->getMessage());
+            Log::error(
+                'Failed to send email: ' . $e->getMessage()
+            );
         }
 
-        // Respond
+
+        /*
+        |--------------------------------------------------------------------------
+        | Generate JWT Token
+        |--------------------------------------------------------------------------
+        */
+
         $token = JWTAuth::attempt([
             "email" => $request->email,
             "password" => $request->password,
         ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Return Response
+        |--------------------------------------------------------------------------
+        */
 
         return response()->json([
             "status" => true,
@@ -2293,12 +2389,18 @@ class ApiController extends Controller
         ]);
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Account Already Exists
+    |--------------------------------------------------------------------------
+    */
+
     return response()->json([
         "status" => false,
         "message" => "Account already exists",
     ], 400);
 }
-
 
     /**
      * @OA\Post(
