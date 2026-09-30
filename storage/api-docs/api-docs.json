@@ -2451,6 +2451,268 @@
                 }
             }
         },
+        "/api/setStudentAtOnceBulk": {
+            "post": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Bulk register students",
+                "description": "Creates multiple student accounts and their related student, academic, basic, and acceptance fee records in a single request. Email addresses are generated automatically from the student's name and the school's sbd domain.",
+                "operationId": "setStudentAtOnceBulk",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "students"
+                                ],
+                                "properties": {
+                                    "students": {
+                                        "description": "Array of students to register.",
+                                        "type": "array",
+                                        "items": {
+                                            "required": [
+                                                "schid",
+                                                "password",
+                                                "fname",
+                                                "lname",
+                                                "term",
+                                                "trm",
+                                                "ssn",
+                                                "sch3",
+                                                "stat",
+                                                "last_school",
+                                                "last_class",
+                                                "new_class",
+                                                "new_class_main",
+                                                "dob",
+                                                "sex",
+                                                "height",
+                                                "country",
+                                                "state",
+                                                "lga",
+                                                "addr"
+                                            ],
+                                            "properties": {
+                                                "schid": {
+                                                    "description": "School ID.",
+                                                    "type": "string",
+                                                    "example": "3531"
+                                                },
+                                                "password": {
+                                                    "description": "Student account password. Minimum 6 characters.",
+                                                    "type": "string",
+                                                    "format": "password",
+                                                    "minLength": 6,
+                                                    "example": "password123"
+                                                },
+                                                "fname": {
+                                                    "description": "Student first name. Converted to uppercase by the server.",
+                                                    "type": "string",
+                                                    "maxLength": 100,
+                                                    "example": "Daniel"
+                                                },
+                                                "mname": {
+                                                    "description": "Student middle name. Optional. Converted to uppercase by the server.",
+                                                    "type": "string",
+                                                    "maxLength": 100,
+                                                    "example": "Chinedu",
+                                                    "nullable": true
+                                                },
+                                                "lname": {
+                                                    "description": "Student surname/last name. Converted to uppercase by the server.",
+                                                    "type": "string",
+                                                    "maxLength": 100,
+                                                    "example": "Okafor"
+                                                },
+                                                "term": {
+                                                    "description": "Academic term.",
+                                                    "type": "string",
+                                                    "example": "1"
+                                                },
+                                                "trm": {
+                                                    "description": "Term used for the acceptance fee record.",
+                                                    "type": "integer",
+                                                    "enum": [
+                                                        1,
+                                                        2,
+                                                        3
+                                                    ],
+                                                    "example": 1
+                                                },
+                                                "ssn": {
+                                                    "description": "Academic session.",
+                                                    "type": "string",
+                                                    "example": "2026"
+                                                },
+                                                "sch3": {
+                                                    "description": "School code used when generating the student ID.",
+                                                    "type": "string",
+                                                    "example": "ABC"
+                                                },
+                                                "stat": {
+                                                    "description": "Student registration/status value.",
+                                                    "type": "string",
+                                                    "example": "NEW"
+                                                },
+                                                "last_school": {
+                                                    "description": "Student's previous school.",
+                                                    "type": "string",
+                                                    "example": "Previous Secondary School"
+                                                },
+                                                "last_class": {
+                                                    "description": "Student's previous class.",
+                                                    "type": "string",
+                                                    "example": "JSS3"
+                                                },
+                                                "new_class": {
+                                                    "description": "Student's new class.",
+                                                    "type": "string",
+                                                    "example": "SS1"
+                                                },
+                                                "new_class_main": {
+                                                    "description": "New class ID.",
+                                                    "type": "string",
+                                                    "example": "12"
+                                                },
+                                                "dob": {
+                                                    "description": "Student date of birth. Must use YYYY-MM-DD format.",
+                                                    "type": "string",
+                                                    "format": "date",
+                                                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                                                    "example": "2010-05-15"
+                                                },
+                                                "sex": {
+                                                    "description": "Student gender.",
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "MALE",
+                                                        "FEMALE"
+                                                    ],
+                                                    "example": "MALE"
+                                                },
+                                                "height": {
+                                                    "description": "Student height.",
+                                                    "type": "string",
+                                                    "example": "150"
+                                                },
+                                                "country": {
+                                                    "description": "Country of residence.",
+                                                    "type": "string",
+                                                    "example": "Nigeria"
+                                                },
+                                                "state": {
+                                                    "description": "State of residence.",
+                                                    "type": "string",
+                                                    "example": "Lagos"
+                                                },
+                                                "lga": {
+                                                    "description": "Local Government Area.",
+                                                    "type": "string",
+                                                    "example": "Ikeja"
+                                                },
+                                                "addr": {
+                                                    "description": "Residential address.",
+                                                    "type": "string",
+                                                    "example": "12 Allen Avenue, Ikeja"
+                                                },
+                                                "count": {
+                                                    "description": "Student registration count. If omitted, it is generated automatically.",
+                                                    "type": "string",
+                                                    "example": "15",
+                                                    "nullable": true
+                                                },
+                                                "cuid": {
+                                                    "description": "Existing/custom student ID. Optional.",
+                                                    "type": "string",
+                                                    "example": "ABC/2026/0015",
+                                                    "nullable": true
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "minItems": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Bulk student registration successful",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Bulk student registration successful"
+                                        },
+                                        "total": {
+                                            "description": "Number of students submitted in the request.",
+                                            "type": "integer",
+                                            "example": 25
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error or school configuration error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The students field is required."
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Bulk student registration failed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Bulk student registration failed."
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "School not found for schid: 3531"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/setStudentBasicInfo": {
             "post": {
                 "tags": [

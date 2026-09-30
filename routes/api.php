@@ -177,6 +177,7 @@ Route::group([
     Route::post('setPaymentInstruction', [ApiController::class, 'setPaymentInstruction']);
     Route::post('setSchoolAppFee', [ApiController::class, 'setSchoolAppFee']);
     Route::post('setStudentAtOnce', [ApiController::class, 'setStudentAtOnce']);
+        Route::post('setStudentAtOnceBulk', [ApiController::class, 'setStudentAtOnceBulk']);
     Route::post('setVendor', [ApiController::class, 'setVendor']);
     Route::post('setExpense', [ApiController::class, 'setExpense']);
     Route::post('setExternalExpenditure', [ApiController::class, 'setExternalExpenditure']);

@@ -3241,6 +3241,898 @@ public function setStudentAtOnce(Request $request)
 
 
 
+
+  /**
+ * @OA\Post(
+ *     path="/api/setStudentAtOnceBulk",
+ *     summary="Bulk register students",
+ *     description="Creates multiple student accounts and their related student, academic, basic, and acceptance fee records in a single request. Email addresses are generated automatically from the student's name and the school's sbd domain.",
+ *     operationId="setStudentAtOnceBulk",
+ *     tags={"Api"},
+ *
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             required={"students"},
+ *
+ *             @OA\Property(
+ *                 property="students",
+ *                 type="array",
+ *                 minItems=1,
+ *                 description="Array of students to register.",
+ *
+ *                 @OA\Items(
+ *                     type="object",
+ *                     required={
+ *                         "schid",
+ *                         "password",
+ *                         "fname",
+ *                         "lname",
+ *                         "term",
+ *                         "trm",
+ *                         "ssn",
+ *                         "sch3",
+ *                         "stat",
+ *                         "last_school",
+ *                         "last_class",
+ *                         "new_class",
+ *                         "new_class_main",
+ *                         "dob",
+ *                         "sex",
+ *                         "height",
+ *                         "country",
+ *                         "state",
+ *                         "lga",
+ *                         "addr"
+ *                     },
+ *
+ *                     @OA\Property(
+ *                         property="schid",
+ *                         type="string",
+ *                         example="3531",
+ *                         description="School ID."
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="password",
+ *                         type="string",
+ *                         format="password",
+ *                         minLength=6,
+ *                         example="password123",
+ *                         description="Student account password. Minimum 6 characters."
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="fname",
+ *                         type="string",
+ *                         maxLength=100,
+ *                         example="Daniel",
+ *                         description="Student first name. Converted to uppercase by the server."
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="mname",
+ *                         type="string",
+ *                         nullable=true,
+ *                         maxLength=100,
+ *                         example="Chinedu",
+ *                         description="Student middle name. Optional. Converted to uppercase by the server."
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="lname",
+ *                         type="string",
+ *                         maxLength=100,
+ *                         example="Okafor",
+ *                         description="Student surname/last name. Converted to uppercase by the server."
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="term",
+ *                         type="string",
+ *                         example="1",
+ *                         description="Academic term."
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="trm",
+ *                         type="integer",
+ *                         enum={1, 2, 3},
+ *                         example=1,
+ *                         description="Term used for the acceptance fee record."
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="ssn",
+ *                         type="string",
+ *                         example="2026",
+ *                         description="Academic session."
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="sch3",
+ *                         type="string",
+ *                         example="ABC",
+ *                         description="School code used when generating the student ID."
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="stat",
+ *                         type="string",
+ *                         example="NEW",
+ *                         description="Student registration/status value."
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="last_school",
+ *                         type="string",
+ *                         example="Previous Secondary School",
+ *                         description="Student's previous school."
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="last_class",
+ *                         type="string",
+ *                         example="JSS3",
+ *                         description="Student's previous class."
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="new_class",
+ *                         type="string",
+ *                         example="SS1",
+ *                         description="Student's new class."
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="new_class_main",
+ *                         type="string",
+ *                         example="12",
+ *                         description="New class ID."
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="dob",
+ *                         type="string",
+ *                         format="date",
+ *                         pattern="^\d{4}-\d{2}-\d{2}$",
+ *                         example="2010-05-15",
+ *                         description="Student date of birth. Must use YYYY-MM-DD format."
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="sex",
+ *                         type="string",
+ *                         enum={"MALE", "FEMALE"},
+ *                         example="MALE",
+ *                         description="Student gender."
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="height",
+ *                         type="string",
+ *                         example="150",
+ *                         description="Student height."
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="country",
+ *                         type="string",
+ *                         example="Nigeria",
+ *                         description="Country of residence."
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="state",
+ *                         type="string",
+ *                         example="Lagos",
+ *                         description="State of residence."
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="lga",
+ *                         type="string",
+ *                         example="Ikeja",
+ *                         description="Local Government Area."
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="addr",
+ *                         type="string",
+ *                         example="12 Allen Avenue, Ikeja",
+ *                         description="Residential address."
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="count",
+ *                         type="string",
+ *                         nullable=true,
+ *                         example="15",
+ *                         description="Student registration count. If omitted, it is generated automatically."
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="cuid",
+ *                         type="string",
+ *                         nullable=true,
+ *                         example="ABC/2026/0015",
+ *                         description="Existing/custom student ID. Optional."
+ *                     )
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Bulk student registration successful",
+ *         @OA\JsonContent(
+ *             @OA\Property(
+ *                 property="status",
+ *                 type="boolean",
+ *                 example=true
+ *             ),
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="Bulk student registration successful"
+ *             ),
+ *             @OA\Property(
+ *                 property="total",
+ *                 type="integer",
+ *                 example=25,
+ *                 description="Number of students submitted in the request."
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation error or school configuration error",
+ *         @OA\JsonContent(
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="The students field is required."
+ *             ),
+ *             @OA\Property(
+ *                 property="errors",
+ *                 type="object",
+ *                 additionalProperties=true
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=500,
+ *         description="Bulk student registration failed",
+ *         @OA\JsonContent(
+ *             @OA\Property(
+ *                 property="status",
+ *                 type="boolean",
+ *                 example=false
+ *             ),
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="Bulk student registration failed."
+ *             ),
+ *             @OA\Property(
+ *                 property="error",
+ *                 type="string",
+ *                 example="School not found for schid: 3531"
+ *             )
+ *         )
+ *     )
+ * )
+ */  
+
+    public function setStudentAtOnceBulk(Request $request)
+{
+    /*
+    |--------------------------------------------------------------------------
+    | Validate Bulk Request
+    |--------------------------------------------------------------------------
+    */
+
+    $request->validate([
+
+        "students" => "required|array|min:1",
+
+        "students.*.schid" => "required",
+        "students.*.password" => "required|string|min:6",
+
+        "students.*.fname" => "required|string|max:100",
+        "students.*.lname" => "required|string|max:100",
+        "students.*.mname" => "nullable|string|max:100",
+
+        "students.*.term" => "required",
+        "students.*.trm" => "required|integer|in:1,2,3",
+
+        "students.*.ssn" => "required",
+        "students.*.sch3" => "required",
+        "students.*.stat" => "required",
+
+        "students.*.last_school" => "required",
+        "students.*.last_class" => "required",
+        "students.*.new_class" => "required",
+        "students.*.new_class_main" => "required",
+
+        "students.*.dob" => [
+            "required",
+            "date_format:Y-m-d",
+            "before:today",
+        ],
+
+        "students.*.sex" => "required|in:MALE,FEMALE",
+
+        "students.*.height" => "required",
+        "students.*.country" => "required",
+        "students.*.state" => "required",
+        "students.*.lga" => "required",
+        "students.*.addr" => "required",
+
+        "students.*.count" => "nullable",
+        "students.*.cuid" => "nullable",
+    ]);
+
+
+    try {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Start Database Transaction
+        |--------------------------------------------------------------------------
+        */
+
+        DB::transaction(function () use ($request) {
+
+            foreach ($request->students as $data) {
+
+                /*
+                |--------------------------------------------------------------------------
+                | Convert Names To Uppercase
+                |--------------------------------------------------------------------------
+                */
+
+                $fname = strtoupper(trim($data['fname']));
+                $lname = strtoupper(trim($data['lname']));
+
+                $mname = !empty($data['mname'])
+                    ? strtoupper(trim($data['mname']))
+                    : null;
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Get School
+                |--------------------------------------------------------------------------
+                */
+
+                $school = school::where('sid', $data['schid'])->first();
+
+                if (!$school) {
+                    throw new \Exception(
+                        "School not found for schid: " . $data['schid']
+                    );
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Check School Email Domain
+                |--------------------------------------------------------------------------
+                */
+
+                if (empty($school->sbd)) {
+                    throw new \Exception(
+                        "School email domain is not configured for schid: "
+                        . $data['schid']
+                    );
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Generate Email Username
+                |--------------------------------------------------------------------------
+                |
+                | Example:
+                |
+                | Daniel Olusanya
+                | daniel_olusanya
+                |
+                | Daniel John Olusanya
+                | daniel_john_olusanya
+                |
+                */
+
+                $emailParts = [
+                    strtolower($fname),
+                ];
+
+                if (!empty($mname)) {
+                    $emailParts[] = strtolower($mname);
+                }
+
+                $emailParts[] = strtolower($lname);
+
+                $emailUsername = implode('_', $emailParts);
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Remove Invalid Characters From Email Username
+                |--------------------------------------------------------------------------
+                */
+
+                $emailUsername = preg_replace(
+                    '/[^a-z0-9_]/',
+                    '',
+                    $emailUsername
+                );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Get School Domain From school.sbd
+                |--------------------------------------------------------------------------
+                */
+
+                $schoolDomain = strtolower(trim($school->sbd));
+
+                $schoolDomain = preg_replace(
+                    '/[^a-z0-9.-]/',
+                    '',
+                    $schoolDomain
+                );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Prevent Duplicate .com
+                |--------------------------------------------------------------------------
+                */
+
+                $schoolDomain = preg_replace(
+                    '/\.com$/i',
+                    '',
+                    $schoolDomain
+                );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Generate Email
+                |--------------------------------------------------------------------------
+                */
+
+                $email = $emailUsername
+                    . '@'
+                    . $schoolDomain
+                    . '.com';
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Ensure Email Is Unique
+                |--------------------------------------------------------------------------
+                */
+
+                if (User::where('email', $email)->exists()) {
+
+                    do {
+
+                        $digits = random_int(1000, 9999);
+
+                        $email = $emailUsername
+                            . $digits
+                            . '@'
+                            . $schoolDomain
+                            . '.com';
+
+                    } while (User::where('email', $email)->exists());
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Create User
+                |--------------------------------------------------------------------------
+                */
+
+                $typ = 'z';
+
+                $usr = User::where("typ", $typ)
+                    ->where("email", $email)
+                    ->first();
+
+                if ($usr) {
+
+                    throw new \Exception(
+                        "Account already exists for email: " . $email
+                    );
+                }
+
+
+                $usr = User::create([
+                    "email" => $email,
+                    "typ" => $typ,
+                    "verif" => '1',
+                    "password" => bcrypt($data['password']),
+                ]);
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Generate Student Count
+                |--------------------------------------------------------------------------
+                */
+
+                $count = $data['count'] ?? null;
+
+                if (!$count) {
+
+                    $count = student::where(
+                        'schid',
+                        $data['schid']
+                    )->count() + 1;
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Student SSN
+                |--------------------------------------------------------------------------
+                */
+
+                $ssn = $data['ssn'];
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Create Student
+                |--------------------------------------------------------------------------
+                */
+
+                student::updateOrCreate(
+                    [
+                        'sid' => strval($usr->id),
+                    ],
+                    [
+                        'schid' => $data['schid'],
+
+                        'fname' => $fname,
+                        'mname' => $mname,
+                        'lname' => $lname,
+
+                        'year' => $data['ssn'],
+                        'term' => $data['term'],
+
+                        'count' => strval($count),
+
+                        'sch3' => $data['sch3'],
+
+                        's_basic' => '0',
+                        's_medical' => '0',
+                        's_parent' => '0',
+                        's_academic' => '0',
+
+                        'rfee' => $data['stat'],
+                        'stat' => $data['stat'],
+
+                        'cuid' => $data['cuid'] ?? null,
+                    ]
+                );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Student ID
+                |--------------------------------------------------------------------------
+                */
+
+                $sid = $data['sch3']
+                    . '/'
+                    . $ssn
+                    . '/'
+                    . $data['term']
+                    . '/'
+                    . strval($count);
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Validate DOB Again
+                |--------------------------------------------------------------------------
+                */
+
+                try {
+
+                    $dobObject = Carbon::createFromFormat(
+                        'Y-m-d',
+                        $data['dob']
+                    );
+
+                    if (
+                        $dobObject->format('Y-m-d')
+                        !== $data['dob']
+                    ) {
+                        throw new \Exception();
+                    }
+
+                    $dob = $dobObject->format('Y-m-d');
+
+                } catch (\Exception $e) {
+
+                    throw new \Exception(
+                        "Invalid date of birth for student: "
+                        . $fname
+                        . " "
+                        . $lname
+                        . ". DOB must be YYYY-MM-DD."
+                    );
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Send Welcome Email
+                |--------------------------------------------------------------------------
+                */
+
+                try {
+
+                    if (!empty($data['cuid'])) {
+
+                        $mailData = [
+
+                            'name' => $fname,
+
+                            'subject' =>
+                                'Welcome Back, Your ID remains '
+                                . $data['cuid'],
+
+                            'body' =>
+                                "Welcome back to your school's platform. "
+                                . "Your account was created successfully. "
+                                . "If you havent already, please login to "
+                                . "your dashboard using the link below and "
+                                . "complete your student profile. "
+                                . "Your Student ID is "
+                                . $data['cuid'],
+
+                            'link' =>
+                                env('PORTAL_URL')
+                                . '/studentLogin/'
+                                . $data['schid'],
+                        ];
+
+                    } else {
+
+                        $mailData = [
+
+                            'name' => $fname,
+
+                            'subject' =>
+                                'Welcome, Your ID is ' . $sid,
+
+                            'body' =>
+                                "Welcome to your school's platform. "
+                                . "Your account was created successfully. "
+                                . "If you havent already, please login to "
+                                . "your dashboard using the link below and "
+                                . "complete your student profile. "
+                                . "Your Student ID is "
+                                . $sid,
+
+                            'link' =>
+                                env('PORTAL_URL')
+                                . '/studentLogin/'
+                                . $data['schid'],
+                        ];
+                    }
+
+                    Mail::to($email)->send(
+                        new SSSMails($mailData)
+                    );
+
+                } catch (\Exception $e) {
+
+                    Log::error(
+                        'Failed to send email to '
+                        . $email
+                        . ': '
+                        . $e->getMessage()
+                    );
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | User ID
+                |--------------------------------------------------------------------------
+                */
+
+                $user_id = strval($usr->id);
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Check If Subjects Need Refresh
+                |--------------------------------------------------------------------------
+                */
+
+                $refreshSubjects = false;
+
+                $oldData = student_academic_data::where(
+                    'user_id',
+                    $user_id
+                )->first();
+
+                if ($oldData) {
+
+                    $refreshSubjects =
+                        $oldData->new_class_main
+                        != $data['new_class_main'];
+
+                } else {
+
+                    $refreshSubjects = true;
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Student Academic Data
+                |--------------------------------------------------------------------------
+                */
+
+                student_academic_data::updateOrCreate(
+                    [
+                        "user_id" => $user_id,
+                    ],
+                    [
+                        "last_school" => $data['last_school'],
+
+                        "last_class" => $data['last_class'],
+
+                        "new_class" => $data['new_class'],
+
+                        "new_class_main" =>
+                            $data['new_class_main'],
+                    ]
+                );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Delete Subjects If Class Changed
+                |--------------------------------------------------------------------------
+                */
+
+                if ($refreshSubjects) {
+
+                    student_subj::where(
+                        'stid',
+                        $user_id
+                    )->delete();
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Student Basic Data
+                |--------------------------------------------------------------------------
+                */
+
+                student_basic_data::updateOrCreate(
+                    [
+                        "user_id" => $user_id,
+                    ],
+                    [
+                        "dob" => $dob,
+
+                        "sex" => $data['sex'],
+
+                        "height" => $data['height'],
+
+                        "country" => $data['country'],
+
+                        "state" => $data['state'],
+
+                        "lga" => $data['lga'],
+
+                        "addr" => $data['addr'],
+                    ]
+                );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Mark Student Profile As Complete
+                |--------------------------------------------------------------------------
+                */
+
+                student::where(
+                    'sid',
+                    $user_id
+                )->update([
+                    "s_basic" => '1',
+                    "s_academic" => '1'
+                ]);
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Set Acceptance Fee Record
+                |--------------------------------------------------------------------------
+                */
+
+                $uid = $user_id
+                    . $data['schid']
+                    . $data['new_class_main'];
+
+
+                afeerec::updateOrCreate(
+                    [
+                        "uid" => $uid,
+                    ],
+                    [
+                        "stid" => $user_id,
+
+                        "schid" => $data['schid'],
+
+                        "clsid" =>
+                            $data['new_class_main'],
+
+                        "ssn" => $data['ssn'],
+
+                        "term" => $data['trm'],
+
+                        "amt" => 0,
+                    ]
+                );
+            }
+        });
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Successful Response
+        |--------------------------------------------------------------------------
+        */
+
+        return response()->json([
+            "status" => true,
+            "message" => "Bulk student registration successful",
+            "total" => count($request->students),
+        ]);
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Handle Error
+    |--------------------------------------------------------------------------
+    */
+
+    catch (\Exception $e) {
+
+        Log::error(
+            "Bulk student registration failed: "
+            . $e->getMessage()
+        );
+
+        return response()->json([
+            "status" => false,
+            "message" => "Bulk student registration failed.",
+            "error" => $e->getMessage(),
+        ], 500);
+    }
+}
+
+
     /**
      * @OA\Post(
      *     path="/api/setStudentBasicInfo",
