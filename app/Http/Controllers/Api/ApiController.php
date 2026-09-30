@@ -2032,111 +2032,274 @@ class ApiController extends Controller
      */
 
 
-    public function registerStudent(Request $request)
-    {
-        //Data validation
-        $request->validate([
-            "schid" => "required",
-            "email" => "required|email|unique:users,email",
-            "password" => "required",
-            "fname" => "required",
-            "lname" => "required",
-            "term" => "required",
-            "ssn" => "required",
-            "sch3" => "required",
-            "stat" => "required",
-            "cuid" => "nullable|unique:student,cuid",
-        ]);
-        if (strlen($request->password) < 6) {
-            return response()->json([
-                "status" => false,
-                "message" => "Password must be at least 6 char",
-            ], 400);
-        }
-        $typ = 'z';
-        $usr = User::where("typ", $typ)->where("email", $request->email)->first();
-        $tstd = null;
-        if ($request->cuid) {
-            $tstd = student::where("cuid", $request->cuid)->first();
-        } else {
-            if ($request->count) {
-                $tstd = student::where("sch3", $request->sch3)->where("year", $request->ssn)
-                    ->where("term", $request->term)->where("count", $request->count)->first();
-            }
-        }
-        if (!$usr && !$tstd) {
-            $usr = User::create([
-                "email" => $request->email,
-                "typ" => $typ,
-                "verif" => '1',
-                "password" => bcrypt($request->password),
-            ]);
-            $count = $request->count;
-            if (!$count) {
-                $count = student::where('schid', $request->schid)->count() + 1;
-            }
-            $ssn = $request->ssn;
-            student::create([
-                "sid" => strval($usr->id),
-                "schid" => $request->schid,
-                "fname" => $request->fname,
-                "mname" => $request->mname,
-                "lname" => $request->lname,
-                "count" => strval($count),
-                "year" => $ssn,
-                "term" => $request->term,
-                "sch3" => $request->sch3,
-                "s_basic" => '0',
-                "s_medical" => '0',
-                "s_parent" => '0',
-                "s_academic" => '0',
-                "rfee" => $request->stat,
-                "stat" => $request->stat,
-                "cuid" => $request->cuid,
-            ]);
-            $sid = $request->sch3 . '/' . $ssn . '/' . $request->term . '/' . strval($count);
-            // Wrap the email sending logic in a try-catch block
-            try {
-                if ($request->cuid) {
-                    $data = [
-                        'name' => $request->fname,
-                        'subject' => 'Welcome Back, Your ID remains ' . $request->cuid,
-                        'body' => "Welcome back to your school's platform. Your account was created successfully. If you havent already, please login to your dashboard using the link below and complete your student profile. If the link isnt clickable, please copy the link to your browser. If this arrived in spam folder, please mark as Not Spam. Your Student ID is " . $request->cuid,
-                        'link' => env('PORTAL_URL') . '/studentLogin' . '/' . $request->schid,
-                    ];
-                    Mail::to($request->email)->send(new SSSMails($data));
-                } else {
-                    $data = [
-                        'name' => $request->fname,
-                        'subject' => 'Welcome, Your ID is ' . $sid,
-                        'body' => "Welcome to your school's platform. Your account was created successfully. If you havent already, please login to your dashboard using the link below and complete your student profile. If the link isnt clickable, please copy the link to your browser. If this arrived in spam folder, please mark as Not Spam. Your Student ID is " . $sid,
-                        'link' => env('PORTAL_URL') . '/studentLogin' . '/' . $request->schid,
-                    ];
-                    Mail::to($request->email)->send(new SSSMails($data));
-                }
-            } catch (\Exception $e) {
-                // Log the email error, but don't stop the process
-                Log::error('Failed to send email: ' . $e->getMessage());
-            }
+    // public function registerStudent(Request $request)
+    // {
+    //     //Data validation
+    //     $request->validate([
+    //         "schid" => "required",
+    //         "email" => "required|email|unique:users,email",
+    //         "password" => "required",
+    //         "fname" => "required",
+    //         "lname" => "required",
+    //         "term" => "required",
+    //         "ssn" => "required",
+    //         "sch3" => "required",
+    //         "stat" => "required",
+    //         "cuid" => "nullable|unique:student,cuid",
+    //     ]);
+    //     if (strlen($request->password) < 6) {
+    //         return response()->json([
+    //             "status" => false,
+    //             "message" => "Password must be at least 6 char",
+    //         ], 400);
+    //     }
+    //     $typ = 'z';
+    //     $usr = User::where("typ", $typ)->where("email", $request->email)->first();
+    //     $tstd = null;
+    //     if ($request->cuid) {
+    //         $tstd = student::where("cuid", $request->cuid)->first();
+    //     } else {
+    //         if ($request->count) {
+    //             $tstd = student::where("sch3", $request->sch3)->where("year", $request->ssn)
+    //                 ->where("term", $request->term)->where("count", $request->count)->first();
+    //         }
+    //     }
+    //     if (!$usr && !$tstd) {
+    //         $usr = User::create([
+    //             "email" => $request->email,
+    //             "typ" => $typ,
+    //             "verif" => '1',
+    //             "password" => bcrypt($request->password),
+    //         ]);
+    //         $count = $request->count;
+    //         if (!$count) {
+    //             $count = student::where('schid', $request->schid)->count() + 1;
+    //         }
+    //         $ssn = $request->ssn;
+    //         student::create([
+    //             "sid" => strval($usr->id),
+    //             "schid" => $request->schid,
+    //             "fname" => $request->fname,
+    //             "mname" => $request->mname,
+    //             "lname" => $request->lname,
+    //             "count" => strval($count),
+    //             "year" => $ssn,
+    //             "term" => $request->term,
+    //             "sch3" => $request->sch3,
+    //             "s_basic" => '0',
+    //             "s_medical" => '0',
+    //             "s_parent" => '0',
+    //             "s_academic" => '0',
+    //             "rfee" => $request->stat,
+    //             "stat" => $request->stat,
+    //             "cuid" => $request->cuid,
+    //         ]);
+    //         $sid = $request->sch3 . '/' . $ssn . '/' . $request->term . '/' . strval($count);
+    //         // Wrap the email sending logic in a try-catch block
+    //         try {
+    //             if ($request->cuid) {
+    //                 $data = [
+    //                     'name' => $request->fname,
+    //                     'subject' => 'Welcome Back, Your ID remains ' . $request->cuid,
+    //                     'body' => "Welcome back to your school's platform. Your account was created successfully. If you havent already, please login to your dashboard using the link below and complete your student profile. If the link isnt clickable, please copy the link to your browser. If this arrived in spam folder, please mark as Not Spam. Your Student ID is " . $request->cuid,
+    //                     'link' => env('PORTAL_URL') . '/studentLogin' . '/' . $request->schid,
+    //                 ];
+    //                 Mail::to($request->email)->send(new SSSMails($data));
+    //             } else {
+    //                 $data = [
+    //                     'name' => $request->fname,
+    //                     'subject' => 'Welcome, Your ID is ' . $sid,
+    //                     'body' => "Welcome to your school's platform. Your account was created successfully. If you havent already, please login to your dashboard using the link below and complete your student profile. If the link isnt clickable, please copy the link to your browser. If this arrived in spam folder, please mark as Not Spam. Your Student ID is " . $sid,
+    //                     'link' => env('PORTAL_URL') . '/studentLogin' . '/' . $request->schid,
+    //                 ];
+    //                 Mail::to($request->email)->send(new SSSMails($data));
+    //             }
+    //         } catch (\Exception $e) {
+    //             // Log the email error, but don't stop the process
+    //             Log::error('Failed to send email: ' . $e->getMessage());
+    //         }
 
-            // Respond
-            $token = JWTAuth::attempt([
-                "email" => $request->email,
-                "password" => $request->password,
-            ]);
-            return response()->json([
-                "status" => true,
-                "message" => "User created successfully",
-                "token" => $token,
-                "sid" => $sid,
-                "user_id" => strval($usr->id)
-            ]);
-        }
+    //         // Respond
+    //         $token = JWTAuth::attempt([
+    //             "email" => $request->email,
+    //             "password" => $request->password,
+    //         ]);
+    //         return response()->json([
+    //             "status" => true,
+    //             "message" => "User created successfully",
+    //             "token" => $token,
+    //             "sid" => $sid,
+    //             "user_id" => strval($usr->id)
+    //         ]);
+    //     }
+    //     return response()->json([
+    //         "status" => false,
+    //         "message" => "Account already exists",
+    //     ], 400);
+    // }
+
+
+    public function registerStudent(Request $request)
+{
+    // Data validation
+    $request->validate([
+        "schid" => "required",
+        "email" => "required|email|unique:users,email",
+        "password" => "required",
+
+        // Names
+        "fname" => "required|string|max:100|regex:/^[A-Za-z\s]+$/",
+        "lname" => "required|string|max:100|regex:/^[A-Za-z\s]+$/",
+        "mname" => "nullable|string|max:100|regex:/^[A-Za-z\s]+$/",
+
+        "term" => "required",
+        "ssn" => "required",
+        "sch3" => "required",
+        "stat" => "required",
+        "cuid" => "nullable|unique:student,cuid",
+    ]);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Convert names to uppercase
+    |--------------------------------------------------------------------------
+    */
+
+    $fname = strtoupper(trim($request->fname));
+    $lname = strtoupper(trim($request->lname));
+
+    $mname = $request->filled('mname')
+        ? strtoupper(trim($request->mname))
+        : null;
+
+    /*
+    |--------------------------------------------------------------------------
+    | Password validation
+    |--------------------------------------------------------------------------
+    */
+
+    if (strlen($request->password) < 6) {
         return response()->json([
             "status" => false,
-            "message" => "Account already exists",
+            "message" => "Password must be at least 6 char",
         ], 400);
     }
+
+    $typ = 'z';
+
+    $usr = User::where("typ", $typ)
+        ->where("email", $request->email)
+        ->first();
+
+    $tstd = null;
+
+    if ($request->cuid) {
+        $tstd = student::where("cuid", $request->cuid)->first();
+    } else {
+        if ($request->count) {
+            $tstd = student::where("sch3", $request->sch3)
+                ->where("year", $request->ssn)
+                ->where("term", $request->term)
+                ->where("count", $request->count)
+                ->first();
+        }
+    }
+
+    if (!$usr && !$tstd) {
+
+        $usr = User::create([
+            "email" => $request->email,
+            "typ" => $typ,
+            "verif" => '1',
+            "password" => bcrypt($request->password),
+        ]);
+
+        $count = $request->count;
+
+        if (!$count) {
+            $count = student::where('schid', $request->schid)->count() + 1;
+        }
+
+        $ssn = $request->ssn;
+
+        student::create([
+            "sid" => strval($usr->id),
+            "schid" => $request->schid,
+
+            // Store names in uppercase
+            "fname" => $fname,
+            "mname" => $mname,
+            "lname" => $lname,
+
+            "count" => strval($count),
+            "year" => $ssn,
+            "term" => $request->term,
+            "sch3" => $request->sch3,
+            "s_basic" => '0',
+            "s_medical" => '0',
+            "s_parent" => '0',
+            "s_academic" => '0',
+            "rfee" => $request->stat,
+            "stat" => $request->stat,
+            "cuid" => $request->cuid,
+        ]);
+
+        $sid = $request->sch3 . '/' . $ssn . '/' . $request->term . '/' . strval($count);
+
+        // Wrap the email sending logic in a try-catch block
+        try {
+
+            if ($request->cuid) {
+
+                $data = [
+                    'name' => $fname,
+                    'subject' => 'Welcome Back, Your ID remains ' . $request->cuid,
+                    'body' => "Welcome back to your school's platform. Your account was created successfully. If you havent already, please login to your dashboard using the link below and complete your student profile. If the link isnt clickable, please copy the link to your browser. If this arrived in spam folder, please mark as Not Spam. Your Student ID is " . $request->cuid,
+                    'link' => env('PORTAL_URL') . '/studentLogin' . '/' . $request->schid,
+                ];
+
+                Mail::to($request->email)->send(new SSSMails($data));
+
+            } else {
+
+                $data = [
+                    'name' => $fname,
+                    'subject' => 'Welcome, Your ID is ' . $sid,
+                    'body' => "Welcome to your school's platform. Your account was created successfully. If you havent already, please login to your dashboard using the link below and complete your student profile. If the link isnt clickable, please copy the link to your browser. If this arrived in spam folder, please mark as Not Spam. Your Student ID is " . $sid,
+                    'link' => env('PORTAL_URL') . '/studentLogin' . '/' . $request->schid,
+                ];
+
+                Mail::to($request->email)->send(new SSSMails($data));
+            }
+
+        } catch (\Exception $e) {
+
+            // Log the email error, but don't stop the process
+            Log::error('Failed to send email: ' . $e->getMessage());
+        }
+
+        // Respond
+        $token = JWTAuth::attempt([
+            "email" => $request->email,
+            "password" => $request->password,
+        ]);
+
+        return response()->json([
+            "status" => true,
+            "message" => "User created successfully",
+            "token" => $token,
+            "sid" => $sid,
+            "user_id" => strval($usr->id)
+        ]);
+    }
+
+    return response()->json([
+        "status" => false,
+        "message" => "Account already exists",
+    ], 400);
+}
+
+
     /**
      * @OA\Post(
      *     path="/api/studentLoginByEmail",
@@ -3525,7 +3688,7 @@ public function setStudentAtOnce(Request $request)
  *         )
  *     )
  * )
- */  
+ */
 
     public function setStudentAtOnceBulk(Request $request)
 {
