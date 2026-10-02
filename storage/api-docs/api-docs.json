@@ -35819,6 +35819,88 @@
                     }
                 ]
             }
+        },
+        "/api/getSchoolStateLga/{schid}": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get a particular school by Subdomain ID",
+                "description": "Get the school name, address, country, state, and LGA using the school's Subdomain ID.",
+                "operationId": "b4bdfe8003fa1822b27678d6b72e98b0",
+                "parameters": [
+                    {
+                        "name": "schid",
+                        "in": "path",
+                        "description": "School Subdomain ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "12"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "user_id": {
+                                                        "type": "integer",
+                                                        "example": 12
+                                                    },
+                                                    "sname": {
+                                                        "type": "string",
+                                                        "example": "HOLY GHOST COLLEGE"
+                                                    },
+                                                    "addr": {
+                                                        "type": "string",
+                                                        "example": "HOLY GHOST COLLEGE, OLOKORO ROAD, UMUAHIA, ABIA STATE."
+                                                    },
+                                                    "country": {
+                                                        "type": "string",
+                                                        "example": "NG"
+                                                    },
+                                                    "state": {
+                                                        "type": "string",
+                                                        "example": "Abia"
+                                                    },
+                                                    "lga": {
+                                                        "type": "string",
+                                                        "example": "Umuahia"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "School not found"
+                    }
+                }
+            }
         }
     },
     "components": {

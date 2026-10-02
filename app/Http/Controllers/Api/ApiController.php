@@ -45932,4 +45932,111 @@ public function getSingleLessonPlanOption(
 }
 
 
+
+/**
+ * @OA\Get(
+ *     path="/api/getSchoolStateLga/{schid}",
+ *     tags={"Api"},
+ *     summary="Get a particular school by Subdomain ID",
+ *     description="Get the school name, address, country, state, and LGA using the school's Subdomain ID.",
+ *
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="path",
+ *         required=true,
+ *         description="School Subdomain ID",
+ *         @OA\Schema(
+ *             type="string",
+ *             example="12"
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Success",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(
+ *                 property="status",
+ *                 type="boolean",
+ *                 example=true
+ *             ),
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="Success"
+ *             ),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(
+ *                         property="user_id",
+ *                         type="integer",
+ *                         example=12
+ *                     ),
+ *                     @OA\Property(
+ *                         property="sname",
+ *                         type="string",
+ *                         example="HOLY GHOST COLLEGE"
+ *                     ),
+ *                     @OA\Property(
+ *                         property="addr",
+ *                         type="string",
+ *                         example="HOLY GHOST COLLEGE, OLOKORO ROAD, UMUAHIA, ABIA STATE."
+ *                     ),
+ *                     @OA\Property(
+ *                         property="country",
+ *                         type="string",
+ *                         example="NG"
+ *                     ),
+ *                     @OA\Property(
+ *                         property="state",
+ *                         type="string",
+ *                         example="Abia"
+ *                     ),
+ *                     @OA\Property(
+ *                         property="lga",
+ *                         type="string",
+ *                         example="Umuahia"
+ *                     )
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthorized"
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=404,
+ *         description="School not found"
+ *     )
+ * )
+ */
+
+public function getSchoolStateLga($schid)
+{
+    $sch_state_lga = school_web_data::where('user_id', $schid)
+        ->select([
+            'user_id',
+            'sname',
+            'addr',
+            'country',
+            'state',
+            'lga',
+        ])
+        ->get();
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => $sch_state_lga,
+    ]);
+}
+
+
 }

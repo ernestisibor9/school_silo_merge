@@ -60,7 +60,7 @@ Route::post('/toggle-report-position', [ApiController::class, 'toggleReportPosit
 
 
 Route::get('getAcctApp/{schid}', [ApiController::class, 'getAcctApp']);
-
+Route::get('getSchoolStateLga/{schid}', [ApiController::class, 'getSchoolStateLga']);
 Route::get('verifyEmail/{typ}/{code}/{schid}', [ApiController::class, 'verifyEmail']);
 Route::get('getSchoolWebInfo/{uid}', [ApiController::class, 'getSchoolWebInfo']);
 Route::get('getSchoolBySBD/{sbd}', [ApiController::class, 'getSchoolBySBD']);
