@@ -6146,7 +6146,7 @@ public function setStudentAtOnce(Request $request)
             ->where('old_student.ssn', $ssn)
             ->where('old_student.trm', $trm)   // filter by term
             ->where('old_student.clsm', $clsid)
-            ->where('old_student.status', "active")
+            // ->where('old_student.status', "active")
             ->where('old_student.clsa', $arm)
             ->select('student.*', 'old_student.uid as old_uid') // FIX: use uid instead of id
             ->distinct('student.sid') // one record per student
@@ -7572,7 +7572,7 @@ public function setStudentAtOnce(Request $request)
         $query = old_student::with(['academicData'])
             ->where("schid", $schid)
             ->where("ssn", $ssn)
-            ->where("status", "active");
+            // ->where("status", "active");
 
         // 🔹 Filter by term
         if ($trm !== '-1') {
@@ -7803,14 +7803,14 @@ public function setStudentAtOnce(Request $request)
         $maleQuery = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
             ->where('old_student.schid', $schid)
             ->where('old_student.ssn', $ssn)
-            ->where('old_student.status', 'active')
+            // ->where('old_student.status', 'active')
             ->where('student_basic_data.sex', 'M');
 
         // Base query for female students
         $femaleQuery = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
             ->where('old_student.schid', $schid)
             ->where('old_student.ssn', $ssn)
-            ->where('old_student.status', 'active')
+            // ->where('old_student.status', 'active')
             ->where('student_basic_data.sex', 'F');
 
         // Apply optional filters only if they are not "-1"
@@ -10055,14 +10055,14 @@ public function setStudentAtOnce(Request $request)
             $ostd = old_student::where("schid", $schid)
                 ->where("ssn", $ssn)
                 ->where("trm", $trm)
-                ->where('status', 'active')
+                // ->where('status', 'active')
                 ->where("clsm", $clsm)
                 ->get();
         } else {
             $ostd = old_student::where("schid", $schid)
                 ->where("ssn", $ssn)
                 ->where("trm", $trm)
-                ->where('status', 'active')
+                // ->where('status', 'active')
                 ->where("clsm", $clsm)
                 ->where("clsa", $clsa)
                 ->get();
@@ -13353,14 +13353,15 @@ public function getPaymentStat($schid, $clsid, $ssnid, $trmid)
                 ->latest()
                 ->first();
 
-            // Get all records where total_split_amount IS NULL
+            // // Get all records where total_split_amount IS NULL
             $nullRecords = payments::where('stid', $stid)
                 ->whereNull('total_split_amount')
                 ->orderByDesc('created_at')
                 ->get();
 
-            // Combine them into one payload
+            // // Combine them into one payload
             $pld = collect();
+
 
             if ($latestNonNull) {
                 $pld->push($latestNonNull);
@@ -37274,7 +37275,7 @@ public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf
         ->when($clsa != '-1', function ($q) use ($clsa) {
             $q->where("clsa", $clsa);
         })
-        ->where("status", "active")
+        // ->where("status", "active")
         ->orderBy('lname', 'asc');
 
     // Get ALL students in the class
