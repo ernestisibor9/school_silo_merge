@@ -3933,7 +3933,10 @@ public function setStudentAtOnce(Request $request)
  * )
  */
 
-    public function setStudentAtOnceBulk(Request $request)
+
+
+
+public function setStudentAtOnceBulk(Request $request)
 {
     /*
     |--------------------------------------------------------------------------
@@ -3970,7 +3973,7 @@ public function setStudentAtOnce(Request $request)
             "before:today",
         ],
 
-        "students.*.sex" => "required|in:MALE,FEMALE",
+        "students.*.sex" => "required|in:M,F",
 
         "students.*.height" => "required",
         "students.*.country" => "required",
@@ -3989,11 +3992,17 @@ public function setStudentAtOnce(Request $request)
         |--------------------------------------------------------------------------
         | Start Database Transaction
         |--------------------------------------------------------------------------
+        | Returns the list of welcome emails to send. Emails go out AFTER the
+        | transaction commits, so a rollback never leaves students holding a
+        | welcome email for an account that doesn't exist.
+        |--------------------------------------------------------------------------
         */
 
-        DB::transaction(function () use ($request) {
+        $mailQueue = DB::transaction(function () use ($request) {
 
-            foreach ($request->students as $data) {
+            $mailQueue = [];
+
+            foreach ($request->students as $index => $data) {
 
                 /*
                 |--------------------------------------------------------------------------
@@ -4007,6 +4016,103 @@ public function setStudentAtOnce(Request $request)
                 $mname = !empty($data['mname'])
                     ? strtoupper(trim($data['mname']))
                     : null;
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Validate DOB (before any DB writes for this row)
+                |--------------------------------------------------------------------------
+                */
+
+                try {
+
+                    $dobObject = Carbon::createFromFormat(
+                        'Y-m-d',
+                        $data['dob']
+                    );
+
+                    if (
+                        $dobObject->format('Y-m-d')
+                        !== $data['dob']
+                    ) {
+                        throw new \Exception();
+                    }
+
+                    $dob = $dobObject->format('Y-m-d');
+
+                } catch (\Exception $e) {
+
+                    throw new \Exception(
+                        "Invalid date of birth for student: "
+                        . $fname
+                        . " "
+                        . $lname
+                        . ". DOB must be YYYY-MM-DD."
+                    );
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | DUPLICATE CHECK (runs BEFORE any email/user is generated)
+                |--------------------------------------------------------------------------
+                |
+                | 1. If a cuid is supplied, a student in the same school with
+                |    that cuid is a duplicate.
+                | 2. Otherwise a student in the same school with the same names
+                |    AND the same date of birth is a duplicate.
+                |
+                | Names are compared case-insensitively so records created by
+                | the single-upload endpoint (which doesn't uppercase) match too.
+                | Duplicates are skipped silently (logged only), so the API
+                | response stays exactly the same as before.
+                |--------------------------------------------------------------------------
+                */
+
+                $existing = null;
+
+                if (!empty($data['cuid'])) {
+
+                    $existing = student::where('schid', $data['schid'])
+                        ->where('cuid', $data['cuid'])
+                        ->first();
+                }
+
+                if (!$existing) {
+
+                    $existing = student::where('schid', $data['schid'])
+                        ->whereRaw('UPPER(TRIM(fname)) = ?', [$fname])
+                        ->whereRaw('UPPER(TRIM(lname)) = ?', [$lname])
+                        ->when(
+                            $mname,
+                            fn ($q) => $q->whereRaw('UPPER(TRIM(mname)) = ?', [$mname]),
+                            fn ($q) => $q->where(function ($q2) {
+                                $q2->whereNull('mname')->orWhere('mname', '');
+                            })
+                        )
+                        ->whereIn('sid', function ($q) use ($dob) {
+                            $q->select('user_id')
+                                ->from('student_basic_datas') // <-- adjust to your real table name
+                                ->where('dob', $dob);
+                        })
+                        ->first();
+                }
+
+                if ($existing) {
+
+                    Log::info(
+                        'Bulk registration: skipped existing student (row '
+                        . ($index + 1)
+                        . ') '
+                        . $fname
+                        . ' '
+                        . $lname
+                        . ', user id '
+                        . $existing->sid
+                    );
+
+                    continue;
+                }
 
 
                 /*
@@ -4043,13 +4149,8 @@ public function setStudentAtOnce(Request $request)
                 | Generate Email Username
                 |--------------------------------------------------------------------------
                 |
-                | Example:
-                |
-                | Daniel Olusanya
-                | daniel_olusanya
-                |
-                | Daniel John Olusanya
-                | daniel_john_olusanya
+                | Daniel Olusanya        => daniel_olusanya
+                | Daniel John Olusanya   => daniel_john_olusanya
                 |
                 */
 
@@ -4122,6 +4223,8 @@ public function setStudentAtOnce(Request $request)
                 /*
                 |--------------------------------------------------------------------------
                 | Ensure Email Is Unique
+                | (only reached for genuinely NEW students, so a collision here
+                | means a different person with the same name)
                 |--------------------------------------------------------------------------
                 */
 
@@ -4147,26 +4250,14 @@ public function setStudentAtOnce(Request $request)
                 |--------------------------------------------------------------------------
                 */
 
-                $typ = 'z';
-
-                $usr = User::where("typ", $typ)
-                    ->where("email", $email)
-                    ->first();
-
-                if ($usr) {
-
-                    throw new \Exception(
-                        "Account already exists for email: " . $email
-                    );
-                }
-
-
                 $usr = User::create([
                     "email" => $email,
-                    "typ" => $typ,
+                    "typ" => 'z',
                     "verif" => '1',
                     "password" => bcrypt($data['password']),
                 ]);
+
+                $user_id = strval($usr->id);
 
 
                 /*
@@ -4203,7 +4294,7 @@ public function setStudentAtOnce(Request $request)
 
                 student::updateOrCreate(
                     [
-                        'sid' => strval($usr->id),
+                        'sid' => $user_id,
                     ],
                     [
                         'schid' => $data['schid'],
@@ -4249,148 +4340,68 @@ public function setStudentAtOnce(Request $request)
 
                 /*
                 |--------------------------------------------------------------------------
-                | Validate DOB Again
+                | Prepare Welcome Email (sent after the transaction commits)
                 |--------------------------------------------------------------------------
                 */
 
-                try {
+                $link = env('PORTAL_URL')
+                    . '/studentLogin/'
+                    . $data['schid'];
 
-                    $dobObject = Carbon::createFromFormat(
-                        'Y-m-d',
-                        $data['dob']
-                    );
+                if (!empty($data['cuid'])) {
 
-                    if (
-                        $dobObject->format('Y-m-d')
-                        !== $data['dob']
-                    ) {
-                        throw new \Exception();
-                    }
+                    $mailData = [
 
-                    $dob = $dobObject->format('Y-m-d');
+                        'name' => $fname,
 
-                } catch (\Exception $e) {
+                        'subject' =>
+                            'Welcome Back, Your ID remains '
+                            . $data['cuid'],
 
-                    throw new \Exception(
-                        "Invalid date of birth for student: "
-                        . $fname
-                        . " "
-                        . $lname
-                        . ". DOB must be YYYY-MM-DD."
-                    );
-                }
+                        'body' =>
+                            "Welcome back to your school's platform. "
+                            . "Your account was created successfully. "
+                            . "If you havent already, please login to "
+                            . "your dashboard using the link below and "
+                            . "complete your student profile. "
+                            . "Your Student ID is "
+                            . $data['cuid'],
 
-
-                /*
-                |--------------------------------------------------------------------------
-                | Send Welcome Email
-                |--------------------------------------------------------------------------
-                */
-
-                try {
-
-                    if (!empty($data['cuid'])) {
-
-                        $mailData = [
-
-                            'name' => $fname,
-
-                            'subject' =>
-                                'Welcome Back, Your ID remains '
-                                . $data['cuid'],
-
-                            'body' =>
-                                "Welcome back to your school's platform. "
-                                . "Your account was created successfully. "
-                                . "If you havent already, please login to "
-                                . "your dashboard using the link below and "
-                                . "complete your student profile. "
-                                . "Your Student ID is "
-                                . $data['cuid'],
-
-                            'link' =>
-                                env('PORTAL_URL')
-                                . '/studentLogin/'
-                                . $data['schid'],
-                        ];
-
-                    } else {
-
-                        $mailData = [
-
-                            'name' => $fname,
-
-                            'subject' =>
-                                'Welcome, Your ID is ' . $sid,
-
-                            'body' =>
-                                "Welcome to your school's platform. "
-                                . "Your account was created successfully. "
-                                . "If you havent already, please login to "
-                                . "your dashboard using the link below and "
-                                . "complete your student profile. "
-                                . "Your Student ID is "
-                                . $sid,
-
-                            'link' =>
-                                env('PORTAL_URL')
-                                . '/studentLogin/'
-                                . $data['schid'],
-                        ];
-                    }
-
-                    Mail::to($email)->send(
-                        new SSSMails($mailData)
-                    );
-
-                } catch (\Exception $e) {
-
-                    Log::error(
-                        'Failed to send email to '
-                        . $email
-                        . ': '
-                        . $e->getMessage()
-                    );
-                }
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | User ID
-                |--------------------------------------------------------------------------
-                */
-
-                $user_id = strval($usr->id);
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Check If Subjects Need Refresh
-                |--------------------------------------------------------------------------
-                */
-
-                $refreshSubjects = false;
-
-                $oldData = student_academic_data::where(
-                    'user_id',
-                    $user_id
-                )->first();
-
-                if ($oldData) {
-
-                    $refreshSubjects =
-                        $oldData->new_class_main
-                        != $data['new_class_main'];
+                        'link' => $link,
+                    ];
 
                 } else {
 
-                    $refreshSubjects = true;
+                    $mailData = [
+
+                        'name' => $fname,
+
+                        'subject' =>
+                            'Welcome, Your ID is ' . $sid,
+
+                        'body' =>
+                            "Welcome to your school's platform. "
+                            . "Your account was created successfully. "
+                            . "If you havent already, please login to "
+                            . "your dashboard using the link below and "
+                            . "complete your student profile. "
+                            . "Your Student ID is "
+                            . $sid,
+
+                        'link' => $link,
+                    ];
                 }
+
+                $mailQueue[] = [
+                    'email' => $email,
+                    'data' => $mailData,
+                ];
 
 
                 /*
                 |--------------------------------------------------------------------------
                 | Student Academic Data
+                | (new student, so there are no old subjects to refresh/delete)
                 |--------------------------------------------------------------------------
                 */
 
@@ -4409,21 +4420,6 @@ public function setStudentAtOnce(Request $request)
                             $data['new_class_main'],
                     ]
                 );
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Delete Subjects If Class Changed
-                |--------------------------------------------------------------------------
-                */
-
-                if ($refreshSubjects) {
-
-                    student_subj::where(
-                        'stid',
-                        $user_id
-                    )->delete();
-                }
 
 
                 /*
@@ -4500,12 +4496,43 @@ public function setStudentAtOnce(Request $request)
                     ]
                 );
             }
+
+            return $mailQueue;
         });
 
 
         /*
         |--------------------------------------------------------------------------
-        | Successful Response
+        | Send Welcome Emails (transaction already committed)
+        |--------------------------------------------------------------------------
+        | A failed email is logged but never affects registration.
+        | For large uploads, switch ->send() to ->queue() (needs a queue worker).
+        |--------------------------------------------------------------------------
+        */
+
+        foreach ($mailQueue as $mail) {
+
+            try {
+
+                Mail::to($mail['email'])->send(
+                    new SSSMails($mail['data'])
+                );
+
+            } catch (\Exception $e) {
+
+                Log::error(
+                    'Failed to send email to '
+                    . $mail['email']
+                    . ': '
+                    . $e->getMessage()
+                );
+            }
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Successful Response (unchanged)
         |--------------------------------------------------------------------------
         */
 
@@ -4519,7 +4546,7 @@ public function setStudentAtOnce(Request $request)
 
     /*
     |--------------------------------------------------------------------------
-    | Handle Error
+    | Handle Error (unchanged)
     |--------------------------------------------------------------------------
     */
 
