@@ -7571,8 +7571,8 @@ public function setStudentAtOnce(Request $request)
         // 🔹 Base query
         $query = old_student::with(['academicData'])
             ->where("schid", $schid)
-            ->where("ssn", $ssn);
-            // ->where("status", "active");
+            ->where("ssn", $ssn)
+            ->where("status", "active");
 
         // 🔹 Filter by term
         if ($trm !== '-1') {
@@ -29422,6 +29422,7 @@ public function promoteStudent(Request $request)
             'sid' => $request->sid,
         ], 404);
     }
+
 
 
     // ---------------------------------------------------------
