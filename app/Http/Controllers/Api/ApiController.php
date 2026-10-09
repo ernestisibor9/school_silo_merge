@@ -3350,7 +3350,7 @@ public function setStudentAtOnce(Request $request)
             "before:today",
         ],
 
-        "sex" => "required|in:MALE,FEMALE",
+        "sex" => "required|in:M,F",
 
         "height" => "required",
         "country" => "required",
