@@ -4383,13 +4383,13 @@ public function setStudentAtOnceBulk(Request $request)
 
                         'sch3' => $data['sch3'],
 
-                        's_basic' => '0',
+                        's_basic' => '1',
                         's_medical' => '0',
                         's_parent' => '0',
-                        's_academic' => '0',
+                        's_academic' => '1',
 
-                        'rfee' => 0,
-                        'stat' => 0,
+                        'rfee' => 1,
+                        'stat' => 1,
 
                         'cuid' => $cuid,
                     ]
