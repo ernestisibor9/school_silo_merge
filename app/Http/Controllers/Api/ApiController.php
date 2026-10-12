@@ -3655,6 +3655,7 @@ public function setStudentAtOnce(Request $request)
  *     description="Creates multiple student accounts and their related student, academic, basic, and acceptance fee records in a single request. Email addresses are generated automatically from the student's name and the school's sbd domain.",
  *     operationId="setStudentAtOnceBulk",
  *     tags={"Api"},
+ *     security={{"bearerAuth": {}}},
  *
  *     @OA\RequestBody(
  *         required=true,
