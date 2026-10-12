@@ -4093,7 +4093,7 @@ public function setStudentAtOnceBulk(Request $request)
                         )
                         ->whereIn('sid', function ($q) use ($dob) {
                             $q->select('user_id')
-                                ->from('student_basic_datas') // <-- adjust to your real table name
+                                ->from('student_basic_data') // <-- adjust to your real table name
                                 ->where('dob', $dob);
                         })
                         ->first();
