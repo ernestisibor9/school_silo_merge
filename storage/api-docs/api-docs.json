@@ -2679,10 +2679,10 @@
                                                     "description": "Student gender.",
                                                     "type": "string",
                                                     "enum": [
-                                                        "MALE",
-                                                        "FEMALE"
+                                                        "M",
+                                                        "F"
                                                     ],
-                                                    "example": "MALE"
+                                                    "example": "M"
                                                 },
                                                 "height": {
                                                     "description": "Student height.",

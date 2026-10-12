@@ -3809,8 +3809,8 @@ public function setStudentAtOnce(Request $request)
  *                     @OA\Property(
  *                         property="sex",
  *                         type="string",
- *                         enum={"MALE", "FEMALE"},
- *                         example="MALE",
+ *                         enum={"M", "F"},
+ *                         example="M",
  *                         description="Student gender."
  *                     ),
  *
