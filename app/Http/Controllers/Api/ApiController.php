@@ -2858,6 +2858,7 @@ public function registerStudent(Request $request)
  *     description="Creates a student user account, generates a unique school email address, creates or updates the student's academic, basic, and acceptance fee records.",
  *     operationId="setStudentAtOnce",
  *     tags={"Api"},
+ *     security={{"bearerAuth": {}}},
  *
  *     @OA\RequestBody(
  *         required=true,
