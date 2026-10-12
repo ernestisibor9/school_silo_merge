@@ -3973,7 +3973,7 @@ public function setStudentAtOnceBulk(Request $request)
             "before:today",
         ],
 
-        "students.*.sex" => "required|in:M,F",
+        "students.*.sex" => "required|string|in:M,F,m,f,Male,Female,male,female",
 
         "students.*.height" => "required",
         "students.*.country" => "required",
