@@ -19558,8 +19558,11 @@ public function getPaymentStat($schid, $clsid, $ssnid, $trmid)
                 )');
             })
             ->where('student.schid', $schid)
-            ->where('student.stat', $stat)        // active students only
-            ->where('student.status', 'active');  // extra safety
+            ->where('student.status', 'active');
+
+            if ((string) $stat !== '0') {
+                $query->where('student.stat', $stat);
+            }
 
         if ($cls !== 'zzz') {
             $query->where('sad.new_class_main', $cls);
