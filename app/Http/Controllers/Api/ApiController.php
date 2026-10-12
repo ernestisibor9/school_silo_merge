@@ -3947,7 +3947,6 @@ public function setStudentAtOnceBulk(Request $request)
     */
 
     $request->validate([
-
         "students" => "required|array|min:1",
 
         "students.*.schid" => "required",
@@ -3987,22 +3986,29 @@ public function setStudentAtOnceBulk(Request $request)
         "students.*.cuid" => "nullable",
     ]);
 
-
     try {
 
         /*
         |--------------------------------------------------------------------------
         | Start Database Transaction
         |--------------------------------------------------------------------------
-        | Returns the list of welcome emails to send. Emails go out AFTER the
-        | transaction commits, so a rollback never leaves students holding a
-        | welcome email for an account that doesn't exist.
-        |--------------------------------------------------------------------------
         */
 
         $mailQueue = DB::transaction(function () use ($request) {
 
             $mailQueue = [];
+
+            /*
+            |--------------------------------------------------------------------------
+            | Track Students Already Processed In This Upload
+            |--------------------------------------------------------------------------
+            |
+            | Prevents the same student or CUID from being processed twice
+            | in one request, even when the database has not yet changed.
+            |--------------------------------------------------------------------------
+            */
+
+            $seenInUpload = [];
 
             foreach ($request->students as $index => $data) {
 
@@ -4019,10 +4025,15 @@ public function setStudentAtOnceBulk(Request $request)
                     ? strtoupper(trim($data['mname']))
                     : null;
 
+                $schoolId = (string) $data['schid'];
+
+                $cuid = !empty($data['cuid'])
+                    ? trim($data['cuid'])
+                    : null;
 
                 /*
                 |--------------------------------------------------------------------------
-                | Validate DOB (before any DB writes for this row)
+                | Validate DOB
                 |--------------------------------------------------------------------------
                 */
 
@@ -4033,10 +4044,7 @@ public function setStudentAtOnceBulk(Request $request)
                         $data['dob']
                     );
 
-                    if (
-                        $dobObject->format('Y-m-d')
-                        !== $data['dob']
-                    ) {
+                    if ($dobObject->format('Y-m-d') !== $data['dob']) {
                         throw new \Exception();
                     }
 
@@ -4046,76 +4054,156 @@ public function setStudentAtOnceBulk(Request $request)
 
                     throw new \Exception(
                         "Invalid date of birth for student: "
-                        . $fname
-                        . " "
-                        . $lname
+                        . $fname . " " . $lname
                         . ". DOB must be YYYY-MM-DD."
                     );
                 }
 
+                /*
+                |--------------------------------------------------------------------------
+                | DUPLICATE CHECK 1: CURRENT UPLOAD
+                |--------------------------------------------------------------------------
+                |
+                | A. Same school + same CUID
+                | B. Same school + same first, middle and last names + DOB
+                |
+                | CUID comparison ignores letter case and surrounding spaces.
+                |--------------------------------------------------------------------------
+                */
+
+                $identityKey = json_encode([
+                    $schoolId,
+                    $fname,
+                    $mname ?? '',
+                    $lname,
+                    $dob,
+                ]);
+
+                $cuidKey = $cuid !== null
+                    ? 'cuid|' . $schoolId . '|' . strtoupper($cuid)
+                    : null;
+
+                if (
+                    isset($seenInUpload[$identityKey]) ||
+                    (
+                        $cuidKey !== null &&
+                        isset($seenInUpload[$cuidKey])
+                    )
+                ) {
+
+                    Log::info(
+                        'Bulk registration: skipped duplicate row in upload (row '
+                        . ($index + 1)
+                        . '), student: '
+                        . $fname . ' ' . $lname
+                        . ', CUID: '
+                        . ($cuid ?? 'not supplied')
+                    );
+
+                    continue;
+                }
 
                 /*
                 |--------------------------------------------------------------------------
-                | DUPLICATE CHECK (runs BEFORE any email/user is generated)
+                | Mark This Row As Seen
                 |--------------------------------------------------------------------------
                 |
-                | 1. If a cuid is supplied, a student in the same school with
-                |    that cuid is a duplicate.
-                | 2. Otherwise a student in the same school with the same names
-                |    AND the same date of birth is a duplicate.
-                |
-                | Names are compared case-insensitively so records created by
-                | the single-upload endpoint (which doesn't uppercase) match too.
-                | Duplicates are skipped silently (logged only), so the API
-                | response stays exactly the same as before.
+                | Record the keys before checking the database so that repeated
+                | rows are also skipped when the first row already exists in DB.
+                |--------------------------------------------------------------------------
+                */
+
+                $seenInUpload[$identityKey] = true;
+
+                if ($cuidKey !== null) {
+                    $seenInUpload[$cuidKey] = true;
+                }
+
+                /*
+                |--------------------------------------------------------------------------
+                | DUPLICATE CHECK 2: EXISTING DATABASE RECORDS
                 |--------------------------------------------------------------------------
                 */
 
                 $existing = null;
 
-                if (!empty($data['cuid'])) {
+                /*
+                |--------------------------------------------------------------------------
+                | Check CUID Within The Same School
+                |--------------------------------------------------------------------------
+                */
+
+                if ($cuid !== null) {
 
                     $existing = student::where('schid', $data['schid'])
-                        ->where('cuid', $data['cuid'])
+                        ->whereRaw(
+                            'UPPER(TRIM(cuid)) = ?',
+                            [strtoupper($cuid)]
+                        )
                         ->first();
                 }
+
+                /*
+                |--------------------------------------------------------------------------
+                | If No CUID Match, Check Names And DOB
+                |--------------------------------------------------------------------------
+                */
 
                 if (!$existing) {
 
                     $existing = student::where('schid', $data['schid'])
-                        ->whereRaw('UPPER(TRIM(fname)) = ?', [$fname])
-                        ->whereRaw('UPPER(TRIM(lname)) = ?', [$lname])
+                        ->whereRaw(
+                            'UPPER(TRIM(fname)) = ?',
+                            [$fname]
+                        )
+                        ->whereRaw(
+                            'UPPER(TRIM(lname)) = ?',
+                            [$lname]
+                        )
                         ->when(
-                            $mname,
-                            fn ($q) => $q->whereRaw('UPPER(TRIM(mname)) = ?', [$mname]),
-                            fn ($q) => $q->where(function ($q2) {
-                                $q2->whereNull('mname')->orWhere('mname', '');
-                            })
+                            $mname !== null,
+                            function ($q) use ($mname) {
+                                $q->whereRaw(
+                                    'UPPER(TRIM(mname)) = ?',
+                                    [$mname]
+                                );
+                            },
+                            function ($q) {
+                                $q->where(function ($q2) {
+                                    $q2->whereNull('mname')
+                                        ->orWhere('mname', '');
+                                });
+                            }
                         )
                         ->whereIn('sid', function ($q) use ($dob) {
                             $q->select('user_id')
-                                ->from('student_basic_data') // <-- adjust to your real table name
+                                ->from('student_basic_data')
                                 ->where('dob', $dob);
                         })
                         ->first();
                 }
+
+                /*
+                |--------------------------------------------------------------------------
+                | Skip Existing Student
+                |--------------------------------------------------------------------------
+                */
 
                 if ($existing) {
 
                     Log::info(
                         'Bulk registration: skipped existing student (row '
                         . ($index + 1)
-                        . ') '
-                        . $fname
-                        . ' '
-                        . $lname
-                        . ', user id '
+                        . '), student: '
+                        . $fname . ' ' . $lname
+                        . ', existing sid: '
                         . $existing->sid
+                        . ', existing CUID: '
+                        . ($existing->cuid ?? 'not supplied')
                     );
 
                     continue;
                 }
-
 
                 /*
                 |--------------------------------------------------------------------------
@@ -4131,7 +4219,6 @@ public function setStudentAtOnceBulk(Request $request)
                     );
                 }
 
-
                 /*
                 |--------------------------------------------------------------------------
                 | Check School Email Domain
@@ -4145,15 +4232,10 @@ public function setStudentAtOnceBulk(Request $request)
                     );
                 }
 
-
                 /*
                 |--------------------------------------------------------------------------
                 | Generate Email Username
                 |--------------------------------------------------------------------------
-                |
-                | Daniel Olusanya        => daniel_olusanya
-                | Daniel John Olusanya   => daniel_john_olusanya
-                |
                 */
 
                 $emailParts = [
@@ -4168,7 +4250,6 @@ public function setStudentAtOnceBulk(Request $request)
 
                 $emailUsername = implode('_', $emailParts);
 
-
                 /*
                 |--------------------------------------------------------------------------
                 | Remove Invalid Characters From Email Username
@@ -4181,10 +4262,9 @@ public function setStudentAtOnceBulk(Request $request)
                     $emailUsername
                 );
 
-
                 /*
                 |--------------------------------------------------------------------------
-                | Get School Domain From school.sbd
+                | Get School Domain
                 |--------------------------------------------------------------------------
                 */
 
@@ -4195,7 +4275,6 @@ public function setStudentAtOnceBulk(Request $request)
                     '',
                     $schoolDomain
                 );
-
 
                 /*
                 |--------------------------------------------------------------------------
@@ -4209,7 +4288,6 @@ public function setStudentAtOnceBulk(Request $request)
                     $schoolDomain
                 );
 
-
                 /*
                 |--------------------------------------------------------------------------
                 | Generate Email
@@ -4221,12 +4299,9 @@ public function setStudentAtOnceBulk(Request $request)
                     . $schoolDomain
                     . '.com';
 
-
                 /*
                 |--------------------------------------------------------------------------
                 | Ensure Email Is Unique
-                | (only reached for genuinely NEW students, so a collision here
-                | means a different person with the same name)
                 |--------------------------------------------------------------------------
                 */
 
@@ -4245,7 +4320,6 @@ public function setStudentAtOnceBulk(Request $request)
                     } while (User::where('email', $email)->exists());
                 }
 
-
                 /*
                 |--------------------------------------------------------------------------
                 | Create User
@@ -4260,7 +4334,6 @@ public function setStudentAtOnceBulk(Request $request)
                 ]);
 
                 $user_id = strval($usr->id);
-
 
                 /*
                 |--------------------------------------------------------------------------
@@ -4278,7 +4351,6 @@ public function setStudentAtOnceBulk(Request $request)
                     )->count() + 1;
                 }
 
-
                 /*
                 |--------------------------------------------------------------------------
                 | Student SSN
@@ -4286,7 +4358,6 @@ public function setStudentAtOnceBulk(Request $request)
                 */
 
                 $ssn = $data['ssn'];
-
 
                 /*
                 |--------------------------------------------------------------------------
@@ -4320,10 +4391,9 @@ public function setStudentAtOnceBulk(Request $request)
                         'rfee' => $data['stat'],
                         'stat' => $data['stat'],
 
-                        'cuid' => $data['cuid'] ?? null,
+                        'cuid' => $cuid,
                     ]
                 );
-
 
                 /*
                 |--------------------------------------------------------------------------
@@ -4339,10 +4409,9 @@ public function setStudentAtOnceBulk(Request $request)
                     . '/'
                     . strval($count);
 
-
                 /*
                 |--------------------------------------------------------------------------
-                | Prepare Welcome Email (sent after the transaction commits)
+                | Prepare Welcome Email
                 |--------------------------------------------------------------------------
                 */
 
@@ -4350,7 +4419,7 @@ public function setStudentAtOnceBulk(Request $request)
                     . '/studentLogin/'
                     . $data['schid'];
 
-                if (!empty($data['cuid'])) {
+                if ($cuid !== null) {
 
                     $mailData = [
 
@@ -4358,7 +4427,7 @@ public function setStudentAtOnceBulk(Request $request)
 
                         'subject' =>
                             'Welcome Back, Your ID remains '
-                            . $data['cuid'],
+                            . $cuid,
 
                         'body' =>
                             "Welcome back to your school's platform. "
@@ -4367,7 +4436,7 @@ public function setStudentAtOnceBulk(Request $request)
                             . "your dashboard using the link below and "
                             . "complete your student profile. "
                             . "Your Student ID is "
-                            . $data['cuid'],
+                            . $cuid,
 
                         'link' => $link,
                     ];
@@ -4399,11 +4468,9 @@ public function setStudentAtOnceBulk(Request $request)
                     'data' => $mailData,
                 ];
 
-
                 /*
                 |--------------------------------------------------------------------------
                 | Student Academic Data
-                | (new student, so there are no old subjects to refresh/delete)
                 |--------------------------------------------------------------------------
                 */
 
@@ -4413,16 +4480,11 @@ public function setStudentAtOnceBulk(Request $request)
                     ],
                     [
                         "last_school" => $data['last_school'],
-
                         "last_class" => $data['last_class'],
-
                         "new_class" => $data['new_class'],
-
-                        "new_class_main" =>
-                            $data['new_class_main'],
+                        "new_class_main" => $data['new_class_main'],
                     ]
                 );
-
 
                 /*
                 |--------------------------------------------------------------------------
@@ -4436,21 +4498,14 @@ public function setStudentAtOnceBulk(Request $request)
                     ],
                     [
                         "dob" => $dob,
-
                         "sex" => $data['sex'],
-
                         "height" => $data['height'],
-
                         "country" => $data['country'],
-
                         "state" => $data['state'],
-
                         "lga" => $data['lga'],
-
                         "addr" => $data['addr'],
                     ]
                 );
-
 
                 /*
                 |--------------------------------------------------------------------------
@@ -4458,14 +4513,10 @@ public function setStudentAtOnceBulk(Request $request)
                 |--------------------------------------------------------------------------
                 */
 
-                student::where(
-                    'sid',
-                    $user_id
-                )->update([
+                student::where('sid', $user_id)->update([
                     "s_basic" => '1',
-                    "s_academic" => '1'
+                    "s_academic" => '1',
                 ]);
-
 
                 /*
                 |--------------------------------------------------------------------------
@@ -4477,23 +4528,16 @@ public function setStudentAtOnceBulk(Request $request)
                     . $data['schid']
                     . $data['new_class_main'];
 
-
                 afeerec::updateOrCreate(
                     [
                         "uid" => $uid,
                     ],
                     [
                         "stid" => $user_id,
-
                         "schid" => $data['schid'],
-
-                        "clsid" =>
-                            $data['new_class_main'],
-
+                        "clsid" => $data['new_class_main'],
                         "ssn" => $data['ssn'],
-
                         "term" => $data['trm'],
-
                         "amt" => 0,
                     ]
                 );
@@ -4502,13 +4546,9 @@ public function setStudentAtOnceBulk(Request $request)
             return $mailQueue;
         });
 
-
         /*
         |--------------------------------------------------------------------------
-        | Send Welcome Emails (transaction already committed)
-        |--------------------------------------------------------------------------
-        | A failed email is logged but never affects registration.
-        | For large uploads, switch ->send() to ->queue() (needs a queue worker).
+        | Send Welcome Emails After Transaction Commits
         |--------------------------------------------------------------------------
         */
 
@@ -4531,7 +4571,6 @@ public function setStudentAtOnceBulk(Request $request)
             }
         }
 
-
         /*
         |--------------------------------------------------------------------------
         | Successful Response (unchanged)
@@ -4544,7 +4583,6 @@ public function setStudentAtOnceBulk(Request $request)
             "total" => count($request->students),
         ]);
     }
-
 
     /*
     |--------------------------------------------------------------------------
@@ -19538,110 +19576,270 @@ public function getPaymentStat($schid, $clsid, $ssnid, $trmid)
     //         "pld" => $pld,
     //     ]);
     // }
+public function getStudentsBySchool(Request $request, $schid, $stat)
+{
+    $start = (int) $request->input('start', 0);
+    $count = (int) $request->input('count', 20);
+    $year = $request->input('year');
+    $cls = $request->input('cls', 'zzz');
+    $term = $request->input('term');
 
-    public function getStudentsBySchool(Request $request, $schid, $stat)
-    {
-        $start = $request->input('start', 0);
-        $count = $request->input('count', 20);
-        $year = $request->input('year');
-        $cls = $request->input('cls', 'zzz');
-        $term = $request->input('term');
+    /*
+    |--------------------------------------------------------------------------
+    | Base Query
+    |--------------------------------------------------------------------------
+    | Use a subquery to select the latest academic record per student.
+    | This avoids duplicate rows caused by joining multiple academic records.
+    |--------------------------------------------------------------------------
+    */
 
-        // Base query: join latest student_academic_data
-        $query = student::query()
-            ->leftJoin('student_academic_data as sad', function ($join) {
-                $join->on('student.sid', '=', 'sad.user_id')
-                    ->whereRaw('sad.created_at = (
-                    SELECT MAX(created_at)
-                    FROM student_academic_data
-                    WHERE user_id = student.sid
-                )');
-            })
-            ->where('student.schid', $schid)
-            ->where('student.status', 'active');
+    $latestAcademicIds = \DB::table('student_academic_data as sad1')
+        ->selectRaw('MAX(sad1.id)')
+        ->whereColumn('sad1.user_id', 'student.sid');
 
-            if ((string) $stat !== '0') {
-                $query->where('student.stat', $stat);
-            }
+    $query = student::query()
+        ->leftJoin('student_academic_data as sad', function ($join) use ($latestAcademicIds) {
+            $join->on('student.sid', '=', 'sad.user_id')
+                ->whereRaw(
+                    'sad.id = (
+                        SELECT MAX(sad2.id)
+                        FROM student_academic_data as sad2
+                        WHERE sad2.user_id = student.sid
+                    )'
+                );
+        })
+        ->where('student.schid', $schid)
+        ->where('student.status', 'active');
 
-        if ($cls !== 'zzz') {
-            $query->where('sad.new_class_main', $cls);
-        }
+    /*
+    |--------------------------------------------------------------------------
+    | Student Status Filter
+    |--------------------------------------------------------------------------
+    */
 
-        if ($year) {
-            $query->where('student.year', $year);
-        }
-        if ($term) {
-            $query->where('student.term', $term);
-        }
-
-        $total = (clone $query)->distinct('student.sid')->count('student.sid');
-
-        $students = $query->select('student.*', 'sad.new_class_main')
-            ->distinct('student.sid')
-            ->orderBy('student.lname', 'asc')
-            ->skip($start)
-            ->take($count)
-            ->get();
-
-        $pld = $students->map(function ($student) use ($schid, $year) {
-
-            $latestAcademic = student_academic_data::where('user_id', $student->sid)
-                ->orderBy('created_at', 'desc')
-                ->first();
-
-            $ssn = $year ?? $student->year;
-
-            $hasSubjects = \DB::table('student_subj')
-                ->where('stid', $student->sid)
-                ->where('schid', $schid)
-                ->where('ssn', $ssn)
-                ->exists();
-
-            // only ACTIVE old_student
-            $oldStudent = \DB::table('old_student')
-                ->where('sid', $student->sid)
-                ->where('schid', $schid)
-                ->where('ssn', $ssn)
-                ->where('status', 'active')
-                ->first();
-
-            $hasClassMain = $oldStudent && !empty($oldStudent->clsm);
-            $hasClassArm = $oldStudent && !empty($oldStudent->clsa);
-
-            // 🔹 CORRECT cls_sbj_students LOGIC
-            if ($hasClassMain && !$hasClassArm) {
-                $clsSbjValue = 0;               // class only
-            } elseif ($hasClassMain && $hasClassArm && !$hasSubjects) {
-                $clsSbjValue = 1;               // class + arm
-            } elseif ($hasClassMain && $hasClassArm && $hasSubjects) {
-                $clsSbjValue = 2;               // class + arm + subject
-            } else {
-                $clsSbjValue = 0;
-            }
-
-            if ($student->cls_sbj_students != $clsSbjValue) {
-                \DB::table('student')
-                    ->where('sid', $student->sid)
-                    ->update(['cls_sbj_students' => $clsSbjValue]);
-
-                $student->cls_sbj_students = $clsSbjValue;
-            }
-
-            return [
-                's' => $student,
-                'b' => student_basic_data::where('user_id', $student->sid)->first(),
-                'a' => $latestAcademic,
-            ];
-        });
-
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "total" => $total,
-            "pld" => $pld,
-        ]);
+    if ((string) $stat !== '0') {
+        $query->where('student.stat', $stat);
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Optional Filters
+    |--------------------------------------------------------------------------
+    */
+
+    if ($cls !== 'zzz') {
+        $query->where('sad.new_class_main', $cls);
+    }
+
+    if ($year) {
+        $query->where('student.year', $year);
+    }
+
+    if ($term) {
+        $query->where('student.term', $term);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Fetch Matching Records
+    |--------------------------------------------------------------------------
+    */
+
+    $allStudents = $query
+        ->select('student.*', 'sad.new_class_main')
+        ->orderBy('student.lname', 'asc')
+        ->orderBy('student.sid', 'asc')
+        ->get();
+
+    /*
+    |--------------------------------------------------------------------------
+    | Remove Duplicate Student Records
+    |--------------------------------------------------------------------------
+    | Priority:
+    | 1. Same sid: always one record.
+    | 2. Same non-empty CUID within the school: one displayed record.
+    | 3. Same normalized name and DOB: one displayed record.
+    |
+    | The first matching record in the ordered results is retained.
+    |--------------------------------------------------------------------------
+    */
+
+    $seenSids = [];
+    $seenCuids = [];
+    $seenIdentities = [];
+
+    $uniqueStudents = $allStudents->filter(function ($student) use (
+        &$seenSids,
+        &$seenCuids,
+        &$seenIdentities
+    ) {
+        $sidKey = (string) $student->sid;
+
+        if (isset($seenSids[$sidKey])) {
+            return false;
+        }
+
+        $cuid = trim((string) ($student->cuid ?? ''));
+
+        $cuidKey = $cuid !== ''
+            ? strtoupper($cuid)
+            : null;
+
+        if ($cuidKey !== null && isset($seenCuids[$cuidKey])) {
+            return false;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Check Name + DOB Identity
+        |--------------------------------------------------------------------------
+        */
+
+        $basicData = student_basic_data::where(
+            'user_id',
+            $student->sid
+        )->first();
+
+        $dob = $basicData->dob ?? null;
+
+        $identityKey = null;
+
+        if (!empty($dob)) {
+            $identityKey = json_encode([
+                strtoupper(trim((string) $student->fname)),
+                strtoupper(trim((string) ($student->mname ?? ''))),
+                strtoupper(trim((string) $student->lname)),
+                $dob,
+            ]);
+        }
+
+        if (
+            $identityKey !== null &&
+            isset($seenIdentities[$identityKey])
+        ) {
+            return false;
+        }
+
+        $seenSids[$sidKey] = true;
+
+        if ($cuidKey !== null) {
+            $seenCuids[$cuidKey] = true;
+        }
+
+        if ($identityKey !== null) {
+            $seenIdentities[$identityKey] = true;
+        }
+
+        return true;
+    })->values();
+
+    /*
+    |--------------------------------------------------------------------------
+    | Calculate Total After Deduplication
+    |--------------------------------------------------------------------------
+    */
+
+    $total = $uniqueStudents->count();
+
+    /*
+    |--------------------------------------------------------------------------
+    | Apply Pagination After Deduplication
+    |--------------------------------------------------------------------------
+    */
+
+    $students = $uniqueStudents
+        ->slice($start, $count)
+        ->values();
+
+    /*
+    |--------------------------------------------------------------------------
+    | Prepare Response Data
+    |--------------------------------------------------------------------------
+    */
+
+    $pld = $students->map(function ($student) use ($schid, $year) {
+
+        $latestAcademic = student_academic_data::where(
+            'user_id',
+            $student->sid
+        )
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->first();
+
+        $ssn = $year ?? $student->year;
+
+        $hasSubjects = \DB::table('student_subj')
+            ->where('stid', $student->sid)
+            ->where('schid', $schid)
+            ->where('ssn', $ssn)
+            ->exists();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Only ACTIVE old_student
+        |--------------------------------------------------------------------------
+        */
+
+        $oldStudent = \DB::table('old_student')
+            ->where('sid', $student->sid)
+            ->where('schid', $schid)
+            ->where('ssn', $ssn)
+            ->where('status', 'active')
+            ->first();
+
+        $hasClassMain = $oldStudent && !empty($oldStudent->clsm);
+        $hasClassArm = $oldStudent && !empty($oldStudent->clsa);
+
+        /*
+        |--------------------------------------------------------------------------
+        | cls_sbj_students Logic
+        |--------------------------------------------------------------------------
+        */
+
+        if ($hasClassMain && !$hasClassArm) {
+            $clsSbjValue = 0;
+        } elseif ($hasClassMain && $hasClassArm && !$hasSubjects) {
+            $clsSbjValue = 1;
+        } elseif ($hasClassMain && $hasClassArm && $hasSubjects) {
+            $clsSbjValue = 2;
+        } else {
+            $clsSbjValue = 0;
+        }
+
+        if ($student->cls_sbj_students != $clsSbjValue) {
+            \DB::table('student')
+                ->where('sid', $student->sid)
+                ->update([
+                    'cls_sbj_students' => $clsSbjValue,
+                ]);
+
+            $student->cls_sbj_students = $clsSbjValue;
+        }
+
+        return [
+            's' => $student,
+            'b' => student_basic_data::where(
+                'user_id',
+                $student->sid
+            )->first(),
+            'a' => $latestAcademic,
+        ];
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Response Structure Unchanged
+    |--------------------------------------------------------------------------
+    */
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "total" => $total,
+        "pld" => $pld,
+    ]);
+}
 
 
 
