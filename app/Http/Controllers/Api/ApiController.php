@@ -19586,36 +19586,13 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
 
     /*
     |--------------------------------------------------------------------------
-    | Base Query
-    |--------------------------------------------------------------------------
-    | Use a subquery to select the latest academic record per student.
-    | This avoids duplicate rows caused by joining multiple academic records.
+    | Base Student Query
     |--------------------------------------------------------------------------
     */
-
-    $latestAcademicIds = \DB::table('student_academic_data as sad1')
-        ->selectRaw('MAX(sad1.id)')
-        ->whereColumn('sad1.user_id', 'student.sid');
 
     $query = student::query()
-        ->leftJoin('student_academic_data as sad', function ($join) use ($latestAcademicIds) {
-            $join->on('student.sid', '=', 'sad.user_id')
-                ->whereRaw(
-                    'sad.id = (
-                        SELECT MAX(sad2.id)
-                        FROM student_academic_data as sad2
-                        WHERE sad2.user_id = student.sid
-                    )'
-                );
-        })
         ->where('student.schid', $schid)
         ->where('student.status', 'active');
-
-    /*
-    |--------------------------------------------------------------------------
-    | Student Status Filter
-    |--------------------------------------------------------------------------
-    */
 
     if ((string) $stat !== '0') {
         $query->where('student.stat', $stat);
@@ -19623,12 +19600,24 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
 
     /*
     |--------------------------------------------------------------------------
-    | Optional Filters
+    | Filter By Latest Available Class
+    |--------------------------------------------------------------------------
+    | No id column is required. MAX(created_at) identifies the latest
+    | academic timestamp for each student.
     |--------------------------------------------------------------------------
     */
 
     if ($cls !== 'zzz') {
-        $query->where('sad.new_class_main', $cls);
+        $query->whereIn('student.sid', function ($subquery) use ($cls) {
+            $subquery->select('sad1.user_id')
+                ->from('student_academic_data as sad1')
+                ->where('sad1.new_class_main', $cls)
+                ->whereRaw('sad1.created_at = (
+                    SELECT MAX(sad2.created_at)
+                    FROM student_academic_data as sad2
+                    WHERE sad2.user_id = sad1.user_id
+                )');
+        });
     }
 
     if ($year) {
@@ -19641,37 +19630,28 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
 
     /*
     |--------------------------------------------------------------------------
-    | Fetch Matching Records
+    | Fetch Students
     |--------------------------------------------------------------------------
     */
 
     $allStudents = $query
-        ->select('student.*', 'sad.new_class_main')
+        ->select('student.*')
         ->orderBy('student.lname', 'asc')
         ->orderBy('student.sid', 'asc')
         ->get();
 
     /*
     |--------------------------------------------------------------------------
-    | Remove Duplicate Student Records
-    |--------------------------------------------------------------------------
-    | Priority:
-    | 1. Same sid: always one record.
-    | 2. Same non-empty CUID within the school: one displayed record.
-    | 3. Same normalized name and DOB: one displayed record.
-    |
-    | The first matching record in the ordered results is retained.
+    | Deduplicate By SID And CUID
     |--------------------------------------------------------------------------
     */
 
     $seenSids = [];
     $seenCuids = [];
-    $seenIdentities = [];
 
     $uniqueStudents = $allStudents->filter(function ($student) use (
         &$seenSids,
-        &$seenCuids,
-        &$seenIdentities
+        &$seenCuids
     ) {
         $sidKey = (string) $student->sid;
 
@@ -19689,45 +19669,10 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
             return false;
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Check Name + DOB Identity
-        |--------------------------------------------------------------------------
-        */
-
-        $basicData = student_basic_data::where(
-            'user_id',
-            $student->sid
-        )->first();
-
-        $dob = $basicData->dob ?? null;
-
-        $identityKey = null;
-
-        if (!empty($dob)) {
-            $identityKey = json_encode([
-                strtoupper(trim((string) $student->fname)),
-                strtoupper(trim((string) ($student->mname ?? ''))),
-                strtoupper(trim((string) $student->lname)),
-                $dob,
-            ]);
-        }
-
-        if (
-            $identityKey !== null &&
-            isset($seenIdentities[$identityKey])
-        ) {
-            return false;
-        }
-
         $seenSids[$sidKey] = true;
 
         if ($cuidKey !== null) {
             $seenCuids[$cuidKey] = true;
-        }
-
-        if ($identityKey !== null) {
-            $seenIdentities[$identityKey] = true;
         }
 
         return true;
@@ -19735,17 +19680,11 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
 
     /*
     |--------------------------------------------------------------------------
-    | Calculate Total After Deduplication
+    | Total And Pagination
     |--------------------------------------------------------------------------
     */
 
     $total = $uniqueStudents->count();
-
-    /*
-    |--------------------------------------------------------------------------
-    | Apply Pagination After Deduplication
-    |--------------------------------------------------------------------------
-    */
 
     $students = $uniqueStudents
         ->slice($start, $count)
@@ -19753,7 +19692,7 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
 
     /*
     |--------------------------------------------------------------------------
-    | Prepare Response Data
+    | Prepare Student Response
     |--------------------------------------------------------------------------
     */
 
@@ -19763,9 +19702,11 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
             'user_id',
             $student->sid
         )
-            ->orderByDesc('created_at')
-            ->orderByDesc('id')
+            ->orderBy('created_at', 'desc')
             ->first();
+
+        $student->new_class_main =
+            $latestAcademic->new_class_main ?? null;
 
         $ssn = $year ?? $student->year;
 
@@ -19790,12 +19731,6 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
 
         $hasClassMain = $oldStudent && !empty($oldStudent->clsm);
         $hasClassArm = $oldStudent && !empty($oldStudent->clsa);
-
-        /*
-        |--------------------------------------------------------------------------
-        | cls_sbj_students Logic
-        |--------------------------------------------------------------------------
-        */
 
         if ($hasClassMain && !$hasClassArm) {
             $clsSbjValue = 0;
@@ -19829,7 +19764,7 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
 
     /*
     |--------------------------------------------------------------------------
-    | Response Structure Unchanged
+    | Original Response Structure Preserved
     |--------------------------------------------------------------------------
     */
 
