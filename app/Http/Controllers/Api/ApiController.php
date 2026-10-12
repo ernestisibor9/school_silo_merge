@@ -4388,8 +4388,8 @@ public function setStudentAtOnceBulk(Request $request)
                         's_parent' => '0',
                         's_academic' => '0',
 
-                        'rfee' => $data['stat'],
-                        'stat' => $data['stat'],
+                        'rfee' => 0,
+                        'stat' => 0,
 
                         'cuid' => $cuid,
                     ]
