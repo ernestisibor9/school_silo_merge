@@ -30138,6 +30138,26 @@ public function BulkPromoteStudent(Request $request)
             continue;
         }
 
+        // =====================================================
+        // SKIP EXITED STUDENTS ONLY
+        // Continue promoting the remaining students
+        // =====================================================
+
+        $hasExited = DB::table('old_student')
+            ->where('sid', $sid)
+            ->where('schid', $request->schid)
+            ->where('exit_student', 1)
+            ->exists();
+
+        if ($hasExited) {
+            $failed[] = [
+                'sid' => $sid,
+                'message' => 'Student has exited and was skipped.',
+            ];
+
+            continue;
+        }
+
 
         // -----------------------------------------------------
         // Check if already promoted
