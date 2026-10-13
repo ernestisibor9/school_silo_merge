@@ -19591,8 +19591,8 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
     */
 
     $query = student::query()
-        ->where('student.schid', $schid)
-        ->where('student.status', 'active');
+        ->where('student.schid', $schid);
+        // ->where('student.status', 'active');
 
     if ((string) $stat !== '0') {
         $query->where('student.stat', $stat);
@@ -30457,12 +30457,19 @@ public function BulkPromoteStudent(Request $request)
                 'exit_status' => 'exited'
             ]);
 
-            if (DB::table('old_student')->where('schid', $schid)->where('sid', $stid)->exists()) {
-                DB::table('old_student')
-                    ->where('schid', $schid)
-                    ->where('sid', $stid)
-                    ->update(['status' => 'inactive']);
-            }
+        if (DB::table('old_student')
+            ->where('schid', $schid)
+            ->where('sid', $stid)
+            ->exists()) {
+
+            DB::table('old_student')
+                ->where('schid', $schid)
+                ->where('sid', $stid)
+                ->update([
+                    'status' => 'inactive',
+                    'exit_student' => 1,
+                ]);
+        }
 
             $student->refresh();
 
@@ -38936,6 +38943,174 @@ public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf
 
 
 
+// public function maintainPreviousStudents(Request $request)
+// {
+//     $request->validate([
+//         'schid' => 'required|integer',
+//         'new_trm' => 'required|integer',
+//         'ssn' => 'required|integer',
+//     ]);
+
+//     $schid = (int) $request->schid;
+//     $current_trm = (int) $request->new_trm;
+//     $current_ssn = (int) $request->ssn;
+
+//     // Determine next term only.
+//     // This method must NOT move students into a new session.
+//     if ($current_trm === 3) {
+//         return response()->json([
+//             'status' => true,
+//             'message' => 'Students maintained successfully',
+//             'new_trm' => 3,
+//             'new_ssn' => $current_ssn
+//         ]);
+//     }
+
+//     $next_trm = $current_trm + 1;
+//     $next_ssn = $current_ssn;
+
+//     $prev_trm = $current_trm;
+//     $prev_ssn = $current_ssn;
+
+//     DB::beginTransaction();
+
+//     try {
+//         // 1️⃣ Maintain students from the current term into the next term
+//         //    within the SAME session.
+//         DB::insert("
+//             INSERT IGNORE INTO old_student (
+//                 uid, suid, sid, schid, fname, mname, lname,
+//                 clsm, clsa, cls_sbj_students,
+//                 status, adm_ssn, adm_trm, cls_of_adm,
+//                 ssn, trm, created_at, updated_at
+//             )
+//             SELECT
+//                 CONCAT(?, ?, sid, clsm) AS uid,
+//                 suid, sid, schid, fname, mname, lname,
+//                 clsm, clsa, cls_sbj_students,
+//                 'active',
+//                 adm_ssn, adm_trm, cls_of_adm,
+//                 ?, ?,
+//                 NOW(), NOW()
+//             FROM old_student
+//             WHERE schid = ?
+//               AND trm = ?
+//               AND ssn = ?
+//               AND status = 'active'
+//         ", [
+//             $next_ssn,
+//             $next_trm,
+//             $next_ssn,
+//             $next_trm,
+//             $schid,
+//             $prev_trm,
+//             $prev_ssn
+//         ]);
+
+//         // 2️⃣ Maintain student subjects into the next term
+//         //    within the SAME session.
+//         DB::table('student_subj')
+//             ->whereIn('stid', function ($query) use ($schid, $prev_trm, $prev_ssn) {
+//                 $query->select('sid')
+//                     ->from('old_student')
+//                     ->where('schid', $schid)
+//                     ->where('trm', $prev_trm)
+//                     ->where('ssn', $prev_ssn)
+//                     ->where('status', 'active');
+//             })
+//             ->where('trm', $prev_trm)
+//             ->where('ssn', $prev_ssn)
+//             ->orderBy('stid')
+//             ->chunk(50, function ($subjects) use ($next_trm, $next_ssn) {
+
+//                 $insertData = [];
+
+//                 foreach ($subjects as $s) {
+//                     $insertData[] = [
+//                         'uid' => implode('-', [
+//                             $s->stid,
+//                             $s->sbj,
+//                             $next_trm,
+//                             $next_ssn
+//                         ]),
+//                         'stid' => $s->stid,
+//                         'sbj' => $s->sbj,
+//                         'comp' => $s->comp,
+//                         'schid' => $s->schid,
+//                         'clsid' => $s->clsid,
+//                         'trm' => $next_trm,
+//                         'ssn' => $next_ssn,
+//                         'created_at' => now(),
+//                         'updated_at' => now()
+//                     ];
+//                 }
+
+//                 if (!empty($insertData)) {
+//                     DB::table('student_subj')->insertOrIgnore($insertData);
+//                 }
+//             });
+
+//         // 3️⃣ Maintain class subjects into the next term
+//         //    within the SAME session.
+//         DB::table('class_subj')
+//             ->where('schid', $schid)
+//             ->where('trm', $prev_trm)
+//             ->where('sesn', $prev_ssn)
+//             ->orderBy('clsid')
+//             ->chunk(50, function ($classes) use ($next_trm, $next_ssn) {
+
+//                 $insertData = [];
+
+//                 foreach ($classes as $cs) {
+//                     $insertData[] = [
+//                         'uid' => implode('-', [
+//                             $next_ssn,
+//                             $next_trm,
+//                             $cs->clsid,
+//                             $cs->subj_id
+//                         ]),
+//                         'subj_id' => $cs->subj_id,
+//                         'schid' => $cs->schid,
+//                         'name' => $cs->name,
+//                         'comp' => $cs->comp,
+//                         'clsid' => $cs->clsid,
+//                         'sesn' => $next_ssn,
+//                         'trm' => $next_trm,
+//                         'created_at' => now(),
+//                         'updated_at' => now()
+//                     ];
+//                 }
+
+//                 if (!empty($insertData)) {
+//                     DB::table('class_subj')->insertOrIgnore($insertData);
+//                 }
+//             });
+
+//         DB::commit();
+
+//         return response()->json([
+//             'status' => true,
+//             'message' => 'Students promoted successfully',
+//             'new_trm' => $next_trm,
+//             'new_ssn' => $next_ssn
+//         ]);
+
+//     } catch (\Throwable $e) {
+//         DB::rollBack();
+
+//         Log::error('Promotion failed', [
+//             'error' => $e->getMessage(),
+//             'stack' => $e->getTraceAsString()
+//         ]);
+
+//         return response()->json([
+//             'status' => false,
+//             'message' => 'Promotion failed',
+//             'error' => $e->getMessage()
+//         ], 500);
+//     }
+// }
+
 public function maintainPreviousStudents(Request $request)
 {
     $request->validate([
@@ -38948,8 +39123,7 @@ public function maintainPreviousStudents(Request $request)
     $current_trm = (int) $request->new_trm;
     $current_ssn = (int) $request->ssn;
 
-    // Determine next term only.
-    // This method must NOT move students into a new session.
+    // Do not move students into a new session after Term 3.
     if ($current_trm === 3) {
         return response()->json([
             'status' => true,
@@ -38968,8 +39142,9 @@ public function maintainPreviousStudents(Request $request)
     DB::beginTransaction();
 
     try {
-        // 1️⃣ Maintain students from the current term into the next term
-        //    within the SAME session.
+        // 1. Maintain eligible students into the next term.
+        // Exclude students whose exit_student column is 1.
+        // Students with exit_student = NULL remain eligible.
         DB::insert("
             INSERT IGNORE INTO old_student (
                 uid, suid, sid, schid, fname, mname, lname,
@@ -38990,6 +39165,7 @@ public function maintainPreviousStudents(Request $request)
               AND trm = ?
               AND ssn = ?
               AND status = 'active'
+              AND (exit_student IS NULL OR exit_student <> 1)
         ", [
             $next_ssn,
             $next_trm,
@@ -39000,8 +39176,8 @@ public function maintainPreviousStudents(Request $request)
             $prev_ssn
         ]);
 
-        // 2️⃣ Maintain student subjects into the next term
-        //    within the SAME session.
+        // 2. Maintain subjects only for eligible students.
+        // Exited students must not receive subjects in the next term.
         DB::table('student_subj')
             ->whereIn('stid', function ($query) use ($schid, $prev_trm, $prev_ssn) {
                 $query->select('sid')
@@ -39009,7 +39185,11 @@ public function maintainPreviousStudents(Request $request)
                     ->where('schid', $schid)
                     ->where('trm', $prev_trm)
                     ->where('ssn', $prev_ssn)
-                    ->where('status', 'active');
+                    ->where('status', 'active')
+                    ->where(function ($q) {
+                        $q->whereNull('exit_student')
+                            ->orWhere('exit_student', '<>', 1);
+                    });
             })
             ->where('trm', $prev_trm)
             ->where('ssn', $prev_ssn)
@@ -39043,8 +39223,8 @@ public function maintainPreviousStudents(Request $request)
                 }
             });
 
-        // 3️⃣ Maintain class subjects into the next term
-        //    within the SAME session.
+        // 3. Maintain class subjects normally.
+        // These belong to the class, not an individual student.
         DB::table('class_subj')
             ->where('schid', $schid)
             ->where('trm', $prev_trm)
@@ -39083,7 +39263,7 @@ public function maintainPreviousStudents(Request $request)
 
         return response()->json([
             'status' => true,
-            'message' => 'Students promoted successfully',
+            'message' => 'Students maintained successfully',
             'new_trm' => $next_trm,
             'new_ssn' => $next_ssn
         ]);
