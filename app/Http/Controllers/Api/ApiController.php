@@ -7675,7 +7675,8 @@ public function setStudentAtOnceBulk(Request $request)
             'adm_trm',
             'cls_of_adm',
             'date_of_adm',
-            'adm_status'
+            'adm_status',
+            'exit_student',
         )
             ->orderBy('lname', 'asc')
             ->skip($start)
@@ -7737,6 +7738,7 @@ public function setStudentAtOnceBulk(Request $request)
                 "cls_of_adm" => $student->cls_of_adm,
                 "date_of_adm" => $student->date_of_adm,
                 "adm_status" => $student->adm_status,
+                "exit_student" => $student->exit_student,
             ];
         });
 
