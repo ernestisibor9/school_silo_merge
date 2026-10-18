@@ -2724,6 +2724,7 @@ public function registerStudent(Request $request)
     // }
 
 
+
 public function admitStudent(Request $request)
 {
     // Validate request data
@@ -2733,6 +2734,7 @@ public function admitStudent(Request $request)
         "schid" => "required",
     ]);
 
+    // Find student
     $std = student::where('sid', $request->stid)->first();
 
     if (!$std) {
@@ -2744,14 +2746,25 @@ public function admitStudent(Request $request)
 
     // Update student's admission status
     $std->update([
-        "stat" => $request->stat
+        "stat" => $request->stat,
     ]);
 
+    // Find the student's user account
     $usr = User::where('id', $std->sid)->first();
 
     // Send admission email only when stat = 1
-    if ($request->stat == '1' && $usr && $usr->email) {
+    if ((string) $request->stat === '1' && $usr && $usr->email) {
         try {
+            // Get the student portal URL from Laravel configuration
+            $portalUrl = rtrim(
+                config('app.portal_url', 'https://portal.schoolsilomerge.top'),
+                '/'
+            );
+
+            // Build the complete student login URL
+            $loginUrl = $portalUrl . '/studentLogin/' . $request->schid;
+
+            // Prepare email data
             $data = [
                 'name' => $std->fname,
                 'subject' => 'Congratulations! You Have Been Admitted',
@@ -2759,13 +2772,14 @@ public function admitStudent(Request $request)
                     . "We are pleased to inform you that your application has been approved. "
                     . "Welcome to our school!\n\n"
                     . "You can log in to your student portal using the link below.",
-                'link' => env('PORTAL_URL')
-                    . '/studentLogin/' . $request->schid,
+                'link' => $loginUrl,
             ];
 
+            // Send admission email
             Mail::to($usr->email)->send(new SSSMails($data));
 
         } catch (\Throwable $e) {
+            // Log email errors without interrupting the API response
             Log::error('Failed to send admission email', [
                 'student_id' => $std->sid,
                 'email' => $usr->email,
