@@ -2285,7 +2285,7 @@ public function registerStudent(Request $request)
     // Data validation
     $request->validate([
         "schid" => "required",
-        "email" => "required|email|unique:users,email",
+        "email" => "required|email",
         "password" => "required",
         "fname" => "required|string|max:100",
         "lname" => "required|string|max:100",
