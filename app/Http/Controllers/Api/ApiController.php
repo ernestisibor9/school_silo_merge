@@ -19866,8 +19866,6 @@ public function getPaymentStat($schid, $clsid, $ssnid, $trmid)
 //     ]);
 // }
 
-
-
 public function getStudentsBySchool(Request $request, $schid, $stat)
 {
     $start = (int) $request->input('start', 0);
@@ -19876,19 +19874,19 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
     $cls = $request->input('cls', 'zzz');
     $term = $request->input('term');
 
-/*
-|--------------------------------------------------------------------------
-| Base Student Query — Filter By Status
-|--------------------------------------------------------------------------
-| 0 = Pending
-| 1 = Approved
-| 2 = Declined
-|--------------------------------------------------------------------------
-*/
+    /*
+    |--------------------------------------------------------------------------
+    | Base Student Query — Filter By Status
+    |--------------------------------------------------------------------------
+    | 0 = Pending
+    | 1 = Approved
+    | 2 = Declined
+    |--------------------------------------------------------------------------
+    */
 
-$query = student::query()
-    ->where('student.schid', $schid)
-    ->where('student.stat', $stat);
+    $query = student::query()
+        ->where('student.schid', $schid)
+        ->where('student.stat', $stat);
 
     /*
     |--------------------------------------------------------------------------
@@ -20025,6 +20023,38 @@ $query = student::query()
         }
 
         try {
+            /*
+            |--------------------------------------------------------------------------
+            | Get School Name
+            |--------------------------------------------------------------------------
+            */
+
+            $schoolName = \DB::table('school_web_data')
+                ->where('user_id', $schid)
+                ->value('sname');
+
+            /*
+            |--------------------------------------------------------------------------
+            | Get Learner ID
+            |--------------------------------------------------------------------------
+            | Use CUID for returning learners when available.
+            | Otherwise, construct the ID from the existing student fields.
+            |--------------------------------------------------------------------------
+            */
+
+            $learnerId = !empty($student->cuid)
+                ? $student->cuid
+                : $student->sch3 . '/'
+                    . $student->year . '/'
+                    . $student->term . '/'
+                    . $student->count;
+
+            /*
+            |--------------------------------------------------------------------------
+            | Build Login Link
+            |--------------------------------------------------------------------------
+            */
+
             $portalUrl = rtrim(
                 config(
                     'app.portal_url',
@@ -20033,15 +20063,49 @@ $query = student::query()
                 '/'
             );
 
+            $loginUrl = $portalUrl . '/studentLogin/' . $schid;
+
+            /*
+            |--------------------------------------------------------------------------
+            | Prepare Pending Application Email
+            |--------------------------------------------------------------------------
+            */
+
             $data = [
                 'name' => $student->fname,
+
                 'subject' => 'Application Received - Awaiting Review',
-                'body' => 'Thank you for submitting your application. '
-                    . 'Please wait for a response from the school administrator. '
-                    . 'Kindly check your email for your learner ID and password '
-                    . 'for future login.',
-                'link' => $portalUrl . '/studentLogin/' . $schid,
+
+                'body' => 'Dear ' . $student->fname . ",\n\n"
+                    . 'Thank you for submitting your application to '
+                    . ($schoolName ?: 'our school') . ".\n\n"
+                    . "Your application has been received and is awaiting "
+                    . "review by the school administrator.\n\n"
+                    . "Please keep your learner login details safe:\n\n"
+                    . 'SCHOOL NAME: '
+                    . ($schoolName ?: 'Not available') . "\n\n"
+                    . 'LEARNER ID: '
+                    . $learnerId . "\n\n"
+                    . "PASSWORD: Use the password you created "
+                    . "during registration.\n\n"
+                    . 'LOGIN LINK: '
+                    . $loginUrl . "\n\n"
+                    . "Please use your Learner ID and password to log in. "
+                    . "You will be notified when the school administrator "
+                    . "reviews your application.\n\n"
+                    . "For your security, do not share your password "
+                    . "with anyone.\n\n"
+                    . "Regards,\n"
+                    . ($schoolName ?: 'School Administration'),
+
+                'link' => $loginUrl,
             ];
+
+            /*
+            |--------------------------------------------------------------------------
+            | Send Email
+            |--------------------------------------------------------------------------
+            */
 
             \Illuminate\Support\Facades\Mail::to($usr->email)
                 ->send(new SSSMails($data));
@@ -20052,6 +20116,8 @@ $query = student::query()
                     'student_id' => $student->sid,
                     'email' => $usr->email,
                     'school_id' => $schid,
+                    'learner_id' => $learnerId,
+                    'school_name' => $schoolName,
                 ]
             );
 
@@ -20064,6 +20130,7 @@ $query = student::query()
             \DB::table('student')
                 ->where('sid', $student->sid)
                 ->where('schid', $schid)
+                ->where('stat', 0)
                 ->whereNotNull('pending_email_sent_at')
                 ->update([
                     'pending_email_sent_at' => null,
@@ -20166,8 +20233,6 @@ $query = student::query()
         'pld' => $pld,
     ]);
 }
-
-
 
 
     /**
