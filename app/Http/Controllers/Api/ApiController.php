@@ -19977,6 +19977,17 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
         ->slice($start, $count)
         ->values();
 
+        \Illuminate\Support\Facades\Log::info(
+    'Pending email debug: paginated students.',
+    [
+        'school_id' => $schid,
+        'status_filter' => $stat,
+        'start' => $start,
+        'count' => $count,
+        'student_ids' => $students->pluck('sid')->all(),
+    ]
+);
+
     /*
     |--------------------------------------------------------------------------
     | Send Pending Application Email Once Per Learner
@@ -19996,6 +20007,15 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
         if ((string) $student->stat !== '0') {
             continue;
         }
+
+        \Illuminate\Support\Facades\Log::info(
+    'Pending email debug: checking learner.',
+    [
+        'student_id' => $student->sid,
+        'student_status' => $student->stat,
+        'school_id' => $schid,
+    ]
+);
 
         // Find the learner's login account and email address.
         $usr = User::where('id', $student->sid)->first();
