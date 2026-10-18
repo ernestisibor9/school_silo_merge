@@ -19508,148 +19508,365 @@ public function getPaymentStat($schid, $clsid, $ssnid, $trmid)
         ]);
     }
 
-    /**
-     * @OA\Get(
-     *     path="/api/getStudentsBySchool/{schid}/{stat}",
-     *     summary="Get students by school ID and status",
-     *     description="Fetch a paginated list of active students filtered by school, status, class, term, and year.",
-     *     operationId="getStudentsBySchool",
-     *     tags={"Api"},
-     *     security={{"bearerAuth": {}}},
-     *
-     *     @OA\Parameter(
-     *         name="schid",
-     *         in="path",
-     *         required=true,
-     *         description="School ID",
-     *         @OA\Schema(type="integer", example=12)
-     *     ),
-     *     @OA\Parameter(
-     *         name="stat",
-     *         in="path",
-     *         required=true,
-     *         description="Student status (numeric or code)",
-     *         @OA\Schema(type="string", example="1")
-     *     ),
-     *     @OA\Parameter(
-     *         name="start",
-     *         in="query",
-     *         required=false,
-     *         description="Offset for pagination",
-     *         @OA\Schema(type="integer", example=0)
-     *     ),
-     *     @OA\Parameter(
-     *         name="count",
-     *         in="query",
-     *         required=false,
-     *         description="Number of records to return",
-     *         @OA\Schema(type="integer", example=20)
-     *     ),
-     *     @OA\Parameter(
-     *         name="cls",
-     *         in="query",
-     *         required=false,
-     *         description="Class ID filter; use 'zzz' to fetch all classes",
-     *         @OA\Schema(type="string", example="13")
-     *     ),
-     *     @OA\Parameter(
-     *         name="year",
-     *         in="query",
-     *         required=false,
-     *         description="Year filter (from student table)",
-     *         @OA\Schema(type="integer", example=2024)
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="Successful operation",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Success"),
-     *             @OA\Property(
-     *                 property="pld",
-     *                 type="array",
-     *                 @OA\Items(
-     *                     @OA\Property(property="sid", type="integer", example=101),
-     *                     @OA\Property(property="lname", type="string", example="Doe"),
-     *                     @OA\Property(property="fname", type="string", example="John"),
-     *                     @OA\Property(property="term", type="integer", example=3),
-     *                     @OA\Property(property="year", type="integer", example=2024),
-     *                     @OA\Property(property="new_class_main", type="string", example="13")
-     *                 )
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=400,
-     *         description="Invalid request"
-     *     )
-     * )
-     */
+/**
+ * @OA\Get(
+ *     path="/api/getStudentsBySchool/{schid}/{stat}",
+ *     summary="Get students by school ID and status",
+ *     description="Fetch students for a school filtered by application status, latest available class, year, and term. Supports pagination and returns student, basic, and academic data. Pending application notification emails are sent at most once per learner when eligible.",
+ *     operationId="getStudentsBySchool",
+ *     tags={"Api"},
+ *     security={{"bearerAuth": {}}},
+ *
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="path",
+ *         required=true,
+ *         description="School ID",
+ *         @OA\Schema(
+ *             type="integer",
+ *             example=12
+ *         )
+ *     ),
+ *     @OA\Parameter(
+ *         name="stat",
+ *         in="path",
+ *         required=true,
+ *         description="Filter students by application status: 0 = Pending, 1 = Approved, 2 = Declined.",
+ *         @OA\Schema(
+ *             type="integer",
+ *             enum={0, 1, 2},
+ *             example=0
+ *         )
+ *     ),
+ *     @OA\Parameter(
+ *         name="start",
+ *         in="query",
+ *         required=false,
+ *         description="Pagination offset. Defaults to 0.",
+ *         @OA\Schema(
+ *             type="integer",
+ *             default=0,
+ *             example=0,
+ *             minimum=0
+ *         )
+ *     ),
+ *     @OA\Parameter(
+ *         name="count",
+ *         in="query",
+ *         required=false,
+ *         description="Maximum number of students to return. Defaults to 20.",
+ *         @OA\Schema(
+ *             type="integer",
+ *             default=20,
+ *             example=20,
+ *             minimum=1
+ *         )
+ *     ),
+ *     @OA\Parameter(
+ *         name="cls",
+ *         in="query",
+ *         required=false,
+ *         description="Filter by the student's latest available new_class_main. Use zzz to include all classes.",
+ *         @OA\Schema(
+ *             type="string",
+ *             default="zzz",
+ *             example="13"
+ *         )
+ *     ),
+ *     @OA\Parameter(
+ *         name="year",
+ *         in="query",
+ *         required=false,
+ *         description="Filter by student.year.",
+ *         @OA\Schema(
+ *             type="integer",
+ *             example=2026
+ *         )
+ *     ),
+ *     @OA\Parameter(
+ *         name="term",
+ *         in="query",
+ *         required=false,
+ *         description="Filter by student.term.",
+ *         @OA\Schema(
+ *             type="integer",
+ *             example=1
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Students retrieved successfully",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(
+ *                 property="status",
+ *                 type="boolean",
+ *                 example=true
+ *             ),
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="Success"
+ *             ),
+ *             @OA\Property(
+ *                 property="total",
+ *                 type="integer",
+ *                 description="Total number of unique students matching the filters before pagination.",
+ *                 example=25
+ *             ),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(
+ *                         property="s",
+ *                         type="object",
+ *                         description="Student record.",
+ *                         @OA\Property(property="sid", type="integer", example=101),
+ *                         @OA\Property(property="schid", type="integer", example=12),
+ *                         @OA\Property(property="fname", type="string", example="John"),
+ *                         @OA\Property(property="lname", type="string", example="Doe"),
+ *                         @OA\Property(property="stat", type="integer", enum={0, 1, 2}, example=0),
+ *                         @OA\Property(property="year", type="integer", example=2026),
+ *                         @OA\Property(property="term", type="integer", example=1),
+ *                         @OA\Property(property="new_class_main", type="string", nullable=true, example="13")
+ *                     ),
+ *                     @OA\Property(
+ *                         property="b",
+ *                         type="object",
+ *                         nullable=true,
+ *                         description="Student basic data record."
+ *                     ),
+ *                     @OA\Property(
+ *                         property="a",
+ *                         type="object",
+ *                         nullable=true,
+ *                         description="Latest student academic data record."
+ *                     )
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=400,
+ *         description="Invalid request parameters"
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthenticated"
+ *     ),
+ *     @OA\Response(
+ *         response=403,
+ *         description="Forbidden"
+ *     )
+ * )
+ */
 
-    // public function getStudentsBySchool(Request $request, $schid, $stat)
-    // {
-    //     $start = $request->input('start', 0);
-    //     $count = $request->input('count', 20);
-    //     $year = $request->input('year');   // optional
-    //     $cls = $request->input('cls', 'zzz'); // "zzz" = ALL classes
-    //     $term = $request->input('term');   // optional
 
-    //     // Base query: join latest student_academic_data
-    //     $query = student::query()
-    //         ->leftJoin('student_academic_data as sad', function ($join) {
-    //             $join->on('student.sid', '=', 'sad.user_id')
-    //                 ->whereRaw('sad.created_at = (
-    //                  SELECT MAX(created_at)
-    //                  FROM student_academic_data
-    //                  WHERE user_id = student.sid
-    //              )');
-    //         })
-    //         ->where('student.schid', $schid)
-    //         ->where('student.stat', $stat);
+// public function getStudentsBySchool(Request $request, $schid, $stat)
+// {
+//     $start = (int) $request->input('start', 0);
+//     $count = (int) $request->input('count', 20);
+//     $year = $request->input('year');
+//     $cls = $request->input('cls', 'zzz');
+//     $term = $request->input('term');
 
-    //     // Filter by class if not "ALL"
-    //     if ($cls !== 'zzz') {
-    //         $query->where('sad.new_class_main', $cls);
-    //     }
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Base Student Query
+//     |--------------------------------------------------------------------------
+//     */
 
-    //     // Optional filters
-    //     if ($year) {
-    //         $query->where('student.year', $year);
-    //     }
-    //     if ($term) {
-    //         $query->where('student.term', $term);
-    //     }
+//     $query = student::query()
+//         ->where('student.schid', $schid);
+//         // ->where('student.status', 'active');
 
-    //     // Clone query for total count
-    //     $total = (clone $query)->distinct('student.sid')->count('student.sid');
+//     if ((string) $stat !== '0') {
+//         $query->where('student.stat', $stat);
+//     }
 
-    //     // Fetch paginated results
-    //     $students = $query->select('student.*', 'sad.new_class_main')
-    //         ->distinct('student.sid')
-    //         ->orderBy('student.lname', 'asc')
-    //         ->skip($start)
-    //         ->take($count)
-    //         ->get();
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Filter By Latest Available Class
+//     |--------------------------------------------------------------------------
+//     | No id column is required. MAX(created_at) identifies the latest
+//     | academic timestamp for each student.
+//     |--------------------------------------------------------------------------
+//     */
 
-    //     // Format payload
-    //     $pld = $students->map(function ($student) {
-    //         return [
-    //             's' => $student,
-    //             'b' => student_basic_data::where('user_id', $student->sid)->first(),
-    //             'a' => student_academic_data::where('user_id', $student->sid)
-    //                 ->orderBy('created_at', 'desc')
-    //                 ->first(),
-    //         ];
-    //     });
+//     if ($cls !== 'zzz') {
+//         $query->whereIn('student.sid', function ($subquery) use ($cls) {
+//             $subquery->select('sad1.user_id')
+//                 ->from('student_academic_data as sad1')
+//                 ->where('sad1.new_class_main', $cls)
+//                 ->whereRaw('sad1.created_at = (
+//                     SELECT MAX(sad2.created_at)
+//                     FROM student_academic_data as sad2
+//                     WHERE sad2.user_id = sad1.user_id
+//                 )');
+//         });
+//     }
 
-    //     return response()->json([
-    //         "status" => true,
-    //         "message" => "Success",
-    //         "total" => $total,
-    //         "pld" => $pld,
-    //     ]);
-    // }
+//     if ($year) {
+//         $query->where('student.year', $year);
+//     }
+
+//     if ($term) {
+//         $query->where('student.term', $term);
+//     }
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Fetch Students
+//     |--------------------------------------------------------------------------
+//     */
+
+//     $allStudents = $query
+//         ->select('student.*')
+//         ->orderBy('student.lname', 'asc')
+//         ->orderBy('student.sid', 'asc')
+//         ->get();
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Deduplicate By SID And CUID
+//     |--------------------------------------------------------------------------
+//     */
+
+//     $seenSids = [];
+//     $seenCuids = [];
+
+//     $uniqueStudents = $allStudents->filter(function ($student) use (
+//         &$seenSids,
+//         &$seenCuids
+//     ) {
+//         $sidKey = (string) $student->sid;
+
+//         if (isset($seenSids[$sidKey])) {
+//             return false;
+//         }
+
+//         $cuid = trim((string) ($student->cuid ?? ''));
+
+//         $cuidKey = $cuid !== ''
+//             ? strtoupper($cuid)
+//             : null;
+
+//         if ($cuidKey !== null && isset($seenCuids[$cuidKey])) {
+//             return false;
+//         }
+
+//         $seenSids[$sidKey] = true;
+
+//         if ($cuidKey !== null) {
+//             $seenCuids[$cuidKey] = true;
+//         }
+
+//         return true;
+//     })->values();
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Total And Pagination
+//     |--------------------------------------------------------------------------
+//     */
+
+//     $total = $uniqueStudents->count();
+
+//     $students = $uniqueStudents
+//         ->slice($start, $count)
+//         ->values();
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Prepare Student Response
+//     |--------------------------------------------------------------------------
+//     */
+
+//     $pld = $students->map(function ($student) use ($schid, $year) {
+
+//         $latestAcademic = student_academic_data::where(
+//             'user_id',
+//             $student->sid
+//         )
+//             ->orderBy('created_at', 'desc')
+//             ->first();
+
+//         $student->new_class_main =
+//             $latestAcademic->new_class_main ?? null;
+
+//         $ssn = $year ?? $student->year;
+
+//         $hasSubjects = \DB::table('student_subj')
+//             ->where('stid', $student->sid)
+//             ->where('schid', $schid)
+//             ->where('ssn', $ssn)
+//             ->exists();
+
+//         /*
+//         |--------------------------------------------------------------------------
+//         | Only ACTIVE old_student
+//         |--------------------------------------------------------------------------
+//         */
+
+//         $oldStudent = \DB::table('old_student')
+//             ->where('sid', $student->sid)
+//             ->where('schid', $schid)
+//             ->where('ssn', $ssn)
+//             ->where('status', 'active')
+//             ->first();
+
+//         $hasClassMain = $oldStudent && !empty($oldStudent->clsm);
+//         $hasClassArm = $oldStudent && !empty($oldStudent->clsa);
+
+//         if ($hasClassMain && !$hasClassArm) {
+//             $clsSbjValue = 0;
+//         } elseif ($hasClassMain && $hasClassArm && !$hasSubjects) {
+//             $clsSbjValue = 1;
+//         } elseif ($hasClassMain && $hasClassArm && $hasSubjects) {
+//             $clsSbjValue = 2;
+//         } else {
+//             $clsSbjValue = 0;
+//         }
+
+//         if ($student->cls_sbj_students != $clsSbjValue) {
+//             \DB::table('student')
+//                 ->where('sid', $student->sid)
+//                 ->update([
+//                     'cls_sbj_students' => $clsSbjValue,
+//                 ]);
+
+//             $student->cls_sbj_students = $clsSbjValue;
+//         }
+
+//         return [
+//             's' => $student,
+//             'b' => student_basic_data::where(
+//                 'user_id',
+//                 $student->sid
+//             )->first(),
+//             'a' => $latestAcademic,
+//         ];
+//     });
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Original Response Structure Preserved
+//     |--------------------------------------------------------------------------
+//     */
+
+//     return response()->json([
+//         "status" => true,
+//         "message" => "Success",
+//         "total" => $total,
+//         "pld" => $pld,
+//     ]);
+// }
+
+
+
 public function getStudentsBySchool(Request $request, $schid, $stat)
 {
     $start = (int) $request->input('start', 0);
@@ -19658,26 +19875,23 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
     $cls = $request->input('cls', 'zzz');
     $term = $request->input('term');
 
-    /*
-    |--------------------------------------------------------------------------
-    | Base Student Query
-    |--------------------------------------------------------------------------
-    */
+/*
+|--------------------------------------------------------------------------
+| Base Student Query — Filter By Status
+|--------------------------------------------------------------------------
+| 0 = Pending
+| 1 = Approved
+| 2 = Declined
+|--------------------------------------------------------------------------
+*/
 
-    $query = student::query()
-        ->where('student.schid', $schid);
-        // ->where('student.status', 'active');
-
-    if ((string) $stat !== '0') {
-        $query->where('student.stat', $stat);
-    }
+$query = student::query()
+    ->where('student.schid', $schid)
+    ->where('student.stat', $stat);
 
     /*
     |--------------------------------------------------------------------------
     | Filter By Latest Available Class
-    |--------------------------------------------------------------------------
-    | No id column is required. MAX(created_at) identifies the latest
-    | academic timestamp for each student.
     |--------------------------------------------------------------------------
     */
 
@@ -19766,6 +19980,108 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
 
     /*
     |--------------------------------------------------------------------------
+    | Send Pending Application Email Once Per Learner
+    |--------------------------------------------------------------------------
+    | 0 = Pending
+    | 1 = Approved
+    | 2 = Declined
+    |
+    | An atomic database update prevents repeated requests from claiming
+    | the same learner's pending email at the same time.
+    |--------------------------------------------------------------------------
+    */
+
+    foreach ($students as $student) {
+
+        // Only send the notification for pending learners.
+        if ((string) $student->stat !== '0') {
+            continue;
+        }
+
+        // Find the learner's login account and email address.
+        $usr = User::where('id', $student->sid)->first();
+
+        if (!$usr || empty($usr->email)) {
+            continue;
+        }
+
+        /*
+         * Claim the notification before sending it.
+         * Only one request can change this column from NULL to a timestamp.
+         */
+        $claimed = \DB::table('student')
+            ->where('sid', $student->sid)
+            ->where('schid', $schid)
+            ->where('stat', 0)
+            ->whereNull('pending_email_sent_at')
+            ->update([
+                'pending_email_sent_at' => now(),
+            ]);
+
+        // Already sent or claimed by another request.
+        if ($claimed !== 1) {
+            continue;
+        }
+
+        try {
+            $portalUrl = rtrim(
+                config(
+                    'app.portal_url',
+                    'https://portal.schoolsilomerge.top'
+                ),
+                '/'
+            );
+
+            $data = [
+                'name' => $student->fname,
+                'subject' => 'Application Received - Awaiting Review',
+                'body' => 'Thank you for submitting your application. '
+                    . 'Please wait for a response from the school administrator. '
+                    . 'Kindly check your email for your learner ID and password '
+                    . 'for future login.',
+                'link' => $portalUrl . '/studentLogin/' . $schid,
+            ];
+
+            \Illuminate\Support\Facades\Mail::to($usr->email)
+                ->send(new SSSMails($data));
+
+            \Illuminate\Support\Facades\Log::info(
+                'Pending application email sent successfully.',
+                [
+                    'student_id' => $student->sid,
+                    'email' => $usr->email,
+                    'school_id' => $schid,
+                ]
+            );
+
+        } catch (\Throwable $e) {
+
+            /*
+             * If sending fails, release the claim so a later request
+             * can retry the notification.
+             */
+            \DB::table('student')
+                ->where('sid', $student->sid)
+                ->where('schid', $schid)
+                ->whereNotNull('pending_email_sent_at')
+                ->update([
+                    'pending_email_sent_at' => null,
+                ]);
+
+            \Illuminate\Support\Facades\Log::error(
+                'Failed to send pending application email.',
+                [
+                    'student_id' => $student->sid,
+                    'email' => $usr->email,
+                    'school_id' => $schid,
+                    'error' => $e->getMessage(),
+                ]
+            );
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | Prepare Student Response
     |--------------------------------------------------------------------------
     */
@@ -19843,12 +20159,13 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
     */
 
     return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "total" => $total,
-        "pld" => $pld,
+        'status' => true,
+        'message' => 'Success',
+        'total' => $total,
+        'pld' => $pld,
     ]);
 }
+
 
 
 
