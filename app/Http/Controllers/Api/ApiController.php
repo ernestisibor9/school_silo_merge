@@ -2684,44 +2684,102 @@ public function registerStudent(Request $request)
      *     @OA\Response(response="400", description="Validation error"),
      * )
      */
-    public function admitStudent(Request $request)
-    {
-        //Data validation
-        $request->validate([
-            "stid" => "required",
-            "stat" => "required",
-            "schid" => "required",
-        ]);
-        $std = student::where('sid', $request->stid)->first();
-        if ($std) {
-            $std->update([
-                "stat" => $request->stat
-            ]);
-            $usr = User::where('id', $std->sid)->first();
-            // Wrap the email sending logic in a try-catch block
-            try {
-                $data = [
-                    'name' => $std->fname,
-                    'subject' => 'Application ' . ($request->stat == '1' ? 'Approved' : 'Decline'),
-                    'body' => "Your application to our school has been " . ($request->stat == '1' ? 'approved' : 'decline'),
-                    'link' => env('PORTAL_URL') . '/studentLogin' . '/' . $request->schid,
-                ];
-                Mail::to($usr->email)->send(new SSSMails($data));
-            } catch (\Exception $e) {
-                // Log the email error, but don't stop the process
-                Log::error('Failed to send email: ' . $e->getMessage());
-            }
+    // public function admitStudent(Request $request)
+    // {
+    //     //Data validation
+    //     $request->validate([
+    //         "stid" => "required",
+    //         "stat" => "required",
+    //         "schid" => "required",
+    //     ]);
+    //     $std = student::where('sid', $request->stid)->first();
+    //     if ($std) {
+    //         $std->update([
+    //             "stat" => $request->stat
+    //         ]);
+    //         $usr = User::where('id', $std->sid)->first();
+    //         // Wrap the email sending logic in a try-catch block
+    //         try {
+    //             $data = [
+    //                 'name' => $std->fname,
+    //                 'subject' => 'Application ' . ($request->stat == '1' ? 'Approved' : 'Decline'),
+    //                 'body' => "Your application to our school has been " . ($request->stat == '1' ? 'approved' : 'decline'),
+    //                 'link' => env('PORTAL_URL') . '/studentLogin' . '/' . $request->schid,
+    //             ];
+    //             Mail::to($usr->email)->send(new SSSMails($data));
+    //         } catch (\Exception $e) {
+    //             // Log the email error, but don't stop the process
+    //             Log::error('Failed to send email: ' . $e->getMessage());
+    //         }
 
-            return response()->json([
-                "status" => true,
-                "message" => "Success",
-            ]);
-        }
+    //         return response()->json([
+    //             "status" => true,
+    //             "message" => "Success",
+    //         ]);
+    //     }
+    //     return response()->json([
+    //         "status" => false,
+    //         "message" => "Student Not Found",
+    //     ], 400);
+    // }
+
+
+public function admitStudent(Request $request)
+{
+    // Validate request data
+    $request->validate([
+        "stid" => "required",
+        "stat" => "required|in:0,1",
+        "schid" => "required",
+    ]);
+
+    $std = student::where('sid', $request->stid)->first();
+
+    if (!$std) {
         return response()->json([
             "status" => false,
             "message" => "Student Not Found",
         ], 400);
     }
+
+    // Update student's admission status
+    $std->update([
+        "stat" => $request->stat
+    ]);
+
+    $usr = User::where('id', $std->sid)->first();
+
+    // Send admission email only when stat = 1
+    if ($request->stat == '1' && $usr && $usr->email) {
+        try {
+            $data = [
+                'name' => $std->fname,
+                'subject' => 'Congratulations! You Have Been Admitted',
+                'body' => "Congratulations! You have now been admitted.\n\n"
+                    . "We are pleased to inform you that your application has been approved. "
+                    . "Welcome to our school!\n\n"
+                    . "You can log in to your student portal using the link below.",
+                'link' => env('PORTAL_URL')
+                    . '/studentLogin/' . $request->schid,
+            ];
+
+            Mail::to($usr->email)->send(new SSSMails($data));
+
+        } catch (\Throwable $e) {
+            Log::error('Failed to send admission email', [
+                'student_id' => $std->sid,
+                'email' => $usr->email,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+    ]);
+}
+
 
     /**
      * @OA\Post(
