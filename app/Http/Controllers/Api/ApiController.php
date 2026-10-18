@@ -2446,61 +2446,62 @@ public function registerStudent(Request $request)
             . '/'
             . strval($count);
 
+/*
+|--------------------------------------------------------------------------
+| Send Welcome Email
+|--------------------------------------------------------------------------
+*/
 
-        /*
-        |--------------------------------------------------------------------------
-        | Send Welcome Email
-        |--------------------------------------------------------------------------
-        */
+try {
+    // Get the student portal URL from Laravel configuration
+    $portalUrl = rtrim(
+        config('app.portal_url', 'https://portal.schoolsilomerge.top'),
+        '/'
+    );
 
-        try {
+    // Build the complete student login URL
+    $loginUrl = $portalUrl . '/studentLogin/' . $request->schid;
 
-            if ($request->cuid) {
+    if ($request->cuid) {
+        $data = [
+            'name' => $fname,
+            'subject' => 'Welcome Back, Your ID remains ' . $request->cuid,
+            'body' => "Welcome back to your school's platform. Your account was created successfully.\n\n"
+                . "Please log in to your dashboard using the link below and complete your student profile.\n\n"
+                . "If the link isn't clickable, copy it into your browser. If this email arrives in your spam folder, please mark it as Not Spam.\n\n"
+                . "Your Student ID is " . $request->cuid,
+            'link' => $loginUrl,
+        ];
+    } else {
+        $data = [
+            'name' => $fname,
+            'subject' => 'Welcome, Your ID is ' . $sid,
+            'body' => "Welcome to your school's platform. Your account was created successfully.\n\n"
+                . "Please log in to your dashboard and complete your student profile using the link below.\n\n"
+                . "If the link isn't clickable, copy it into your browser. If this email arrives in your spam folder, please mark it as Not Spam.\n\n"
+                . "Your Student ID is " . $sid,
+            'link' => $loginUrl,
+        ];
+    }
 
-                $data = [
-                    'name' => $fname,
+    Mail::to($request->email)->send(new SSSMails($data));
 
-                    'subject' => 'Welcome Back, Your ID remains ' . $request->cuid,
+    Log::info('Student welcome email sent successfully.', [
+        'student_id' => $usr->id,
+        'email' => $request->email,
+        'school_id' => $request->schid,
+        'login_url' => $loginUrl,
+    ]);
 
-                    'body' => "Welcome back to your school's platform. Your account was created successfully. If you havent already, please login to your dashboard using the link below and complete your student profile. If the link isnt clickable, please copy the link to your browser. If this arrived in spam folder, please mark as Not Spam. Your Student ID is " . $request->cuid,
-
-                    'link' => env('PORTAL_URL')
-                        . '/studentLogin'
-                        . '/'
-                        . $request->schid,
-                ];
-
-                Mail::to($request->email)->send(
-                    new SSSMails($data)
-                );
-
-            } else {
-
-                $data = [
-                    'name' => $fname,
-
-                    'subject' => 'Welcome, Your ID is ' . $sid,
-
-                    'body' => "Welcome to your school's platform. Your account was created successfully. If you havent already, please login to your dashboard and complete your student profile. If the link isnt clickable, please copy the link to your browser. If this arrived in spam folder, please mark as Not Spam. Your Student ID is " . $sid,
-
-                    'link' => env('PORTAL_URL')
-                        . '/studentLogin'
-                        . '/'
-                        . $request->schid,
-                ];
-
-                Mail::to($request->email)->send(
-                    new SSSMails($data)
-                );
-            }
-
-        } catch (\Exception $e) {
-
-            // Log the email error, but don't stop the process
-            Log::error(
-                'Failed to send email: ' . $e->getMessage()
-            );
-        }
+} catch (\Throwable $e) {
+    // Log the email error without stopping student registration
+    Log::error('Failed to send student welcome email.', [
+        'student_id' => $usr->id,
+        'email' => $request->email,
+        'school_id' => $request->schid,
+        'error' => $e->getMessage(),
+    ]);
+}
 
 
         /*
