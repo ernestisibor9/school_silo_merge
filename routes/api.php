@@ -141,6 +141,8 @@ Route::get('getStaffId/{schid}/{ssn}/{trm}', [ApiController::class, 'getStaffId'
 Route::get('verifyStudent', [ApiController::class, 'verifyStudent']);
 Route::get('verifyStaff', [ApiController::class, 'verifyStaff']);
 
+Route::post('/getStudentDetails', [ApiController::class, 'getStudentDetails']);
+
 
 Route::group([
     'middleware' => ['auth:api'],
