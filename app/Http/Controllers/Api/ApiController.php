@@ -2333,9 +2333,7 @@ public function registerStudent(Request $request)
 
     $typ = 'z';
 
-    $usr = User::where("typ", $typ)
-        ->where("email", $request->email)
-        ->first();
+    $usr = null;
 
 
     /*
