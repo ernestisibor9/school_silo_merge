@@ -35972,6 +35972,165 @@
                     }
                 }
             }
+        },
+        "/api/getStudentDetails": {
+            "post": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get student details",
+                "description": "Fetch a student record from the student table using the student ID (sid) and school ID (schid).",
+                "operationId": "getStudentDetails",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "uid",
+                                    "schid"
+                                ],
+                                "properties": {
+                                    "uid": {
+                                        "description": "Student ID (sid)",
+                                        "type": "integer",
+                                        "example": 4704
+                                    },
+                                    "schid": {
+                                        "description": "School ID",
+                                        "type": "integer",
+                                        "example": 12
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Student details retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "description": "Student record from the student table",
+                                            "properties": {
+                                                "sid": {
+                                                    "type": "integer",
+                                                    "example": 4704
+                                                },
+                                                "schid": {
+                                                    "type": "integer",
+                                                    "example": 12
+                                                },
+                                                "fname": {
+                                                    "type": "string",
+                                                    "example": "LEKE"
+                                                },
+                                                "mname": {
+                                                    "type": "string",
+                                                    "example": null,
+                                                    "nullable": true
+                                                },
+                                                "lname": {
+                                                    "type": "string",
+                                                    "example": "ADE"
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "example": "active"
+                                                },
+                                                "stat": {
+                                                    "type": "integer",
+                                                    "example": 0
+                                                },
+                                                "count": {
+                                                    "type": "integer",
+                                                    "example": 663
+                                                },
+                                                "year": {
+                                                    "type": "integer",
+                                                    "example": 2026
+                                                },
+                                                "term": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "sch3": {
+                                                    "type": "string",
+                                                    "example": "HGC"
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2026-10-18T13:35:15"
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2026-10-18T13:35:15"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "UID or school ID not provided",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No UID/School ID provided"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Student not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Student not found"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "components": {
