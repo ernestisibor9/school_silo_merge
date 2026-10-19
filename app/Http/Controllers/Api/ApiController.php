@@ -46869,7 +46869,7 @@ public function getSchoolStateLga($schid)
  * @OA\Get(
  *     path="/api/getStudentDetails",
  *     operationId="getStudentDetailss",
- *     tags={"Students"},
+ *     tags={"Api"},
  *     summary="Get student details",
  *     description="Fetch a student record from the student table using the student ID (sid) and school ID (schid).",
  *     @OA\Parameter(
