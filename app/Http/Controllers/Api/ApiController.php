@@ -46866,29 +46866,25 @@ public function getSchoolStateLga($schid)
 
 
 /**
- * @OA\Post(
+ * @OA\Get(
  *     path="/api/getStudentDetails",
- *     operationId="getStudentDetails",
- *     tags={"Api"},
+ *     operationId="getStudentDetailss",
+ *     tags={"Students"},
  *     summary="Get student details",
  *     description="Fetch a student record from the student table using the student ID (sid) and school ID (schid).",
- *     @OA\RequestBody(
+ *     @OA\Parameter(
+ *         name="uid",
+ *         in="query",
  *         required=true,
- *         @OA\JsonContent(
- *             required={"uid", "schid"},
- *             @OA\Property(
- *                 property="uid",
- *                 type="integer",
- *                 example=4704,
- *                 description="Student ID (sid)"
- *             ),
- *             @OA\Property(
- *                 property="schid",
- *                 type="integer",
- *                 example=12,
- *                 description="School ID"
- *             )
- *         )
+ *         description="Student ID (sid)",
+ *         @OA\Schema(type="integer", example=4704)
+ *     ),
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="query",
+ *         required=true,
+ *         description="School ID",
+ *         @OA\Schema(type="integer", example=12)
  *     ),
  *     @OA\Response(
  *         response=200,
@@ -46910,9 +46906,7 @@ public function getSchoolStateLga($schid)
  *                 @OA\Property(property="count", type="integer", example=663),
  *                 @OA\Property(property="year", type="integer", example=2026),
  *                 @OA\Property(property="term", type="integer", example=1),
- *                 @OA\Property(property="sch3", type="string", example="HGC"),
- *                 @OA\Property(property="created_at", type="string", format="date-time", example="2026-10-18T13:35:15"),
- *                 @OA\Property(property="updated_at", type="string", format="date-time", example="2026-10-18T13:35:15")
+ *                 @OA\Property(property="sch3", type="string", example="HGC")
  *             )
  *         )
  *     ),
