@@ -6941,105 +6941,217 @@ public function setStudentAtOnceBulk(Request $request)
     // }
 
 
+    // public function getStudent()
+    // {
+    //     $combined = false;
+    //     if (request()->has('combined')) {
+    //         $combined = request()->input('combined');
+    //     }
+
+    //     $uid = request()->input('uid', '');
+    //     $schid = request()->input('schid', '');
+
+    //     if ($uid === '' || $schid === '') {
+    //         return response()->json([
+    //             "status" => false,
+    //             "message" => "No UID/School ID provided",
+    //         ], 400);
+    //     }
+
+    //     if ($combined) {
+    //         $pld = [];
+    //         $compo = explode("/", $uid);
+    //         $members = [];
+
+    //         if (count($compo) == 4) {
+    //             [$sch3, $year, $term, $count] = $compo;
+    //             $members = student::where("schid", $schid)
+    //                 ->where("stat", "1")
+    //                 ->where("sch3", $sch3)
+    //                 ->where("year", $year)
+    //                 ->where("term", $term)
+    //                 ->where("count", $count)
+    //                 ->get();
+    //         } else {
+    //             $members = student::where("schid", $schid)
+    //                 ->where("stat", "1")
+    //                 ->where("cuid", $uid)
+    //                 ->get();
+    //         }
+
+    //         foreach ($members as $member) {
+    //             $user_id = $member->sid;
+    //             $academicData = student_academic_data::where('user_id', $user_id)->first();
+    //             $basicData = student_basic_data::where('user_id', $user_id)->first();
+
+    //             // ✅ DOB FIX (DATE → Y-m-d, NO timestamp logic)
+    //             if ($basicData && !empty($basicData->dob)) {
+    //                 $basicData->dob = Carbon::parse($basicData->dob)->format('Y-m-d');
+    //             }
+
+    //             $oldStudent = old_student::where('sid', $user_id)
+    //                 ->where('schid', $schid)
+    //                 ->first();
+    //             $suid = $oldStudent ? $oldStudent->suid : null;
+
+    //             $pld[] = [
+    //                 's' => $member,
+    //                 'b' => $basicData,
+    //                 'a' => $academicData,
+    //                 'suid' => $suid,
+    //             ];
+    //         }
+    //     } else {
+    //         $student = student::where("schid", $schid)
+    //             ->where("stat", "1")
+    //             ->where("sid", $uid)
+    //             ->first();
+
+    //         $academicData = null;
+    //         $basicData = null;
+
+    //         if ($student) {
+    //             $academicData = student_academic_data::where('user_id', $student->sid)->first();
+    //             $basicData = student_basic_data::where('user_id', $student->sid)->first();
+
+    //             // ✅ DOB FIX (DATE → Y-m-d, NO timestamp logic)
+    //             if ($basicData && !empty($basicData->dob)) {
+    //                 $basicData->dob = Carbon::parse($basicData->dob)->format('Y-m-d');
+    //             }
+    //         }
+
+    //         $oldStudent = old_student::where('sid', $uid)
+    //             ->where('schid', $schid)
+    //             ->first();
+    //         $suid = $oldStudent ? $oldStudent->suid : null;
+
+    //         $pld = $student ? $student->toArray() : [];
+    //         if ($student) {
+    //             $pld['b'] = $basicData;
+    //             $pld['a'] = $academicData;
+    //             $pld['suid'] = $suid;
+    //         }
+    //     }
+
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Success",
+    //         "pld" => $pld,
+    //     ]);
+    // }
+
     public function getStudent()
-    {
-        $combined = false;
-        if (request()->has('combined')) {
-            $combined = request()->input('combined');
-        }
+{
+    $combined = false;
 
-        $uid = request()->input('uid', '');
-        $schid = request()->input('schid', '');
-
-        if ($uid === '' || $schid === '') {
-            return response()->json([
-                "status" => false,
-                "message" => "No UID/School ID provided",
-            ], 400);
-        }
-
-        if ($combined) {
-            $pld = [];
-            $compo = explode("/", $uid);
-            $members = [];
-
-            if (count($compo) == 4) {
-                [$sch3, $year, $term, $count] = $compo;
-                $members = student::where("schid", $schid)
-                    ->where("stat", "1")
-                    ->where("sch3", $sch3)
-                    ->where("year", $year)
-                    ->where("term", $term)
-                    ->where("count", $count)
-                    ->get();
-            } else {
-                $members = student::where("schid", $schid)
-                    ->where("stat", "1")
-                    ->where("cuid", $uid)
-                    ->get();
-            }
-
-            foreach ($members as $member) {
-                $user_id = $member->sid;
-                $academicData = student_academic_data::where('user_id', $user_id)->first();
-                $basicData = student_basic_data::where('user_id', $user_id)->first();
-
-                // ✅ DOB FIX (DATE → Y-m-d, NO timestamp logic)
-                if ($basicData && !empty($basicData->dob)) {
-                    $basicData->dob = Carbon::parse($basicData->dob)->format('Y-m-d');
-                }
-
-                $oldStudent = old_student::where('sid', $user_id)
-                    ->where('schid', $schid)
-                    ->first();
-                $suid = $oldStudent ? $oldStudent->suid : null;
-
-                $pld[] = [
-                    's' => $member,
-                    'b' => $basicData,
-                    'a' => $academicData,
-                    'suid' => $suid,
-                ];
-            }
-        } else {
-            $student = student::where("schid", $schid)
-                ->where("stat", "1")
-                ->where("sid", $uid)
-                ->first();
-
-            $academicData = null;
-            $basicData = null;
-
-            if ($student) {
-                $academicData = student_academic_data::where('user_id', $student->sid)->first();
-                $basicData = student_basic_data::where('user_id', $student->sid)->first();
-
-                // ✅ DOB FIX (DATE → Y-m-d, NO timestamp logic)
-                if ($basicData && !empty($basicData->dob)) {
-                    $basicData->dob = Carbon::parse($basicData->dob)->format('Y-m-d');
-                }
-            }
-
-            $oldStudent = old_student::where('sid', $uid)
-                ->where('schid', $schid)
-                ->first();
-            $suid = $oldStudent ? $oldStudent->suid : null;
-
-            $pld = $student ? $student->toArray() : [];
-            if ($student) {
-                $pld['b'] = $basicData;
-                $pld['a'] = $academicData;
-                $pld['suid'] = $suid;
-            }
-        }
-
-        return response()->json([
-            "status" => true,
-            "message" => "Success",
-            "pld" => $pld,
-        ]);
+    if (request()->has('combined')) {
+        $combined = request()->input('combined');
     }
 
+    $uid = request()->input('uid', '');
+    $schid = request()->input('schid', '');
+
+    if ($uid === '' || $schid === '') {
+        return response()->json([
+            "status" => false,
+            "message" => "No UID/School ID provided",
+        ], 400);
+    }
+
+    if ($combined) {
+        $pld = [];
+        $compo = explode("/", $uid);
+        $members = [];
+
+        if (count($compo) == 4) {
+            [$sch3, $year, $term, $count] = $compo;
+
+            $members = student::where("schid", $schid)
+                ->where("stat", "1")
+                ->where("sch3", $sch3)
+                ->where("year", $year)
+                ->where("term", $term)
+                ->where("count", $count)
+                ->get();
+        } else {
+            $members = student::where("schid", $schid)
+                ->where("stat", "1")
+                ->where("cuid", $uid)
+                ->get();
+        }
+
+        foreach ($members as $member) {
+            $user_id = $member->sid;
+
+            $academicData = student_academic_data::where('user_id', $user_id)->first();
+
+            $basicData = student_basic_data::where('user_id', $user_id)->first();
+
+            $parentData = student_parent_data::where('user_id', $user_id)->get();
+
+            // Format DOB as Y-m-d
+            if ($basicData && !empty($basicData->dob)) {
+                $basicData->dob = Carbon::parse($basicData->dob)->format('Y-m-d');
+            }
+
+            $oldStudent = old_student::where('sid', $user_id)
+                ->where('schid', $schid)
+                ->first();
+
+            $suid = $oldStudent ? $oldStudent->suid : null;
+
+            $pld[] = [
+                's' => $member,
+                'b' => $basicData,
+                'a' => $academicData,
+                'parent' => $parentData,
+                'suid' => $suid,
+            ];
+        }
+    } else {
+        $student = student::where("schid", $schid)
+            ->where("stat", "1")
+            ->where("sid", $uid)
+            ->first();
+
+        $academicData = null;
+        $basicData = null;
+        $parentData = collect();
+
+        if ($student) {
+            $academicData = student_academic_data::where('user_id', $student->sid)->first();
+
+            $basicData = student_basic_data::where('user_id', $student->sid)->first();
+
+            $parentData = student_parent_data::where('user_id', $student->sid)->get();
+
+            // Format DOB as Y-m-d
+            if ($basicData && !empty($basicData->dob)) {
+                $basicData->dob = Carbon::parse($basicData->dob)->format('Y-m-d');
+            }
+        }
+
+        $oldStudent = old_student::where('sid', $uid)
+            ->where('schid', $schid)
+            ->first();
+
+        $suid = $oldStudent ? $oldStudent->suid : null;
+
+        $pld = $student ? $student->toArray() : [];
+
+        // Always include these fields, even for new learners
+        $pld['b'] = $basicData;
+        $pld['a'] = $academicData;
+        $pld['parent'] = $parentData;
+        $pld['suid'] = $suid;
+    }
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => $pld,
+    ]);
+}
 
 
 
@@ -19977,17 +20089,6 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
         ->slice($start, $count)
         ->values();
 
-        \Illuminate\Support\Facades\Log::info(
-    'Pending email debug: paginated students.',
-    [
-        'school_id' => $schid,
-        'status_filter' => $stat,
-        'start' => $start,
-        'count' => $count,
-        'student_ids' => $students->pluck('sid')->all(),
-    ]
-);
-
     /*
     |--------------------------------------------------------------------------
     | Send Pending Application Email Once Per Learner
@@ -20008,14 +20109,6 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
             continue;
         }
 
-        \Illuminate\Support\Facades\Log::info(
-    'Pending email debug: checking learner.',
-    [
-        'student_id' => $student->sid,
-        'student_status' => $student->stat,
-        'school_id' => $schid,
-    ]
-);
 
         // Find the learner's login account and email address.
         $usr = User::where('id', $student->sid)->first();
