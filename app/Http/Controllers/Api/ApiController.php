@@ -75,6 +75,7 @@ use App\Models\student_medical_data;
 use App\Models\student_parent_data;
 use App\Models\student_academic_data;
 use App\Models\staff;
+use App\Models\SchoolInfo;
 use App\Models\alumni;
 use App\Models\ex_staff;
 use App\Models\curriculum;
@@ -21552,7 +21553,7 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
                 "status" => false,
                 "message" => "No records found",
                 "pld" => $pld,
-            ], 404);
+            ]);
         }
 
         return response()->json([
@@ -21695,7 +21696,7 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
                 "status" => false,
                 "message" => "No records found",
                 "pld" => $pld,
-            ], 404);
+            ]);
         }
 
         return response()->json([
@@ -37670,7 +37671,7 @@ public function BulkPromoteStudent(Request $request)
             return response()->json([
                 "status" => false,
                 "message" => "No matching record found in either table or update failed."
-            ], 404);
+            ]);
         }
 
         return response()->json([
@@ -46958,6 +46959,86 @@ public function getStudentDetails(Request $request)
         "status" => true,
         "message" => "Success",
         "pld" => $student,
+    ]);
+}
+
+
+
+/**
+ * @OA\Post(
+ *     path="/api/setSchoolInfo",
+ *     tags={"Api"},
+ *     summary="Set School Information",
+ *     description="This endpoint saves school information for a particular school.",
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             type="object",
+ *             required={"schid", "school_info"},
+ *             @OA\Property(
+ *                 property="schid",
+ *                 type="string",
+ *                 maxLength=255,
+ *                 example="12",
+ *                 description="School ID"
+ *             ),
+ *             @OA\Property(
+ *                 property="school_info",
+ *                 type="string",
+ *                 maxLength=255,
+ *                 example="This school offers quality education.",
+ *                 description="Information about the school"
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Success",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="object",
+ *                 @OA\Property(property="id", type="integer", example=1),
+ *                 @OA\Property(property="schid", type="string", example="12"),
+ *                 @OA\Property(
+ *                     property="school_info",
+ *                     type="string",
+ *                     example="This school offers quality education."
+ *                 ),
+ *                 @OA\Property(property="created_at", type="string", format="date-time"),
+ *                 @OA\Property(property="updated_at", type="string", format="date-time")
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthorized"
+ *     ),
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation error"
+ *     )
+ * )
+ */
+
+public function setSchoolInfo(Request $request)
+{
+    $request->validate([
+        'schid' => 'required|string|max:255',
+        'school_info' => 'required|string|max:255',
+    ]);
+
+    $schoolInfo = SchoolInfo::create([
+        'schid' => $request->schid,
+        'school_info' => $request->school_info,
+    ]);
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Success',
+        'pld' => $schoolInfo,
     ]);
 }
 
