@@ -14512,132 +14512,287 @@ public function getPaymentStat($schid, $clsid, $ssnid, $trmid)
     // }
 
 
-    public function setAcct(Request $request)
-    {
-        $request->validate([
-            'schid' => 'required',
-            'clsid' => 'required',
-            'anum' => 'required',
-            'bnk' => 'required',
-            'aname' => 'required',
-            'ssn' => 'required',
-            'trm' => 'required',
-            'pay_head_id' => 'nullable',
+    // public function setAcct(Request $request)
+    // {
+    //     $request->validate([
+    //         'schid' => 'required',
+    //         'clsid' => 'required',
+    //         'anum' => 'required',
+    //         'bnk' => 'required',
+    //         'aname' => 'required',
+    //         'ssn' => 'required',
+    //         'trm' => 'required',
+    //         'pay_head_id' => 'nullable',
+    //     ]);
+
+    //     $data = [
+    //         'schid' => $request->schid,
+    //         'clsid' => $request->clsid,
+    //         'anum' => $request->anum,
+    //         'bnk' => $request->bnk,
+    //         'aname' => $request->aname,
+    //         'ssn' => $request->ssn,
+    //         'trm' => $request->trm,
+    //         'pay_head_id' => $request->pay_head_id ?? null,
+    //     ];
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | DUPLICATE CHECK (clsid + pay_head_id)
+    //     |--------------------------------------------------------------------------
+    //     */
+    //     $dupQuery = accts::where('schid', $request->schid)
+    //         ->where('clsid', $request->clsid)
+    //         ->where('trm', $request->trm)
+    //         ->where('ssn', $request->ssn);
+
+    //     // Only check pay_head_id if it's provided
+    //     if ($request->filled('pay_head_id')) {
+    //         $dupQuery->where('pay_head_id', $request->pay_head_id);
+    //     }
+
+    //     // Ignore current record during update
+    //     if ($request->has('id')) {
+    //         $dupQuery->where('id', '!=', $request->id);
+    //     }
+
+    //     if ($dupQuery->exists()) {
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'This pay head has already been assigned to this class for this session.'
+    //         ]);
+    //     }
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | UPDATE MODE
+    //     |--------------------------------------------------------------------------
+    //     */
+    //     if ($request->has('id')) {
+    //         $acct = accts::find($request->id);
+
+    //         if (!$acct) {
+    //             return response()->json([
+    //                 'status' => false,
+    //                 'message' => 'Account Not Found'
+    //             ], 404);
+    //         }
+
+    //         $acct->update($data);
+
+    //         return response()->json([
+    //             'status' => true,
+    //             'message' => 'Account Updated Successfully'
+    //         ]);
+    //     }
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | CREATE MAIN ACCOUNT
+    //     |--------------------------------------------------------------------------
+    //     */
+    //     $acct = accts::create($data);
+
+    //     /*
+    //     |--------------------------------------------------------------------------
+    //     | CREATE PAYSTACK SUBACCOUNT
+    //     |--------------------------------------------------------------------------
+    //     */
+    //     $response = Http::withHeaders([
+    //         'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
+    //         'Content-Type' => 'application/json',
+    //     ])->post('https://api.paystack.co/subaccount', [
+    //                 'business_name' => 'Business_' . uniqid(),
+    //                 'account_number' => $request->anum,
+    //                 'bank_code' => $request->bnk,
+    //                 'percentage_charge' => 0,
+    //                 'settlement_bank' => $request->bnk,
+    //             ]);
+
+    //     if (!$response->successful()) {
+    //         $acct->delete();
+
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'Failed to Create Paystack Subaccount',
+    //             'error' => $response->body(),
+    //         ], 400);
+    //     }
+
+    //     $paystack = $response->json();
+
+    //     sub_account::create([
+    //         'acct_id' => $acct->id,
+    //         'schid' => $request->schid,
+    //         'clsid' => $request->clsid,
+    //         'ssn' => $request->ssn,
+    //         'trm' => $request->trm,
+    //         'pay_head_id' => $request->pay_head_id ?? null,
+    //         'subaccount_code' => $paystack['data']['subaccount_code'],
+    //         'percentage_charge' => 0,
+    //     ]);
+
+    //     return response()->json([
+    //         'status' => true,
+    //         'message' => 'Account and Paystack Subaccount Created Successfully',
+    //         'paystack_data' => $paystack,
+    //     ]);
+    // }
+
+
+
+public function setAcct(Request $request)
+{
+    $request->validate([
+        'schid' => 'required',
+        'clsid' => 'required',
+        'anum' => 'required',
+        'bnk' => 'required',
+        'aname' => 'required',
+        'ssn' => 'required',
+        'trm' => 'required',
+        'pay_head_id' => 'nullable',
+    ]);
+
+    $data = [
+        'schid' => $request->schid,
+        'clsid' => $request->clsid,
+        'anum' => $request->anum,
+        'bnk' => $request->bnk,
+        'aname' => $request->aname,
+        'ssn' => $request->ssn,
+        'trm' => $request->trm,
+        'pay_head_id' => $request->pay_head_id ?? null,
+    ];
+
+    /*
+    |--------------------------------------------------------------------------
+    | DUPLICATE CHECK (clsid + pay_head_id)
+    |--------------------------------------------------------------------------
+    */
+    $dupQuery = accts::where('schid', $request->schid)
+        ->where('clsid', $request->clsid)
+        ->where('trm', $request->trm)
+        ->where('ssn', $request->ssn);
+
+    // Only check pay_head_id if it's provided
+    if ($request->filled('pay_head_id')) {
+        $dupQuery->where('pay_head_id', $request->pay_head_id);
+    }
+
+    // Ignore current record during update
+    if ($request->has('id')) {
+        $dupQuery->where('id', '!=', $request->id);
+    }
+
+    if ($dupQuery->exists()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'This pay head has already been assigned to this class for this session.'
         ]);
+    }
 
-        $data = [
-            'schid' => $request->schid,
-            'clsid' => $request->clsid,
-            'anum' => $request->anum,
-            'bnk' => $request->bnk,
-            'aname' => $request->aname,
-            'ssn' => $request->ssn,
-            'trm' => $request->trm,
-            'pay_head_id' => $request->pay_head_id ?? null,
-        ];
+    /*
+    |--------------------------------------------------------------------------
+    | UPDATE MODE
+    |--------------------------------------------------------------------------
+    */
+    if ($request->has('id')) {
+        $acct = accts::find($request->id);
 
-        /*
-        |--------------------------------------------------------------------------
-        | DUPLICATE CHECK (clsid + pay_head_id)
-        |--------------------------------------------------------------------------
-        */
-        $dupQuery = accts::where('schid', $request->schid)
-            ->where('clsid', $request->clsid)
-            ->where('trm', $request->trm)
-            ->where('ssn', $request->ssn);
-
-        // Only check pay_head_id if it's provided
-        if ($request->filled('pay_head_id')) {
-            $dupQuery->where('pay_head_id', $request->pay_head_id);
-        }
-
-        // Ignore current record during update
-        if ($request->has('id')) {
-            $dupQuery->where('id', '!=', $request->id);
-        }
-
-        if ($dupQuery->exists()) {
+        if (!$acct) {
             return response()->json([
                 'status' => false,
-                'message' => 'This pay head has already been assigned to this class for this session.'
-            ]);
+                'message' => 'Account Not Found'
+            ], 404);
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | UPDATE MODE
-        |--------------------------------------------------------------------------
-        */
-        if ($request->has('id')) {
-            $acct = accts::find($request->id);
-
-            if (!$acct) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Account Not Found'
-                ], 404);
-            }
-
-            $acct->update($data);
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Account Updated Successfully'
-            ]);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | CREATE MAIN ACCOUNT
-        |--------------------------------------------------------------------------
-        */
-        $acct = accts::create($data);
-
-        /*
-        |--------------------------------------------------------------------------
-        | CREATE PAYSTACK SUBACCOUNT
-        |--------------------------------------------------------------------------
-        */
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
-            'Content-Type' => 'application/json',
-        ])->post('https://api.paystack.co/subaccount', [
-                    'business_name' => 'Business_' . uniqid(),
-                    'account_number' => $request->anum,
-                    'bank_code' => $request->bnk,
-                    'percentage_charge' => 0,
-                    'settlement_bank' => $request->bnk,
-                ]);
-
-        if (!$response->successful()) {
-            $acct->delete();
-
-            return response()->json([
-                'status' => false,
-                'message' => 'Failed to Create Paystack Subaccount',
-                'error' => $response->body(),
-            ], 400);
-        }
-
-        $paystack = $response->json();
-
-        sub_account::create([
-            'acct_id' => $acct->id,
-            'schid' => $request->schid,
-            'clsid' => $request->clsid,
-            'ssn' => $request->ssn,
-            'trm' => $request->trm,
-            'pay_head_id' => $request->pay_head_id ?? null,
-            'subaccount_code' => $paystack['data']['subaccount_code'],
-            'percentage_charge' => 0,
-        ]);
+        $acct->update($data);
 
         return response()->json([
             'status' => true,
-            'message' => 'Account and Paystack Subaccount Created Successfully',
-            'paystack_data' => $paystack,
+            'message' => 'Account Updated Successfully'
         ]);
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | CREATE MAIN ACCOUNT
+    |--------------------------------------------------------------------------
+    */
+    $acct = accts::create($data);
+
+    /*
+    |--------------------------------------------------------------------------
+    | CHECK PAYSTACK SECRET KEY
+    |--------------------------------------------------------------------------
+    */
+    $secretKey = config('services.paystack.secret');
+
+    if (empty($secretKey)) {
+        $acct->delete();
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Paystack secret key is not configured.',
+            'error' => null,
+        ], 500);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | CREATE PAYSTACK SUBACCOUNT
+    |--------------------------------------------------------------------------
+    */
+    $response = Http::withToken($secretKey)
+        ->acceptJson()
+        ->post('https://api.paystack.co/subaccount', [
+            'business_name' => 'Business_' . uniqid(),
+            'account_number' => $request->anum,
+            'bank_code' => $request->bnk,
+            'percentage_charge' => 0,
+            'settlement_bank' => $request->bnk,
+        ]);
+
+    $paystack = $response->json();
+
+    if (
+        !$response->successful()
+        || !($paystack['status'] ?? false)
+        || empty($paystack['data']['subaccount_code'])
+    ) {
+        $acct->delete();
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Failed to Create Paystack Subaccount',
+            'error' => $paystack ?? $response->body(),
+        ], $response->status() >= 400 ? $response->status() : 400);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | SAVE SUBACCOUNT DETAILS
+    |--------------------------------------------------------------------------
+    */
+    sub_account::create([
+        'acct_id' => $acct->id,
+        'schid' => $request->schid,
+        'clsid' => $request->clsid,
+        'ssn' => $request->ssn,
+        'trm' => $request->trm,
+        'pay_head_id' => $request->pay_head_id ?? null,
+        'subaccount_code' => $paystack['data']['subaccount_code'],
+        'percentage_charge' => 0,
+    ]);
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Account and Paystack Subaccount Created Successfully',
+        'paystack_data' => $paystack,
+    ]);
+}
+
 
 
 
@@ -14698,92 +14853,202 @@ public function getPaymentStat($schid, $clsid, $ssnid, $trmid)
      */
 
 
-    public function getSubAccount($acctid)
-    {
-        // Step 1: Fetch the existing subaccount linked to the account
-        $subaccount = sub_account::where('acct_id', $acctid)->first();
+    // public function getSubAccount($acctid)
+    // {
+    //     // Step 1: Fetch the existing subaccount linked to the account
+    //     $subaccount = sub_account::where('acct_id', $acctid)->first();
 
-        if (!$subaccount) {
-            // Step 2: Check if the account exists
-            $account = accts::where('id', $acctid)->first();
+    //     if (!$subaccount) {
+    //         // Step 2: Check if the account exists
+    //         $account = accts::where('id', $acctid)->first();
 
-            if (!$account) {
-                return response()->json([
-                    "status" => false,
-                    "message" => "Account not found",
-                ], 404);
-            }
+    //         if (!$account) {
+    //             return response()->json([
+    //                 "status" => false,
+    //                 "message" => "Account not found",
+    //             ], 404);
+    //         }
 
-            // Step 3: Generate unique business name
-            $business_name = "Business_" . uniqid();
+    //         // Step 3: Generate unique business name
+    //         $business_name = "Business_" . uniqid();
 
-            // Step 4: Prepare subaccount data for Paystack
-            $percentage_charge = 0;
-            $subaccountData = [
-                'business_name' => $business_name,
-                'account_number' => $account->anum,
-                'bank_code' => $account->bnk,
-                'percentage_charge' => $percentage_charge,
-                'settlement_bank' => $account->bnk,
-            ];
+    //         // Step 4: Prepare subaccount data for Paystack
+    //         $percentage_charge = 0;
+    //         $subaccountData = [
+    //             'business_name' => $business_name,
+    //             'account_number' => $account->anum,
+    //             'bank_code' => $account->bnk,
+    //             'percentage_charge' => $percentage_charge,
+    //             'settlement_bank' => $account->bnk,
+    //         ];
 
-            // Step 5: Create Paystack subaccount
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
-                'Content-Type' => 'application/json',
-            ])->post('https://api.paystack.co/subaccount', $subaccountData);
+    //         // Step 5: Create Paystack subaccount
+    //         $response = Http::withHeaders([
+    //             'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
+    //             'Content-Type' => 'application/json',
+    //         ])->post('https://api.paystack.co/subaccount', $subaccountData);
 
-            if ($response->successful()) {
-                $data = $response->json();
+    //         if ($response->successful()) {
+    //             $data = $response->json();
 
-                // Step 6: Store subaccount details in the database
-                $subaccount = sub_account::create([
-                    'acct_id' => $account->id,
-                    'schid' => $account->schid,
-                    'clsid' => $account->clsid,
-                    'ssn' => $account->ssn,
-                    'trm' => $account->trm,
-                    'pay_head_id' => $account->pay_head_id,
-                    'subaccount_code' => $data['data']['subaccount_code'],
-                    'percentage_charge' => $percentage_charge,
-                ]);
-            } else {
-                return response()->json([
-                    "status" => false,
-                    "message" => "Failed to create subaccount",
-                    "error" => $response->json()['message'] ?? 'Unknown error',
-                ], 400);
-            }
+    //             // Step 6: Store subaccount details in the database
+    //             $subaccount = sub_account::create([
+    //                 'acct_id' => $account->id,
+    //                 'schid' => $account->schid,
+    //                 'clsid' => $account->clsid,
+    //                 'ssn' => $account->ssn,
+    //                 'trm' => $account->trm,
+    //                 'pay_head_id' => $account->pay_head_id,
+    //                 'subaccount_code' => $data['data']['subaccount_code'],
+    //                 'percentage_charge' => $percentage_charge,
+    //             ]);
+    //         } else {
+    //             return response()->json([
+    //                 "status" => false,
+    //                 "message" => "Failed to create subaccount",
+    //                 "error" => $response->json()['message'] ?? 'Unknown error',
+    //             ], 400);
+    //         }
+    //     }
+
+    //     // Step 7: Fetch related data (account and class)
+    //     $account = accts::find($subaccount->acct_id);
+    //     $class = DB::table('cls')->where('id', $subaccount->clsid)->first();
+
+    //     // Step 8: Combine all data
+    //     $responseData = [
+    //         "id" => $subaccount->id,
+    //         "acct_id" => $subaccount->acct_id,
+    //         "schid" => $subaccount->schid,
+    //         "clsid" => $subaccount->clsid,
+    //         "subaccount_code" => $subaccount->subaccount_code,
+    //         "percentage_charge" => $subaccount->percentage_charge,
+    //         "pay_head_id" => $subaccount->pay_head_id,
+    //         "account_name" => $account->aname ?? null,
+    //         "account_number" => $account->anum ?? null,
+    //         "class_name" => $class->name ?? null,
+    //         "bank_id" => $account->bnk ?? null,
+    //         "created_at" => $subaccount->created_at,
+    //         "updated_at" => $subaccount->updated_at,
+    //     ];
+
+    //     // Step 9: Return the response
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Subaccount retrieved successfully",
+    //         "subaccount" => $responseData,
+    //     ]);
+    // }
+
+
+public function getSubAccount($acctid)
+{
+    // Step 1: Fetch the existing subaccount linked to the account
+    $subaccount = sub_account::where('acct_id', $acctid)->first();
+
+    if (!$subaccount) {
+
+        // Step 2: Check if the account exists
+        $account = accts::where('id', $acctid)->first();
+
+        if (!$account) {
+            return response()->json([
+                "status" => false,
+                "message" => "Account not found",
+            ], 404);
         }
 
-        // Step 7: Fetch related data (account and class)
-        $account = accts::find($subaccount->acct_id);
-        $class = DB::table('cls')->where('id', $subaccount->clsid)->first();
+        // Step 3: Get Paystack secret key from Laravel configuration
+        $secretKey = config('services.paystack.secret');
 
-        // Step 8: Combine all data
-        $responseData = [
-            "id" => $subaccount->id,
-            "acct_id" => $subaccount->acct_id,
-            "schid" => $subaccount->schid,
-            "clsid" => $subaccount->clsid,
-            "subaccount_code" => $subaccount->subaccount_code,
-            "percentage_charge" => $subaccount->percentage_charge,
-            "pay_head_id" => $subaccount->pay_head_id,
-            "account_name" => $account->aname ?? null,
-            "account_number" => $account->anum ?? null,
-            "class_name" => $class->name ?? null,
-            "bank_id" => $account->bnk ?? null,
-            "created_at" => $subaccount->created_at,
-            "updated_at" => $subaccount->updated_at,
+        if (empty($secretKey)) {
+            return response()->json([
+                "status" => false,
+                "message" => "Paystack secret key is not configured.",
+                "error" => null,
+            ], 500);
+        }
+
+        // Step 4: Generate unique business name
+        $business_name = "Business_" . uniqid();
+
+        // Step 5: Prepare subaccount data for Paystack
+        $percentage_charge = 0;
+
+        $subaccountData = [
+            'business_name' => $business_name,
+            'account_number' => $account->anum,
+            'bank_code' => $account->bnk,
+            'percentage_charge' => $percentage_charge,
+            'settlement_bank' => $account->bnk,
         ];
 
-        // Step 9: Return the response
-        return response()->json([
-            "status" => true,
-            "message" => "Subaccount retrieved successfully",
-            "subaccount" => $responseData,
-        ]);
+        // Step 6: Create Paystack subaccount
+        $response = Http::withToken($secretKey)
+            ->acceptJson()
+            ->post('https://api.paystack.co/subaccount', $subaccountData);
+
+        $paystackData = $response->json();
+
+        if (
+            $response->successful()
+            && ($paystackData['status'] ?? false)
+            && !empty($paystackData['data']['subaccount_code'])
+        ) {
+
+            // Step 7: Store subaccount details in the database
+            $subaccount = sub_account::create([
+                'acct_id' => $account->id,
+                'schid' => $account->schid,
+                'clsid' => $account->clsid,
+                'ssn' => $account->ssn,
+                'trm' => $account->trm,
+                'pay_head_id' => $account->pay_head_id,
+                'subaccount_code' => $paystackData['data']['subaccount_code'],
+                'percentage_charge' => $percentage_charge,
+            ]);
+
+        } else {
+            return response()->json([
+                "status" => false,
+                "message" => "Failed to create subaccount",
+                "error" => $paystackData['message'] ?? 'Unknown error',
+            ], $response->status() >= 400 ? $response->status() : 400);
+        }
     }
+
+    // Step 8: Fetch related data (account and class)
+    $account = accts::find($subaccount->acct_id);
+
+    $class = DB::table('cls')
+        ->where('id', $subaccount->clsid)
+        ->first();
+
+    // Step 9: Combine all data
+    $responseData = [
+        "id" => $subaccount->id,
+        "acct_id" => $subaccount->acct_id,
+        "schid" => $subaccount->schid,
+        "clsid" => $subaccount->clsid,
+        "subaccount_code" => $subaccount->subaccount_code,
+        "percentage_charge" => $subaccount->percentage_charge,
+        "pay_head_id" => $subaccount->pay_head_id,
+        "account_name" => $account->aname ?? null,
+        "account_number" => $account->anum ?? null,
+        "class_name" => $class->name ?? null,
+        "bank_id" => $account->bnk ?? null,
+        "created_at" => $subaccount->created_at,
+        "updated_at" => $subaccount->updated_at,
+    ];
+
+    // Step 10: Return the response
+    return response()->json([
+        "status" => true,
+        "message" => "Subaccount retrieved successfully",
+        "subaccount" => $responseData,
+    ]);
+}
+
 
     /**
      * @OA\Post(
@@ -14867,120 +15132,250 @@ public function getPaymentStat($schid, $clsid, $ssnid, $trmid)
 
 
 
-    public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): array
-    {
-        $MAX_SUBACCOUNT_SHARE = 99.0;
+    // public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): array
+    // {
+    //     $MAX_SUBACCOUNT_SHARE = 99.0;
 
-        /* =====================================================
-         * 1. CHECK IF VALID SPLIT EXISTS (VERIFY AT PAYSTACK)
-         * ===================================================== */
-        $existing = subaccount_split::where('schid', $schid)
-            ->where('clsid', $clsid)
-            ->first();
+    //     /* =====================================================
+    //      * 1. CHECK IF VALID SPLIT EXISTS (VERIFY AT PAYSTACK)
+    //      * ===================================================== */
+    //     $existing = subaccount_split::where('schid', $schid)
+    //         ->where('clsid', $clsid)
+    //         ->first();
 
-        if ($existing && $existing->split_code) {
-            $verify = Http::withToken(env('PAYSTACK_SECRET'))
-                ->get("https://api.paystack.co/split/{$existing->split_code}");
+    //     if ($existing && $existing->split_code) {
+    //         $verify = Http::withToken(env('PAYSTACK_SECRET'))
+    //             ->get("https://api.paystack.co/split/{$existing->split_code}");
 
-            if ($verify->successful()) {
-                $psSubs = $verify->json('data.subaccounts') ?? [];
-                if (!empty($psSubs)) {
-                    return [
-                        'split_code' => $existing->split_code,
-                        'subaccounts' => json_decode($existing->subaccounts, true),
-                    ];
-                }
+    //         if ($verify->successful()) {
+    //             $psSubs = $verify->json('data.subaccounts') ?? [];
+    //             if (!empty($psSubs)) {
+    //                 return [
+    //                     'split_code' => $existing->split_code,
+    //                     'subaccounts' => json_decode($existing->subaccounts, true),
+    //                 ];
+    //             }
+    //         }
+
+    //         // ❌ Broken split → delete
+    //         $existing->delete();
+    //     }
+
+    //     /* =====================================================
+    //      * 2. MERGE & VALIDATE SUBACCOUNTS
+    //      * ===================================================== */
+    //     $merged = [];
+    //     foreach ($subaccounts as $acc) {
+    //         if (
+    //             empty($acc['subaccount']) ||
+    //             !isset($acc['share']) ||
+    //             floatval($acc['share']) <= 0
+    //         ) {
+    //             throw new \Exception('Invalid subaccount payload');
+    //         }
+
+    //         $merged[$acc['subaccount']] = ($merged[$acc['subaccount']] ?? 0) + floatval($acc['share']);
+    //     }
+
+    //     if (empty($merged)) {
+    //         throw new \Exception('No valid subaccounts supplied');
+    //     }
+
+    //     /* =====================================================
+    //      * 3. VALIDATE TOTAL ≤ 99%
+    //      * ===================================================== */
+    //     $total = array_sum($merged);
+    //     if ($total <= 0 || $total > $MAX_SUBACCOUNT_SHARE) {
+    //         throw new \Exception("Invalid split percentage (max 99%)");
+    //     }
+
+    //     /* =====================================================
+    //      * 4. NORMALIZE
+    //      * ===================================================== */
+    //     $normalized = [];
+    //     foreach ($merged as $code => $share) {
+    //         $normalized[] = [
+    //             'subaccount' => $code,
+    //             'share' => round($share, 2),
+    //         ];
+    //     }
+
+    //     /* =====================================================
+    //      * 5. CREATE SPLIT AT PAYSTACK
+    //      * ===================================================== */
+    //     $response = Http::withToken(env('PAYSTACK_SECRET'))
+    //         ->post('https://api.paystack.co/split', [
+    //             'name' => "Split-{$schid}-{$clsid}",
+    //             'type' => 'percentage',
+    //             'currency' => 'NGN',
+    //             'subaccounts' => $normalized,
+    //             'bearer_type' => 'account', // ✅ CORRECT
+    //         ]);
+
+    //     if (!$response->successful()) {
+    //         Log::error('Paystack split creation failed', [
+    //             'body' => $response->body(),
+    //         ]);
+    //         throw new \Exception('Unable to create Paystack split');
+    //     }
+
+    //     $splitCode = $response->json('data.split_code');
+
+    //     /* =====================================================
+    //      * 6. VERIFY SPLIT EXISTS AT PAYSTACK (CRITICAL)
+    //      * ===================================================== */
+    //     $verify = Http::withToken(env('PAYSTACK_SECRET'))
+    //         ->get("https://api.paystack.co/split/{$splitCode}");
+
+    //     if (!$verify->successful() || empty($verify->json('data.subaccounts'))) {
+    //         throw new \Exception('Split verification failed at Paystack');
+    //     }
+
+    //     /* =====================================================
+    //      * 7. STORE LOCALLY
+    //      * ===================================================== */
+    //     subaccount_split::create([
+    //         'schid' => $schid,
+    //         'clsid' => $clsid,
+    //         'split_code' => $splitCode,
+    //         'subaccounts' => json_encode($normalized),
+    //     ]);
+
+    //     return [
+    //         'split_code' => $splitCode,
+    //         'subaccounts' => $normalized,
+    //     ];
+    // }
+
+
+
+public function createOrGetSplit(int $schid, int $clsid, array $subaccounts): array
+{
+    $MAX_SUBACCOUNT_SHARE = 99.0;
+
+    // Get Paystack secret key from Laravel configuration
+    $secretKey = config('services.paystack.secret');
+
+    if (empty($secretKey)) {
+        throw new \Exception('Paystack secret key is not configured');
+    }
+
+    /* =====================================================
+     * 1. CHECK IF VALID SPLIT EXISTS (VERIFY AT PAYSTACK)
+     * ===================================================== */
+    $existing = subaccount_split::where('schid', $schid)
+        ->where('clsid', $clsid)
+        ->first();
+
+    if ($existing && $existing->split_code) {
+        $verify = Http::withToken($secretKey)
+            ->get("https://api.paystack.co/split/{$existing->split_code}");
+
+        if ($verify->successful()) {
+            $psSubs = $verify->json('data.subaccounts') ?? [];
+
+            if (!empty($psSubs)) {
+                return [
+                    'split_code' => $existing->split_code,
+                    'subaccounts' => json_decode($existing->subaccounts, true),
+                ];
             }
-
-            // ❌ Broken split → delete
-            $existing->delete();
         }
 
-        /* =====================================================
-         * 2. MERGE & VALIDATE SUBACCOUNTS
-         * ===================================================== */
-        $merged = [];
-        foreach ($subaccounts as $acc) {
-            if (
-                empty($acc['subaccount']) ||
-                !isset($acc['share']) ||
-                floatval($acc['share']) <= 0
-            ) {
-                throw new \Exception('Invalid subaccount payload');
-            }
+        // Broken split → delete
+        $existing->delete();
+    }
 
-            $merged[$acc['subaccount']] = ($merged[$acc['subaccount']] ?? 0) + floatval($acc['share']);
+    /* =====================================================
+     * 2. MERGE & VALIDATE SUBACCOUNTS
+     * ===================================================== */
+    $merged = [];
+
+    foreach ($subaccounts as $acc) {
+        if (
+            empty($acc['subaccount']) ||
+            !isset($acc['share']) ||
+            floatval($acc['share']) <= 0
+        ) {
+            throw new \Exception('Invalid subaccount payload');
         }
 
-        if (empty($merged)) {
-            throw new \Exception('No valid subaccounts supplied');
-        }
+        $merged[$acc['subaccount']] = ($merged[$acc['subaccount']] ?? 0)
+            + floatval($acc['share']);
+    }
 
-        /* =====================================================
-         * 3. VALIDATE TOTAL ≤ 99%
-         * ===================================================== */
-        $total = array_sum($merged);
-        if ($total <= 0 || $total > $MAX_SUBACCOUNT_SHARE) {
-            throw new \Exception("Invalid split percentage (max 99%)");
-        }
+    if (empty($merged)) {
+        throw new \Exception('No valid subaccounts supplied');
+    }
 
-        /* =====================================================
-         * 4. NORMALIZE
-         * ===================================================== */
-        $normalized = [];
-        foreach ($merged as $code => $share) {
-            $normalized[] = [
-                'subaccount' => $code,
-                'share' => round($share, 2),
-            ];
-        }
+    /* =====================================================
+     * 3. VALIDATE TOTAL ≤ 99%
+     * ===================================================== */
+    $total = array_sum($merged);
 
-        /* =====================================================
-         * 5. CREATE SPLIT AT PAYSTACK
-         * ===================================================== */
-        $response = Http::withToken(env('PAYSTACK_SECRET'))
-            ->post('https://api.paystack.co/split', [
-                'name' => "Split-{$schid}-{$clsid}",
-                'type' => 'percentage',
-                'currency' => 'NGN',
-                'subaccounts' => $normalized,
-                'bearer_type' => 'account', // ✅ CORRECT
-            ]);
+    if ($total <= 0 || $total > $MAX_SUBACCOUNT_SHARE) {
+        throw new \Exception("Invalid split percentage (max 99%)");
+    }
 
-        if (!$response->successful()) {
-            Log::error('Paystack split creation failed', [
-                'body' => $response->body(),
-            ]);
-            throw new \Exception('Unable to create Paystack split');
-        }
+    /* =====================================================
+     * 4. NORMALIZE
+     * ===================================================== */
+    $normalized = [];
 
-        $splitCode = $response->json('data.split_code');
-
-        /* =====================================================
-         * 6. VERIFY SPLIT EXISTS AT PAYSTACK (CRITICAL)
-         * ===================================================== */
-        $verify = Http::withToken(env('PAYSTACK_SECRET'))
-            ->get("https://api.paystack.co/split/{$splitCode}");
-
-        if (!$verify->successful() || empty($verify->json('data.subaccounts'))) {
-            throw new \Exception('Split verification failed at Paystack');
-        }
-
-        /* =====================================================
-         * 7. STORE LOCALLY
-         * ===================================================== */
-        subaccount_split::create([
-            'schid' => $schid,
-            'clsid' => $clsid,
-            'split_code' => $splitCode,
-            'subaccounts' => json_encode($normalized),
-        ]);
-
-        return [
-            'split_code' => $splitCode,
-            'subaccounts' => $normalized,
+    foreach ($merged as $code => $share) {
+        $normalized[] = [
+            'subaccount' => $code,
+            'share' => round($share, 2),
         ];
     }
+
+    /* =====================================================
+     * 5. CREATE SPLIT AT PAYSTACK
+     * ===================================================== */
+    $response = Http::withToken($secretKey)
+        ->post('https://api.paystack.co/split', [
+            'name' => "Split-{$schid}-{$clsid}",
+            'type' => 'percentage',
+            'currency' => 'NGN',
+            'subaccounts' => $normalized,
+            'bearer_type' => 'account', // CORRECT
+        ]);
+
+    if (!$response->successful()) {
+        Log::error('Paystack split creation failed', [
+            'body' => $response->body(),
+        ]);
+
+        throw new \Exception('Unable to create Paystack split');
+    }
+
+    $splitCode = $response->json('data.split_code');
+
+    /* =====================================================
+     * 6. VERIFY SPLIT EXISTS AT PAYSTACK (CRITICAL)
+     * ===================================================== */
+    $verify = Http::withToken($secretKey)
+        ->get("https://api.paystack.co/split/{$splitCode}");
+
+    if (!$verify->successful() || empty($verify->json('data.subaccounts'))) {
+        throw new \Exception('Split verification failed at Paystack');
+    }
+
+    /* =====================================================
+     * 7. STORE LOCALLY
+     * ===================================================== */
+    subaccount_split::create([
+        'schid' => $schid,
+        'clsid' => $clsid,
+        'split_code' => $splitCode,
+        'subaccounts' => json_encode($normalized),
+    ]);
+
+    return [
+        'split_code' => $splitCode,
+        'subaccounts' => $normalized,
+    ];
+}
 
 
 
@@ -15011,161 +15406,332 @@ public function getPaymentStat($schid, $clsid, $ssnid, $trmid)
     }
 
 
-    public function initializePayment(Request $request)
-    {
-        $request->validate([
-            'email' => 'required|email',
-            'amount' => 'required|numeric|min:100',
-            'schid' => 'required|integer',
-            'clsid' => 'required|integer',
-            'subaccount_code' => 'required|array|min:1',
-            'subaccount_code.*.subaccount' => 'required|string',
-            'subaccount_code.*.share' => 'required|numeric|min:0.01',
-            'metadata' => 'required|array',
-            'payhead_ids' => 'required|array|min:1',
-        ]);
+    // public function initializePayment(Request $request)
+    // {
+    //     $request->validate([
+    //         'email' => 'required|email',
+    //         'amount' => 'required|numeric|min:100',
+    //         'schid' => 'required|integer',
+    //         'clsid' => 'required|integer',
+    //         'subaccount_code' => 'required|array|min:1',
+    //         'subaccount_code.*.subaccount' => 'required|string',
+    //         'subaccount_code.*.share' => 'required|numeric|min:0.01',
+    //         'metadata' => 'required|array',
+    //         'payhead_ids' => 'required|array|min:1',
+    //     ]);
 
-        $email = $request->email;
-        $amount = (float) $request->amount;
-        $schid = (int) $request->schid;
-        $clsid = (int) $request->clsid;
-        $subaccounts = $request->subaccount_code;
-        $metadata = $request->metadata;
-        $payheadIds = $request->payhead_ids;
+    //     $email = $request->email;
+    //     $amount = (float) $request->amount;
+    //     $schid = (int) $request->schid;
+    //     $clsid = (int) $request->clsid;
+    //     $subaccounts = $request->subaccount_code;
+    //     $metadata = $request->metadata;
+    //     $payheadIds = $request->payhead_ids;
 
-        $totalShare = collect($subaccounts)->sum('share');
+    //     $totalShare = collect($subaccounts)->sum('share');
 
-        if ($totalShare <= 0 || $totalShare > 99) {
+    //     if ($totalShare <= 0 || $totalShare > 99) {
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'Total split percentage must be between 0.01% and 99%',
+    //         ], 422);
+    //     }
+
+    //     try {
+    //         $totalAmountKobo = (int) round($amount * 100);
+
+    //         /** -------------------------------------------------
+    //          * Validate subaccounts exist for this school/class
+    //          * ------------------------------------------------*/
+    //         foreach ($subaccounts as $acc) {
+    //             $exists = \DB::table('sub_accounts')
+    //                 ->where('schid', $schid)
+    //                 ->where('clsid', $clsid)
+    //                 ->where('subaccount_code', $acc['subaccount'])
+    //                 ->exists();
+
+    //             if (!$exists) {
+    //                 return response()->json([
+    //                     'status' => false,
+    //                     'message' => "Invalid subaccount: {$acc['subaccount']}",
+    //                 ], 400);
+    //             }
+    //         }
+
+    //         /** -------------------------------------------------
+    //          * Create or reuse Paystack split
+    //          * ------------------------------------------------*/
+    //         $splitData = $this->createOrGetSplit($schid, $clsid, $subaccounts);
+    //         $splitCode = $splitData['split_code'] ?? null;
+    //         $subaccountsData = $splitData['subaccounts'] ?? [];
+
+    //         /** -------------------------------------------------
+    //          * Build reference
+    //          * ------------------------------------------------*/
+    //         $host = preg_replace('/^api\./', '', $request->getHost());
+    //         $typ = (int) ($request->typ ?? 0);
+    //         $stid = (int) ($request->stid ?? 0);
+    //         $ssnid = (int) ($request->ssnid ?? 0);
+    //         $trmid = (int) ($request->trmid ?? 0);
+
+    //         $ref = "{$host}-{$schid}-{$amount}-{$typ}-{$stid}-{$ssnid}-{$trmid}-{$clsid}-" . uniqid('', true);
+
+    //         /** -------------------------------------------------
+    //          * Merge metadata safely
+    //          * ------------------------------------------------*/
+    //         $metadata = array_merge($metadata, [
+    //             'stid' => $stid,
+    //             'ssnid' => $ssnid,
+    //             'trmid' => $trmid,
+    //             'clsid' => $clsid,
+    //             'schid' => $schid,
+    //             'typ' => $typ,
+    //             'name' => $metadata['name'] ?? '',
+    //             'exp' => $metadata['exp'] ?? '',
+    //             'eml' => $email,
+    //             'lid' => $metadata['lid'] ?? '',
+    //             'payhead_ids' => $payheadIds,
+    //             'time' => now()->timestamp,
+    //         ]);
+
+    //         /** -------------------------------------------------
+    //          * Paystack initialize payload
+    //          * ------------------------------------------------*/
+    //         $payload = [
+    //             'email' => $email,
+    //             'amount' => $totalAmountKobo,
+    //             'currency' => 'NGN',
+    //             'reference' => $ref,
+    //             'callback_url' => $this->getFrontendUrl($schid, '/studentPortal'),
+    //             'metadata' => $metadata,
+    //             'channels' => ['card', 'bank', 'ussd'],
+    //         ];
+
+    //         if (!empty($splitCode)) {
+    //             $payload['split_code'] = $splitCode;
+    //         }
+
+    //         $response = Http::withToken(env('PAYSTACK_SECRET'))
+    //             ->post('https://api.paystack.co/transaction/initialize', $payload);
+
+    //         if (!$response->successful()) {
+    //             Log::error('Paystack Init Failed', [
+    //                 'payload' => $payload,
+    //                 'response' => $response->body(),
+    //             ]);
+
+    //             return response()->json([
+    //                 'status' => false,
+    //                 'message' => 'Payment Initialization Failed',
+    //             ], 400);
+    //         }
+
+    //         $paystackData = $response->json();
+
+    //         /** -------------------------------------------------
+    //          * Store reference for callback/webhook
+    //          * ------------------------------------------------*/
+    //         payment_refs::updateOrCreate(
+    //             ['ref' => $ref],
+    //             [
+    //                 'split_code' => $splitCode,
+    //                 'subaccounts' => json_encode($subaccountsData),
+    //                 'amt' => $amount,
+    //                 'time' => now(),
+    //             ]
+    //         );
+
+    //         return response()->json([
+    //             'status' => true,
+    //             'message' => 'Payment Initialized Successfully',
+    //             'data' => $paystackData,
+    //             'ref' => $ref,
+    //             'split_code' => $splitCode,
+    //             'subaccounts' => $subaccountsData,
+    //         ]);
+
+    //     } catch (\Throwable $e) {
+    //         Log::error('Initialize Payment Exception', [
+    //             'error' => $e->getMessage(),
+    //         ]);
+
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'Server Error: Unable to initialize payment',
+    //         ], 500);
+    //     }
+    // }
+
+
+
+public function initializePayment(Request $request)
+{
+    $request->validate([
+        'email' => 'required|email',
+        'amount' => 'required|numeric|min:100',
+        'schid' => 'required|integer',
+        'clsid' => 'required|integer',
+        'subaccount_code' => 'required|array|min:1',
+        'subaccount_code.*.subaccount' => 'required|string',
+        'subaccount_code.*.share' => 'required|numeric|min:0.01',
+        'metadata' => 'required|array',
+        'payhead_ids' => 'required|array|min:1',
+    ]);
+
+    $email = $request->email;
+    $amount = (float) $request->amount;
+    $schid = (int) $request->schid;
+    $clsid = (int) $request->clsid;
+    $subaccounts = $request->subaccount_code;
+    $metadata = $request->metadata;
+    $payheadIds = $request->payhead_ids;
+
+    $totalShare = collect($subaccounts)->sum('share');
+
+    if ($totalShare <= 0 || $totalShare > 99) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Total split percentage must be between 0.01% and 99%',
+        ], 422);
+    }
+
+    try {
+        // Get Paystack secret key from Laravel configuration
+        $secretKey = config('services.paystack.secret');
+
+        if (empty($secretKey)) {
+            Log::error('Paystack secret key is not configured.');
+
             return response()->json([
                 'status' => false,
-                'message' => 'Total split percentage must be between 0.01% and 99%',
-            ], 422);
-        }
-
-        try {
-            $totalAmountKobo = (int) round($amount * 100);
-
-            /** -------------------------------------------------
-             * Validate subaccounts exist for this school/class
-             * ------------------------------------------------*/
-            foreach ($subaccounts as $acc) {
-                $exists = \DB::table('sub_accounts')
-                    ->where('schid', $schid)
-                    ->where('clsid', $clsid)
-                    ->where('subaccount_code', $acc['subaccount'])
-                    ->exists();
-
-                if (!$exists) {
-                    return response()->json([
-                        'status' => false,
-                        'message' => "Invalid subaccount: {$acc['subaccount']}",
-                    ], 400);
-                }
-            }
-
-            /** -------------------------------------------------
-             * Create or reuse Paystack split
-             * ------------------------------------------------*/
-            $splitData = $this->createOrGetSplit($schid, $clsid, $subaccounts);
-            $splitCode = $splitData['split_code'] ?? null;
-            $subaccountsData = $splitData['subaccounts'] ?? [];
-
-            /** -------------------------------------------------
-             * Build reference
-             * ------------------------------------------------*/
-            $host = preg_replace('/^api\./', '', $request->getHost());
-            $typ = (int) ($request->typ ?? 0);
-            $stid = (int) ($request->stid ?? 0);
-            $ssnid = (int) ($request->ssnid ?? 0);
-            $trmid = (int) ($request->trmid ?? 0);
-
-            $ref = "{$host}-{$schid}-{$amount}-{$typ}-{$stid}-{$ssnid}-{$trmid}-{$clsid}-" . uniqid('', true);
-
-            /** -------------------------------------------------
-             * Merge metadata safely
-             * ------------------------------------------------*/
-            $metadata = array_merge($metadata, [
-                'stid' => $stid,
-                'ssnid' => $ssnid,
-                'trmid' => $trmid,
-                'clsid' => $clsid,
-                'schid' => $schid,
-                'typ' => $typ,
-                'name' => $metadata['name'] ?? '',
-                'exp' => $metadata['exp'] ?? '',
-                'eml' => $email,
-                'lid' => $metadata['lid'] ?? '',
-                'payhead_ids' => $payheadIds,
-                'time' => now()->timestamp,
-            ]);
-
-            /** -------------------------------------------------
-             * Paystack initialize payload
-             * ------------------------------------------------*/
-            $payload = [
-                'email' => $email,
-                'amount' => $totalAmountKobo,
-                'currency' => 'NGN',
-                'reference' => $ref,
-                'callback_url' => $this->getFrontendUrl($schid, '/studentPortal'),
-                'metadata' => $metadata,
-                'channels' => ['card', 'bank', 'ussd'],
-            ];
-
-            if (!empty($splitCode)) {
-                $payload['split_code'] = $splitCode;
-            }
-
-            $response = Http::withToken(env('PAYSTACK_SECRET'))
-                ->post('https://api.paystack.co/transaction/initialize', $payload);
-
-            if (!$response->successful()) {
-                Log::error('Paystack Init Failed', [
-                    'payload' => $payload,
-                    'response' => $response->body(),
-                ]);
-
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Payment Initialization Failed',
-                ], 400);
-            }
-
-            $paystackData = $response->json();
-
-            /** -------------------------------------------------
-             * Store reference for callback/webhook
-             * ------------------------------------------------*/
-            payment_refs::updateOrCreate(
-                ['ref' => $ref],
-                [
-                    'split_code' => $splitCode,
-                    'subaccounts' => json_encode($subaccountsData),
-                    'amt' => $amount,
-                    'time' => now(),
-                ]
-            );
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Payment Initialized Successfully',
-                'data' => $paystackData,
-                'ref' => $ref,
-                'split_code' => $splitCode,
-                'subaccounts' => $subaccountsData,
-            ]);
-
-        } catch (\Throwable $e) {
-            Log::error('Initialize Payment Exception', [
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'status' => false,
-                'message' => 'Server Error: Unable to initialize payment',
+                'message' => 'Payment Initialization Failed',
             ], 500);
         }
+
+        $totalAmountKobo = (int) round($amount * 100);
+
+        /** -------------------------------------------------
+         * Validate subaccounts exist for this school/class
+         * ------------------------------------------------*/
+        foreach ($subaccounts as $acc) {
+            $exists = \DB::table('sub_accounts')
+                ->where('schid', $schid)
+                ->where('clsid', $clsid)
+                ->where('subaccount_code', $acc['subaccount'])
+                ->exists();
+
+            if (!$exists) {
+                return response()->json([
+                    'status' => false,
+                    'message' => "Invalid subaccount: {$acc['subaccount']}",
+                ], 400);
+            }
+        }
+
+        /** -------------------------------------------------
+         * Create or reuse Paystack split
+         * ------------------------------------------------*/
+        $splitData = $this->createOrGetSplit($schid, $clsid, $subaccounts);
+        $splitCode = $splitData['split_code'] ?? null;
+        $subaccountsData = $splitData['subaccounts'] ?? [];
+
+        /** -------------------------------------------------
+         * Build reference
+         * ------------------------------------------------*/
+        $host = preg_replace('/^api\./', '', $request->getHost());
+        $typ = (int) ($request->typ ?? 0);
+        $stid = (int) ($request->stid ?? 0);
+        $ssnid = (int) ($request->ssnid ?? 0);
+        $trmid = (int) ($request->trmid ?? 0);
+
+        $ref = "{$host}-{$schid}-{$amount}-{$typ}-{$stid}-{$ssnid}-{$trmid}-{$clsid}-" . uniqid('', true);
+
+        /** -------------------------------------------------
+         * Merge metadata safely
+         * ------------------------------------------------*/
+        $metadata = array_merge($metadata, [
+            'stid' => $stid,
+            'ssnid' => $ssnid,
+            'trmid' => $trmid,
+            'clsid' => $clsid,
+            'schid' => $schid,
+            'typ' => $typ,
+            'name' => $metadata['name'] ?? '',
+            'exp' => $metadata['exp'] ?? '',
+            'eml' => $email,
+            'lid' => $metadata['lid'] ?? '',
+            'payhead_ids' => $payheadIds,
+            'time' => now()->timestamp,
+        ]);
+
+        /** -------------------------------------------------
+         * Paystack initialize payload
+         * ------------------------------------------------*/
+        $payload = [
+            'email' => $email,
+            'amount' => $totalAmountKobo,
+            'currency' => 'NGN',
+            'reference' => $ref,
+            'callback_url' => $this->getFrontendUrl($schid, '/studentPortal'),
+            'metadata' => $metadata,
+            'channels' => ['card', 'bank', 'ussd'],
+        ];
+
+        if (!empty($splitCode)) {
+            $payload['split_code'] = $splitCode;
+        }
+
+        $response = Http::withToken($secretKey)
+            ->post('https://api.paystack.co/transaction/initialize', $payload);
+
+        if (!$response->successful()) {
+            Log::error('Paystack Init Failed', [
+                'payload' => $payload,
+                'response' => $response->body(),
+            ]);
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Payment Initialization Failed',
+            ], 400);
+        }
+
+        $paystackData = $response->json();
+
+        /** -------------------------------------------------
+         * Store reference for callback/webhook
+         * ------------------------------------------------*/
+        payment_refs::updateOrCreate(
+            ['ref' => $ref],
+            [
+                'split_code' => $splitCode,
+                'subaccounts' => json_encode($subaccountsData),
+                'amt' => $amount,
+                'time' => now(),
+            ]
+        );
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Payment Initialized Successfully',
+            'data' => $paystackData,
+            'ref' => $ref,
+            'split_code' => $splitCode,
+            'subaccounts' => $subaccountsData,
+        ]);
+
+    } catch (\Throwable $e) {
+        Log::error('Initialize Payment Exception', [
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Server Error: Unable to initialize payment',
+        ], 500);
     }
+}
+
 
 
 
@@ -16366,201 +16932,416 @@ public function getPaymentStat($schid, $clsid, $ssnid, $trmid)
      */
 
 
-    public function paystackConf(Request $request)
-    {
-        Log::info('------------ PAYSTACK WEBHOOK ARRIVED -----------');
+    // public function paystackConf(Request $request)
+    // {
+    //     Log::info('------------ PAYSTACK WEBHOOK ARRIVED -----------');
 
-        try {
-            $payloadRaw = $request->getContent();
-            Log::info('Raw Paystack payload', ['payload' => $payloadRaw]);
+    //     try {
+    //         $payloadRaw = $request->getContent();
+    //         Log::info('Raw Paystack payload', ['payload' => $payloadRaw]);
 
-            // Decode payload
-            $payload = json_decode($payloadRaw, true);
-            if (!$payload) {
-                Log::error('Failed to decode JSON payload', ['raw' => $payloadRaw]);
-                return response()->json(['status' => 'error', 'message' => 'Invalid JSON payload'], 400);
+    //         // Decode payload
+    //         $payload = json_decode($payloadRaw, true);
+    //         if (!$payload) {
+    //             Log::error('Failed to decode JSON payload', ['raw' => $payloadRaw]);
+    //             return response()->json(['status' => 'error', 'message' => 'Invalid JSON payload'], 400);
+    //         }
+
+    //         // Decode nested payload if exists
+    //         if (isset($payload['payload'])) {
+    //             $nested = json_decode($payload['payload'], true);
+    //             if ($nested) {
+    //                 $payload = $nested;
+    //             } else {
+    //                 Log::warning('Failed to decode nested payload, using original');
+    //             }
+    //         }
+
+    //         // Signature verification
+    //         if (env('APP_ENV') !== 'local') {
+    //             $signature = $request->header('x-paystack-signature');
+    //             if (!$signature || hash_hmac('sha512', $payloadRaw, env('PAYSTACK_SECRET')) !== $signature) {
+    //                 Log::warning('Invalid Paystack signature');
+    //                 return response()->json(['status' => 'unauthorized'], 401);
+    //             }
+    //         }
+
+    //         // Accept only successful charge events
+    //         $event = $payload['event'] ?? '';
+    //         if (!in_array($event, ['charge.success', 'payment.success'])) {
+    //             Log::info('Ignored Paystack event', ['event' => $event]);
+    //             return response()->json(['status' => 'ignored'], 200);
+    //         }
+
+    //         $trx = $payload['data'] ?? [];
+    //         $ref = $trx['reference'] ?? null;
+    //         if (!$ref) {
+    //             Log::error('Missing reference', ['payload' => $payload]);
+    //             return response()->json(['status' => 'error', 'message' => 'Missing reference'], 400);
+    //         }
+
+    //         Log::info('Processing reference', ['ref' => $ref]);
+
+    //         // Idempotency check
+    //         $refRow = payment_refs::where('ref', $ref)->first();
+    //         if ($refRow && $refRow->confirmed_at) {
+    //             Log::info("Duplicate webhook detected for {$ref}");
+    //             return response()->json(['status' => 'duplicate'], 200);
+    //         }
+
+    //         // Parse reference
+    //         $parts = explode('-', $ref);
+    //         if (count($parts) < 8) {
+    //             Log::error('Reference format invalid', ['ref' => $ref]);
+    //             return response()->json(['status' => 'error', 'message' => 'Invalid reference format'], 400);
+    //         }
+    //         [$host, $schid, $amt, $typ, $stid, $ssnid, $trmid, $clsid] = $parts;
+
+    //         // Metadata
+    //         $metadata = $trx['metadata'] ?? [];
+    //         $nm = $metadata['name'] ?? '';
+    //         $exp = $metadata['exp'] ?? '';
+    //         $lid = $metadata['lid'] ?? '';
+    //         $eml = $metadata['eml'] ?? '';
+    //         $payheadIds = $metadata['payhead_ids'] ?? [];
+    //         $tm = $metadata['time'] ?? now()->timestamp;
+
+    //         // Amount
+    //         $totalAmountPaid = ($trx['amount'] ?? 0) / 100;
+
+    //         // Payment type
+    //         $what = 'School Fees';
+    //         if ($typ == '1') {
+    //             $what = 'Application Fee';
+    //             student::where('sid', $stid)->update(['rfee' => 1]);
+    //         } elseif ($typ == '2') {
+    //             $what = 'Acceptance Fee';
+    //             $uid = $stid . $schid . $clsid;
+    //             afeerec::updateOrCreate(
+    //                 ['uid' => $uid],
+    //                 [
+    //                     'stid' => $stid,
+    //                     'schid' => $schid,
+    //                     'clsid' => $clsid,
+    //                     'ssn' => $ssnid,
+    //                     'trm' => $trmid,
+    //                     'amt' => intval($totalAmountPaid),
+    //                 ]
+    //             );
+    //         }
+
+    //         // -------------------------
+    //         // Resolve split data
+    //         // -------------------------
+    //         $splitData = [];
+
+    //         // Case 1: Stored split from init transaction
+    //         if ($refRow && $refRow->subaccounts) {
+    //             $splitData = json_decode($refRow->subaccounts, true) ?? [];
+    //         }
+    //         // Case 2: Paystack multiple subaccount split
+    //         elseif (!empty($trx['split']['subaccounts'])) {
+    //             $splitData = $trx['split']['subaccounts'];
+    //         }
+    //         // Case 3: Paystack single subaccount payment
+    //         elseif (!empty($trx['subaccount']['subaccount_code'])) {
+    //             $splitData[] = [
+    //                 'subaccount' => $trx['subaccount']['subaccount_code'],
+    //                 'share' => 100,
+    //             ];
+    //         }
+
+    //         // Case 4: Default subaccount for non-split payments
+    //         if (empty($splitData)) {
+    //             $defaultSub = \DB::table('sub_accounts')
+    //                 ->where('schid', $schid)
+    //                 ->where('clsid', $clsid)
+    //                 ->first();
+
+    //             if ($defaultSub) {
+    //                 $splitData[] = [
+    //                     'subaccount' => $defaultSub->subaccount_code,
+    //                     'share' => 100,
+    //                 ];
+    //             }
+    //         }
+
+    //         Log::info('Resolved split data', ['ref' => $ref, 'split' => $splitData]);
+
+    //         // Record payments
+    //         foreach ($splitData as $sub) {
+    //             try {
+    //                 $subAmount = ($totalAmountPaid * $sub['share']) / 100;
+    //                 payments::create([
+    //                     'schid' => $schid,
+    //                     'stid' => $stid,
+    //                     'ssnid' => $ssnid,
+    //                     'trmid' => $trmid,
+    //                     'clsid' => $clsid,
+    //                     'name' => $nm,
+    //                     'exp' => $exp,
+    //                     'amt' => $totalAmountPaid,
+    //                     'share' => $subAmount,
+    //                     'subaccount_code' => $sub['subaccount'],
+    //                     'main_ref' => $ref,
+    //                     'payment_type' => (int) $typ,
+    //                     'pay_head' => implode(',', $payheadIds),
+    //                     'total_split_amount' => $totalAmountPaid,
+    //                     'email' => $eml,
+    //                     'lid' => $lid,
+    //                 ]);
+    //             } catch (\Exception $e) {
+    //                 Log::error('Failed to create payment', ['ref' => $ref, 'sub' => $sub, 'error' => $e->getMessage()]);
+    //             }
+    //         }
+
+    //         // Update payment_refs
+    //         payment_refs::updateOrCreate(
+    //             ['ref' => $ref],
+    //             [
+    //                 'amt' => $totalAmountPaid,
+    //                 'time' => $tm,
+    //                 'metadata' => json_encode($metadata),
+    //                 'subaccounts' => json_encode($splitData),
+    //                 'confirmed_at' => now(),
+    //                 'payment_type' => (int) $typ,
+    //             ]
+    //         );
+
+    //         // Send email (non-blocking)
+    //         try {
+    //             Mail::to($eml)->send(new SSSMails([
+    //                 'name' => $nm,
+    //                 'subject' => 'Payment Received',
+    //                 'body' => "Your {$what} payment of ₦{$totalAmountPaid} was received successfully.",
+    //                 'link' => env('PORTAL_URL') . '/studentLogin/' . $schid,
+    //             ]));
+    //         } catch (\Exception $e) {
+    //             Log::error('Failed to send email', ['error' => $e->getMessage()]);
+    //         }
+
+    //         return response()->json(['status' => 'success'], 200);
+
+    //     } catch (\Exception $e) {
+    //         Log::error('paystackConf unexpected error', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+    //         return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+    //     }
+    // }
+
+
+
+public function paystackConf(Request $request)
+{
+    Log::info('------------ PAYSTACK WEBHOOK ARRIVED -----------');
+
+    try {
+        $payloadRaw = $request->getContent();
+        Log::info('Raw Paystack payload', ['payload' => $payloadRaw]);
+
+        // Decode payload
+        $payload = json_decode($payloadRaw, true);
+        if (!$payload) {
+            Log::error('Failed to decode JSON payload', ['raw' => $payloadRaw]);
+            return response()->json(['status' => 'error', 'message' => 'Invalid JSON payload'], 400);
+        }
+
+        // Decode nested payload if exists
+        if (isset($payload['payload'])) {
+            $nested = json_decode($payload['payload'], true);
+            if ($nested) {
+                $payload = $nested;
+            } else {
+                Log::warning('Failed to decode nested payload, using original');
             }
+        }
 
-            // Decode nested payload if exists
-            if (isset($payload['payload'])) {
-                $nested = json_decode($payload['payload'], true);
-                if ($nested) {
-                    $payload = $nested;
-                } else {
-                    Log::warning('Failed to decode nested payload, using original');
-                }
+        // Signature verification
+        if (config('app.env') !== 'local') {
+            $signature = $request->header('x-paystack-signature');
+            $secretKey = config('services.paystack.secret');
+
+            if (
+                empty($secretKey) ||
+                !$signature ||
+                !hash_equals(
+                    hash_hmac('sha512', $payloadRaw, $secretKey),
+                    $signature
+                )
+            ) {
+                Log::warning('Invalid Paystack signature');
+                return response()->json(['status' => 'unauthorized'], 401);
             }
+        }
 
-            // Signature verification
-            if (env('APP_ENV') !== 'local') {
-                $signature = $request->header('x-paystack-signature');
-                if (!$signature || hash_hmac('sha512', $payloadRaw, env('PAYSTACK_SECRET')) !== $signature) {
-                    Log::warning('Invalid Paystack signature');
-                    return response()->json(['status' => 'unauthorized'], 401);
-                }
-            }
+        // Accept only successful charge events
+        $event = $payload['event'] ?? '';
+        if (!in_array($event, ['charge.success', 'payment.success'])) {
+            Log::info('Ignored Paystack event', ['event' => $event]);
+            return response()->json(['status' => 'ignored'], 200);
+        }
 
-            // Accept only successful charge events
-            $event = $payload['event'] ?? '';
-            if (!in_array($event, ['charge.success', 'payment.success'])) {
-                Log::info('Ignored Paystack event', ['event' => $event]);
-                return response()->json(['status' => 'ignored'], 200);
-            }
+        $trx = $payload['data'] ?? [];
+        $ref = $trx['reference'] ?? null;
+        if (!$ref) {
+            Log::error('Missing reference', ['payload' => $payload]);
+            return response()->json(['status' => 'error', 'message' => 'Missing reference'], 400);
+        }
 
-            $trx = $payload['data'] ?? [];
-            $ref = $trx['reference'] ?? null;
-            if (!$ref) {
-                Log::error('Missing reference', ['payload' => $payload]);
-                return response()->json(['status' => 'error', 'message' => 'Missing reference'], 400);
-            }
+        Log::info('Processing reference', ['ref' => $ref]);
 
-            Log::info('Processing reference', ['ref' => $ref]);
+        // Idempotency check
+        $refRow = payment_refs::where('ref', $ref)->first();
+        if ($refRow && $refRow->confirmed_at) {
+            Log::info("Duplicate webhook detected for {$ref}");
+            return response()->json(['status' => 'duplicate'], 200);
+        }
 
-            // Idempotency check
-            $refRow = payment_refs::where('ref', $ref)->first();
-            if ($refRow && $refRow->confirmed_at) {
-                Log::info("Duplicate webhook detected for {$ref}");
-                return response()->json(['status' => 'duplicate'], 200);
-            }
+        // Parse reference
+        $parts = explode('-', $ref);
+        if (count($parts) < 8) {
+            Log::error('Reference format invalid', ['ref' => $ref]);
+            return response()->json(['status' => 'error', 'message' => 'Invalid reference format'], 400);
+        }
+        [$host, $schid, $amt, $typ, $stid, $ssnid, $trmid, $clsid] = $parts;
 
-            // Parse reference
-            $parts = explode('-', $ref);
-            if (count($parts) < 8) {
-                Log::error('Reference format invalid', ['ref' => $ref]);
-                return response()->json(['status' => 'error', 'message' => 'Invalid reference format'], 400);
-            }
-            [$host, $schid, $amt, $typ, $stid, $ssnid, $trmid, $clsid] = $parts;
+        // Metadata
+        $metadata = $trx['metadata'] ?? [];
+        $nm = $metadata['name'] ?? '';
+        $exp = $metadata['exp'] ?? '';
+        $lid = $metadata['lid'] ?? '';
+        $eml = $metadata['eml'] ?? '';
+        $payheadIds = $metadata['payhead_ids'] ?? [];
+        $tm = $metadata['time'] ?? now()->timestamp;
 
-            // Metadata
-            $metadata = $trx['metadata'] ?? [];
-            $nm = $metadata['name'] ?? '';
-            $exp = $metadata['exp'] ?? '';
-            $lid = $metadata['lid'] ?? '';
-            $eml = $metadata['eml'] ?? '';
-            $payheadIds = $metadata['payhead_ids'] ?? [];
-            $tm = $metadata['time'] ?? now()->timestamp;
+        // Amount
+        $totalAmountPaid = ($trx['amount'] ?? 0) / 100;
 
-            // Amount
-            $totalAmountPaid = ($trx['amount'] ?? 0) / 100;
+        // Payment type
+        $what = 'School Fees';
+        if ($typ == '1') {
+            $what = 'Application Fee';
+            student::where('sid', $stid)->update(['rfee' => 1]);
+        } elseif ($typ == '2') {
+            $what = 'Acceptance Fee';
+            $uid = $stid . $schid . $clsid;
+            afeerec::updateOrCreate(
+                ['uid' => $uid],
+                [
+                    'stid' => $stid,
+                    'schid' => $schid,
+                    'clsid' => $clsid,
+                    'ssn' => $ssnid,
+                    'trm' => $trmid,
+                    'amt' => intval($totalAmountPaid),
+                ]
+            );
+        }
 
-            // Payment type
-            $what = 'School Fees';
-            if ($typ == '1') {
-                $what = 'Application Fee';
-                student::where('sid', $stid)->update(['rfee' => 1]);
-            } elseif ($typ == '2') {
-                $what = 'Acceptance Fee';
-                $uid = $stid . $schid . $clsid;
-                afeerec::updateOrCreate(
-                    ['uid' => $uid],
-                    [
-                        'stid' => $stid,
-                        'schid' => $schid,
-                        'clsid' => $clsid,
-                        'ssn' => $ssnid,
-                        'trm' => $trmid,
-                        'amt' => intval($totalAmountPaid),
-                    ]
-                );
-            }
+        // -------------------------
+        // Resolve split data
+        // -------------------------
+        $splitData = [];
 
-            // -------------------------
-            // Resolve split data
-            // -------------------------
-            $splitData = [];
+        // Case 1: Stored split from init transaction
+        if ($refRow && $refRow->subaccounts) {
+            $splitData = json_decode($refRow->subaccounts, true) ?? [];
+        }
+        // Case 2: Paystack multiple subaccount split
+        elseif (!empty($trx['split']['subaccounts'])) {
+            $splitData = $trx['split']['subaccounts'];
+        }
+        // Case 3: Paystack single subaccount payment
+        elseif (!empty($trx['subaccount']['subaccount_code'])) {
+            $splitData[] = [
+                'subaccount' => $trx['subaccount']['subaccount_code'],
+                'share' => 100,
+            ];
+        }
 
-            // Case 1: Stored split from init transaction
-            if ($refRow && $refRow->subaccounts) {
-                $splitData = json_decode($refRow->subaccounts, true) ?? [];
-            }
-            // Case 2: Paystack multiple subaccount split
-            elseif (!empty($trx['split']['subaccounts'])) {
-                $splitData = $trx['split']['subaccounts'];
-            }
-            // Case 3: Paystack single subaccount payment
-            elseif (!empty($trx['subaccount']['subaccount_code'])) {
+        // Case 4: Default subaccount for non-split payments
+        if (empty($splitData)) {
+            $defaultSub = \DB::table('sub_accounts')
+                ->where('schid', $schid)
+                ->where('clsid', $clsid)
+                ->first();
+
+            if ($defaultSub) {
                 $splitData[] = [
-                    'subaccount' => $trx['subaccount']['subaccount_code'],
+                    'subaccount' => $defaultSub->subaccount_code,
                     'share' => 100,
                 ];
             }
-
-            // Case 4: Default subaccount for non-split payments
-            if (empty($splitData)) {
-                $defaultSub = \DB::table('sub_accounts')
-                    ->where('schid', $schid)
-                    ->where('clsid', $clsid)
-                    ->first();
-
-                if ($defaultSub) {
-                    $splitData[] = [
-                        'subaccount' => $defaultSub->subaccount_code,
-                        'share' => 100,
-                    ];
-                }
-            }
-
-            Log::info('Resolved split data', ['ref' => $ref, 'split' => $splitData]);
-
-            // Record payments
-            foreach ($splitData as $sub) {
-                try {
-                    $subAmount = ($totalAmountPaid * $sub['share']) / 100;
-                    payments::create([
-                        'schid' => $schid,
-                        'stid' => $stid,
-                        'ssnid' => $ssnid,
-                        'trmid' => $trmid,
-                        'clsid' => $clsid,
-                        'name' => $nm,
-                        'exp' => $exp,
-                        'amt' => $totalAmountPaid,
-                        'share' => $subAmount,
-                        'subaccount_code' => $sub['subaccount'],
-                        'main_ref' => $ref,
-                        'payment_type' => (int) $typ,
-                        'pay_head' => implode(',', $payheadIds),
-                        'total_split_amount' => $totalAmountPaid,
-                        'email' => $eml,
-                        'lid' => $lid,
-                    ]);
-                } catch (\Exception $e) {
-                    Log::error('Failed to create payment', ['ref' => $ref, 'sub' => $sub, 'error' => $e->getMessage()]);
-                }
-            }
-
-            // Update payment_refs
-            payment_refs::updateOrCreate(
-                ['ref' => $ref],
-                [
-                    'amt' => $totalAmountPaid,
-                    'time' => $tm,
-                    'metadata' => json_encode($metadata),
-                    'subaccounts' => json_encode($splitData),
-                    'confirmed_at' => now(),
-                    'payment_type' => (int) $typ,
-                ]
-            );
-
-            // Send email (non-blocking)
-            try {
-                Mail::to($eml)->send(new SSSMails([
-                    'name' => $nm,
-                    'subject' => 'Payment Received',
-                    'body' => "Your {$what} payment of ₦{$totalAmountPaid} was received successfully.",
-                    'link' => env('PORTAL_URL') . '/studentLogin/' . $schid,
-                ]));
-            } catch (\Exception $e) {
-                Log::error('Failed to send email', ['error' => $e->getMessage()]);
-            }
-
-            return response()->json(['status' => 'success'], 200);
-
-        } catch (\Exception $e) {
-            Log::error('paystackConf unexpected error', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
+
+        Log::info('Resolved split data', ['ref' => $ref, 'split' => $splitData]);
+
+        // Record payments
+        foreach ($splitData as $sub) {
+            try {
+                $subAmount = ($totalAmountPaid * $sub['share']) / 100;
+                payments::create([
+                    'schid' => $schid,
+                    'stid' => $stid,
+                    'ssnid' => $ssnid,
+                    'trmid' => $trmid,
+                    'clsid' => $clsid,
+                    'name' => $nm,
+                    'exp' => $exp,
+                    'amt' => $totalAmountPaid,
+                    'share' => $subAmount,
+                    'subaccount_code' => $sub['subaccount'],
+                    'main_ref' => $ref,
+                    'payment_type' => (int) $typ,
+                    'pay_head' => implode(',', $payheadIds),
+                    'total_split_amount' => $totalAmountPaid,
+                    'email' => $eml,
+                    'lid' => $lid,
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Failed to create payment', [
+                    'ref' => $ref,
+                    'sub' => $sub,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+
+        // Update payment_refs
+        payment_refs::updateOrCreate(
+            ['ref' => $ref],
+            [
+                'amt' => $totalAmountPaid,
+                'time' => $tm,
+                'metadata' => json_encode($metadata),
+                'subaccounts' => json_encode($splitData),
+                'confirmed_at' => now(),
+                'payment_type' => (int) $typ,
+            ]
+        );
+
+        // Send email (non-blocking)
+        try {
+            Mail::to($eml)->send(new SSSMails([
+                'name' => $nm,
+                'subject' => 'Payment Received',
+                'body' => "Your {$what} payment of ₦{$totalAmountPaid} was received successfully.",
+                'link' => env('PORTAL_URL') . '/studentLogin/' . $schid,
+            ]));
+        } catch (\Exception $e) {
+            Log::error('Failed to send email', ['error' => $e->getMessage()]);
+        }
+
+        return response()->json(['status' => 'success'], 200);
+
+    } catch (\Exception $e) {
+        Log::error('paystackConf unexpected error', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
     }
+}
 
 
 
@@ -21222,90 +22003,190 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
      */
 
 
-    public function setAcceptanceAcct(Request $request)
-    {
-        $request->validate([
-            'schid' => 'required',
-            'anum' => 'required',
-            'bnk' => 'required',
-            'aname' => 'required',
-            'clsid' => 'required',
-            'ssn' => 'required',
-            'trm' => 'required',
-        ]);
+    // public function setAcceptanceAcct(Request $request)
+    // {
+    //     $request->validate([
+    //         'schid' => 'required',
+    //         'anum' => 'required',
+    //         'bnk' => 'required',
+    //         'aname' => 'required',
+    //         'clsid' => 'required',
+    //         'ssn' => 'required',
+    //         'trm' => 'required',
+    //     ]);
 
-        // Fields used to match an existing record
-        $match = [
-            'schid' => $request->schid,
-            'clsid' => $request->clsid,
-            'ssn' => $request->ssn,
-            'trm' => $request->trm,
-        ];
+    //     // Fields used to match an existing record
+    //     $match = [
+    //         'schid' => $request->schid,
+    //         'clsid' => $request->clsid,
+    //         'ssn' => $request->ssn,
+    //         'trm' => $request->trm,
+    //     ];
 
-        // Fields used to update or create record
-        $data = [
-            'anum' => $request->anum,
-            'bnk' => $request->bnk,
-            'aname' => $request->aname,
-        ];
+    //     // Fields used to update or create record
+    //     $data = [
+    //         'anum' => $request->anum,
+    //         'bnk' => $request->bnk,
+    //         'aname' => $request->aname,
+    //     ];
 
-        // Create or update acceptance account
-        $acct = acceptance_acct::updateOrCreate($match, $data);
+    //     // Create or update acceptance account
+    //     $acct = acceptance_acct::updateOrCreate($match, $data);
 
-        // If this is a new record, proceed to create Paystack Subaccount
-        if ($acct->wasRecentlyCreated) {
+    //     // If this is a new record, proceed to create Paystack Subaccount
+    //     if ($acct->wasRecentlyCreated) {
 
-            $business_name = "Business_" . uniqid();
-            $percentage_charge = 0;
-            $settlement_bank = $request->bnk;
+    //         $business_name = "Business_" . uniqid();
+    //         $percentage_charge = 0;
+    //         $settlement_bank = $request->bnk;
 
-            // PAYSTACK SUBACCOUNT CREATION
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
-                'Content-Type' => 'application/json',
-            ])->post('https://api.paystack.co/subaccount', [
-                        'business_name' => $business_name,
-                        'account_number' => $request->anum,
-                        'bank_code' => $request->bnk,
-                        'percentage_charge' => $percentage_charge,
-                        'settlement_bank' => $settlement_bank,
-                    ]);
+    //         // PAYSTACK SUBACCOUNT CREATION
+    //         $response = Http::withHeaders([
+    //             'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
+    //             'Content-Type' => 'application/json',
+    //         ])->post('https://api.paystack.co/subaccount', [
+    //                     'business_name' => $business_name,
+    //                     'account_number' => $request->anum,
+    //                     'bank_code' => $request->bnk,
+    //                     'percentage_charge' => $percentage_charge,
+    //                     'settlement_bank' => $settlement_bank,
+    //                 ]);
 
-            if ($response->successful()) {
+    //         if ($response->successful()) {
 
-                $data = $response->json();
+    //             $data = $response->json();
 
-                // STORE SUBACCOUNT DETAILS
-                acceptance_sub_acct::create([
-                    'acct_id' => $acct->id,
-                    'schid' => $request->schid,
-                    'subaccount_code' => $data['data']['subaccount_code'],
-                    'percentage_charge' => $percentage_charge,
-                ]);
+    //             // STORE SUBACCOUNT DETAILS
+    //             acceptance_sub_acct::create([
+    //                 'acct_id' => $acct->id,
+    //                 'schid' => $request->schid,
+    //                 'subaccount_code' => $data['data']['subaccount_code'],
+    //                 'percentage_charge' => $percentage_charge,
+    //             ]);
 
-                return response()->json([
-                    "status" => true,
-                    "message" => "Account and Paystack Subaccount Created Successfully",
-                    "paystack_data" => $data,
-                ]);
-            }
+    //             return response()->json([
+    //                 "status" => true,
+    //                 "message" => "Account and Paystack Subaccount Created Successfully",
+    //                 "paystack_data" => $data,
+    //             ]);
+    //         }
 
-            // If Paystack failed → rollback new record
-            $acct->delete();
+    //         // If Paystack failed → rollback new record
+    //         $acct->delete();
+
+    //         return response()->json([
+    //             "status" => false,
+    //             "message" => "Failed to Create Paystack Subaccount",
+    //             "error" => $response->body(),
+    //         ], 400);
+    //     }
+
+    //     // If record was updated (not created)
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Account Updated Successfully",
+    //     ]);
+    // }
+
+
+public function setAcceptanceAcct(Request $request)
+{
+    $request->validate([
+        'schid' => 'required',
+        'anum' => 'required',
+        'bnk' => 'required',
+        'aname' => 'required',
+        'clsid' => 'required',
+        'ssn' => 'required',
+        'trm' => 'required',
+    ]);
+
+    // Get Paystack secret key from Laravel configuration
+    $secretKey = config('services.paystack.secret');
+
+    if (empty($secretKey)) {
+        return response()->json([
+            "status" => false,
+            "message" => "Paystack secret key is not configured.",
+            "error" => null,
+        ], 500);
+    }
+
+    // Fields used to match an existing record
+    $match = [
+        'schid' => $request->schid,
+        'clsid' => $request->clsid,
+        'ssn' => $request->ssn,
+        'trm' => $request->trm,
+    ];
+
+    // Fields used to update or create record
+    $data = [
+        'anum' => $request->anum,
+        'bnk' => $request->bnk,
+        'aname' => $request->aname,
+    ];
+
+    // Create or update acceptance account
+    $acct = acceptance_acct::updateOrCreate($match, $data);
+
+    // If this is a new record, proceed to create Paystack Subaccount
+    if ($acct->wasRecentlyCreated) {
+
+        $business_name = "Business_" . uniqid();
+        $percentage_charge = 0;
+        $settlement_bank = $request->bnk;
+
+        // PAYSTACK SUBACCOUNT CREATION
+        $response = Http::withToken($secretKey)
+            ->acceptJson()
+            ->post('https://api.paystack.co/subaccount', [
+                'business_name' => $business_name,
+                'account_number' => $request->anum,
+                'bank_code' => $request->bnk,
+                'percentage_charge' => $percentage_charge,
+                'settlement_bank' => $settlement_bank,
+            ]);
+
+        $paystackData = $response->json();
+
+        if (
+            $response->successful()
+            && ($paystackData['status'] ?? false)
+            && !empty($paystackData['data']['subaccount_code'])
+        ) {
+
+            // STORE SUBACCOUNT DETAILS
+            acceptance_sub_acct::create([
+                'acct_id' => $acct->id,
+                'schid' => $request->schid,
+                'subaccount_code' => $paystackData['data']['subaccount_code'],
+                'percentage_charge' => $percentage_charge,
+            ]);
 
             return response()->json([
-                "status" => false,
-                "message" => "Failed to Create Paystack Subaccount",
-                "error" => $response->body(),
-            ], 400);
+                "status" => true,
+                "message" => "Account and Paystack Subaccount Created Successfully",
+                "paystack_data" => $paystackData,
+            ]);
         }
 
-        // If record was updated (not created)
+        // If Paystack failed, delete the newly created record
+        $acct->delete();
+
         return response()->json([
-            "status" => true,
-            "message" => "Account Updated Successfully",
-        ]);
+            "status" => false,
+            "message" => "Failed to Create Paystack Subaccount",
+            "error" => $paystackData ?? $response->body(),
+        ], $response->status() >= 400 ? $response->status() : 400);
     }
+
+    // If record was updated (not created)
+    return response()->json([
+        "status" => true,
+        "message" => "Account Updated Successfully",
+    ]);
+}
 
 
 
@@ -21390,87 +22271,182 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
      */
 
 
-    public function setApplicationAcct(Request $request)
-    {
-        $request->validate([
-            'schid' => 'required',
-            'anum' => 'required',
-            'bnk' => 'required',
-            'aname' => 'required',
-            'ssn' => 'required',
-            'trm' => 'required',
-        ]);
+    // public function setApplicationAcct(Request $request)
+    // {
+    //     $request->validate([
+    //         'schid' => 'required',
+    //         'anum' => 'required',
+    //         'bnk' => 'required',
+    //         'aname' => 'required',
+    //         'ssn' => 'required',
+    //         'trm' => 'required',
+    //     ]);
 
-        // Unique fields for update
-        $match = [
-            'schid' => $request->schid,
-            'ssn' => $request->ssn,
-            'trm' => $request->trm,
-        ];
+    //     // Unique fields for update
+    //     $match = [
+    //         'schid' => $request->schid,
+    //         'ssn' => $request->ssn,
+    //         'trm' => $request->trm,
+    //     ];
 
-        // Values to update
-        $data = [
-            'anum' => $request->anum,
-            'bnk' => $request->bnk,
-            'aname' => $request->aname,
-        ];
+    //     // Values to update
+    //     $data = [
+    //         'anum' => $request->anum,
+    //         'bnk' => $request->bnk,
+    //         'aname' => $request->aname,
+    //     ];
 
-        // Create or update the application account
-        $acct = application_acct::updateOrCreate($match, $data);
+    //     // Create or update the application account
+    //     $acct = application_acct::updateOrCreate($match, $data);
 
-        // If created (new)
-        if ($acct->wasRecentlyCreated) {
+    //     // If created (new)
+    //     if ($acct->wasRecentlyCreated) {
 
-            // PAYSTACK SUBACCOUNT CREATION
-            $business_name = "Business_" . uniqid();
-            $percentage_charge = 0;
-            $settlement_bank = $request->bnk;
+    //         // PAYSTACK SUBACCOUNT CREATION
+    //         $business_name = "Business_" . uniqid();
+    //         $percentage_charge = 0;
+    //         $settlement_bank = $request->bnk;
 
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
-                'Content-Type' => 'application/json',
-            ])->post('https://api.paystack.co/subaccount', [
-                        'business_name' => $business_name,
-                        'account_number' => $request->anum,
-                        'bank_code' => $request->bnk,
-                        'percentage_charge' => $percentage_charge,
-                        'settlement_bank' => $settlement_bank,
-                    ]);
+    //         $response = Http::withHeaders([
+    //             'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
+    //             'Content-Type' => 'application/json',
+    //         ])->post('https://api.paystack.co/subaccount', [
+    //                     'business_name' => $business_name,
+    //                     'account_number' => $request->anum,
+    //                     'bank_code' => $request->bnk,
+    //                     'percentage_charge' => $percentage_charge,
+    //                     'settlement_bank' => $settlement_bank,
+    //                 ]);
 
-            if ($response->successful()) {
-                // Save subaccount details
-                $data = $response->json();
+    //         if ($response->successful()) {
+    //             // Save subaccount details
+    //             $data = $response->json();
 
-                application_sub_acct::create([
-                    'acct_id' => $acct->id,
-                    'schid' => $request->schid,
-                    'subaccount_code' => $data['data']['subaccount_code'],
-                    'percentage_charge' => $percentage_charge,
-                ]);
+    //             application_sub_acct::create([
+    //                 'acct_id' => $acct->id,
+    //                 'schid' => $request->schid,
+    //                 'subaccount_code' => $data['data']['subaccount_code'],
+    //                 'percentage_charge' => $percentage_charge,
+    //             ]);
 
-                return response()->json([
-                    "status" => true,
-                    "message" => "Account and Paystack Subaccount Created Successfully",
-                    "paystack_data" => $data,
-                ]);
-            } else {
-                // If subaccount creation fails, delete the account
-                $acct->delete();
+    //             return response()->json([
+    //                 "status" => true,
+    //                 "message" => "Account and Paystack Subaccount Created Successfully",
+    //                 "paystack_data" => $data,
+    //             ]);
+    //         } else {
+    //             // If subaccount creation fails, delete the account
+    //             $acct->delete();
 
-                return response()->json([
-                    "status" => false,
-                    "message" => "Failed to Create Paystack Subaccount",
-                    "error" => $response->body(),
-                ], 400);
-            }
+    //             return response()->json([
+    //                 "status" => false,
+    //                 "message" => "Failed to Create Paystack Subaccount",
+    //                 "error" => $response->body(),
+    //             ], 400);
+    //         }
+    //     }
+
+    //     // If updated
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Account Updated Successfully",
+    //     ]);
+    // }
+
+
+public function setApplicationAcct(Request $request)
+{
+    $request->validate([
+        'schid' => 'required',
+        'anum' => 'required',
+        'bnk' => 'required',
+        'aname' => 'required',
+        'ssn' => 'required',
+        'trm' => 'required',
+    ]);
+
+    // Get Paystack secret key from Laravel configuration
+    $secretKey = config('services.paystack.secret');
+
+    if (empty($secretKey)) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Paystack secret key is not configured.',
+            'error' => null,
+        ], 500);
+    }
+
+    // Unique fields for update
+    $match = [
+        'schid' => $request->schid,
+        'ssn' => $request->ssn,
+        'trm' => $request->trm,
+    ];
+
+    // Values to update
+    $data = [
+        'anum' => $request->anum,
+        'bnk' => $request->bnk,
+        'aname' => $request->aname,
+    ];
+
+    // Create or update the application account
+    $acct = application_acct::updateOrCreate($match, $data);
+
+    // Create Paystack subaccount only for a new application account
+    if ($acct->wasRecentlyCreated) {
+
+        $business_name = 'Business_' . uniqid();
+        $percentage_charge = 0;
+
+        $response = Http::withToken($secretKey)
+            ->acceptJson()
+            ->post('https://api.paystack.co/subaccount', [
+                'business_name' => $business_name,
+                'account_number' => $request->anum,
+                'bank_code' => $request->bnk,
+                'percentage_charge' => $percentage_charge,
+                'settlement_bank' => $request->bnk,
+            ]);
+
+        $paystackData = $response->json();
+
+        if (
+            $response->successful()
+            && ($paystackData['status'] ?? false)
+            && !empty($paystackData['data']['subaccount_code'])
+        ) {
+            // Save Paystack subaccount details
+            application_sub_acct::create([
+                'acct_id' => $acct->id,
+                'schid' => $request->schid,
+                'subaccount_code' => $paystackData['data']['subaccount_code'],
+                'percentage_charge' => $percentage_charge,
+            ]);
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Account and Paystack Subaccount Created Successfully',
+                'paystack_data' => $paystackData,
+            ]);
         }
 
-        // If updated
+        // Delete the account if Paystack subaccount creation fails
+        $acct->delete();
+
         return response()->json([
-            "status" => true,
-            "message" => "Account Updated Successfully",
-        ]);
+            'status' => false,
+            'message' => 'Failed to Create Paystack Subaccount',
+            'error' => $paystackData ?? $response->body(),
+        ], $response->status() >= 400 ? $response->status() : 400);
     }
+
+    // Existing account was updated
+    return response()->json([
+        'status' => true,
+        'message' => 'Account Updated Successfully',
+    ]);
+}
 
 
 
