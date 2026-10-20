@@ -19993,7 +19993,7 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
     |--------------------------------------------------------------------------
     */
 
-    foreach ($students as $student) {
+    foreach ($uniqueStudents as $student) {
 
         // Only send the notification for pending learners.
         if ((string) $student->stat !== '0') {
