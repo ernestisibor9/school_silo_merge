@@ -2479,7 +2479,7 @@ try {
             'body'    => "Welcome to your school's platform. Your account was created successfully.\n\n"
                 . "Please log in to your dashboard and complete your student profile using the link below.\n\n"
                 . "If the link isn't clickable, copy it into your browser. If this email arrives in your spam folder, please mark it as Not Spam.\n\n"
-                . "Your Student ID is " . $sid . ".\n\n"
+                . "Your Learner's ID is " . $sid . ".\n\n"
                 . "Use the password created during registration to log in.",
             'link'    => $loginUrl,
         ];
