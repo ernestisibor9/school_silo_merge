@@ -12953,33 +12953,70 @@ $std = old_student::where('schid', $schid)
      *     @OA\Response(response="401", description="Unauthorized"),
      * )
      */
-    public function resolveAccountNumber($anum, $bnk)
-    {
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
-        ])->get('https://api.paystack.co/bank/resolve', [
-                    'account_number' => $anum,
-                    'bank_code' => $bnk,
-                ]);
+    // public function resolveAccountNumber($anum, $bnk)
+    // {
+    //     $response = Http::withHeaders([
+    //         'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET'),
+    //     ])->get('https://api.paystack.co/bank/resolve', [
+    //                 'account_number' => $anum,
+    //                 'bank_code' => $bnk,
+    //             ]);
 
-        if ($response->successful()) {
-            $data = $response->json();
-            // Output or use the resolved data
-            return response()->json([
-                "status" => true,
-                "message" => "Success",
-                "pld" => $data
-            ]);
-        } else {
-            // Handle error
-            $error = $response->body();
-            return response()->json([
-                "status" => false,
-                "message" => "Failed",
-                "pld" => $error
-            ], 400);
-        }
+    //     if ($response->successful()) {
+    //         $data = $response->json();
+    //         // Output or use the resolved data
+    //         return response()->json([
+    //             "status" => true,
+    //             "message" => "Success",
+    //             "pld" => $data
+    //         ]);
+    //     } else {
+    //         // Handle error
+    //         $error = $response->body();
+    //         return response()->json([
+    //             "status" => false,
+    //             "message" => "Failed",
+    //             "pld" => $error
+    //         ], 400);
+    //     }
+    // }
+
+
+public function resolveAccountNumber($anum, $bnk)
+{
+    $secretKey = config('services.paystack.secret');
+
+    if (empty($secretKey)) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Paystack secret key is not configured.',
+            'pld' => null,
+        ], 500);
     }
+
+    $response = Http::withToken($secretKey)
+        ->get('https://api.paystack.co/bank/resolve', [
+            'account_number' => $anum,
+            'bank_code' => $bnk,
+        ]);
+
+    $data = $response->json();
+
+    if ($response->successful() && ($data['status'] ?? false)) {
+        return response()->json([
+            'status' => true,
+            'message' => 'Success',
+            'pld' => $data,
+        ]);
+    }
+
+    return response()->json([
+        'status' => false,
+        'message' => $data['message'] ?? 'Account resolution failed.',
+        'pld' => $data,
+    ], $response->status());
+}
+
 
     /**
      * @OA\Post(
