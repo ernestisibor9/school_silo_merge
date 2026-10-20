@@ -47029,7 +47029,7 @@ public function setAdmissionInfo(Request $request)
 {
     $request->validate([
         'schid' => 'required|string|max:255',
-        'school_info' => 'required|string|max:255',
+        'school_info' => 'required|string',
     ]);
 
     $schoolInfo = SchoolInfo::updateOrCreate(
