@@ -142,6 +142,8 @@ Route::get('verifyStudent', [ApiController::class, 'verifyStudent']);
 Route::get('verifyStaff', [ApiController::class, 'verifyStaff']);
 
 Route::get('getStudentDetails', [ApiController::class, 'getStudentDetails']);
+Route::get('getSchoolAppFee/{uid}', [ApiController::class, 'getSchoolAppFee']);
+Route::get('getSchoolInfo/{schid}', [ApiController::class, 'getSchoolInfo']);
 
 
 Route::group([
@@ -150,6 +152,9 @@ Route::group([
 
     Route::get('/getDomainAdmin', [ApiController::class, 'getDomainAdmin']);
     Route::get('/getDomainSupportAdmin', [ApiController::class, 'getDomainSupportAdmin']);
+
+
+    Route::post('setSchoolInfo', [ApiController::class, 'setSchoolInfo']);
 
     Route::post('sendEmailVerificationLink', [ApiController::class, 'sendEmailVerificationLink']);
     Route::post('setSchool', [ApiController::class, 'setSchool']);
@@ -341,7 +346,7 @@ Route::group([
     Route::get('deleteStaffClass/{uid}', [ApiController::class, 'deleteStaffClass']);
     Route::get('deleteStaffClassArm/{uid}', [ApiController::class, 'deleteStaffClassArm']);
     Route::get('deleteClassSubject/{uid}', [ApiController::class, 'deleteClassSubject']);
-    Route::get('getSchoolAppFee/{uid}', [ApiController::class, 'getSchoolAppFee']);
+    // Route::get('getSchoolAppFee/{uid}', [ApiController::class, 'getSchoolAppFee']);
     Route::get('searchStudents', [ApiController::class, 'searchStudents']);
     Route::get('searchOldStudents', [ApiController::class, 'searchOldStudents']);
     Route::get('searchStaff', [ApiController::class, 'searchStaff']);

@@ -46969,6 +46969,7 @@ public function getStudentDetails(Request $request)
  *     path="/api/setSchoolInfo",
  *     tags={"Api"},
  *     summary="Set School Information",
+ *     security={{"bearerAuth": {}}},
  *     description="This endpoint saves school information for a particular school.",
  *     @OA\RequestBody(
  *         required=true,
@@ -47034,6 +47035,119 @@ public function setSchoolInfo(Request $request)
         'schid' => $request->schid,
         'school_info' => $request->school_info,
     ]);
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Success',
+        'pld' => $schoolInfo,
+    ]);
+}
+
+
+
+
+/**
+ * @OA\Get(
+ *     path="/api/getSchoolInfo/{schid}",
+ *     tags={"Api"},
+ *     summary="Get School Information",
+ *     description="Retrieves school information using the school ID (schid).",
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="path",
+ *         required=true,
+ *         description="School ID",
+ *         @OA\Schema(
+ *             type="string",
+ *             example="12"
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Success",
+ *         @OA\JsonContent(
+ *             @OA\Property(
+ *                 property="status",
+ *                 type="boolean",
+ *                 example=true
+ *             ),
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="Success"
+ *             ),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="object",
+ *                 @OA\Property(
+ *                     property="id",
+ *                     type="integer",
+ *                     example=1
+ *                 ),
+ *                 @OA\Property(
+ *                     property="schid",
+ *                     type="string",
+ *                     example="12"
+ *                 ),
+ *                 @OA\Property(
+ *                     property="school_info",
+ *                     type="string",
+ *                     example="This school offers quality education."
+ *                 ),
+ *                 @OA\Property(
+ *                     property="created_at",
+ *                     type="string",
+ *                     format="date-time",
+ *                     example="2026-10-20T08:26:22.000000Z"
+ *                 ),
+ *                 @OA\Property(
+ *                     property="updated_at",
+ *                     type="string",
+ *                     format="date-time",
+ *                     example="2026-10-20T08:26:22.000000Z"
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="School information not found",
+ *         @OA\JsonContent(
+ *             @OA\Property(
+ *                 property="status",
+ *                 type="boolean",
+ *                 example=false
+ *             ),
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="School information not found"
+ *             ),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="object",
+ *                 nullable=true,
+ *                 example=null
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthorized"
+ *     )
+ * )
+ */
+public function getSchoolInfo($schid)
+{
+    $schoolInfo = SchoolInfo::where('schid', $schid)->first();
+
+    if (!$schoolInfo) {
+        return response()->json([
+            'status' => false,
+            'message' => 'School information not found',
+            'pld' => null,
+        ]);
+    }
 
     return response()->json([
         'status' => true,

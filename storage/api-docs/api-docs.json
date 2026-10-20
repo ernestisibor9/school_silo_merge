@@ -36117,6 +36117,201 @@
                     }
                 }
             }
+        },
+        "/api/setSchoolInfo": {
+            "post": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Set School Information",
+                "description": "This endpoint saves school information for a particular school.",
+                "operationId": "7a10d75282d6e53f9089de8ced4a9483",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "schid",
+                                    "school_info"
+                                ],
+                                "properties": {
+                                    "schid": {
+                                        "description": "School ID",
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "example": "12"
+                                    },
+                                    "school_info": {
+                                        "description": "Information about the school",
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "example": "This school offers quality education."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "schid": {
+                                                    "type": "string",
+                                                    "example": "12"
+                                                },
+                                                "school_info": {
+                                                    "type": "string",
+                                                    "example": "This school offers quality education."
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/getSchoolInfo/{schid}": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get School Information",
+                "description": "Retrieves school information using the school ID (schid).",
+                "operationId": "5720a092cb902557522d5f112237efe2",
+                "parameters": [
+                    {
+                        "name": "schid",
+                        "in": "path",
+                        "description": "School ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "12"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "schid": {
+                                                    "type": "string",
+                                                    "example": "12"
+                                                },
+                                                "school_info": {
+                                                    "type": "string",
+                                                    "example": "This school offers quality education."
+                                                },
+                                                "created_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2026-10-20T08:26:22.000000Z"
+                                                },
+                                                "updated_at": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2026-10-20T08:26:22.000000Z"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "School information not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "School information not found"
+                                        },
+                                        "pld": {
+                                            "type": "object",
+                                            "example": null,
+                                            "nullable": true
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                }
+            }
         }
     },
     "components": {
