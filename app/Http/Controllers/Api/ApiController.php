@@ -2494,7 +2494,7 @@ if ($request->cuid) {
     ]);
 
 } catch (\Throwable $e) {
-    // Log the email error without stopping student registration
+    // Log the email error without stopping student registration..
     Log::error('Failed to send student welcome email.', [
         'student_id' => $usr->id,
         'email' => $request->email,
