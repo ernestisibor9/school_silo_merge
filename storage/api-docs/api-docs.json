@@ -36118,14 +36118,14 @@
                 }
             }
         },
-        "/api/setSchoolInfo": {
+        "/api/setAdmissionInfo": {
             "post": {
                 "tags": [
                     "Api"
                 ],
-                "summary": "Set School Information",
+                "summary": "Set Admission School Information",
                 "description": "This endpoint saves school information for a particular school.",
-                "operationId": "7a10d75282d6e53f9089de8ced4a9483",
+                "operationId": "72d8665acb7cf47680a62da82c7f4fcd",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -36214,14 +36214,14 @@
                 ]
             }
         },
-        "/api/getSchoolInfo/{schid}": {
+        "/api/getAdmissionInfo/{schid}": {
             "get": {
                 "tags": [
                     "Api"
                 ],
                 "summary": "Get School Information",
-                "description": "Retrieves school information using the school ID (schid).",
-                "operationId": "5720a092cb902557522d5f112237efe2",
+                "description": "Retrieves school admission information using the school ID (schid).",
+                "operationId": "1d5aa8542eb73b7f84e846b306be0e86",
                 "parameters": [
                     {
                         "name": "schid",

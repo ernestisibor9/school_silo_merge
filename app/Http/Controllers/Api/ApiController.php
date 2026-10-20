@@ -46966,9 +46966,9 @@ public function getStudentDetails(Request $request)
 
 /**
  * @OA\Post(
- *     path="/api/setSchoolInfo",
+ *     path="/api/setAdmissionInfo",
  *     tags={"Api"},
- *     summary="Set School Information",
+ *     summary="Set Admission School Information",
  *     security={{"bearerAuth": {}}},
  *     description="This endpoint saves school information for a particular school.",
  *     @OA\RequestBody(
@@ -47024,7 +47024,7 @@ public function getStudentDetails(Request $request)
  * )
  */
 
-public function setSchoolInfo(Request $request)
+public function setAdmissionInfo(Request $request)
 {
     $request->validate([
         'schid' => 'required|string|max:255',
@@ -47048,10 +47048,10 @@ public function setSchoolInfo(Request $request)
 
 /**
  * @OA\Get(
- *     path="/api/getSchoolInfo/{schid}",
+ *     path="/api/getAdmissionInfo/{schid}",
  *     tags={"Api"},
  *     summary="Get School Information",
- *     description="Retrieves school information using the school ID (schid).",
+ *     description="Retrieves school admission information using the school ID (schid).",
  *     @OA\Parameter(
  *         name="schid",
  *         in="path",
@@ -47137,7 +47137,7 @@ public function setSchoolInfo(Request $request)
  *     )
  * )
  */
-public function getSchoolInfo($schid)
+public function getAdmissionInfo($schid)
 {
     $schoolInfo = SchoolInfo::where('schid', $schid)->first();
 

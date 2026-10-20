@@ -143,7 +143,7 @@ Route::get('verifyStaff', [ApiController::class, 'verifyStaff']);
 
 Route::get('getStudentDetails', [ApiController::class, 'getStudentDetails']);
 Route::get('getSchoolAppFee/{uid}', [ApiController::class, 'getSchoolAppFee']);
-Route::get('getSchoolInfo/{schid}', [ApiController::class, 'getSchoolInfo']);
+Route::get('getAdmissionInfo/{schid}', [ApiController::class, 'getAdmissionInfo']);
 
 
 Route::group([
@@ -154,7 +154,7 @@ Route::group([
     Route::get('/getDomainSupportAdmin', [ApiController::class, 'getDomainSupportAdmin']);
 
 
-    Route::post('setSchoolInfo', [ApiController::class, 'setSchoolInfo']);
+    Route::post('setAdmissionInfo', [ApiController::class, 'setAdmissionInfo']);
 
     Route::post('sendEmailVerificationLink', [ApiController::class, 'sendEmailVerificationLink']);
     Route::post('setSchool', [ApiController::class, 'setSchool']);
