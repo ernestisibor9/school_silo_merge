@@ -20089,7 +20089,7 @@ public function getStudentsBySchool(Request $request, $schid, $stat)
                     . ($schoolName ?: 'Not available') . "\n\n"
                     . 'LEARNER ID: '
                     . $learnerId . "\n\n"
-                    . "PASSWORD: Use the password you created "
+                    . " .Use the password you created "
                     . "during registration.\n\n"
                     . 'LOGIN LINK: '
                     . $loginUrl . "\n\n"
