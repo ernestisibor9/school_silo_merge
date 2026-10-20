@@ -47024,6 +47024,7 @@ public function getStudentDetails(Request $request)
  * )
  */
 
+
 public function setAdmissionInfo(Request $request)
 {
     $request->validate([
@@ -47031,10 +47032,14 @@ public function setAdmissionInfo(Request $request)
         'school_info' => 'required|string|max:255',
     ]);
 
-    $schoolInfo = SchoolInfo::create([
-        'schid' => $request->schid,
-        'school_info' => $request->school_info,
-    ]);
+    $schoolInfo = SchoolInfo::updateOrCreate(
+        [
+            'schid' => $request->schid,
+        ],
+        [
+            'school_info' => $request->school_info,
+        ]
+    );
 
     return response()->json([
         'status' => true,
@@ -47042,6 +47047,7 @@ public function setAdmissionInfo(Request $request)
         'pld' => $schoolInfo,
     ]);
 }
+
 
 
 
