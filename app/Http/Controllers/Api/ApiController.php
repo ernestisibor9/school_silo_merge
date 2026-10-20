@@ -2450,7 +2450,7 @@ public function registerStudent(Request $request)
 |--------------------------------------------------------------------------
 */
 
-/*
+
 
 try {
     // Get the student portal URL from Laravel configuration
@@ -2503,7 +2503,7 @@ try {
     ]);
 }
 
-*/
+
 
 
         /*
