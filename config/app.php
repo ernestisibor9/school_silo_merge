@@ -55,6 +55,8 @@ return [
     |
     */
 
+    'portal_url' => env('PORTAL_URL', 'https://portal.schoolsilomerge.top'),
+
     'url' => env('APP_URL', 'http://localhost'),
 
     'asset_url' => env('ASSET_URL'),
