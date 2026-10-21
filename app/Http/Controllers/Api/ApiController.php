@@ -18623,7 +18623,7 @@ public function paystackConf(Request $request)
         $activeStudentsMale = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
             ->where('old_student.schid', $schid)
             ->where('old_student.status', 'active')
-            ->where('old_student.ssn', $ssnid)
+            // ->where('old_student.ssn', $ssnid)
             ->where('student_basic_data.sex', 'M')
             ->distinct('old_student.sid')
             ->count();
@@ -18631,7 +18631,7 @@ public function paystackConf(Request $request)
         $activeStudentsFemale = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
             ->where('old_student.schid', $schid)
             ->where('old_student.status', 'active')
-            ->where('old_student.ssn', $ssnid)
+            // ->where('old_student.ssn', $ssnid)
             ->where('student_basic_data.sex', 'F')
             ->distinct('old_student.sid')
             ->count();
@@ -18643,7 +18643,7 @@ public function paystackConf(Request $request)
             ->join('student_basic_data', 'alumnis.stid', '=', 'student_basic_data.user_id')
             ->where('alumnis.schid', $schid)
             ->where('old_student.status', 'inactive')
-            ->where('old_student.ssn', $ssnid)     // filter by SSN
+            // ->where('old_student.ssn', $ssnid)
             ->where('student_basic_data.sex', 'M')
             ->distinct('alumnis.stid')
             ->count();
@@ -18653,7 +18653,7 @@ public function paystackConf(Request $request)
             ->join('student_basic_data', 'alumnis.stid', '=', 'student_basic_data.user_id')
             ->where('alumnis.schid', $schid)
             ->where('old_student.status', 'inactive')
-            ->where('old_student.ssn', $ssnid)     // filter by SSN
+            // ->where('old_student.ssn', $ssnid)
             ->where('student_basic_data.sex', 'F')
             ->distinct('alumnis.stid')
             ->count();
@@ -18662,7 +18662,7 @@ public function paystackConf(Request $request)
         $alumniStudents = alumni::join('old_student', 'alumnis.stid', '=', 'old_student.sid')
             ->where('alumnis.schid', $schid)
             ->where('old_student.status', 'inactive')
-            ->where('old_student.ssn', $ssnid)     // filter by SSN
+            // ->where('old_student.ssn', $ssnid)
             ->distinct('alumnis.stid')
             ->count();
 
@@ -18671,7 +18671,7 @@ public function paystackConf(Request $request)
         $activeLearners = old_student::join('student_basic_data', 'old_student.sid', '=', 'student_basic_data.user_id')
             ->where('old_student.schid', $schid)
             ->where('old_student.status', 'active')
-            ->where('old_student.ssn', $ssnid)
+            // ->where('old_student.ssn', $ssnid)
             ->distinct('old_student.sid')
             ->count();
 
@@ -18697,13 +18697,13 @@ public function paystackConf(Request $request)
             ->where('old_staff.schid', $schid)
             ->where('old_staff.status', 'active')
             ->where('staff_basic_data.sex', 'M')
-            ->where('old_staff.ssn', $ssnid)
+            // ->where('old_staff.ssn', $ssnid)
             ->distinct('old_staff.sid')
             ->count();
         $activeStaffFemale = old_staff::join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
             ->where('old_staff.schid', $schid)
             ->where('old_staff.status', 'active')
-            ->where('old_staff.ssn', $ssnid)
+            // ->where('old_staff.ssn', $ssnid)
             ->where('staff_basic_data.sex', 'F')
             ->distinct('old_staff.sid')
             ->count();
@@ -18711,7 +18711,7 @@ public function paystackConf(Request $request)
         $activeStaff = old_staff::join('staff_basic_data', 'old_staff.sid', '=', 'staff_basic_data.user_id')
             ->where('old_staff.schid', $schid)
             ->where('old_staff.status', 'active')
-            ->where('old_staff.ssn', $ssnid)
+            // ->where('old_staff.ssn', $ssnid)
             ->distinct('old_staff.sid')
             ->count();
 

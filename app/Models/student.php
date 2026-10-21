@@ -34,6 +34,7 @@ class student extends Model
         'cls_of_adm',
         'date_of_adm',
         'adm_status',
+        'pending_email_sent_at',
     ];
     /*protected $hidden = [
         'password',
