@@ -17174,7 +17174,7 @@ public function paystackConf(Request $request)
         // }
 
 
-        // Signature verification
+        // Signature verification.
         if (config('app.env') !== 'local') {
             $signature = $request->header('x-paystack-signature');
             $secretKey = config('services.paystack.secret');
