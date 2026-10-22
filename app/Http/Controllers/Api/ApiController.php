@@ -17139,21 +17139,48 @@ public function paystackConf(Request $request)
         Log::info('Raw Paystack payload', ['payload' => $payloadRaw]);
 
         // Decode payload
+        // $payload = json_decode($payloadRaw, true);
+        // if (!$payload) {
+        //     Log::error('Failed to decode JSON payload', ['raw' => $payloadRaw]);
+        //     return response()->json(['status' => 'error', 'message' => 'Invalid JSON payload'], 400);
+        // }
+
+        // // Decode nested payload if exists
+        // if (isset($payload['payload'])) {
+        //     $nested = json_decode($payload['payload'], true);
+        //     if ($nested) {
+        //         $payload = $nested;
+        //     } else {
+        //         Log::warning('Failed to decode nested payload, using original');
+        //     }
+        // }
+
+
+        // Decode payload and preserve the original Paystack body for signature verification
         $payload = json_decode($payloadRaw, true);
+        $signaturePayload = $payloadRaw;
+
         if (!$payload) {
             Log::error('Failed to decode JSON payload', ['raw' => $payloadRaw]);
-            return response()->json(['status' => 'error', 'message' => 'Invalid JSON payload'], 400);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid JSON payload'
+            ], 400);
         }
 
         // Decode nested payload if exists
-        if (isset($payload['payload'])) {
-            $nested = json_decode($payload['payload'], true);
+        if (isset($payload['payload']) && is_string($payload['payload'])) {
+            $signaturePayload = $payload['payload'];
+
+            $nested = json_decode($signaturePayload, true);
+
             if ($nested) {
                 $payload = $nested;
             } else {
                 Log::warning('Failed to decode nested payload, using original');
             }
         }
+
 
         Log::info('Paystack webhook header diagnostics', [
             'has_signature_header' => $request->headers->has('x-paystack-signature'),
@@ -17182,55 +17209,34 @@ public function paystackConf(Request $request)
 
 
         // Signature verification.
+
+        // Verify the original Paystack signature
         if (config('app.env') !== 'local') {
             $signature = $request->header('x-paystack-signature');
             $secretKey = config('services.paystack.secret');
 
-            $signatureValid = false;
-
-            if (!empty($secretKey) && !empty($signature)) {
-                // Standard direct Paystack webhook: verify the exact raw body.
-                $expectedSignature = hash_hmac(
-                    'sha512',
-                    $payloadRaw,
-                    $secretKey
-                );
-
-                $signatureValid = hash_equals(
-                    $expectedSignature,
+            if (
+                empty($secretKey) ||
+                empty($signature) ||
+                !hash_equals(
+                    hash_hmac('sha512', $signaturePayload, $secretKey),
                     $signature
-                );
-
-                // If the request is wrapped, verify the exact inner JSON string.
-                if (
-                    !$signatureValid &&
-                    isset($payload['payload']) &&
-                    is_string($payload['payload'])
-                ) {
-                    $expectedNestedSignature = hash_hmac(
-                        'sha512',
-                        $payload['payload'],
-                        $secretKey
-                    );
-
-                    $signatureValid = hash_equals(
-                        $expectedNestedSignature,
-                        $signature
-                    );
-                }
-            }
-
-            if (!$signatureValid) {
+                )
+            ) {
                 Log::warning('Invalid Paystack signature', [
                     'has_signature' => !empty($signature),
                     'has_secret' => !empty($secretKey),
                     'body_length' => strlen($payloadRaw),
-                    'wrapped_payload' => isset($payload['payload']),
+                    'wrapped_payload' => $signaturePayload !== $payloadRaw,
                 ]);
 
-                return response()->json(['status' => 'unauthorized'], 401);
+                return response()->json([
+                    'status' => 'unauthorized',
+                ], 401);
             }
         }
+
+
 
 
         // Accept only successful charge events
