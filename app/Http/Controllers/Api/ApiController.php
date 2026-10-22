@@ -17155,6 +17155,13 @@ public function paystackConf(Request $request)
             }
         }
 
+        Log::info('Paystack webhook header diagnostics', [
+            'has_signature_header' => $request->headers->has('x-paystack-signature'),
+            'content_type' => $request->header('content-type'),
+            'user_agent' => $request->userAgent(),
+            'request_ip' => $request->ip(),
+        ]);
+
         // Signature verification
         // if (config('app.env') !== 'local') {
         //     $signature = $request->header('x-paystack-signature');
