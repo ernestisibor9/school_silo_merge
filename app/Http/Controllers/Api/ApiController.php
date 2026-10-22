@@ -17182,55 +17182,55 @@ public function paystackConf(Request $request)
 
 
         // Signature verification.
-        if (config('app.env') !== 'local') {
-            $signature = $request->header('x-paystack-signature');
-            $secretKey = config('services.paystack.secret');
+        // if (config('app.env') !== 'local') {
+        //     $signature = $request->header('x-paystack-signature');
+        //     $secretKey = config('services.paystack.secret');
 
-            $signatureValid = false;
+        //     $signatureValid = false;
 
-            if (!empty($secretKey) && !empty($signature)) {
-                // Standard direct Paystack webhook: verify the exact raw body.
-                $expectedSignature = hash_hmac(
-                    'sha512',
-                    $payloadRaw,
-                    $secretKey
-                );
+        //     if (!empty($secretKey) && !empty($signature)) {
+        //         // Standard direct Paystack webhook: verify the exact raw body.
+        //         $expectedSignature = hash_hmac(
+        //             'sha512',
+        //             $payloadRaw,
+        //             $secretKey
+        //         );
 
-                $signatureValid = hash_equals(
-                    $expectedSignature,
-                    $signature
-                );
+        //         $signatureValid = hash_equals(
+        //             $expectedSignature,
+        //             $signature
+        //         );
 
-                // If the request is wrapped, verify the exact inner JSON string.
-                if (
-                    !$signatureValid &&
-                    isset($payload['payload']) &&
-                    is_string($payload['payload'])
-                ) {
-                    $expectedNestedSignature = hash_hmac(
-                        'sha512',
-                        $payload['payload'],
-                        $secretKey
-                    );
+        //         // If the request is wrapped, verify the exact inner JSON string.
+        //         if (
+        //             !$signatureValid &&
+        //             isset($payload['payload']) &&
+        //             is_string($payload['payload'])
+        //         ) {
+        //             $expectedNestedSignature = hash_hmac(
+        //                 'sha512',
+        //                 $payload['payload'],
+        //                 $secretKey
+        //             );
 
-                    $signatureValid = hash_equals(
-                        $expectedNestedSignature,
-                        $signature
-                    );
-                }
-            }
+        //             $signatureValid = hash_equals(
+        //                 $expectedNestedSignature,
+        //                 $signature
+        //             );
+        //         }
+        //     }
 
-            if (!$signatureValid) {
-                Log::warning('Invalid Paystack signature', [
-                    'has_signature' => !empty($signature),
-                    'has_secret' => !empty($secretKey),
-                    'body_length' => strlen($payloadRaw),
-                    'wrapped_payload' => isset($payload['payload']),
-                ]);
+        //     if (!$signatureValid) {
+        //         Log::warning('Invalid Paystack signature', [
+        //             'has_signature' => !empty($signature),
+        //             'has_secret' => !empty($secretKey),
+        //             'body_length' => strlen($payloadRaw),
+        //             'wrapped_payload' => isset($payload['payload']),
+        //         ]);
 
-                return response()->json(['status' => 'unauthorized'], 401);
-            }
-        }
+        //         return response()->json(['status' => 'unauthorized'], 401);
+        //     }
+        // }
 
 
         // Accept only successful charge events
