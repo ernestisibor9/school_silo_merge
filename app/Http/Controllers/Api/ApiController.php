@@ -24018,121 +24018,408 @@ public function setChangePasswordAdmin(Request $request)
      */
 
 
-    /**
-     * @OA\Post(
-     *     path="/api/restoreStudent/{schid}/{stid}",
-     *     summary="Restore an inactive student",
-     *     description="Changes the status of a student from 'inactive' to 'active' based on school ID and student ID.",
-     *     tags={"Api"},
-     *     security={{"bearerAuth": {}}},
-     *     @OA\Parameter(
-     *         name="schid",
-     *         in="path",
-     *         required=true,
-     *         description="School ID",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Parameter(
-     *         name="stid",
-     *         in="path",
-     *         required=true,
-     *         description="Student ID",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Student restored successfully",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Student restored successfully"),
-     *             @OA\Property(property="data", type="object",
-     *                 @OA\Property(property="id", type="integer", example=1),
-     *                 @OA\Property(property="schid", type="integer", example=101),
-     *                 @OA\Property(property="sid", type="integer", example=5001),
-     *                 @OA\Property(property="status", type="string", example="active")
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Student not found or already active",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="status", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Student not found or already active")
-     *         )
-     *     )
-     * )
-     */
 
-    // restore
-    public function restoreStudent($schid, $stid)
-    {
-        // Start transaction for atomic operations
-        DB::beginTransaction();
+/**
+ * @OA\Post(
+ *     path="/api/restoreStudent/{schid}/{stid}",
+ *     operationId="restoreStudent",
+ *     summary="Restore an inactive student",
+ *     description="Restores an inactive student to their previous class placement or assigns them to a new session, term, class, and class arm. If placement fields are omitted, the most recently updated inactive record is restored.",
+ *     tags={"Api"},
+ *     security={{"bearerAuth": {}}},
+ *
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="path",
+ *         required=true,
+ *         description="School ID",
+ *         @OA\Schema(type="integer", example=12)
+ *     ),
+ *     @OA\Parameter(
+ *         name="stid",
+ *         in="path",
+ *         required=true,
+ *         description="Student ID",
+ *         @OA\Schema(type="integer", example=583)
+ *     ),
+ *
+ *     @OA\RequestBody(
+ *         required=false,
+ *         description="Optional new placement. Supply all five fields to assign a new or existing placement. Omit the body to restore the most recently updated inactive placement.",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             required={"sesn", "trm", "clsm", "clsa", "suid"},
+ *             @OA\Property(
+ *                 property="sesn",
+ *                 type="string",
+ *                 description="Academic session identifier",
+ *                 example="2026"
+ *             ),
+ *             @OA\Property(
+ *                 property="trm",
+ *                 type="integer",
+ *                 description="Academic term",
+ *                 example=1
+ *             ),
+ *             @OA\Property(
+ *                 property="clsm",
+ *                 type="integer",
+ *                 description="Class ID",
+ *                 example=23
+ *             ),
+ *             @OA\Property(
+ *                 property="clsa",
+ *                 type="integer",
+ *                 description="Class arm ID from sch_cls.id. Must belong to the selected class and school.",
+ *                 example=12
+ *             ),
+ *             @OA\Property(
+ *                 property="suid",
+ *                 type="string",
+ *                 description="Student identifier for the selected placement",
+ *                 example="HGC/2024/1/267"
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Student restored successfully",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(
+ *                 property="status",
+ *                 type="boolean",
+ *                 example=true
+ *             ),
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="Student restored successfully."
+ *             ),
+ *             @OA\Property(
+ *                 property="data",
+ *                 type="object",
+ *                 @OA\Property(property="sid", type="integer", example=583),
+ *                 @OA\Property(property="schid", type="integer", example=12),
+ *                 @OA\Property(property="ssn", type="string", example="2026"),
+ *                 @OA\Property(property="trm", type="integer", example=1),
+ *                 @OA\Property(property="clsm", type="integer", example=23),
+ *                 @OA\Property(property="clsa", type="integer", example=12),
+ *                 @OA\Property(property="suid", type="string", example="HGC/2024/1/267"),
+ *                 @OA\Property(property="uid", type="string", example="2026158323"),
+ *                 @OA\Property(
+ *                     property="new_placement",
+ *                     type="boolean",
+ *                     description="Whether placement fields were supplied in the request",
+ *                     example=true
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=404,
+ *         description="Student or inactive student record not found",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="No inactive student record was found to restore."
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=409,
+ *         description="An active placement or conflicting UID already exists",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="An active record already exists for this session, term and class."
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation failed or the selected class arm is invalid",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="message", type="string", example="Invalid class arm for the selected class."),
+ *             @OA\Property(
+ *                 property="errors",
+ *                 type="object",
+ *                 example={}
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=500,
+ *         description="Student restoration failed",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="Failed to restore student. Please try again."
+ *             )
+ *         )
+ *     )
+ * )
+ */
 
-        try {
-            // Find inactive student in old_student table
-            $pld = DB::table('old_student')
-                ->where('schid', $schid)
-                ->where('sid', $stid)
-                ->where('status', 'inactive')
-                ->first();
 
-            if (!$pld) {
-                DB::rollBack(); // Rollback transaction if student is not found
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Student not found or already active in old_student.',
-                ], 404);
-            }
 
-            // Restore student in old_student table
-            DB::table('old_student')
-                ->where('schid', $schid)
-                ->where('sid', $stid)
-                ->update([
-                    'status' => 'active'
-                ]);
+public function restoreStudent(Request $request, $schid, $stid)
+{
+    // A new placement is optional.
+    // If supplied, all placement fields must be provided.
+    $request->validate([
+        'sesn' => 'sometimes|required',
+        'trm'  => 'sometimes|required',
+        'clsm' => 'sometimes|required',
+        'clsa' => 'sometimes|required',
+        'suid' => 'sometimes|required',
+    ]);
 
-            // Restore student in student table (if exists)
-            $studentExists = DB::table('student')
-                ->where('schid', $schid)
-                ->where('sid', $stid)
-                ->exists();
+    $hasPlacement = collect(['sesn', 'trm', 'clsm', 'clsa', 'suid'])
+        ->contains(fn ($field) => $request->filled($field));
 
-            if ($studentExists) {
-                DB::table('student')
-                    ->where('schid', $schid)
-                    ->where('sid', $stid)
-                    ->update([
-                        'status' => 'active',
-                        'exit_status' => NULL // Set exit_status to NULL
-                    ]);
-            }
+    if ($hasPlacement) {
+        $request->validate([
+            'sesn' => 'required',
+            'trm'  => 'required',
+            'clsm' => 'required',
+            'clsa' => 'required',
+            'suid' => 'required',
+        ]);
+    }
 
-            // Remove the student from the alumni table
-            alumni::where('schid', $schid)->where('stid', $stid)->delete();
+    DB::beginTransaction();
 
-            // Commit transaction
-            DB::commit();
+    try {
+        // 1. Find the student belonging to this school.
+        $student = DB::table('student')
+            ->where('schid', $schid)
+            ->where('sid', $stid)
+            ->lockForUpdate()
+            ->first();
 
-            return response()->json([
-                'status' => true,
-                'message' => 'Student restored successfully in old_student and removed from alumni.',
-            ], 200);
-        } catch (\Exception $e) {
-            // Rollback changes if anything fails
+        if (!$student) {
             DB::rollBack();
 
             return response()->json([
                 'status' => false,
-                'message' => 'Failed to restore student. Please try again.',
-                'error' => $e->getMessage()
-            ], 500);
+                'message' => 'Student not found in this school.',
+            ], 404);
         }
+
+        // 2. Find the most recently updated inactive record.
+        $previousRecord = DB::table('old_student')
+            ->where('schid', $schid)
+            ->where('sid', $stid)
+            ->where('status', 'inactive')
+            ->orderByDesc('updated_at')
+            ->orderByDesc('uid')
+            ->lockForUpdate()
+            ->first();
+
+        if (!$previousRecord) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => false,
+                'message' => 'No inactive student record was found to restore.',
+            ], 404);
+        }
+
+        // Default to the student's previous placement.
+        $placement = [
+            'ssn' => $previousRecord->ssn,
+            'trm' => $previousRecord->trm,
+            'clsm' => $previousRecord->clsm,
+            'clsa' => $previousRecord->clsa,
+            'suid' => $previousRecord->suid,
+        ];
+
+        // 3. If a new placement was supplied, validate it.
+        if ($hasPlacement) {
+            $validArm = DB::table('sch_cls')
+                ->where('id', $request->clsa)
+                ->where('cls_id', $request->clsm)
+                ->where('schid', $schid)
+                ->first();
+
+            if (!$validArm) {
+                DB::rollBack();
+
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Invalid class arm for the selected class.',
+                ], 422);
+            }
+
+            $placement = [
+                'ssn' => $request->sesn,
+                'trm' => $request->trm,
+                'clsm' => $request->clsm,
+                'clsa' => $request->clsa,
+                'suid' => $request->suid,
+            ];
+        }
+
+        // 4. Check for an existing record for this exact placement.
+        $existingPlacement = DB::table('old_student')
+            ->where('schid', $schid)
+            ->where('sid', $stid)
+            ->where('ssn', $placement['ssn'])
+            ->where('trm', $placement['trm'])
+            ->where('clsm', $placement['clsm'])
+            ->where('clsa', $placement['clsa'])
+            ->lockForUpdate()
+            ->first();
+
+        if ($existingPlacement && $existingPlacement->status === 'active') {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => false,
+                'message' => 'An active record already exists for this session, term and class.',
+            ], 409);
+        }
+
+        // 5. Restore the existing placement or create a new one.
+        if ($existingPlacement) {
+            // Same placement already exists but is inactive.
+            DB::table('old_student')
+                ->where('uid', $existingPlacement->uid)
+                ->where('schid', $schid)
+                ->update([
+                    'status' => 'active',
+                    'suid' => $placement['suid'],
+                    'updated_at' => now(),
+                ]);
+
+            $restoredUid = $existingPlacement->uid;
+        } elseif (!$hasPlacement) {
+            // No new placement requested: reactivate the previous record.
+            DB::table('old_student')
+                ->where('uid', $previousRecord->uid)
+                ->where('schid', $schid)
+                ->update([
+                    'status' => 'active',
+                    'updated_at' => now(),
+                ]);
+
+            $restoredUid = $previousRecord->uid;
+        } else {
+            // New session/class: preserve the previous record and create
+            // a separate active placement, following promoteStudent().
+            $restoredUid = $placement['ssn']
+                . $placement['trm']
+                . $stid
+                . $placement['clsm'];
+
+            $uidExists = DB::table('old_student')
+                ->where('uid', $restoredUid)
+                ->exists();
+
+            if ($uidExists) {
+                DB::rollBack();
+
+                return response()->json([
+                    'status' => false,
+                    'message' => 'The generated record UID already exists. Please review the UID generation rule.',
+                ], 409);
+            }
+
+            DB::table('old_student')->insert([
+                'uid' => $restoredUid,
+                'sid' => $stid,
+                'schid' => $schid,
+                'fname' => $student->fname,
+                'mname' => $student->mname,
+                'lname' => $student->lname,
+                'suid' => $placement['suid'],
+                'ssn' => $placement['ssn'],
+                'trm' => $placement['trm'],
+                'clsm' => $placement['clsm'],
+                'clsa' => $placement['clsa'],
+                'status' => 'active',
+                'more' => '',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        // 6. Reactivate the main student record.
+        DB::table('student')
+            ->where('schid', $schid)
+            ->where('sid', $stid)
+            ->update([
+                'status' => 'active',
+                'exit_status' => null,
+            ]);
+
+        // 7. Update the student's current class and arm.
+        // new_class_main = class ID
+        // new_class = class arm ID
+        DB::table('student_academic_data')
+            ->where('user_id', $stid)
+            ->update([
+                'new_class_main' => $placement['clsm'],
+                'new_class' => $placement['clsa'],
+                'updated_at' => now(),
+            ]);
+
+        // 8. Remove the alumni record, if present.
+        DB::table('alumnis')
+            ->where('schid', $schid)
+            ->where('stid', $stid)
+            ->delete();
+
+        DB::commit();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Student restored successfully.',
+            'pld' => [
+                'sid' => $stid,
+                'schid' => $schid,
+                'ssn' => $placement['ssn'],
+                'trm' => $placement['trm'],
+                'clsm' => $placement['clsm'],
+                'clsa' => $placement['clsa'],
+                'suid' => $placement['suid'],
+                'uid' => $restoredUid,
+                'new_placement' => $hasPlacement,
+            ],
+        ], 200);
+
+    } catch (\Throwable $e) {
+        DB::rollBack();
+
+        \Log::error('Student restoration failed', [
+            'schid' => $schid,
+            'sid' => $stid,
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Failed to restore student. Please try again.',
+        ], 500);
     }
+}
+
 
 
 
