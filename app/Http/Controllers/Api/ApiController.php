@@ -4015,6 +4015,674 @@ public function setStudentAtOnce(Request $request)
 
 
 
+// public function setStudentAtOnceBulk(Request $request)
+// {
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Validate Bulk Request
+//     |--------------------------------------------------------------------------
+//     */
+
+//     $request->validate([
+//         "students" => "required|array|min:1",
+
+//         "students.*.schid" => "required",
+//         "students.*.password" => "required|string|min:6",
+
+//         "students.*.fname" => "required|string|max:100",
+//         "students.*.lname" => "required|string|max:100",
+//         "students.*.mname" => "nullable|string|max:100",
+
+//         "students.*.term" => "required",
+//         "students.*.trm" => "required|integer|in:1,2,3",
+
+//         "students.*.ssn" => "required",
+//         "students.*.sch3" => "required",
+//         "students.*.stat" => "required",
+
+//         "students.*.last_school" => "required",
+//         "students.*.last_class" => "required",
+//         "students.*.new_class" => "required",
+//         "students.*.new_class_main" => "required",
+
+//         "students.*.dob" => [
+//             "required",
+//             "date_format:Y-m-d",
+//             "before:today",
+//         ],
+
+//         "students.*.sex" => "required|string|in:M,F,m,f,Male,Female,male,female",
+
+//         "students.*.height" => "required",
+//         "students.*.country" => "required",
+//         "students.*.state" => "required",
+//         "students.*.lga" => "required",
+//         "students.*.addr" => "required",
+
+//         "students.*.count" => "nullable",
+//         "students.*.cuid" => "nullable",
+//     ]);
+
+//     try {
+
+//         /*
+//         |--------------------------------------------------------------------------
+//         | Start Database Transaction
+//         |--------------------------------------------------------------------------
+//         */
+
+//         $mailQueue = DB::transaction(function () use ($request) {
+
+//             $mailQueue = [];
+
+//             /*
+//             |--------------------------------------------------------------------------
+//             | Track Students Already Processed In This Upload
+//             |--------------------------------------------------------------------------
+//             |
+//             | Prevents the same student or CUID from being processed twice
+//             | in one request, even when the database has not yet changed.
+//             |--------------------------------------------------------------------------
+//             */
+
+//             $seenInUpload = [];
+
+//             foreach ($request->students as $index => $data) {
+
+//                 /*
+//                 |--------------------------------------------------------------------------
+//                 | Convert Names To Uppercase
+//                 |--------------------------------------------------------------------------
+//                 */
+
+//                 $fname = strtoupper(trim($data['fname']));
+//                 $lname = strtoupper(trim($data['lname']));
+
+//                 $mname = !empty($data['mname'])
+//                     ? strtoupper(trim($data['mname']))
+//                     : null;
+
+//                 $schoolId = (string) $data['schid'];
+
+//                 $cuid = !empty($data['cuid'])
+//                     ? trim($data['cuid'])
+//                     : null;
+
+//                 /*
+//                 |--------------------------------------------------------------------------
+//                 | Validate DOB
+//                 |--------------------------------------------------------------------------
+//                 */
+
+//                 try {
+
+//                     $dobObject = Carbon::createFromFormat(
+//                         'Y-m-d',
+//                         $data['dob']
+//                     );
+
+//                     if ($dobObject->format('Y-m-d') !== $data['dob']) {
+//                         throw new \Exception();
+//                     }
+
+//                     $dob = $dobObject->format('Y-m-d');
+
+//                 } catch (\Exception $e) {
+
+//                     throw new \Exception(
+//                         "Invalid date of birth for student: "
+//                         . $fname . " " . $lname
+//                         . ". DOB must be YYYY-MM-DD."
+//                     );
+//                 }
+
+//                 /*
+//                 |--------------------------------------------------------------------------
+//                 | DUPLICATE CHECK 1: CURRENT UPLOAD
+//                 |--------------------------------------------------------------------------
+//                 |
+//                 | A. Same school + same CUID
+//                 | B. Same school + same first, middle and last names + DOB
+//                 |
+//                 | CUID comparison ignores letter case and surrounding spaces.
+//                 |--------------------------------------------------------------------------
+//                 */
+
+//                 $identityKey = json_encode([
+//                     $schoolId,
+//                     $fname,
+//                     $mname ?? '',
+//                     $lname,
+//                     $dob,
+//                 ]);
+
+//                 $cuidKey = $cuid !== null
+//                     ? 'cuid|' . $schoolId . '|' . strtoupper($cuid)
+//                     : null;
+
+//                 if (
+//                     isset($seenInUpload[$identityKey]) ||
+//                     (
+//                         $cuidKey !== null &&
+//                         isset($seenInUpload[$cuidKey])
+//                     )
+//                 ) {
+
+//                     Log::info(
+//                         'Bulk registration: skipped duplicate row in upload (row '
+//                         . ($index + 1)
+//                         . '), student: '
+//                         . $fname . ' ' . $lname
+//                         . ', CUID: '
+//                         . ($cuid ?? 'not supplied')
+//                     );
+
+//                     continue;
+//                 }
+
+//                 /*
+//                 |--------------------------------------------------------------------------
+//                 | Mark This Row As Seen
+//                 |--------------------------------------------------------------------------
+//                 |
+//                 | Record the keys before checking the database so that repeated
+//                 | rows are also skipped when the first row already exists in DB.
+//                 |--------------------------------------------------------------------------
+//                 */
+
+//                 $seenInUpload[$identityKey] = true;
+
+//                 if ($cuidKey !== null) {
+//                     $seenInUpload[$cuidKey] = true;
+//                 }
+
+//                 /*
+//                 |--------------------------------------------------------------------------
+//                 | DUPLICATE CHECK 2: EXISTING DATABASE RECORDS
+//                 |--------------------------------------------------------------------------
+//                 */
+
+//                 $existing = null;
+
+//                 /*
+//                 |--------------------------------------------------------------------------
+//                 | Check CUID Within The Same School
+//                 |--------------------------------------------------------------------------
+//                 */
+
+//                 if ($cuid !== null) {
+
+//                     $existing = student::where('schid', $data['schid'])
+//                         ->whereRaw(
+//                             'UPPER(TRIM(cuid)) = ?',
+//                             [strtoupper($cuid)]
+//                         )
+//                         ->first();
+//                 }
+
+//                 /*
+//                 |--------------------------------------------------------------------------
+//                 | If No CUID Match, Check Names And DOB
+//                 |--------------------------------------------------------------------------
+//                 */
+
+//                 if (!$existing) {
+
+//                     $existing = student::where('schid', $data['schid'])
+//                         ->whereRaw(
+//                             'UPPER(TRIM(fname)) = ?',
+//                             [$fname]
+//                         )
+//                         ->whereRaw(
+//                             'UPPER(TRIM(lname)) = ?',
+//                             [$lname]
+//                         )
+//                         ->when(
+//                             $mname !== null,
+//                             function ($q) use ($mname) {
+//                                 $q->whereRaw(
+//                                     'UPPER(TRIM(mname)) = ?',
+//                                     [$mname]
+//                                 );
+//                             },
+//                             function ($q) {
+//                                 $q->where(function ($q2) {
+//                                     $q2->whereNull('mname')
+//                                         ->orWhere('mname', '');
+//                                 });
+//                             }
+//                         )
+//                         ->whereIn('sid', function ($q) use ($dob) {
+//                             $q->select('user_id')
+//                                 ->from('student_basic_data')
+//                                 ->where('dob', $dob);
+//                         })
+//                         ->first();
+//                 }
+
+//                 /*
+//                 |--------------------------------------------------------------------------
+//                 | Skip Existing Student
+//                 |--------------------------------------------------------------------------
+//                 */
+
+//                 if ($existing) {
+
+//                     Log::info(
+//                         'Bulk registration: skipped existing student (row '
+//                         . ($index + 1)
+//                         . '), student: '
+//                         . $fname . ' ' . $lname
+//                         . ', existing sid: '
+//                         . $existing->sid
+//                         . ', existing CUID: '
+//                         . ($existing->cuid ?? 'not supplied')
+//                     );
+
+//                     continue;
+//                 }
+
+//                 /*
+//                 |--------------------------------------------------------------------------
+//                 | Get School
+//                 |--------------------------------------------------------------------------
+//                 */
+
+//                 $school = school::where('sid', $data['schid'])->first();
+
+//                 if (!$school) {
+//                     throw new \Exception(
+//                         "School not found for schid: " . $data['schid']
+//                     );
+//                 }
+
+//                 /*
+//                 |--------------------------------------------------------------------------
+//                 | Check School Email Domain
+//                 |--------------------------------------------------------------------------
+//                 */
+
+//                 if (empty($school->sbd)) {
+//                     throw new \Exception(
+//                         "School email domain is not configured for schid: "
+//                         . $data['schid']
+//                     );
+//                 }
+
+//                 /*
+//                 |--------------------------------------------------------------------------
+//                 | Generate Email Username
+//                 |--------------------------------------------------------------------------
+//                 */
+
+//                 $emailParts = [
+//                     strtolower($fname),
+//                 ];
+
+//                 if (!empty($mname)) {
+//                     $emailParts[] = strtolower($mname);
+//                 }
+
+//                 $emailParts[] = strtolower($lname);
+
+//                 $emailUsername = implode('_', $emailParts);
+
+//                 /*
+//                 |--------------------------------------------------------------------------
+//                 | Remove Invalid Characters From Email Username
+//                 |--------------------------------------------------------------------------
+//                 */
+
+//                 $emailUsername = preg_replace(
+//                     '/[^a-z0-9_]/',
+//                     '',
+//                     $emailUsername
+//                 );
+
+//                 /*
+//                 |--------------------------------------------------------------------------
+//                 | Get School Domain
+//                 |--------------------------------------------------------------------------
+//                 */
+
+//                 $schoolDomain = strtolower(trim($school->sbd));
+
+//                 $schoolDomain = preg_replace(
+//                     '/[^a-z0-9.-]/',
+//                     '',
+//                     $schoolDomain
+//                 );
+
+//                 /*
+//                 |--------------------------------------------------------------------------
+//                 | Prevent Duplicate .com
+//                 |--------------------------------------------------------------------------
+//                 */
+
+//                 $schoolDomain = preg_replace(
+//                     '/\.com$/i',
+//                     '',
+//                     $schoolDomain
+//                 );
+
+//                 /*
+//                 |--------------------------------------------------------------------------
+//                 | Generate Email
+//                 |--------------------------------------------------------------------------
+//                 */
+
+//                 $email = $emailUsername
+//                     . '@'
+//                     . $schoolDomain
+//                     . '.com';
+
+//                 /*
+//                 |--------------------------------------------------------------------------
+//                 | Ensure Email Is Unique
+//                 |--------------------------------------------------------------------------
+//                 */
+
+//                 if (User::where('email', $email)->exists()) {
+
+//                     do {
+
+//                         $digits = random_int(1000, 9999);
+
+//                         $email = $emailUsername
+//                             . $digits
+//                             . '@'
+//                             . $schoolDomain
+//                             . '.com';
+
+//                     } while (User::where('email', $email)->exists());
+//                 }
+
+//                 /*
+//                 |--------------------------------------------------------------------------
+//                 | Create User
+//                 |--------------------------------------------------------------------------
+//                 */
+
+//                 $usr = User::create([
+//                     "email" => $email,
+//                     "typ" => 'z',
+//                     "verif" => '1',
+//                     "password" => bcrypt($data['password']),
+//                 ]);
+
+//                 $user_id = strval($usr->id);
+
+//                 /*
+//                 |--------------------------------------------------------------------------
+//                 | Generate Student Count
+//                 |--------------------------------------------------------------------------
+//                 */
+
+//                 $count = $data['count'] ?? null;
+
+//                 if (!$count) {
+
+//                     $count = student::where(
+//                         'schid',
+//                         $data['schid']
+//                     )->count() + 1;
+//                 }
+
+//                 /*
+//                 |--------------------------------------------------------------------------
+//                 | Student SSN
+//                 |--------------------------------------------------------------------------
+//                 */
+
+//                 $ssn = $data['ssn'];
+
+//                 /*
+//                 |--------------------------------------------------------------------------
+//                 | Create Student
+//                 |--------------------------------------------------------------------------
+//                 */
+
+//                 student::updateOrCreate(
+//                     [
+//                         'sid' => $user_id,
+//                     ],
+//                     [
+//                         'schid' => $data['schid'],
+
+//                         'fname' => $fname,
+//                         'mname' => $mname,
+//                         'lname' => $lname,
+
+//                         'year' => $data['ssn'],
+//                         'term' => $data['term'],
+
+//                         'count' => strval($count),
+
+//                         'sch3' => $data['sch3'],
+
+//                         's_basic' => '1',
+//                         's_medical' => '0',
+//                         's_parent' => '0',
+//                         's_academic' => '1',
+
+//                         'rfee' => 1,
+//                         'stat' => 1,
+
+//                         'cuid' => $cuid,
+//                     ]
+//                 );
+
+//                 /*
+//                 |--------------------------------------------------------------------------
+//                 | Student ID
+//                 |--------------------------------------------------------------------------
+//                 */
+
+//                 $sid = $data['sch3']
+//                     . '/'
+//                     . $ssn
+//                     . '/'
+//                     . $data['term']
+//                     . '/'
+//                     . strval($count);
+
+//                 /*
+//                 |--------------------------------------------------------------------------
+//                 | Prepare Welcome Email
+//                 |--------------------------------------------------------------------------
+//                 */
+
+//                 $link = env('PORTAL_URL')
+//                     . '/studentLogin/'
+//                     . $data['schid'];
+
+//                 if ($cuid !== null) {
+
+//                     $mailData = [
+
+//                         'name' => $fname,
+
+//                         'subject' =>
+//                             'Welcome Back, Your ID remains '
+//                             . $cuid,
+
+//                         'body' =>
+//                             "Welcome back to your school's platform. "
+//                             . "Your account was created successfully. "
+//                             . "If you havent already, please login to "
+//                             . "your dashboard using the link below and "
+//                             . "complete your student profile. "
+//                             . "Your Student ID is "
+//                             . $cuid,
+
+//                         'link' => $link,
+//                     ];
+
+//                 } else {
+
+//                     $mailData = [
+
+//                         'name' => $fname,
+
+//                         'subject' =>
+//                             'Welcome, Your ID is ' . $sid,
+
+//                         'body' =>
+//                             "Welcome to your school's platform. "
+//                             . "Your account was created successfully. "
+//                             . "If you havent already, please login to "
+//                             . "your dashboard using the link below and "
+//                             . "complete your student profile. "
+//                             . "Your Student ID is "
+//                             . $sid,
+
+//                         'link' => $link,
+//                     ];
+//                 }
+
+//                 $mailQueue[] = [
+//                     'email' => $email,
+//                     'data' => $mailData,
+//                 ];
+
+//                 /*
+//                 |--------------------------------------------------------------------------
+//                 | Student Academic Data
+//                 |--------------------------------------------------------------------------
+//                 */
+
+//                 student_academic_data::updateOrCreate(
+//                     [
+//                         "user_id" => $user_id,
+//                     ],
+//                     [
+//                         "last_school" => $data['last_school'],
+//                         "last_class" => $data['last_class'],
+//                         "new_class" => $data['new_class'],
+//                         "new_class_main" => $data['new_class_main'],
+//                     ]
+//                 );
+
+//                 /*
+//                 |--------------------------------------------------------------------------
+//                 | Student Basic Data
+//                 |--------------------------------------------------------------------------
+//                 */
+
+//                 student_basic_data::updateOrCreate(
+//                     [
+//                         "user_id" => $user_id,
+//                     ],
+//                     [
+//                         "dob" => $dob,
+//                         "sex" => $data['sex'],
+//                         "height" => $data['height'],
+//                         "country" => $data['country'],
+//                         "state" => $data['state'],
+//                         "lga" => $data['lga'],
+//                         "addr" => $data['addr'],
+//                     ]
+//                 );
+
+//                 /*
+//                 |--------------------------------------------------------------------------
+//                 | Mark Student Profile As Complete
+//                 |--------------------------------------------------------------------------
+//                 */
+
+//                 student::where('sid', $user_id)->update([
+//                     "s_basic" => '1',
+//                     "s_academic" => '1',
+//                 ]);
+
+//                 /*
+//                 |--------------------------------------------------------------------------
+//                 | Set Acceptance Fee Record
+//                 |--------------------------------------------------------------------------
+//                 */
+
+//                 $uid = $user_id
+//                     . $data['schid']
+//                     . $data['new_class_main'];
+
+//                 afeerec::updateOrCreate(
+//                     [
+//                         "uid" => $uid,
+//                     ],
+//                     [
+//                         "stid" => $user_id,
+//                         "schid" => $data['schid'],
+//                         "clsid" => $data['new_class_main'],
+//                         "ssn" => $data['ssn'],
+//                         "term" => $data['trm'],
+//                         "amt" => 0,
+//                     ]
+//                 );
+//             }
+
+//             return $mailQueue;
+//         });
+
+//         /*
+//         |--------------------------------------------------------------------------
+//         | Send Welcome Emails After Transaction Commits
+//         |--------------------------------------------------------------------------
+//         */
+
+//         foreach ($mailQueue as $mail) {
+
+//             try {
+
+//                 Mail::to($mail['email'])->send(
+//                     new SSSMails($mail['data'])
+//                 );
+
+//             } catch (\Exception $e) {
+
+//                 Log::error(
+//                     'Failed to send email to '
+//                     . $mail['email']
+//                     . ': '
+//                     . $e->getMessage()
+//                 );
+//             }
+//         }
+
+//         /*
+//         |--------------------------------------------------------------------------
+//         | Successful Response (unchanged)
+//         |--------------------------------------------------------------------------
+//         */
+
+//         return response()->json([
+//             "status" => true,
+//             "message" => "Bulk student registration successful",
+//             "total" => count($request->students),
+//         ]);
+//     }
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Handle Error (unchanged)
+//     |--------------------------------------------------------------------------
+//     */
+
+//     catch (\Exception $e) {
+
+//         Log::error(
+//             "Bulk student registration failed: "
+//             . $e->getMessage()
+//         );
+
+//         return response()->json([
+//             "status" => false,
+//             "message" => "Bulk student registration failed.",
+//             "error" => $e->getMessage(),
+//         ], 500);
+//     }
+// }
+
+
 public function setStudentAtOnceBulk(Request $request)
 {
     /*
@@ -4071,17 +4739,20 @@ public function setStudentAtOnceBulk(Request $request)
         |--------------------------------------------------------------------------
         */
 
-        $mailQueue = DB::transaction(function () use ($request) {
+        DB::transaction(function () use ($request) {
 
-            $mailQueue = [];
+            /*
+            |--------------------------------------------------------------------------
+            | Cache School Records And Student Counts
+            |--------------------------------------------------------------------------
+            */
+
+            $schoolCache = [];
+            $countCache = [];
 
             /*
             |--------------------------------------------------------------------------
             | Track Students Already Processed In This Upload
-            |--------------------------------------------------------------------------
-            |
-            | Prevents the same student or CUID from being processed twice
-            | in one request, even when the database has not yet changed.
             |--------------------------------------------------------------------------
             */
 
@@ -4140,12 +4811,6 @@ public function setStudentAtOnceBulk(Request $request)
                 |--------------------------------------------------------------------------
                 | DUPLICATE CHECK 1: CURRENT UPLOAD
                 |--------------------------------------------------------------------------
-                |
-                | A. Same school + same CUID
-                | B. Same school + same first, middle and last names + DOB
-                |
-                | CUID comparison ignores letter case and surrounding spaces.
-                |--------------------------------------------------------------------------
                 */
 
                 $identityKey = json_encode([
@@ -4183,10 +4848,6 @@ public function setStudentAtOnceBulk(Request $request)
                 /*
                 |--------------------------------------------------------------------------
                 | Mark This Row As Seen
-                |--------------------------------------------------------------------------
-                |
-                | Record the keys before checking the database so that repeated
-                | rows are also skipped when the first row already exists in DB.
                 |--------------------------------------------------------------------------
                 */
 
@@ -4284,11 +4945,18 @@ public function setStudentAtOnceBulk(Request $request)
 
                 /*
                 |--------------------------------------------------------------------------
-                | Get School
+                | Get School (Cached)
                 |--------------------------------------------------------------------------
                 */
 
-                $school = school::where('sid', $data['schid'])->first();
+                if (!array_key_exists($schoolId, $schoolCache)) {
+                    $schoolCache[$schoolId] = school::where(
+                        'sid',
+                        $schoolId
+                    )->first();
+                }
+
+                $school = $schoolCache[$schoolId];
 
                 if (!$school) {
                     throw new \Exception(
@@ -4367,7 +5035,7 @@ public function setStudentAtOnceBulk(Request $request)
 
                 /*
                 |--------------------------------------------------------------------------
-                | Generate Email
+                | Generate Email Address For The User Account
                 |--------------------------------------------------------------------------
                 */
 
@@ -4414,7 +5082,7 @@ public function setStudentAtOnceBulk(Request $request)
 
                 /*
                 |--------------------------------------------------------------------------
-                | Generate Student Count
+                | Generate Student Count (Cached)
                 |--------------------------------------------------------------------------
                 */
 
@@ -4422,10 +5090,16 @@ public function setStudentAtOnceBulk(Request $request)
 
                 if (!$count) {
 
-                    $count = student::where(
-                        'schid',
-                        $data['schid']
-                    )->count() + 1;
+                    if (!array_key_exists($schoolId, $countCache)) {
+                        $countCache[$schoolId] = student::where(
+                            'schid',
+                            $schoolId
+                        )->count();
+                    }
+
+                    $countCache[$schoolId]++;
+
+                    $count = $countCache[$schoolId];
                 }
 
                 /*
@@ -4471,79 +5145,6 @@ public function setStudentAtOnceBulk(Request $request)
                         'cuid' => $cuid,
                     ]
                 );
-
-                /*
-                |--------------------------------------------------------------------------
-                | Student ID
-                |--------------------------------------------------------------------------
-                */
-
-                $sid = $data['sch3']
-                    . '/'
-                    . $ssn
-                    . '/'
-                    . $data['term']
-                    . '/'
-                    . strval($count);
-
-                /*
-                |--------------------------------------------------------------------------
-                | Prepare Welcome Email
-                |--------------------------------------------------------------------------
-                */
-
-                $link = env('PORTAL_URL')
-                    . '/studentLogin/'
-                    . $data['schid'];
-
-                if ($cuid !== null) {
-
-                    $mailData = [
-
-                        'name' => $fname,
-
-                        'subject' =>
-                            'Welcome Back, Your ID remains '
-                            . $cuid,
-
-                        'body' =>
-                            "Welcome back to your school's platform. "
-                            . "Your account was created successfully. "
-                            . "If you havent already, please login to "
-                            . "your dashboard using the link below and "
-                            . "complete your student profile. "
-                            . "Your Student ID is "
-                            . $cuid,
-
-                        'link' => $link,
-                    ];
-
-                } else {
-
-                    $mailData = [
-
-                        'name' => $fname,
-
-                        'subject' =>
-                            'Welcome, Your ID is ' . $sid,
-
-                        'body' =>
-                            "Welcome to your school's platform. "
-                            . "Your account was created successfully. "
-                            . "If you havent already, please login to "
-                            . "your dashboard using the link below and "
-                            . "complete your student profile. "
-                            . "Your Student ID is "
-                            . $sid,
-
-                        'link' => $link,
-                    ];
-                }
-
-                $mailQueue[] = [
-                    'email' => $email,
-                    'data' => $mailData,
-                ];
 
                 /*
                 |--------------------------------------------------------------------------
@@ -4619,34 +5220,7 @@ public function setStudentAtOnceBulk(Request $request)
                     ]
                 );
             }
-
-            return $mailQueue;
         });
-
-        /*
-        |--------------------------------------------------------------------------
-        | Send Welcome Emails After Transaction Commits
-        |--------------------------------------------------------------------------
-        */
-
-        foreach ($mailQueue as $mail) {
-
-            try {
-
-                Mail::to($mail['email'])->send(
-                    new SSSMails($mail['data'])
-                );
-
-            } catch (\Exception $e) {
-
-                Log::error(
-                    'Failed to send email to '
-                    . $mail['email']
-                    . ': '
-                    . $e->getMessage()
-                );
-            }
-        }
 
         /*
         |--------------------------------------------------------------------------
@@ -4681,6 +5255,7 @@ public function setStudentAtOnceBulk(Request $request)
         ], 500);
     }
 }
+
 
 
     /**
@@ -39197,111 +39772,260 @@ public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf
      * )
      */
 
-    public function setStudentSubjectBulk(Request $request)
-    {
-        // Validate request
-        $request->validate([
-            "stid" => "required", // single or array of student IDs
-            "sbj" => "required",  // single or array of subject IDs
-            "comp" => "required",
-            "schid" => "required",
-            "clsid" => "nullable",
-            "trm" => "nullable",
-            "ssn" => "nullable"
-        ]);
+    // public function setStudentSubjectBulk(Request $request)
+    // {
+    //     // Validate request
+    //     $request->validate([
+    //         "stid" => "required", // single or array of student IDs
+    //         "sbj" => "required",  // single or array of subject IDs
+    //         "comp" => "required",
+    //         "schid" => "required",
+    //         "clsid" => "nullable",
+    //         "trm" => "nullable",
+    //         "ssn" => "nullable"
+    //     ]);
 
-        $students = is_array($request->stid) ? $request->stid : [$request->stid];
-        $subjects = is_array($request->sbj) ? $request->sbj : [$request->sbj];
+    //     $students = is_array($request->stid) ? $request->stid : [$request->stid];
+    //     $subjects = is_array($request->sbj) ? $request->sbj : [$request->sbj];
 
-        $assigned = [];
-        $skipped = [];
+    //     $assigned = [];
+    //     $skipped = [];
 
-        $bulkInsert = [];
+    //     $bulkInsert = [];
 
-        // 1️⃣ Prepare all student-subject records with generated UID
-        foreach ($students as $stid) {
-            foreach ($subjects as $sbj) {
-                $uid = $request->schid
-                    . ($request->clsid ?? '00')
-                    . ($request->ssn ?? '0000')
-                    . ($request->trm ?? '0')
-                    . $sbj
-                    . $stid; // optional: include student ID to make UID unique per student
+    //     // 1️⃣ Prepare all student-subject records with generated UID
+    //     foreach ($students as $stid) {
+    //         foreach ($subjects as $sbj) {
+    //             $uid = $request->schid
+    //                 . ($request->clsid ?? '00')
+    //                 . ($request->ssn ?? '0000')
+    //                 . ($request->trm ?? '0')
+    //                 . $sbj
+    //                 . $stid; // optional: include student ID to make UID unique per student
 
-                $bulkInsert[] = [
-                    "uid" => $uid, // ✅ generated UID
-                    "stid" => $stid,
-                    "sbj" => $sbj,
-                    "comp" => $request->comp,
-                    "schid" => $request->schid,
-                    "clsid" => $request->clsid,
-                    "trm" => $request->trm,
-                    "ssn" => $request->ssn,
-                    "created_at" => now(),
-                    "updated_at" => now(),
-                ];
-            }
-        }
+    //             $bulkInsert[] = [
+    //                 "uid" => $uid, // ✅ generated UID
+    //                 "stid" => $stid,
+    //                 "sbj" => $sbj,
+    //                 "comp" => $request->comp,
+    //                 "schid" => $request->schid,
+    //                 "clsid" => $request->clsid,
+    //                 "trm" => $request->trm,
+    //                 "ssn" => $request->ssn,
+    //                 "created_at" => now(),
+    //                 "updated_at" => now(),
+    //             ];
+    //         }
+    //     }
 
-        // 2️⃣ Fetch existing student-subject records to avoid duplicates
-        $existing = student_subj::whereIn('stid', $students)
-            ->whereIn('sbj', $subjects)
-            ->where('schid', $request->schid)
-            ->when($request->clsid, fn($q) => $q->where('clsid', $request->clsid))
-            ->when($request->trm, fn($q) => $q->where('trm', $request->trm))
-            ->when($request->ssn, fn($q) => $q->where('ssn', $request->ssn))
-            ->get(['stid', 'sbj'])
-            ->map(fn($row) => $row->stid . '-' . $row->sbj)
-            ->toArray();
+    //     // 2️⃣ Fetch existing student-subject records to avoid duplicates
+    //     $existing = student_subj::whereIn('stid', $students)
+    //         ->whereIn('sbj', $subjects)
+    //         ->where('schid', $request->schid)
+    //         ->when($request->clsid, fn($q) => $q->where('clsid', $request->clsid))
+    //         ->when($request->trm, fn($q) => $q->where('trm', $request->trm))
+    //         ->when($request->ssn, fn($q) => $q->where('ssn', $request->ssn))
+    //         ->get(['stid', 'sbj'])
+    //         ->map(fn($row) => $row->stid . '-' . $row->sbj)
+    //         ->toArray();
 
-        // 3️⃣ Filter out existing records
-        $toInsert = array_filter($bulkInsert, function ($item) use ($existing, &$assigned, &$skipped) {
-            $key = $item['stid'] . '-' . $item['sbj'];
-            if (in_array($key, $existing)) {
-                $skipped[] = ["stid" => $item['stid'], "sbj" => $item['sbj']];
-                return false;
-            } else {
-                $assigned[] = ["stid" => $item['stid'], "sbj" => $item['sbj']];
-                return true;
-            }
-        });
+    //     // 3️⃣ Filter out existing records
+    //     $toInsert = array_filter($bulkInsert, function ($item) use ($existing, &$assigned, &$skipped) {
+    //         $key = $item['stid'] . '-' . $item['sbj'];
+    //         if (in_array($key, $existing)) {
+    //             $skipped[] = ["stid" => $item['stid'], "sbj" => $item['sbj']];
+    //             return false;
+    //         } else {
+    //             $assigned[] = ["stid" => $item['stid'], "sbj" => $item['sbj']];
+    //             return true;
+    //         }
+    //     });
 
-        // 4️⃣ Bulk insert new student-subject records
-        if (!empty($toInsert)) {
-            student_subj::insert($toInsert);
-        }
+    //     // 4️⃣ Bulk insert new student-subject records
+    //     if (!empty($toInsert)) {
+    //         student_subj::insert($toInsert);
+    //     }
 
-        // 5️⃣ Handle class subjects (updateOrCreate) with UID based on schema
+    //     // 5️⃣ Handle class subjects (updateOrCreate) with UID based on schema
+    //     foreach ($subjects as $sbj) {
+    //         $uid = $request->schid
+    //             . ($request->clsid ?? '00')
+    //             . ($request->ssn ?? '0000')
+    //             . ($request->trm ?? '0')
+    //             . $sbj;
+
+    //         class_subj::updateOrCreate(
+    //             [
+    //                 "subj_id" => $sbj,
+    //                 "schid" => $request->schid,
+    //                 "clsid" => $request->clsid,
+    //                 "sesn" => $request->ssn,
+    //                 "trm" => $request->trm,
+    //             ],
+    //             [
+    //                 "uid" => $uid, // ✅ UID now in desired format
+    //                 "comp" => $request->comp,
+    //                 "name" => subj::find($sbj)?->name, // optional
+    //             ]
+    //         );
+    //     }
+
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Subjects assignment completed.",
+    //         "assigned" => $assigned,
+    //         "skipped" => $skipped,
+    //     ]);
+    // }
+
+
+public function setStudentSubjectBulk(Request $request)
+{
+    // Validate request
+    $request->validate([
+        "stid" => "required",
+        "sbj" => "required",
+        "comp" => "required",
+        "schid" => "required",
+        "clsid" => "nullable",
+        "trm" => "nullable",
+        "ssn" => "nullable"
+    ]);
+
+    $students = is_array($request->stid)
+        ? $request->stid
+        : [$request->stid];
+
+    $subjects = is_array($request->sbj)
+        ? $request->sbj
+        : [$request->sbj];
+
+    $assigned = [];
+    $skipped = [];
+    $bulkInsert = [];
+
+    $schid = $request->schid;
+    $clsid = $request->clsid;
+    $ssn = $request->ssn;
+    $trm = $request->trm;
+    $comp = $request->comp;
+
+    // Generate timestamps once for the entire bulk insert.
+    $timestamp = now();
+
+    // 1. Prepare all student-subject records.
+    foreach ($students as $stid) {
         foreach ($subjects as $sbj) {
-            $uid = $request->schid
-                . ($request->clsid ?? '00')
-                . ($request->ssn ?? '0000')
-                . ($request->trm ?? '0')
-                . $sbj;
+            $uid = $schid
+                . ($clsid ?? '00')
+                . ($ssn ?? '0000')
+                . ($trm ?? '0')
+                . $sbj
+                . $stid;
 
-            class_subj::updateOrCreate(
-                [
-                    "subj_id" => $sbj,
-                    "schid" => $request->schid,
-                    "clsid" => $request->clsid,
-                    "sesn" => $request->ssn,
-                    "trm" => $request->trm,
-                ],
-                [
-                    "uid" => $uid, // ✅ UID now in desired format
-                    "comp" => $request->comp,
-                    "name" => subj::find($sbj)?->name, // optional
-                ]
-            );
+            $bulkInsert[] = [
+                "uid" => $uid,
+                "stid" => $stid,
+                "sbj" => $sbj,
+                "comp" => $comp,
+                "schid" => $schid,
+                "clsid" => $clsid,
+                "trm" => $trm,
+                "ssn" => $ssn,
+                "created_at" => $timestamp,
+                "updated_at" => $timestamp,
+            ];
         }
-
-        return response()->json([
-            "status" => true,
-            "message" => "Subjects assignment completed.",
-            "assigned" => $assigned,
-            "skipped" => $skipped,
-        ]);
     }
+
+    // 2. Fetch existing records in one query.
+    $existingRows = student_subj::whereIn('stid', $students)
+        ->whereIn('sbj', $subjects)
+        ->where('schid', $schid)
+        ->when($clsid, fn ($q) => $q->where('clsid', $clsid))
+        ->when($trm, fn ($q) => $q->where('trm', $trm))
+        ->when($ssn, fn ($q) => $q->where('ssn', $ssn))
+        ->get(['stid', 'sbj']);
+
+    // Use an associative lookup instead of repeated in_array() scans.
+    $existing = [];
+
+    foreach ($existingRows as $row) {
+        $existing[$row->stid . '-' . $row->sbj] = true;
+    }
+
+    unset($existingRows);
+
+    // 3. Filter duplicates using fast key lookups.
+    $toInsert = [];
+
+    foreach ($bulkInsert as $item) {
+        $key = $item['stid'] . '-' . $item['sbj'];
+
+        if (isset($existing[$key])) {
+            $skipped[] = [
+                "stid" => $item['stid'],
+                "sbj" => $item['sbj'],
+            ];
+        } else {
+            $assigned[] = [
+                "stid" => $item['stid'],
+                "sbj" => $item['sbj'],
+            ];
+
+            $toInsert[] = $item;
+
+            // Also prevent duplicate pairs within the same request
+            // from being inserted more than once.
+            $existing[$key] = true;
+        }
+    }
+
+    unset($bulkInsert, $existing);
+
+    // 4. Bulk insert all new student-subject records.
+    if (!empty($toInsert)) {
+        student_subj::insert($toInsert);
+    }
+
+    unset($toInsert);
+
+    // 5. Fetch all subject names in one query instead of one query per subject.
+    $subjectNames = subj::whereIn('id', $subjects)
+        ->pluck('name', 'id');
+
+    // Preserve class_subj updateOrCreate behavior.
+    foreach ($subjects as $sbj) {
+        $uid = $schid
+            . ($clsid ?? '00')
+            . ($ssn ?? '0000')
+            . ($trm ?? '0')
+            . $sbj;
+
+        class_subj::updateOrCreate(
+            [
+                "subj_id" => $sbj,
+                "schid" => $schid,
+                "clsid" => $clsid,
+                "sesn" => $ssn,
+                "trm" => $trm,
+            ],
+            [
+                "uid" => $uid,
+                "comp" => $comp,
+                "name" => $subjectNames->get($sbj),
+            ]
+        );
+    }
+
+    return response()->json([
+        "status" => true,
+        "message" => "Subjects assignment completed.",
+        "assigned" => $assigned,
+        "skipped" => $skipped,
+    ]);
+}
+
 
 
 
@@ -40152,132 +40876,356 @@ public function getOldStudentsAndSubjects($schid, $ssn, $trm, $clsm, $clsa, $stf
 
 
 
-    public function setStudentAcademicInfoBulk(Request $request)
-    {
-        $request->validate([
-            "students" => "required|array|min:1",
-            "students.*.user_id" => "required",
-            "students.*.schid" => "required",
-            "students.*.last_school" => "required",
-            "students.*.last_class" => "nullable",
-            "students.*.new_class" => "nullable",
-            "students.*.new_class_main" => "nullable",
-            "students.*.ssn" => "required",
-            "students.*.suid" => "required",
-            "students.*.trm" => "required|integer|in:1,2,3",
-        ]);
+    // public function setStudentAcademicInfoBulk(Request $request)
+    // {
+    //     $request->validate([
+    //         "students" => "required|array|min:1",
+    //         "students.*.user_id" => "required",
+    //         "students.*.schid" => "required",
+    //         "students.*.last_school" => "required",
+    //         "students.*.last_class" => "nullable",
+    //         "students.*.new_class" => "nullable",
+    //         "students.*.new_class_main" => "nullable",
+    //         "students.*.ssn" => "required",
+    //         "students.*.suid" => "required",
+    //         "students.*.trm" => "required|integer|in:1,2,3",
+    //     ]);
 
-        try {
-            DB::transaction(function () use ($request) {
+    //     try {
+    //         DB::transaction(function () use ($request) {
 
-                foreach ($request->students as $data) {
+    //             foreach ($request->students as $data) {
 
-                    $user_id = $data['user_id'];
-                    $schid = $data['schid'];
-                    $ssn = $data['ssn'];
-                    $trm = (int) $data['trm'];
+    //                 $user_id = $data['user_id'];
+    //                 $schid = $data['schid'];
+    //                 $ssn = $data['ssn'];
+    //                 $trm = (int) $data['trm'];
 
-                    $last_class = $data['last_class'] ?? 'NIL';
-                    $new_class = $data['new_class'] ?? 'NIL';
-                    $new_class_main = $data['new_class_main'] ?? 'NIL';
+    //                 $last_class = $data['last_class'] ?? 'NIL';
+    //                 $new_class = $data['new_class'] ?? 'NIL';
+    //                 $new_class_main = $data['new_class_main'] ?? 'NIL';
 
-                    // Check if academic data needs refresh
-                    $oldData = student_academic_data::where('user_id', $user_id)->first();
-                    $refreshSubjects = !$oldData || $oldData->new_class_main != $new_class_main;
+    //                 // Check if academic data needs refresh
+    //                 $oldData = student_academic_data::where('user_id', $user_id)->first();
+    //                 $refreshSubjects = !$oldData || $oldData->new_class_main != $new_class_main;
 
-                    // Update student academic data
-                    student_academic_data::updateOrCreate(
-                        ["user_id" => $user_id],
-                        [
-                            "last_school" => $data['last_school'],
-                            "last_class" => $last_class,
-                            "new_class" => $new_class,
-                            "new_class_main" => $new_class_main,
-                        ]
+    //                 // Update student academic data
+    //                 student_academic_data::updateOrCreate(
+    //                     ["user_id" => $user_id],
+    //                     [
+    //                         "last_school" => $data['last_school'],
+    //                         "last_class" => $last_class,
+    //                         "new_class" => $new_class,
+    //                         "new_class_main" => $new_class_main,
+    //                     ]
+    //                 );
+
+    //                 // Clear subjects if class changed
+    //                 if ($refreshSubjects) {
+    //                     student_subj::where('stid', $user_id)->delete();
+    //                 }
+
+    //                 // Fetch student
+    //                 $std = student::where('sid', $user_id)->first();
+    //                 if (!$std) {
+    //                     Log::warning("Student not found: {$user_id}");
+    //                     continue;
+    //                 }
+
+    //                 // ✅ Handle old_student only if new_class is valid
+    //                 if (!empty($new_class) && $new_class !== 'NIL') {
+
+    //                     // ✅ Delete old record for same class but different arm
+    //                     old_student::where('sid', $user_id)
+    //                         ->where('ssn', $ssn)
+    //                         ->where('trm', $trm)
+    //                         ->where('clsm', $new_class_main)
+    //                         ->where('clsa', '!=', $new_class)
+    //                         ->delete();
+
+    //                     // ✅ Check if combination already exists
+    //                     $exists = old_student::where([
+    //                         'sid' => $user_id,
+    //                         'ssn' => $ssn,
+    //                         'trm' => $trm,
+    //                         'clsm' => $new_class_main,
+    //                         'clsa' => $new_class,
+    //                     ])->exists();
+
+    //                     if ($exists) {
+    //                         return response()->json([
+    //                             'status' => false,
+    //                             'message' => 'Duplicate record of students for the specified session, term, and class.',
+    //                         ]); //  Conflict
+    //                     }
+
+    //                     // UID includes term to prevent duplicates
+    //                     $uid = $ssn . $user_id . $new_class_main . $trm;
+
+    //                     old_student::updateOrCreate(
+    //                         ['uid' => $uid],
+    //                         [
+    //                             'sid' => (int) $user_id,
+    //                             'schid' => (int) $schid,
+    //                             'ssn' => is_numeric($ssn) ? (int) $ssn : 0,
+    //                             'trm' => $trm,
+    //                             'clsm' => is_numeric($new_class_main) ? (int) $new_class_main : 0,
+    //                             'fname' => $std->fname ?? 'Unknown',
+    //                             'mname' => $std->mname ?? '',
+    //                             'lname' => $std->lname ?? 'Unknown',
+    //                             'clsa' => $new_class,
+    //                             'status' => 'active',
+    //                             'suid' => $data['suid'],
+    //                             'more' => '',
+    //                         ]
+    //                     );
+    //                 }
+
+    //                 // Mark academic record as set
+    //                 $std->update([
+    //                     "s_academic" => 1
+    //                 ]);
+    //             }
+    //         });
+    //     } catch (\Exception $e) {
+    //         Log::error("Bulk upload failed: " . $e->getMessage());
+
+    //         return response()->json([
+    //             "status" => false,
+    //             "message" => "Server Error",
+    //             "error" => $e->getMessage(),
+    //         ], 500);
+    //     }
+
+    //     return response()->json([
+    //         "status" => true,
+    //         "message" => "Bulk upload successful",
+    //     ]);
+    // }
+
+
+
+public function setStudentAcademicInfoBulk(Request $request)
+{
+    $request->validate([
+        "students" => "required|array|min:1",
+        "students.*.user_id" => "required",
+        "students.*.schid" => "required",
+        "students.*.last_school" => "required",
+        "students.*.last_class" => "nullable",
+        "students.*.new_class" => "nullable",
+        "students.*.new_class_main" => "nullable",
+        "students.*.ssn" => "required",
+        "students.*.suid" => "required",
+        "students.*.trm" => "required|integer|in:1,2,3",
+    ]);
+
+    try {
+        $students = collect($request->students);
+
+        // Collect IDs and values needed for batch lookups.
+        $userIds = $students->pluck('user_id')->unique()->values()->all();
+        $ssns = $students->pluck('ssn')->unique()->values()->all();
+        $terms = $students->pluck('trm')->map(fn ($term) => (int) $term)
+            ->unique()->values()->all();
+
+        DB::transaction(function () use ($students, $userIds, $ssns, $terms) {
+
+            // Load academic records once instead of querying for every student.
+            $academicCache = student_academic_data::whereIn('user_id', $userIds)
+                ->get()
+                ->keyBy('user_id');
+
+            // Load student records once.
+            $studentCache = student::whereIn('sid', $userIds)
+                ->get()
+                ->keyBy('sid');
+
+            // Load relevant old_student records once for duplicate checks.
+            $oldStudentCache = old_student::whereIn('sid', $userIds)
+                ->whereIn('ssn', $ssns)
+                ->whereIn('trm', $terms)
+                ->get();
+
+            // Track existing class combinations and UID records in memory.
+            $combinationCache = [];
+            $uidCache = [];
+
+            foreach ($oldStudentCache as $oldRecord) {
+                $combinationKey = implode('|', [
+                    $oldRecord->sid,
+                    $oldRecord->ssn,
+                    $oldRecord->trm,
+                    $oldRecord->clsm,
+                    $oldRecord->clsa,
+                ]);
+
+                $combinationCache[$combinationKey] = true;
+                $uidCache[$oldRecord->uid] = $oldRecord;
+            }
+
+            // Cache subject-refresh decisions for repeated user IDs.
+            $refreshCache = [];
+
+            foreach ($students as $data) {
+                $user_id = $data['user_id'];
+                $schid = $data['schid'];
+                $ssn = $data['ssn'];
+                $trm = (int) $data['trm'];
+
+                $last_class = $data['last_class'] ?? 'NIL';
+                $new_class = $data['new_class'] ?? 'NIL';
+                $new_class_main = $data['new_class_main'] ?? 'NIL';
+
+                // Determine whether subjects need refreshing.
+                if (!array_key_exists($user_id, $refreshCache)) {
+                    $oldData = $academicCache->get($user_id);
+
+                    $refreshCache[$user_id] = !$oldData
+                        || $oldData->new_class_main != $new_class_main;
+                }
+
+                $refreshSubjects = $refreshCache[$user_id];
+
+                // Update or create academic data using the preloaded record.
+                $academicData = [
+                    'last_school' => $data['last_school'],
+                    'last_class' => $last_class,
+                    'new_class' => $new_class,
+                    'new_class_main' => $new_class_main,
+                ];
+
+                $oldData = $academicCache->get($user_id);
+
+                if ($oldData) {
+                    $oldData->update($academicData);
+                } else {
+                    $oldData = student_academic_data::create(
+                        array_merge(
+                            ['user_id' => $user_id],
+                            $academicData
+                        )
                     );
 
-                    // Clear subjects if class changed
-                    if ($refreshSubjects) {
-                        student_subj::where('stid', $user_id)->delete();
-                    }
-
-                    // Fetch student
-                    $std = student::where('sid', $user_id)->first();
-                    if (!$std) {
-                        Log::warning("Student not found: {$user_id}");
-                        continue;
-                    }
-
-                    // ✅ Handle old_student only if new_class is valid
-                    if (!empty($new_class) && $new_class !== 'NIL') {
-
-                        // ✅ Delete old record for same class but different arm
-                        old_student::where('sid', $user_id)
-                            ->where('ssn', $ssn)
-                            ->where('trm', $trm)
-                            ->where('clsm', $new_class_main)
-                            ->where('clsa', '!=', $new_class)
-                            ->delete();
-
-                        // ✅ Check if combination already exists
-                        $exists = old_student::where([
-                            'sid' => $user_id,
-                            'ssn' => $ssn,
-                            'trm' => $trm,
-                            'clsm' => $new_class_main,
-                            'clsa' => $new_class,
-                        ])->exists();
-
-                        if ($exists) {
-                            return response()->json([
-                                'status' => false,
-                                'message' => 'Duplicate record of students for the specified session, term, and class.',
-                            ]); //  Conflict
-                        }
-
-                        // UID includes term to prevent duplicates
-                        $uid = $ssn . $user_id . $new_class_main . $trm;
-
-                        old_student::updateOrCreate(
-                            ['uid' => $uid],
-                            [
-                                'sid' => (int) $user_id,
-                                'schid' => (int) $schid,
-                                'ssn' => is_numeric($ssn) ? (int) $ssn : 0,
-                                'trm' => $trm,
-                                'clsm' => is_numeric($new_class_main) ? (int) $new_class_main : 0,
-                                'fname' => $std->fname ?? 'Unknown',
-                                'mname' => $std->mname ?? '',
-                                'lname' => $std->lname ?? 'Unknown',
-                                'clsa' => $new_class,
-                                'status' => 'active',
-                                'suid' => $data['suid'],
-                                'more' => '',
-                            ]
-                        );
-                    }
-
-                    // Mark academic record as set
-                    $std->update([
-                        "s_academic" => 1
-                    ]);
+                    $academicCache->put($user_id, $oldData);
                 }
-            });
-        } catch (\Exception $e) {
-            Log::error("Bulk upload failed: " . $e->getMessage());
 
-            return response()->json([
-                "status" => false,
-                "message" => "Server Error",
-                "error" => $e->getMessage(),
-            ], 500);
-        }
+                // Clear subjects if the class changed.
+                if ($refreshSubjects) {
+                    student_subj::where('stid', $user_id)->delete();
+                }
+
+                // Use the preloaded student record.
+                $std = $studentCache->get($user_id);
+
+                if (!$std) {
+                    Log::warning("Student not found: {$user_id}");
+                    continue;
+                }
+
+                // Handle old_student only if new_class is valid.
+                if (!empty($new_class) && $new_class !== 'NIL') {
+
+                    // Delete the old record for the same class but a different arm.
+                    old_student::where('sid', $user_id)
+                        ->where('ssn', $ssn)
+                        ->where('trm', $trm)
+                        ->where('clsm', $new_class_main)
+                        ->where('clsa', '!=', $new_class)
+                        ->delete();
+
+                    // Remove deleted class arms from the in-memory cache.
+                    foreach ($combinationCache as $key => $exists) {
+                        $parts = explode('|', $key, 5);
+
+                        if (
+                            count($parts) === 5
+                            && (string) $parts[0] === (string) $user_id
+                            && (string) $parts[1] === (string) $ssn
+                            && (string) $parts[2] === (string) $trm
+                            && (string) $parts[3] === (string) $new_class_main
+                            && (string) $parts[4] !== (string) $new_class
+                        ) {
+                            unset($combinationCache[$key]);
+                        }
+                    }
+
+                    // Check whether the exact combination already exists.
+                    $combinationKey = implode('|', [
+                        $user_id,
+                        $ssn,
+                        $trm,
+                        $new_class_main,
+                        $new_class,
+                    ]);
+
+                    if (isset($combinationCache[$combinationKey])) {
+                        return response()->json([
+                            'status' => false,
+                            'message' => 'Duplicate record of students for the specified session, term, and class.',
+                        ]);
+                    }
+
+                    // UID includes term to prevent duplicates.
+                    $uid = $ssn . $user_id . $new_class_main . $trm;
+
+                    $oldStudentData = [
+                        'sid' => (int) $user_id,
+                        'schid' => (int) $schid,
+                        'ssn' => is_numeric($ssn) ? (int) $ssn : 0,
+                        'trm' => $trm,
+                        'clsm' => is_numeric($new_class_main)
+                            ? (int) $new_class_main
+                            : 0,
+                        'fname' => $std->fname ?? 'Unknown',
+                        'mname' => $std->mname ?? '',
+                        'lname' => $std->lname ?? 'Unknown',
+                        'clsa' => $new_class,
+                        'status' => 'active',
+                        'suid' => $data['suid'],
+                        'more' => '',
+                    ];
+
+                    // Reuse the preloaded UID record when available.
+                    if (isset($uidCache[$uid])) {
+                        $uidCache[$uid]->update($oldStudentData);
+                        $oldRecord = $uidCache[$uid];
+                    } else {
+                        $oldRecord = old_student::create(
+                            array_merge(
+                                ['uid' => $uid],
+                                $oldStudentData
+                            )
+                        );
+
+                        $uidCache[$uid] = $oldRecord;
+                    }
+
+                    // Update the in-memory caches for subsequent rows.
+                    $combinationCache[$combinationKey] = true;
+                }
+
+                // Mark academic record as set.
+                $std->update([
+                    "s_academic" => 1,
+                ]);
+            }
+        });
+    } catch (\Exception $e) {
+        Log::error("Bulk upload failed: " . $e->getMessage());
 
         return response()->json([
-            "status" => true,
-            "message" => "Bulk upload successful",
-        ]);
+            "status" => false,
+            "message" => "Server Error",
+            "error" => $e->getMessage(),
+        ], 500);
     }
+
+    return response()->json([
+        "status" => true,
+        "message" => "Bulk upload successful",
+    ]);
+}
 
 
 
