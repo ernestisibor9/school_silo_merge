@@ -24181,7 +24181,7 @@ public function setChangePasswordAdmin(Request $request)
 public function restoreStudent(Request $request, $schid, $stid)
 {
     // A new placement is optional.
-    // If supplied, all placement fields must be provided.
+    // If supplied, all placement fields must be provided..
     $request->validate([
         'sesn' => 'sometimes|required',
         'trm'  => 'sometimes|required',

@@ -16831,8 +16831,8 @@
                     "Api"
                 ],
                 "summary": "Restore an inactive student",
-                "description": "Changes the status of a student from 'inactive' to 'active' based on school ID and student ID.",
-                "operationId": "e774845c624db97f729bdd8a218b1d33",
+                "description": "Restores an inactive student to their previous class placement or assigns them to a new session, term, class, and class arm. If placement fields are omitted, the most recently updated inactive record is restored.",
+                "operationId": "restoreStudent",
                 "parameters": [
                     {
                         "name": "schid",
@@ -16840,7 +16840,8 @@
                         "description": "School ID",
                         "required": true,
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "example": 12
                         }
                     },
                     {
@@ -16849,10 +16850,56 @@
                         "description": "Student ID",
                         "required": true,
                         "schema": {
-                            "type": "integer"
+                            "type": "integer",
+                            "example": 583
                         }
                     }
                 ],
+                "requestBody": {
+                    "description": "Optional new placement. Supply all five fields to assign a new or existing placement. Omit the body to restore the most recently updated inactive placement.",
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "sesn",
+                                    "trm",
+                                    "clsm",
+                                    "clsa",
+                                    "suid"
+                                ],
+                                "properties": {
+                                    "sesn": {
+                                        "description": "Academic session identifier",
+                                        "type": "string",
+                                        "example": "2026"
+                                    },
+                                    "trm": {
+                                        "description": "Academic term",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "clsm": {
+                                        "description": "Class ID",
+                                        "type": "integer",
+                                        "example": 23
+                                    },
+                                    "clsa": {
+                                        "description": "Class arm ID from sch_cls.id. Must belong to the selected class and school.",
+                                        "type": "integer",
+                                        "example": 12
+                                    },
+                                    "suid": {
+                                        "description": "Student identifier for the selected placement",
+                                        "type": "string",
+                                        "example": "HGC/2024/1/267"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Student restored successfully",
@@ -16866,25 +16913,46 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "Student restored successfully"
+                                            "example": "Student restored successfully."
                                         },
                                         "data": {
                                             "properties": {
-                                                "id": {
+                                                "sid": {
                                                     "type": "integer",
-                                                    "example": 1
+                                                    "example": 583
                                                 },
                                                 "schid": {
                                                     "type": "integer",
-                                                    "example": 101
+                                                    "example": 12
                                                 },
-                                                "sid": {
-                                                    "type": "integer",
-                                                    "example": 5001
-                                                },
-                                                "status": {
+                                                "ssn": {
                                                     "type": "string",
-                                                    "example": "active"
+                                                    "example": "2026"
+                                                },
+                                                "trm": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "clsm": {
+                                                    "type": "integer",
+                                                    "example": 23
+                                                },
+                                                "clsa": {
+                                                    "type": "integer",
+                                                    "example": 12
+                                                },
+                                                "suid": {
+                                                    "type": "string",
+                                                    "example": "HGC/2024/1/267"
+                                                },
+                                                "uid": {
+                                                    "type": "string",
+                                                    "example": "2026158323"
+                                                },
+                                                "new_placement": {
+                                                    "description": "Whether placement fields were supplied in the request",
+                                                    "type": "boolean",
+                                                    "example": true
                                                 }
                                             },
                                             "type": "object"
@@ -16896,7 +16964,7 @@
                         }
                     },
                     "404": {
-                        "description": "Student not found or already active",
+                        "description": "Student or inactive student record not found",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -16907,7 +16975,67 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "Student not found or already active"
+                                            "example": "No inactive student record was found to restore."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "An active placement or conflicting UID already exists",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "An active record already exists for this session, term and class."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation failed or the selected class arm is invalid",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid class arm for the selected class."
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "example": []
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Student restoration failed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Failed to restore student. Please try again."
                                         }
                                     },
                                     "type": "object"
