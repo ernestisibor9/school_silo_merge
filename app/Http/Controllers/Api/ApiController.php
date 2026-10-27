@@ -2286,16 +2286,17 @@ public function registerStudent(Request $request)
     // Data validation
     $request->validate([
         "schid" => "required",
-        "email" => "required|email",
+        "email" => "required|email|unique:users,email",
         "password" => "required",
-        "fname" => "required|string|max:100",
-        "lname" => "required|string|max:100",
-        "mname" => "nullable|string|max:100",
+        "fname" => "required",
+        "lname" => "required",
         "term" => "required",
         "ssn" => "required",
         "sch3" => "required",
         "stat" => "required",
         "cuid" => "nullable|unique:student,cuid",
+    ], [
+        "ssn.required" => "The session field is required.",
     ]);
 
     /*
