@@ -1908,45 +1908,75 @@
                     "Unprotected"
                 ],
                 "summary": "Register a new student",
-                "description": "Registers a new student account. Surname, first name, and middle name are automatically converted to uppercase before being saved.",
+                "description": "Registers a new student account, saves the student's basic and academic information, and sends a welcome email. First, middle, and last names are converted to uppercase. Date of birth is optional and accepts text in different date formats.",
                 "operationId": "be7cf7d821314e08bcf500e402daf894",
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
+                                "required": [
+                                    "schid",
+                                    "email",
+                                    "password",
+                                    "fname",
+                                    "lname",
+                                    "term",
+                                    "ssn",
+                                    "sch3",
+                                    "stat",
+                                    "sex",
+                                    "country",
+                                    "state",
+                                    "lga",
+                                    "addr",
+                                    "new_class",
+                                    "new_class_main"
+                                ],
                                 "properties": {
                                     "schid": {
-                                        "description": "School ID which this student belongs to",
+                                        "description": "School ID to which the student belongs.",
                                         "type": "string",
                                         "example": "3531"
                                     },
                                     "email": {
-                                        "description": "Student email address. Must be unique.",
+                                        "description": "Student email address.",
                                         "type": "string",
                                         "format": "email",
                                         "example": "student@example.com"
                                     },
                                     "password": {
-                                        "description": "Student password. Must be at least 6 characters.",
+                                        "description": "Student password. Must contain at least 6 characters.",
                                         "type": "string",
                                         "format": "password",
+                                        "minLength": 6,
                                         "example": "password123"
                                     },
                                     "fname": {
                                         "description": "Student first name. Automatically converted to uppercase.",
                                         "type": "string",
+                                        "maxLength": 100,
                                         "example": "JOHN"
                                     },
                                     "lname": {
-                                        "description": "Student surname. Automatically converted to uppercase.",
+                                        "description": "Student last name. Automatically converted to uppercase.",
                                         "type": "string",
+                                        "maxLength": 100,
                                         "example": "DOE"
                                     },
                                     "mname": {
-                                        "description": "Student middle name. Optional and automatically converted to uppercase.",
+                                        "description": "Student middle name. Optional and converted to uppercase.",
                                         "type": "string",
+                                        "maxLength": 100,
                                         "example": "MICHAEL",
+                                        "nullable": true
+                                    },
+                                    "phone": {
+                                        "description": "Optional phone number containing digits only. Leading zeros are allowed.",
+                                        "type": "string",
+                                        "maxLength": 15,
+                                        "pattern": "^[0-9]+$",
+                                        "example": "08012345678",
                                         "nullable": true
                                     },
                                     "term": {
@@ -1955,31 +1985,101 @@
                                         "example": "1"
                                     },
                                     "ssn": {
-                                        "description": "Student session/year.",
+                                        "description": "Academic session/year. Saved in the student.year column.",
                                         "type": "string",
                                         "example": "2026"
                                     },
                                     "sch3": {
-                                        "description": "School code.",
+                                        "description": "School code used to generate the student ID.",
                                         "type": "string",
                                         "example": "ABC"
                                     },
                                     "stat": {
-                                        "description": "Student registration/status fee value.",
+                                        "description": "Student registration status/fee value.",
                                         "type": "string",
                                         "example": "5000"
                                     },
                                     "cuid": {
-                                        "description": "Existing/unique student ID. Optional. Must be unique when provided.",
+                                        "description": "Optional unique student ID. Must not already exist in the student table.",
                                         "type": "string",
                                         "example": "ABC/2026/1/001",
                                         "nullable": true
                                     },
                                     "count": {
-                                        "description": "Student registration count. Optional. If not supplied, it is generated automatically.",
+                                        "description": "Optional student count. Generated automatically if omitted.",
                                         "type": "string",
                                         "example": "1",
                                         "nullable": true
+                                    },
+                                    "dob": {
+                                        "description": "Optional date of birth. Accepted as text without enforcing a specific date format.",
+                                        "type": "string",
+                                        "maxLength": 50,
+                                        "example": "25/12/2005",
+                                        "nullable": true
+                                    },
+                                    "sex": {
+                                        "description": "Student gender. M for male, F for female.",
+                                        "type": "string",
+                                        "enum": [
+                                            "M",
+                                            "F"
+                                        ],
+                                        "example": "M"
+                                    },
+                                    "height": {
+                                        "description": "Optional student height.",
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "example": "150 cm",
+                                        "nullable": true
+                                    },
+                                    "country": {
+                                        "description": "Student country.",
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "example": "Nigeria"
+                                    },
+                                    "state": {
+                                        "description": "Student state of origin.",
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "example": "Lagos"
+                                    },
+                                    "lga": {
+                                        "description": "Student local government area.",
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "example": "Ikeja"
+                                    },
+                                    "addr": {
+                                        "description": "Student residential address.",
+                                        "type": "string",
+                                        "example": "12 Example Street, Ikeja, Lagos"
+                                    },
+                                    "last_school": {
+                                        "description": "Optional name of the last school attended.",
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "example": "Bright Future Academy",
+                                        "nullable": true
+                                    },
+                                    "last_class": {
+                                        "description": "Optional last class attended.",
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "example": "Primary 6",
+                                        "nullable": true
+                                    },
+                                    "new_class": {
+                                        "description": "New class the student is registering for.",
+                                        "type": "string",
+                                        "example": "JSS 1"
+                                    },
+                                    "new_class_main": {
+                                        "description": "Main class ID for the student's academic record.",
+                                        "type": "string",
+                                        "example": "12"
                                     }
                                 },
                                 "type": "object"
@@ -1989,7 +2089,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Student registered successfully",
+                        "description": "Student registered successfully.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2000,23 +2100,7 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "User created successfully"
-                                        },
-                                        "token": {
-                                            "description": "JWT authentication token.",
-                                            "type": "string",
-                                            "example": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
-                                            "nullable": true
-                                        },
-                                        "sid": {
-                                            "description": "Generated student ID.",
-                                            "type": "string",
-                                            "example": "ABC/2026/1/1"
-                                        },
-                                        "user_id": {
-                                            "description": "Newly created user ID.",
-                                            "type": "string",
-                                            "example": "12345"
+                                            "example": "Success"
                                         }
                                     },
                                     "type": "object"
@@ -2025,7 +2109,7 @@
                         }
                     },
                     "400": {
-                        "description": "Account already exists or password is too short",
+                        "description": "Password is too short or student already exists.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2036,7 +2120,7 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "Account already exists"
+                                            "example": "Student already exists"
                                         }
                                     },
                                     "type": "object"
@@ -2045,7 +2129,7 @@
                         }
                     },
                     "422": {
-                        "description": "Validation error"
+                        "description": "Validation failed. One or more required fields are missing or invalid."
                     }
                 }
             }

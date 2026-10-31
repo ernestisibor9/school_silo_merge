@@ -2008,22 +2008,41 @@ class ApiController extends Controller
 
 //--STUDENT
 
+
 /**
  * @OA\Post(
  *     path="/api/registerStudent",
  *     tags={"Unprotected"},
  *     summary="Register a new student",
- *     description="Registers a new student account. Surname, first name, and middle name are automatically converted to uppercase before being saved.",
+ *     description="Registers a new student account, saves the student's basic and academic information, and sends a welcome email. First, middle, and last names are converted to uppercase. Date of birth is optional and accepts text in different date formats.",
  *
  *     @OA\RequestBody(
  *         required=true,
  *         @OA\JsonContent(
  *             type="object",
+ *             required={
+ *                 "schid",
+ *                 "email",
+ *                 "password",
+ *                 "fname",
+ *                 "lname",
+ *                 "term",
+ *                 "ssn",
+ *                 "sch3",
+ *                 "stat",
+ *                 "sex",
+ *                 "country",
+ *                 "state",
+ *                 "lga",
+ *                 "addr",
+ *                 "new_class",
+ *                 "new_class_main"
+ *             },
  *
  *             @OA\Property(
  *                 property="schid",
  *                 type="string",
- *                 description="School ID which this student belongs to",
+ *                 description="School ID to which the student belongs.",
  *                 example="3531"
  *             ),
  *
@@ -2031,7 +2050,7 @@ class ApiController extends Controller
  *                 property="email",
  *                 type="string",
  *                 format="email",
- *                 description="Student email address. Must be unique.",
+ *                 description="Student email address.",
  *                 example="student@example.com"
  *             ),
  *
@@ -2039,13 +2058,15 @@ class ApiController extends Controller
  *                 property="password",
  *                 type="string",
  *                 format="password",
- *                 description="Student password. Must be at least 6 characters.",
+ *                 minLength=6,
+ *                 description="Student password. Must contain at least 6 characters.",
  *                 example="password123"
  *             ),
  *
  *             @OA\Property(
  *                 property="fname",
  *                 type="string",
+ *                 maxLength=100,
  *                 description="Student first name. Automatically converted to uppercase.",
  *                 example="JOHN"
  *             ),
@@ -2053,7 +2074,8 @@ class ApiController extends Controller
  *             @OA\Property(
  *                 property="lname",
  *                 type="string",
- *                 description="Student surname. Automatically converted to uppercase.",
+ *                 maxLength=100,
+ *                 description="Student last name. Automatically converted to uppercase.",
  *                 example="DOE"
  *             ),
  *
@@ -2061,8 +2083,19 @@ class ApiController extends Controller
  *                 property="mname",
  *                 type="string",
  *                 nullable=true,
- *                 description="Student middle name. Optional and automatically converted to uppercase.",
+ *                 maxLength=100,
+ *                 description="Student middle name. Optional and converted to uppercase.",
  *                 example="MICHAEL"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="phone",
+ *                 type="string",
+ *                 nullable=true,
+ *                 maxLength=15,
+ *                 pattern="^[0-9]+$",
+ *                 description="Optional phone number containing digits only. Leading zeros are allowed.",
+ *                 example="08012345678"
  *             ),
  *
  *             @OA\Property(
@@ -2075,21 +2108,21 @@ class ApiController extends Controller
  *             @OA\Property(
  *                 property="ssn",
  *                 type="string",
- *                 description="Student session/year.",
+ *                 description="Academic session/year. Saved in the student.year column.",
  *                 example="2026"
  *             ),
  *
  *             @OA\Property(
  *                 property="sch3",
  *                 type="string",
- *                 description="School code.",
+ *                 description="School code used to generate the student ID.",
  *                 example="ABC"
  *             ),
  *
  *             @OA\Property(
  *                 property="stat",
  *                 type="string",
- *                 description="Student registration/status fee value.",
+ *                 description="Student registration status/fee value.",
  *                 example="5000"
  *             ),
  *
@@ -2097,7 +2130,7 @@ class ApiController extends Controller
  *                 property="cuid",
  *                 type="string",
  *                 nullable=true,
- *                 description="Existing/unique student ID. Optional. Must be unique when provided.",
+ *                 description="Optional unique student ID. Must not already exist in the student table.",
  *                 example="ABC/2026/1/001"
  *             ),
  *
@@ -2105,15 +2138,104 @@ class ApiController extends Controller
  *                 property="count",
  *                 type="string",
  *                 nullable=true,
- *                 description="Student registration count. Optional. If not supplied, it is generated automatically.",
+ *                 description="Optional student count. Generated automatically if omitted.",
  *                 example="1"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="dob",
+ *                 type="string",
+ *                 nullable=true,
+ *                 maxLength=50,
+ *                 description="Optional date of birth. Accepted as text without enforcing a specific date format.",
+ *                 example="25/12/2005"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="sex",
+ *                 type="string",
+ *                 enum={"M", "F"},
+ *                 description="Student gender. M for male, F for female.",
+ *                 example="M"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="height",
+ *                 type="string",
+ *                 nullable=true,
+ *                 maxLength=255,
+ *                 description="Optional student height.",
+ *                 example="150 cm"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="country",
+ *                 type="string",
+ *                 maxLength=255,
+ *                 description="Student country.",
+ *                 example="Nigeria"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="state",
+ *                 type="string",
+ *                 maxLength=255,
+ *                 description="Student state of origin.",
+ *                 example="Lagos"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="lga",
+ *                 type="string",
+ *                 maxLength=255,
+ *                 description="Student local government area.",
+ *                 example="Ikeja"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="addr",
+ *                 type="string",
+ *                 description="Student residential address.",
+ *                 example="12 Example Street, Ikeja, Lagos"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="last_school",
+ *                 type="string",
+ *                 nullable=true,
+ *                 maxLength=255,
+ *                 description="Optional name of the last school attended.",
+ *                 example="Bright Future Academy"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="last_class",
+ *                 type="string",
+ *                 nullable=true,
+ *                 maxLength=255,
+ *                 description="Optional last class attended.",
+ *                 example="Primary 6"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="new_class",
+ *                 type="string",
+ *                 description="New class the student is registering for.",
+ *                 example="JSS 1"
+ *             ),
+ *
+ *             @OA\Property(
+ *                 property="new_class_main",
+ *                 type="string",
+ *                 description="Main class ID for the student's academic record.",
+ *                 example="12"
  *             )
  *         )
  *     ),
  *
  *     @OA\Response(
  *         response=200,
- *         description="Student registered successfully",
+ *         description="Student registered successfully.",
  *         @OA\JsonContent(
  *             type="object",
  *             @OA\Property(
@@ -2124,33 +2246,14 @@ class ApiController extends Controller
  *             @OA\Property(
  *                 property="message",
  *                 type="string",
- *                 example="User created successfully"
- *             ),
- *             @OA\Property(
- *                 property="token",
- *                 type="string",
- *                 nullable=true,
- *                 description="JWT authentication token.",
- *                 example="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
- *             ),
- *             @OA\Property(
- *                 property="sid",
- *                 type="string",
- *                 description="Generated student ID.",
- *                 example="ABC/2026/1/1"
- *             ),
- *             @OA\Property(
- *                 property="user_id",
- *                 type="string",
- *                 description="Newly created user ID.",
- *                 example="12345"
+ *                 example="Success"
  *             )
  *         )
  *     ),
  *
  *     @OA\Response(
  *         response=400,
- *         description="Account already exists or password is too short",
+ *         description="Password is too short or student already exists.",
  *         @OA\JsonContent(
  *             type="object",
  *             @OA\Property(
@@ -2161,14 +2264,14 @@ class ApiController extends Controller
  *             @OA\Property(
  *                 property="message",
  *                 type="string",
- *                 example="Account already exists"
+ *                 example="Student already exists"
  *             )
  *         )
  *     ),
  *
  *     @OA\Response(
  *         response=422,
- *         description="Validation error"
+ *         description="Validation failed. One or more required fields are missing or invalid."
  *     )
  * )
  */
@@ -2281,27 +2384,319 @@ class ApiController extends Controller
     // }
 
 
+// public function registerStudent(Request $request)
+// {
+//     // Data validation
+//     $request->validate([
+//         "schid" => "required",
+//         "email" => "required|email",
+//         "password" => "required",
+//         "fname" => "required",
+//         "lname" => "required",
+//         "term" => "required",
+//         "ssn" => "required",
+//         "sch3" => "required",
+//         "stat" => "required",
+//         "cuid" => "nullable|unique:student,cuid",
+//     ], [
+//         "ssn.required" => "The session field is required.",
+//     ]);
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Convert Names to Uppercase
+//     |--------------------------------------------------------------------------
+//     */
+
+//     $fname = strtoupper(trim($request->fname));
+//     $lname = strtoupper(trim($request->lname));
+
+//     $mname = $request->filled('mname')
+//         ? strtoupper(trim($request->mname))
+//         : null;
+
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Password Validation
+//     |--------------------------------------------------------------------------
+//     */
+
+//     if (strlen($request->password) < 6) {
+//         return response()->json([
+//             "status" => false,
+//             "message" => "Password must be at least 6 char",
+//         ], 400);
+//     }
+
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Check Existing User
+//     |--------------------------------------------------------------------------
+//     */
+
+//     $typ = 'z';
+
+//     $usr = null;
+
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Check Existing Student
+//     |--------------------------------------------------------------------------
+//     */
+
+//     $tstd = null;
+
+//     if ($request->cuid) {
+
+//         $tstd = student::where("cuid", $request->cuid)->first();
+
+//     } else {
+
+//         if ($request->count) {
+
+//             $tstd = student::where("sch3", $request->sch3)
+//                 ->where("year", $request->ssn)
+//                 ->where("term", $request->term)
+//                 ->where("count", $request->count)
+//                 ->first();
+//         }
+//     }
+
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Create Student
+//     |--------------------------------------------------------------------------
+//     */
+
+//     if (!$usr && !$tstd) {
+
+//         $usr = User::create([
+//             "email" => $request->email,
+//             "typ" => $typ,
+//             "verif" => '1',
+//             "password" => bcrypt($request->password),
+//         ]);
+
+
+//         /*
+//         |--------------------------------------------------------------------------
+//         | Generate Student Count
+//         |--------------------------------------------------------------------------
+//         */
+
+//         $count = $request->count;
+
+//         if (!$count) {
+//             $count = student::where('schid', $request->schid)->count() + 1;
+//         }
+
+
+//         /*
+//         |--------------------------------------------------------------------------
+//         | Student SSN / Year
+//         |--------------------------------------------------------------------------
+//         */
+
+//         $ssn = $request->ssn;
+
+
+//         /*
+//         |--------------------------------------------------------------------------
+//         | Create Student Record
+//         |--------------------------------------------------------------------------
+//         */
+
+//         student::create([
+//             "sid" => strval($usr->id),
+//             "schid" => $request->schid,
+
+//             // Names are now saved as uppercase
+//             "fname" => $fname,
+//             "mname" => $mname,
+//             "lname" => $lname,
+
+//             "count" => strval($count),
+//             "year" => $ssn,
+//             "term" => $request->term,
+//             "sch3" => $request->sch3,
+
+//             "s_basic" => '0',
+//             "s_medical" => '0',
+//             "s_parent" => '0',
+//             "s_academic" => '0',
+
+//             "rfee" => $request->stat,
+//             "stat" => $request->stat,
+//             "cuid" => $request->cuid,
+//         ]);
+
+
+//         /*
+//         |--------------------------------------------------------------------------
+//         | Generate Student ID
+//         |--------------------------------------------------------------------------
+//         */
+
+//         $sid = $request->sch3
+//             . '/'
+//             . $ssn
+//             . '/'
+//             . $request->term
+//             . '/'
+//             . strval($count);
+
+// /*
+// |--------------------------------------------------------------------------
+// | Send Welcome Email
+// |--------------------------------------------------------------------------
+// */
+
+
+
+// try {
+//     // Get the student portal URL from Laravel configuration
+//     $portalUrl = rtrim(
+//         config('app.portal_url', 'https://portal.schoolsilomerge.top'),
+//         '/'
+//     );
+
+//     // Build the complete student login URL
+//     $loginUrl = $portalUrl . '/studentLogin/' . $request->schid;
+//     if ($request->cuid) {
+//         $data = [
+//             'name'    => $fname,
+//             'subject' => 'Welcome Back, Your ID remains ' . $request->cuid,
+//             'body'    => "Welcome back to your school's platform. Your account was created successfully.\n\n"
+//                 . "Please log in to your dashboard using the link below and complete your student profile.\n\n"
+//                 . "If the link isn't clickable, copy it into your browser. If this email arrives in your spam folder, please mark it as Not Spam.\n\n"
+//                 . "Your Student ID is " . $request->cuid . ".\n\n"
+//                 . "Use the password created during registration to log in.",
+//             'link'    => $loginUrl,
+//         ];
+//     } else {
+//         $data = [
+//             'name'    => $fname,
+//             'subject' => 'Welcome, Your ID is ' . $sid,
+//             'body'    => "Welcome to your school's platform. Your account was created successfully.\n\n"
+//                 . "Please log in to your dashboard and complete your student profile using the link below.\n\n"
+//                 . "If the link isn't clickable, copy it into your browser. If this email arrives in your spam folder, please mark it as Not Spam.\n\n"
+//                 . "Your Learner's ID is " . $sid . ".\n\n"
+//                 . "Use the password created during registration to log in.",
+//             'link'    => $loginUrl,
+//         ];
+//     }
+
+//     Mail::to($request->email)->send(new SSSMails($data));
+
+//     Log::info('Student welcome email sent successfully.', [
+//         'student_id' => $usr->id,
+//         'email' => $request->email,
+//         'school_id' => $request->schid,
+//         'login_url' => $loginUrl,
+//     ]);
+
+// } catch (\Throwable $e) {
+//     // Log the email error without stopping student registration..
+//     Log::error('Failed to send student welcome email.', [
+//         'student_id' => $usr->id,
+//         'email' => $request->email,
+//         'school_id' => $request->schid,
+//         'error' => $e->getMessage(),
+//     ]);
+// }
+
+
+
+
+//         /*
+//         |--------------------------------------------------------------------------
+//         | Generate JWT Token
+//         |--------------------------------------------------------------------------
+//         */
+
+//         $token = JWTAuth::attempt([
+//             "email" => $request->email,
+//             "password" => $request->password,
+//         ]);
+
+
+//         /*
+//         |--------------------------------------------------------------------------
+//         | Return Response
+//         |--------------------------------------------------------------------------
+//         */
+
+//         return response()->json([
+//             "status" => true,
+//             "message" => "User created successfully",
+//             "token" => $token,
+//             "sid" => $sid,
+//             "user_id" => strval($usr->id)
+//         ]);
+//     }
+
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Account Already Exists
+//     |--------------------------------------------------------------------------
+//     */
+
+//     return response()->json([
+//         "status" => false,
+//         "message" => "Account already exists",
+//     ], 400);
+// }
+
+
 public function registerStudent(Request $request)
 {
-    // Data validation
+    /*
+    |--------------------------------------------------------------------------
+    | Validate request
+    |--------------------------------------------------------------------------
+    */
+
     $request->validate([
         "schid" => "required",
         "email" => "required|email",
         "password" => "required",
-        "fname" => "required",
-        "lname" => "required",
+        "fname" => "required|string|max:100",
+        "lname" => "required|string|max:100",
+        "mname" => "nullable|string|max:100",
+        "phone" => "nullable|regex:/^[0-9]+$/|max:15",
+
         "term" => "required",
         "ssn" => "required",
         "sch3" => "required",
         "stat" => "required",
+
         "cuid" => "nullable|unique:student,cuid",
+
+        "dob" => "nullable|string|max:50",
+
+        "sex" => "required|in:M,F",
+        "height" => "nullable|string|max:255",
+        "country" => "required|string|max:255",
+        "state" => "required|string|max:255",
+        "lga" => "required|string|max:255",
+        "addr" => "required|string",
+
+        "last_school" => "nullable|string|max:255",
+        "last_class" => "nullable|string|max:255",
+        "new_class" => "required",
+        "new_class_main" => "required",
     ], [
         "ssn.required" => "The session field is required.",
     ]);
 
     /*
     |--------------------------------------------------------------------------
-    | Convert Names to Uppercase
+    | Convert names to uppercase
     |--------------------------------------------------------------------------
     */
 
@@ -2312,10 +2707,9 @@ public function registerStudent(Request $request)
         ? strtoupper(trim($request->mname))
         : null;
 
-
     /*
     |--------------------------------------------------------------------------
-    | Password Validation
+    | Password validation
     |--------------------------------------------------------------------------
     */
 
@@ -2326,228 +2720,218 @@ public function registerStudent(Request $request)
         ], 400);
     }
 
-
     /*
     |--------------------------------------------------------------------------
-    | Check Existing User
-    |--------------------------------------------------------------------------
-    */
-
-    $typ = 'z';
-
-    $usr = null;
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Check Existing Student
+    | Check existing student
     |--------------------------------------------------------------------------
     */
 
     $tstd = null;
 
-    if ($request->cuid) {
-
-        $tstd = student::where("cuid", $request->cuid)->first();
-
-    } else {
-
-        if ($request->count) {
-
-            $tstd = student::where("sch3", $request->sch3)
-                ->where("year", $request->ssn)
-                ->where("term", $request->term)
-                ->where("count", $request->count)
-                ->first();
-        }
+    if ($request->filled('cuid')) {
+        $tstd = student::where('cuid', $request->cuid)->first();
+    } elseif ($request->filled('count')) {
+        $tstd = student::where('sch3', $request->sch3)
+            ->where('year', $request->ssn)
+            ->where('term', $request->term)
+            ->where('count', $request->count)
+            ->first();
     }
 
+    if ($tstd) {
+        return response()->json([
+            "status" => false,
+            "message" => "Student already exists",
+        ], 400);
+    }
 
     /*
     |--------------------------------------------------------------------------
-    | Create Student
+    | Create user
     |--------------------------------------------------------------------------
     */
 
-    if (!$usr && !$tstd) {
+    $typ = 'z';
 
-        $usr = User::create([
-            "email" => $request->email,
-            "typ" => $typ,
-            "verif" => '1',
-            "password" => bcrypt($request->password),
-        ]);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Generate Student Count
-        |--------------------------------------------------------------------------
-        */
-
-        $count = $request->count;
-
-        if (!$count) {
-            $count = student::where('schid', $request->schid)->count() + 1;
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Student SSN / Year
-        |--------------------------------------------------------------------------
-        */
-
-        $ssn = $request->ssn;
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Create Student Record
-        |--------------------------------------------------------------------------
-        */
-
-        student::create([
-            "sid" => strval($usr->id),
-            "schid" => $request->schid,
-
-            // Names are now saved as uppercase
-            "fname" => $fname,
-            "mname" => $mname,
-            "lname" => $lname,
-
-            "count" => strval($count),
-            "year" => $ssn,
-            "term" => $request->term,
-            "sch3" => $request->sch3,
-
-            "s_basic" => '0',
-            "s_medical" => '0',
-            "s_parent" => '0',
-            "s_academic" => '0',
-
-            "rfee" => $request->stat,
-            "stat" => $request->stat,
-            "cuid" => $request->cuid,
-        ]);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Generate Student ID
-        |--------------------------------------------------------------------------
-        */
-
-        $sid = $request->sch3
-            . '/'
-            . $ssn
-            . '/'
-            . $request->term
-            . '/'
-            . strval($count);
-
-/*
-|--------------------------------------------------------------------------
-| Send Welcome Email
-|--------------------------------------------------------------------------
-*/
-
-
-
-try {
-    // Get the student portal URL from Laravel configuration
-    $portalUrl = rtrim(
-        config('app.portal_url', 'https://portal.schoolsilomerge.top'),
-        '/'
-    );
-
-    // Build the complete student login URL
-    $loginUrl = $portalUrl . '/studentLogin/' . $request->schid;
-    if ($request->cuid) {
-        $data = [
-            'name'    => $fname,
-            'subject' => 'Welcome Back, Your ID remains ' . $request->cuid,
-            'body'    => "Welcome back to your school's platform. Your account was created successfully.\n\n"
-                . "Please log in to your dashboard using the link below and complete your student profile.\n\n"
-                . "If the link isn't clickable, copy it into your browser. If this email arrives in your spam folder, please mark it as Not Spam.\n\n"
-                . "Your Student ID is " . $request->cuid . ".\n\n"
-                . "Use the password created during registration to log in.",
-            'link'    => $loginUrl,
-        ];
-    } else {
-        $data = [
-            'name'    => $fname,
-            'subject' => 'Welcome, Your ID is ' . $sid,
-            'body'    => "Welcome to your school's platform. Your account was created successfully.\n\n"
-                . "Please log in to your dashboard and complete your student profile using the link below.\n\n"
-                . "If the link isn't clickable, copy it into your browser. If this email arrives in your spam folder, please mark it as Not Spam.\n\n"
-                . "Your Learner's ID is " . $sid . ".\n\n"
-                . "Use the password created during registration to log in.",
-            'link'    => $loginUrl,
-        ];
-    }
-
-    Mail::to($request->email)->send(new SSSMails($data));
-
-    Log::info('Student welcome email sent successfully.', [
-        'student_id' => $usr->id,
-        'email' => $request->email,
-        'school_id' => $request->schid,
-        'login_url' => $loginUrl,
+    $usr = User::create([
+        "email" => $request->email,
+        "typ" => $typ,
+        "verif" => '1',
+        "password" => bcrypt($request->password),
     ]);
-
-} catch (\Throwable $e) {
-    // Log the email error without stopping student registration..
-    Log::error('Failed to send student welcome email.', [
-        'student_id' => $usr->id,
-        'email' => $request->email,
-        'school_id' => $request->schid,
-        'error' => $e->getMessage(),
-    ]);
-}
-
-
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Generate JWT Token
-        |--------------------------------------------------------------------------
-        */
-
-        $token = JWTAuth::attempt([
-            "email" => $request->email,
-            "password" => $request->password,
-        ]);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Return Response
-        |--------------------------------------------------------------------------
-        */
-
-        return response()->json([
-            "status" => true,
-            "message" => "User created successfully",
-            "token" => $token,
-            "sid" => $sid,
-            "user_id" => strval($usr->id)
-        ]);
-    }
-
 
     /*
     |--------------------------------------------------------------------------
-    | Account Already Exists
+    | Generate student count
+    |--------------------------------------------------------------------------
+    */
+
+    $count = $request->count;
+
+    if (!$count) {
+        $count = student::where('schid', $request->schid)->count() + 1;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Student session / year
+    |--------------------------------------------------------------------------
+    */
+
+    $ssn = $request->ssn;
+    $user_id = strval($usr->id);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Create student record
+    |--------------------------------------------------------------------------
+    */
+
+    student::create([
+        "sid" => $user_id,
+        "schid" => $request->schid,
+
+        "fname" => $fname,
+        "mname" => $mname,
+        "lname" => $lname,
+
+        "count" => strval($count),
+        "year" => $ssn,
+        "term" => $request->term,
+        "sch3" => $request->sch3,
+
+        "s_basic" => '0',
+        "s_medical" => '0',
+        "s_parent" => '0',
+        "s_academic" => '0',
+
+        "rfee" => $request->stat,
+        "stat" => $request->stat,
+        "cuid" => $request->cuid,
+    ]);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Generate student ID
+    |--------------------------------------------------------------------------
+    */
+
+    $sid = $request->sch3
+        . '/'
+        . $ssn
+        . '/'
+        . $request->term
+        . '/'
+        . strval($count);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Save basic student information
+    |--------------------------------------------------------------------------
+    */
+
+    student_basic_data::updateOrCreate(
+        [
+            "user_id" => $user_id,
+        ],
+        [
+            "dob" => $request->dob,
+            "sex" => $request->sex,
+            "height" => $request->input('height', '') ?? '',
+            "country" => $request->country,
+            "state" => $request->state,
+            "lga" => $request->lga,
+            "addr" => $request->addr,
+        ]
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Save academic information
+    |--------------------------------------------------------------------------
+    */
+
+    student_academic_data::updateOrCreate(
+        [
+            "user_id" => $user_id,
+        ],
+        [
+            "last_school" => $request->input('last_school') ?? '',
+            "last_class" => $request->input('last_class') ?? '',
+            "new_class" => $request->new_class,
+            "new_class_main" => $request->new_class_main,
+        ]
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Send welcome email
+    |--------------------------------------------------------------------------
+    */
+
+    try {
+        $portalUrl = rtrim(
+            config('app.portal_url', 'https://portal.schoolsilomerge.top'),
+            '/'
+        );
+
+        $loginUrl = $portalUrl . '/studentLogin/' . $request->schid;
+
+        if ($request->filled('cuid')) {
+            $data = [
+                'name' => $fname,
+                'subject' => 'Welcome Back, Your ID remains ' . $request->cuid,
+                'body' => "Welcome back to your school's platform. Your account was created successfully.\n\n"
+                    . "Please log in to your dashboard using the link below and complete your student profile.\n\n"
+                    . "If the link isn't clickable, copy it into your browser. If this email arrives in your spam folder, please mark it as Not Spam.\n\n"
+                    . "Your Student ID is " . $request->cuid . ".\n\n"
+                    . "Use the password created during registration to log in.",
+                'link' => $loginUrl,
+            ];
+        } else {
+            $data = [
+                'name' => $fname,
+                'subject' => 'Welcome, Your ID is ' . $sid,
+                'body' => "Welcome to your school's platform. Your account was created successfully.\n\n"
+                    . "Please log in to your dashboard and complete your student profile using the link below.\n\n"
+                    . "If the link isn't clickable, copy it into your browser. If this email arrives in your spam folder, please mark it as Not Spam.\n\n"
+                    . "Your Learner's ID is " . $sid . ".\n\n"
+                    . "Use the password created during registration to log in.",
+                'link' => $loginUrl,
+            ];
+        }
+
+        Mail::to($request->email)->send(new SSSMails($data));
+
+        Log::info('Student welcome email sent successfully.', [
+            'student_id' => $usr->id,
+            'email' => $request->email,
+            'school_id' => $request->schid,
+            'login_url' => $loginUrl,
+        ]);
+
+    } catch (\Throwable $e) {
+        Log::error('Failed to send student welcome email.', [
+            'student_id' => $usr->id,
+            'email' => $request->email,
+            'school_id' => $request->schid,
+            'error' => $e->getMessage(),
+        ]);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Return response
     |--------------------------------------------------------------------------
     */
 
     return response()->json([
-        "status" => false,
-        "message" => "Account already exists",
-    ], 400);
+        "status" => true,
+        "message" => "Success",
+    ]);
 }
+
+
 
     /**
      * @OA\Post(
