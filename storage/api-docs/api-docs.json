@@ -2382,7 +2382,7 @@
                     "Api"
                 ],
                 "summary": "Create student account and student records",
-                "description": "Creates a student user account, generates a unique school email address, creates or updates the student's academic, basic, and acceptance fee records.",
+                "description": "Creates a student account using the supplied email address and creates the student's academic, basic, and acceptance fee records. A registration email is sent after successful registration.",
                 "operationId": "setStudentAtOnce",
                 "requestBody": {
                     "required": true,
@@ -2394,17 +2394,14 @@
                                     "password",
                                     "fname",
                                     "lname",
+                                    "email",
                                     "term",
                                     "ssn",
                                     "sch3",
                                     "stat",
-                                    "last_school",
-                                    "last_class",
                                     "new_class",
                                     "new_class_main",
-                                    "dob",
                                     "sex",
-                                    "height",
                                     "country",
                                     "state",
                                     "lga",
@@ -2423,6 +2420,12 @@
                                         "minLength": 6,
                                         "example": "password123"
                                     },
+                                    "email": {
+                                        "description": "Student's email address. Used to create the account and send the registration email.",
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "daniel.okafor@gmail.com"
+                                    },
                                     "fname": {
                                         "description": "Student first name",
                                         "type": "string",
@@ -2436,10 +2439,18 @@
                                         "example": "Okafor"
                                     },
                                     "mname": {
-                                        "description": "Student middle name",
+                                        "description": "Student middle name. Optional.",
                                         "type": "string",
                                         "maxLength": 100,
                                         "example": "Chinedu",
+                                        "nullable": true
+                                    },
+                                    "phone": {
+                                        "description": "Student phone number. Optional. Digits only; leading zeros are allowed.",
+                                        "type": "string",
+                                        "maxLength": 15,
+                                        "pattern": "^[0-9]+$",
+                                        "example": "08012345678",
                                         "nullable": true
                                     },
                                     "term": {
@@ -2463,14 +2474,16 @@
                                         "example": "NEW"
                                     },
                                     "last_school": {
-                                        "description": "Student's previous school",
+                                        "description": "Student's previous school. Optional.",
                                         "type": "string",
-                                        "example": "Previous Secondary School"
+                                        "example": "Previous Secondary School",
+                                        "nullable": true
                                     },
                                     "last_class": {
-                                        "description": "Student's previous class",
+                                        "description": "Student's previous class. Optional.",
                                         "type": "string",
-                                        "example": "JSS3"
+                                        "example": "JSS3",
+                                        "nullable": true
                                     },
                                     "new_class": {
                                         "description": "Student's new class",
@@ -2483,24 +2496,26 @@
                                         "example": "12"
                                     },
                                     "dob": {
-                                        "description": "Student date of birth. Format: YYYY-MM-DD",
+                                        "description": "Student date of birth. Optional. Accepts different text formats, for example 25/12/2010, 2010-12-25, or 25-12-2010.",
                                         "type": "string",
-                                        "format": "date",
-                                        "example": "2010-05-15"
+                                        "maxLength": 50,
+                                        "example": "25/12/2010",
+                                        "nullable": true
                                     },
                                     "sex": {
-                                        "description": "Student gender",
+                                        "description": "Student gender. M = Male, F = Female.",
                                         "type": "string",
                                         "enum": [
-                                            "MALE",
-                                            "FEMALE"
+                                            "M",
+                                            "F"
                                         ],
-                                        "example": "MALE"
+                                        "example": "M"
                                     },
                                     "height": {
-                                        "description": "Student height",
+                                        "description": "Student height. Optional.",
                                         "type": "string",
-                                        "example": "150"
+                                        "example": "150cm",
+                                        "nullable": true
                                     },
                                     "country": {
                                         "description": "Country of residence",
@@ -2523,7 +2538,7 @@
                                         "example": "12 Allen Avenue, Ikeja"
                                     },
                                     "count": {
-                                        "description": "Student registration count. If omitted, it is generated automatically.",
+                                        "description": "Student registration count. Optional. If omitted, it is generated automatically.",
                                         "type": "string",
                                         "example": "15",
                                         "nullable": true
@@ -2605,7 +2620,7 @@
                         }
                     },
                     "422": {
-                        "description": "Validation or school configuration error",
+                        "description": "Validation or school error",
                         "content": {
                             "application/json": {
                                 "schema": {
