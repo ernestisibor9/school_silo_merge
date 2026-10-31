@@ -3832,7 +3832,6 @@ public function admitStudent(Request $request)
 //     }
 
 
-
 public function setStudentAtOnce(Request $request)
 {
     /*
@@ -3920,169 +3919,172 @@ public function setStudentAtOnce(Request $request)
 
     $typ = 'z';
 
-    $usr = User::where("typ", $typ)
-        ->where("email", $request->email)
+    // Prevent this email from being used by another account type.
+    // Multiple accounts with typ = 'z' can use the same email.
+    $existingOtherTypeUser = User::where("email", $request->email)
+        ->where("typ", "!=", $typ)
         ->first();
 
-    if (!$usr) {
-
-        $usr = User::create([
-            "email" => $request->email,
-            "typ" => $typ,
-            "verif" => '1',
-            "password" => bcrypt($request->password),
-        ]);
-
-        $count = $request->count;
-
-        if (!$count) {
-            $count = student::where('schid', $request->schid)->count() + 1;
-        }
-
-        $ssn = $request->ssn;
-
-        student::updateOrCreate(
-            [
-                'sid' => strval($usr->id), // primary unique key
-            ],
-            [
-                'schid' => $request->schid,
-                'fname' => $request->fname,
-                'mname' => $request->mname, // optional
-                'lname' => $request->lname,
-                'year' => $request->ssn,
-                'term' => $request->term,
-                'count' => strval($count),
-                'sch3' => $request->sch3,
-                's_basic' => '0',
-                's_medical' => '0',
-                's_parent' => '0',
-                's_academic' => '0',
-                'rfee' => $request->stat,
-                'stat' => $request->stat,
-                'cuid' => $request->cuid,
-            ]
-        );
-
-        $sid = $request->sch3 . '/' . $ssn . '/' . $request->term . '/' . strval($count);
-
-        $user_id = strval($usr->id);
-
-        $refreshSubjects = false;
-
-        $oldData = student_academic_data::where('user_id', $user_id)->first();
-
-        if ($oldData) {
-            $refreshSubjects = $oldData->new_class_main != $request->new_class_main;
-        } else {
-            $refreshSubjects = true;
-        }
-
-        student_academic_data::updateOrCreate(
-            ["user_id" => $user_id,],
-            [
-                "last_school" => $request->input('last_school', '') ?? '',
-                "last_class" => $request->input('last_class', '') ?? '',
-                "new_class" => $request->new_class,
-                "new_class_main" => $request->new_class_main,
-            ]
-        );
-
-        if ($refreshSubjects) { //Delete all subjs and set new, comps ones
-            student_subj::where('stid', $user_id)->delete();
-            // $schid = $request->schid;
-            // $clsid = $request->new_class_main;
-            // $members = class_subj::where("schid", $schid)->where("clsid", $clsid)->where("comp", '1')->get();
-            // $pld = [];
-            // foreach ($members as $member) {
-            //     $sbj = $member->subj_id;
-            //     $stid = $user_id;
-            //     student_subj::updateOrCreate(
-            //         ["uid"=> $sbj.$stid],
-            //         [
-            //         "stid"=> $stid,
-            //         "sbj"=> $sbj,
-            //         "comp"=> $member->comp,
-            //         "schid"=> $member->schid,
-            //     ]);
-            // }
-        }
-
-        student_basic_data::updateOrCreate(
-            ["user_id" => $user_id,],
-            [
-                "dob" => $request->input('dob', '') ?? '',
-                "sex" => $request->sex,
-                "height" => $request->input('height', '') ?? '',
-                "phone" => $request->input('phone', '') ?? '',
-                "country" => $request->country,
-                "state" => $request->state,
-                "lga" => $request->lga,
-                "addr" => $request->addr,
-            ]
-        );
-
-        student::where('sid', $user_id)->update([
-            "s_basic" => '1',
-            "s_academic" => '1'
-        ]);
-
-        //Set paid acceptance fee
-        $uid = $user_id . $request->schid . $request->new_class_main;
-
-        afeerec::updateOrCreate(
-            ["uid" => $uid,],
-            [
-                "stid" => $user_id,
-                "schid" => $request->schid,
-                "clsid" => $request->new_class_main,
-                "ssn" => $request->ssn,
-                "term" => $request->term,
-                "amt" => 0,
-            ]
-        );
-
-        /*
-        |--------------------------------------------------------------------------
-        | Send registration email
-        |--------------------------------------------------------------------------
-        */
-
-        try {
-
-            if ($request->cuid) {
-                $data = [
-                    'name' => $fname,
-                    'subject' => 'Welcome Back, Your ID remains ' . $request->cuid,
-                    'body' => "Welcome back to your school's platform. Your account was created successfully. If you havent already, please login to your dashboard using the link below and complete your student profile. If the link isnt clickable, please copy the link to your browser. If this arrived in spam folder, please mark as Not Spam. Your Student ID is " . $request->cuid,
-                    'link' => env('PORTAL_URL') . '/studentLogin' . '/' . $request->schid,
-                ];
-            } else {
-                $data = [
-                    'name' => $fname,
-                    'subject' => 'Welcome, Your ID is ' . $sid,
-                    'body' => "Welcome to your school's platform. Your account was created successfully. If you havent already, please login to your dashboard using the link below and complete your student profile. If the link isnt clickable, please copy the link to your browser. If this arrived in spam folder, please mark as Not Spam. Your Student ID is " . $sid,
-                    'link' => env('PORTAL_URL') . '/studentLogin' . '/' . $request->schid,
-                ];
-            }
-
-            Mail::to($request->email)->send(new SSSMails($data));
-
-        } catch (\Exception $e) {
-            // Log the email error, but don't stop the registration process
-            Log::error('Failed to send email: ' . $e->getMessage());
-        }
-
+    if ($existingOtherTypeUser) {
         return response()->json([
-            "status" => true,
-            "message" => "Success",
-        ]);
+            "status" => false,
+            "message" => "Account already exists",
+        ], 400);
+    }
+
+    // Always create a new user for each student.
+    // Duplicate emails are allowed for typ = 'z'.
+    $usr = User::create([
+        "email" => $request->email,
+        "typ" => $typ,
+        "verif" => '1',
+        "password" => bcrypt($request->password),
+    ]);
+
+    $count = $request->count;
+
+    if (!$count) {
+        $count = student::where('schid', $request->schid)->count() + 1;
+    }
+
+    $ssn = $request->ssn;
+
+    student::updateOrCreate(
+        [
+            'sid' => strval($usr->id), // primary unique key
+        ],
+        [
+            'schid' => $request->schid,
+            'fname' => $request->fname,
+            'mname' => $request->mname, // optional
+            'lname' => $request->lname,
+            'year' => $request->ssn,
+            'term' => $request->term,
+            'count' => strval($count),
+            'sch3' => $request->sch3,
+            's_basic' => '0',
+            's_medical' => '0',
+            's_parent' => '0',
+            's_academic' => '0',
+            'rfee' => $request->stat,
+            'stat' => $request->stat,
+            'cuid' => $request->cuid,
+        ]
+    );
+
+    $sid = $request->sch3 . '/' . $ssn . '/' . $request->term . '/' . strval($count);
+
+    $user_id = strval($usr->id);
+
+    $refreshSubjects = false;
+
+    $oldData = student_academic_data::where('user_id', $user_id)->first();
+
+    if ($oldData) {
+        $refreshSubjects = $oldData->new_class_main != $request->new_class_main;
+    } else {
+        $refreshSubjects = true;
+    }
+
+    student_academic_data::updateOrCreate(
+        ["user_id" => $user_id,],
+        [
+            "last_school" => $request->input('last_school', '') ?? '',
+            "last_class" => $request->input('last_class', '') ?? '',
+            "new_class" => $request->new_class,
+            "new_class_main" => $request->new_class_main,
+        ]
+    );
+
+    if ($refreshSubjects) { //Delete all subjs and set new, comps ones
+        student_subj::where('stid', $user_id)->delete();
+        // $schid = $request->schid;
+        // $clsid = $request->new_class_main;
+        // $members = class_subj::where("schid", $schid)->where("clsid", $clsid)->where("comp", '1')->get();
+        // $pld = [];
+        // foreach ($members as $member) {
+        //     $sbj = $member->subj_id;
+        //     $stid = $user_id;
+        //     student_subj::updateOrCreate(
+        //         ["uid"=> $sbj.$stid],
+        //         [
+        //         "stid"=> $stid,
+        //         "sbj"=> $sbj,
+        //         "comp"=> $member->comp,
+        //         "schid"=> $member->schid,
+        //     ]);
+        // }
+    }
+
+    student_basic_data::updateOrCreate(
+        ["user_id" => $user_id,],
+        [
+            "dob" => $request->input('dob', '') ?? '',
+            "sex" => $request->sex,
+            "height" => $request->input('height', '') ?? '',
+            "phone" => $request->input('phone', '') ?? '',
+            "country" => $request->country,
+            "state" => $request->state,
+            "lga" => $request->lga,
+            "addr" => $request->addr,
+        ]
+    );
+
+    student::where('sid', $user_id)->update([
+        "s_basic" => '1',
+        "s_academic" => '1'
+    ]);
+
+    //Set paid acceptance fee
+    $uid = $user_id . $request->schid . $request->new_class_main;
+
+    afeerec::updateOrCreate(
+        ["uid" => $uid,],
+        [
+            "stid" => $user_id,
+            "schid" => $request->schid,
+            "clsid" => $request->new_class_main,
+            "ssn" => $request->ssn,
+            "term" => $request->term,
+            "amt" => 0,
+        ]
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Send registration email
+    |--------------------------------------------------------------------------
+    */
+
+    try {
+
+        if ($request->cuid) {
+            $data = [
+                'name' => $fname,
+                'subject' => 'Welcome Back, Your ID remains ' . $request->cuid,
+                'body' => "Welcome back to your school's platform. Your account was created successfully. If you havent already, please login to your dashboard using the link below and complete your student profile. If the link isnt clickable, please copy the link to your browser. If this arrived in spam folder, please mark as Not Spam. Your Student ID is " . $request->cuid,
+                'link' => env('PORTAL_URL') . '/studentLogin' . '/' . $request->schid,
+            ];
+        } else {
+            $data = [
+                'name' => $fname,
+                'subject' => 'Welcome, Your ID is ' . $sid,
+                'body' => "Welcome to your school's platform. Your account was created successfully. If you havent already, please login to your dashboard using the link below and complete your student profile. If the link isnt clickable, please copy the link to your browser. If this arrived in spam folder, please mark as Not Spam. Your Student ID is " . $sid,
+                'link' => env('PORTAL_URL') . '/studentLogin' . '/' . $request->schid,
+            ];
+        }
+
+        Mail::to($request->email)->send(new SSSMails($data));
+
+    } catch (\Exception $e) {
+        // Log the email error, but don't stop the registration process
+        Log::error('Failed to send email: ' . $e->getMessage());
     }
 
     return response()->json([
-        "status" => false,
-        "message" => "Account already exists",
-    ], 400);
+        "status" => true,
+        "message" => "Success",
+    ]);
 }
 
 
