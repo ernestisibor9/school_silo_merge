@@ -5638,6 +5638,7 @@ public function setStudentAtOnce(Request $request)
 
 
 
+
 public function setStudentAtOnceBulk(Request $request)
 {
     /*
@@ -5672,7 +5673,7 @@ public function setStudentAtOnceBulk(Request $request)
 
         "students.*.dob" => "nullable|string|max:50",
 
-        "students.*.sex" => "required|string|in:M,F,m,f,Male,Female,male,female",
+        "students.*.sex" => "required|in:M,F",
 
         "students.*.height" => "nullable",
         "students.*.country" => "required",
@@ -6111,6 +6112,7 @@ public function setStudentAtOnceBulk(Request $request)
         ], 500);
     }
 }
+
 
 
 
