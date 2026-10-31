@@ -4106,11 +4106,12 @@ public function setStudentAtOnce(Request $request)
 
 
 
-  /**
+
+/**
  * @OA\Post(
  *     path="/api/setStudentAtOnceBulk",
  *     summary="Bulk register students",
- *     description="Creates multiple student accounts and their related student, academic, basic, and acceptance fee records in a single request. Email addresses are generated automatically from the student's name and the school's sbd domain.",
+ *     description="Registers multiple students and creates their user accounts, student records, academic records, basic records, and acceptance fee records. Email addresses must be supplied by the frontend. Multiple accounts with typ = z can share the same email, but an email already belonging to another account type cannot be used.",
  *     operationId="setStudentAtOnceBulk",
  *     tags={"Api"},
  *     security={{"bearerAuth": {}}},
@@ -4133,18 +4134,14 @@ public function setStudentAtOnce(Request $request)
  *                         "password",
  *                         "fname",
  *                         "lname",
+ *                         "email",
  *                         "term",
- *                         "trm",
  *                         "ssn",
  *                         "sch3",
  *                         "stat",
- *                         "last_school",
- *                         "last_class",
  *                         "new_class",
  *                         "new_class_main",
- *                         "dob",
  *                         "sex",
- *                         "height",
  *                         "country",
  *                         "state",
  *                         "lga",
@@ -4168,6 +4165,16 @@ public function setStudentAtOnce(Request $request)
  *                     ),
  *
  *                     @OA\Property(
+ *                         property="phone",
+ *                         type="string",
+ *                         nullable=true,
+ *                         maxLength=15,
+ *                         pattern="^[0-9]+$",
+ *                         example="08012345678",
+ *                         description="Student phone number. Optional; numbers only, maximum 15 digits."
+ *                     ),
+ *
+ *                     @OA\Property(
  *                         property="fname",
  *                         type="string",
  *                         maxLength=100,
@@ -4181,7 +4188,7 @@ public function setStudentAtOnce(Request $request)
  *                         nullable=true,
  *                         maxLength=100,
  *                         example="Chinedu",
- *                         description="Student middle name. Optional. Converted to uppercase by the server."
+ *                         description="Student middle name. Optional."
  *                     ),
  *
  *                     @OA\Property(
@@ -4189,22 +4196,22 @@ public function setStudentAtOnce(Request $request)
  *                         type="string",
  *                         maxLength=100,
  *                         example="Okafor",
- *                         description="Student surname/last name. Converted to uppercase by the server."
+ *                         description="Student surname. Converted to uppercase by the server."
+ *                     ),
+ *
+ *                     @OA\Property(
+ *                         property="email",
+ *                         type="string",
+ *                         format="email",
+ *                         example="daniel@gmail.com",
+ *                         description="Student email address. Required and supplied by the frontend. Email is not generated automatically."
  *                     ),
  *
  *                     @OA\Property(
  *                         property="term",
  *                         type="string",
  *                         example="1",
- *                         description="Academic term."
- *                     ),
- *
- *                     @OA\Property(
- *                         property="trm",
- *                         type="integer",
- *                         enum={1, 2, 3},
- *                         example=1,
- *                         description="Term used for the acceptance fee record."
+ *                         description="Academic term. Also used for the acceptance fee record."
  *                     ),
  *
  *                     @OA\Property(
@@ -4218,7 +4225,7 @@ public function setStudentAtOnce(Request $request)
  *                         property="sch3",
  *                         type="string",
  *                         example="ABC",
- *                         description="School code used when generating the student ID."
+ *                         description="School code."
  *                     ),
  *
  *                     @OA\Property(
@@ -4231,15 +4238,17 @@ public function setStudentAtOnce(Request $request)
  *                     @OA\Property(
  *                         property="last_school",
  *                         type="string",
+ *                         nullable=true,
  *                         example="Previous Secondary School",
- *                         description="Student's previous school."
+ *                         description="Student's previous school. Optional."
  *                     ),
  *
  *                     @OA\Property(
  *                         property="last_class",
  *                         type="string",
+ *                         nullable=true,
  *                         example="JSS3",
- *                         description="Student's previous class."
+ *                         description="Student's previous class. Optional."
  *                     ),
  *
  *                     @OA\Property(
@@ -4259,10 +4268,10 @@ public function setStudentAtOnce(Request $request)
  *                     @OA\Property(
  *                         property="dob",
  *                         type="string",
- *                         format="date",
- *                         pattern="^\d{4}-\d{2}-\d{2}$",
+ *                         nullable=true,
+ *                         maxLength=50,
  *                         example="2010-05-15",
- *                         description="Student date of birth. Must use YYYY-MM-DD format."
+ *                         description="Student date of birth. Optional."
  *                     ),
  *
  *                     @OA\Property(
@@ -4270,14 +4279,15 @@ public function setStudentAtOnce(Request $request)
  *                         type="string",
  *                         enum={"M", "F"},
  *                         example="M",
- *                         description="Student gender."
+ *                         description="Student gender. Only M or F is accepted."
  *                     ),
  *
  *                     @OA\Property(
  *                         property="height",
  *                         type="string",
+ *                         nullable=true,
  *                         example="150",
- *                         description="Student height."
+ *                         description="Student height. Optional."
  *                     ),
  *
  *                     @OA\Property(
@@ -4321,7 +4331,7 @@ public function setStudentAtOnce(Request $request)
  *                         type="string",
  *                         nullable=true,
  *                         example="ABC/2026/0015",
- *                         description="Existing/custom student ID. Optional."
+ *                         description="Existing or custom student ID. Optional."
  *                     )
  *                 )
  *             )
@@ -4353,7 +4363,7 @@ public function setStudentAtOnce(Request $request)
  *
  *     @OA\Response(
  *         response=422,
- *         description="Validation error or school configuration error",
+ *         description="Validation error",
  *         @OA\JsonContent(
  *             @OA\Property(
  *                 property="message",
@@ -4391,1251 +4401,6 @@ public function setStudentAtOnce(Request $request)
  *     )
  * )
  */
-
-
-
-
-// public function setStudentAtOnceBulk(Request $request)
-// {
-//     /*
-//     |--------------------------------------------------------------------------
-//     | Validate Bulk Request
-//     |--------------------------------------------------------------------------
-//     */
-
-//     $request->validate([
-//         "students" => "required|array|min:1",
-
-//         "students.*.schid" => "required",
-//         "students.*.password" => "required|string|min:6",
-
-//         "students.*.fname" => "required|string|max:100",
-//         "students.*.lname" => "required|string|max:100",
-//         "students.*.mname" => "nullable|string|max:100",
-
-//         "students.*.term" => "required",
-//         "students.*.trm" => "required|integer|in:1,2,3",
-
-//         "students.*.ssn" => "required",
-//         "students.*.sch3" => "required",
-//         "students.*.stat" => "required",
-
-//         "students.*.last_school" => "required",
-//         "students.*.last_class" => "required",
-//         "students.*.new_class" => "required",
-//         "students.*.new_class_main" => "required",
-
-//         "students.*.dob" => [
-//             "required",
-//             "date_format:Y-m-d",
-//             "before:today",
-//         ],
-
-//         "students.*.sex" => "required|string|in:M,F,m,f,Male,Female,male,female",
-
-//         "students.*.height" => "required",
-//         "students.*.country" => "required",
-//         "students.*.state" => "required",
-//         "students.*.lga" => "required",
-//         "students.*.addr" => "required",
-
-//         "students.*.count" => "nullable",
-//         "students.*.cuid" => "nullable",
-//     ]);
-
-//     try {
-
-//         /*
-//         |--------------------------------------------------------------------------
-//         | Start Database Transaction
-//         |--------------------------------------------------------------------------
-//         */
-
-//         $mailQueue = DB::transaction(function () use ($request) {
-
-//             $mailQueue = [];
-
-//             /*
-//             |--------------------------------------------------------------------------
-//             | Track Students Already Processed In This Upload
-//             |--------------------------------------------------------------------------
-//             |
-//             | Prevents the same student or CUID from being processed twice
-//             | in one request, even when the database has not yet changed.
-//             |--------------------------------------------------------------------------
-//             */
-
-//             $seenInUpload = [];
-
-//             foreach ($request->students as $index => $data) {
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Convert Names To Uppercase
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 $fname = strtoupper(trim($data['fname']));
-//                 $lname = strtoupper(trim($data['lname']));
-
-//                 $mname = !empty($data['mname'])
-//                     ? strtoupper(trim($data['mname']))
-//                     : null;
-
-//                 $schoolId = (string) $data['schid'];
-
-//                 $cuid = !empty($data['cuid'])
-//                     ? trim($data['cuid'])
-//                     : null;
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Validate DOB
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 try {
-
-//                     $dobObject = Carbon::createFromFormat(
-//                         'Y-m-d',
-//                         $data['dob']
-//                     );
-
-//                     if ($dobObject->format('Y-m-d') !== $data['dob']) {
-//                         throw new \Exception();
-//                     }
-
-//                     $dob = $dobObject->format('Y-m-d');
-
-//                 } catch (\Exception $e) {
-
-//                     throw new \Exception(
-//                         "Invalid date of birth for student: "
-//                         . $fname . " " . $lname
-//                         . ". DOB must be YYYY-MM-DD."
-//                     );
-//                 }
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | DUPLICATE CHECK 1: CURRENT UPLOAD
-//                 |--------------------------------------------------------------------------
-//                 |
-//                 | A. Same school + same CUID
-//                 | B. Same school + same first, middle and last names + DOB
-//                 |
-//                 | CUID comparison ignores letter case and surrounding spaces.
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 $identityKey = json_encode([
-//                     $schoolId,
-//                     $fname,
-//                     $mname ?? '',
-//                     $lname,
-//                     $dob,
-//                 ]);
-
-//                 $cuidKey = $cuid !== null
-//                     ? 'cuid|' . $schoolId . '|' . strtoupper($cuid)
-//                     : null;
-
-//                 if (
-//                     isset($seenInUpload[$identityKey]) ||
-//                     (
-//                         $cuidKey !== null &&
-//                         isset($seenInUpload[$cuidKey])
-//                     )
-//                 ) {
-
-//                     Log::info(
-//                         'Bulk registration: skipped duplicate row in upload (row '
-//                         . ($index + 1)
-//                         . '), student: '
-//                         . $fname . ' ' . $lname
-//                         . ', CUID: '
-//                         . ($cuid ?? 'not supplied')
-//                     );
-
-//                     continue;
-//                 }
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Mark This Row As Seen
-//                 |--------------------------------------------------------------------------
-//                 |
-//                 | Record the keys before checking the database so that repeated
-//                 | rows are also skipped when the first row already exists in DB.
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 $seenInUpload[$identityKey] = true;
-
-//                 if ($cuidKey !== null) {
-//                     $seenInUpload[$cuidKey] = true;
-//                 }
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | DUPLICATE CHECK 2: EXISTING DATABASE RECORDS
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 $existing = null;
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Check CUID Within The Same School
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 if ($cuid !== null) {
-
-//                     $existing = student::where('schid', $data['schid'])
-//                         ->whereRaw(
-//                             'UPPER(TRIM(cuid)) = ?',
-//                             [strtoupper($cuid)]
-//                         )
-//                         ->first();
-//                 }
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | If No CUID Match, Check Names And DOB
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 if (!$existing) {
-
-//                     $existing = student::where('schid', $data['schid'])
-//                         ->whereRaw(
-//                             'UPPER(TRIM(fname)) = ?',
-//                             [$fname]
-//                         )
-//                         ->whereRaw(
-//                             'UPPER(TRIM(lname)) = ?',
-//                             [$lname]
-//                         )
-//                         ->when(
-//                             $mname !== null,
-//                             function ($q) use ($mname) {
-//                                 $q->whereRaw(
-//                                     'UPPER(TRIM(mname)) = ?',
-//                                     [$mname]
-//                                 );
-//                             },
-//                             function ($q) {
-//                                 $q->where(function ($q2) {
-//                                     $q2->whereNull('mname')
-//                                         ->orWhere('mname', '');
-//                                 });
-//                             }
-//                         )
-//                         ->whereIn('sid', function ($q) use ($dob) {
-//                             $q->select('user_id')
-//                                 ->from('student_basic_data')
-//                                 ->where('dob', $dob);
-//                         })
-//                         ->first();
-//                 }
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Skip Existing Student
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 if ($existing) {
-
-//                     Log::info(
-//                         'Bulk registration: skipped existing student (row '
-//                         . ($index + 1)
-//                         . '), student: '
-//                         . $fname . ' ' . $lname
-//                         . ', existing sid: '
-//                         . $existing->sid
-//                         . ', existing CUID: '
-//                         . ($existing->cuid ?? 'not supplied')
-//                     );
-
-//                     continue;
-//                 }
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Get School
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 $school = school::where('sid', $data['schid'])->first();
-
-//                 if (!$school) {
-//                     throw new \Exception(
-//                         "School not found for schid: " . $data['schid']
-//                     );
-//                 }
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Check School Email Domain
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 if (empty($school->sbd)) {
-//                     throw new \Exception(
-//                         "School email domain is not configured for schid: "
-//                         . $data['schid']
-//                     );
-//                 }
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Generate Email Username
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 $emailParts = [
-//                     strtolower($fname),
-//                 ];
-
-//                 if (!empty($mname)) {
-//                     $emailParts[] = strtolower($mname);
-//                 }
-
-//                 $emailParts[] = strtolower($lname);
-
-//                 $emailUsername = implode('_', $emailParts);
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Remove Invalid Characters From Email Username
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 $emailUsername = preg_replace(
-//                     '/[^a-z0-9_]/',
-//                     '',
-//                     $emailUsername
-//                 );
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Get School Domain
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 $schoolDomain = strtolower(trim($school->sbd));
-
-//                 $schoolDomain = preg_replace(
-//                     '/[^a-z0-9.-]/',
-//                     '',
-//                     $schoolDomain
-//                 );
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Prevent Duplicate .com
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 $schoolDomain = preg_replace(
-//                     '/\.com$/i',
-//                     '',
-//                     $schoolDomain
-//                 );
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Generate Email
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 $email = $emailUsername
-//                     . '@'
-//                     . $schoolDomain
-//                     . '.com';
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Ensure Email Is Unique
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 if (User::where('email', $email)->exists()) {
-
-//                     do {
-
-//                         $digits = random_int(1000, 9999);
-
-//                         $email = $emailUsername
-//                             . $digits
-//                             . '@'
-//                             . $schoolDomain
-//                             . '.com';
-
-//                     } while (User::where('email', $email)->exists());
-//                 }
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Create User
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 $usr = User::create([
-//                     "email" => $email,
-//                     "typ" => 'z',
-//                     "verif" => '1',
-//                     "password" => bcrypt($data['password']),
-//                 ]);
-
-//                 $user_id = strval($usr->id);
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Generate Student Count
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 $count = $data['count'] ?? null;
-
-//                 if (!$count) {
-
-//                     $count = student::where(
-//                         'schid',
-//                         $data['schid']
-//                     )->count() + 1;
-//                 }
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Student SSN
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 $ssn = $data['ssn'];
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Create Student
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 student::updateOrCreate(
-//                     [
-//                         'sid' => $user_id,
-//                     ],
-//                     [
-//                         'schid' => $data['schid'],
-
-//                         'fname' => $fname,
-//                         'mname' => $mname,
-//                         'lname' => $lname,
-
-//                         'year' => $data['ssn'],
-//                         'term' => $data['term'],
-
-//                         'count' => strval($count),
-
-//                         'sch3' => $data['sch3'],
-
-//                         's_basic' => '1',
-//                         's_medical' => '0',
-//                         's_parent' => '0',
-//                         's_academic' => '1',
-
-//                         'rfee' => 1,
-//                         'stat' => 1,
-
-//                         'cuid' => $cuid,
-//                     ]
-//                 );
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Student ID
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 $sid = $data['sch3']
-//                     . '/'
-//                     . $ssn
-//                     . '/'
-//                     . $data['term']
-//                     . '/'
-//                     . strval($count);
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Prepare Welcome Email
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 $link = env('PORTAL_URL')
-//                     . '/studentLogin/'
-//                     . $data['schid'];
-
-//                 if ($cuid !== null) {
-
-//                     $mailData = [
-
-//                         'name' => $fname,
-
-//                         'subject' =>
-//                             'Welcome Back, Your ID remains '
-//                             . $cuid,
-
-//                         'body' =>
-//                             "Welcome back to your school's platform. "
-//                             . "Your account was created successfully. "
-//                             . "If you havent already, please login to "
-//                             . "your dashboard using the link below and "
-//                             . "complete your student profile. "
-//                             . "Your Student ID is "
-//                             . $cuid,
-
-//                         'link' => $link,
-//                     ];
-
-//                 } else {
-
-//                     $mailData = [
-
-//                         'name' => $fname,
-
-//                         'subject' =>
-//                             'Welcome, Your ID is ' . $sid,
-
-//                         'body' =>
-//                             "Welcome to your school's platform. "
-//                             . "Your account was created successfully. "
-//                             . "If you havent already, please login to "
-//                             . "your dashboard using the link below and "
-//                             . "complete your student profile. "
-//                             . "Your Student ID is "
-//                             . $sid,
-
-//                         'link' => $link,
-//                     ];
-//                 }
-
-//                 $mailQueue[] = [
-//                     'email' => $email,
-//                     'data' => $mailData,
-//                 ];
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Student Academic Data
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 student_academic_data::updateOrCreate(
-//                     [
-//                         "user_id" => $user_id,
-//                     ],
-//                     [
-//                         "last_school" => $data['last_school'],
-//                         "last_class" => $data['last_class'],
-//                         "new_class" => $data['new_class'],
-//                         "new_class_main" => $data['new_class_main'],
-//                     ]
-//                 );
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Student Basic Data
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 student_basic_data::updateOrCreate(
-//                     [
-//                         "user_id" => $user_id,
-//                     ],
-//                     [
-//                         "dob" => $dob,
-//                         "sex" => $data['sex'],
-//                         "height" => $data['height'],
-//                         "country" => $data['country'],
-//                         "state" => $data['state'],
-//                         "lga" => $data['lga'],
-//                         "addr" => $data['addr'],
-//                     ]
-//                 );
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Mark Student Profile As Complete
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 student::where('sid', $user_id)->update([
-//                     "s_basic" => '1',
-//                     "s_academic" => '1',
-//                 ]);
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Set Acceptance Fee Record
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 $uid = $user_id
-//                     . $data['schid']
-//                     . $data['new_class_main'];
-
-//                 afeerec::updateOrCreate(
-//                     [
-//                         "uid" => $uid,
-//                     ],
-//                     [
-//                         "stid" => $user_id,
-//                         "schid" => $data['schid'],
-//                         "clsid" => $data['new_class_main'],
-//                         "ssn" => $data['ssn'],
-//                         "term" => $data['trm'],
-//                         "amt" => 0,
-//                     ]
-//                 );
-//             }
-
-//             return $mailQueue;
-//         });
-
-//         /*
-//         |--------------------------------------------------------------------------
-//         | Send Welcome Emails After Transaction Commits
-//         |--------------------------------------------------------------------------
-//         */
-
-//         foreach ($mailQueue as $mail) {
-
-//             try {
-
-//                 Mail::to($mail['email'])->send(
-//                     new SSSMails($mail['data'])
-//                 );
-
-//             } catch (\Exception $e) {
-
-//                 Log::error(
-//                     'Failed to send email to '
-//                     . $mail['email']
-//                     . ': '
-//                     . $e->getMessage()
-//                 );
-//             }
-//         }
-
-//         /*
-//         |--------------------------------------------------------------------------
-//         | Successful Response (unchanged)
-//         |--------------------------------------------------------------------------
-//         */
-
-//         return response()->json([
-//             "status" => true,
-//             "message" => "Bulk student registration successful",
-//             "total" => count($request->students),
-//         ]);
-//     }
-
-//     /*
-//     |--------------------------------------------------------------------------
-//     | Handle Error (unchanged)
-//     |--------------------------------------------------------------------------
-//     */
-
-//     catch (\Exception $e) {
-
-//         Log::error(
-//             "Bulk student registration failed: "
-//             . $e->getMessage()
-//         );
-
-//         return response()->json([
-//             "status" => false,
-//             "message" => "Bulk student registration failed.",
-//             "error" => $e->getMessage(),
-//         ], 500);
-//     }
-// }
-
-
-// public function setStudentAtOnceBulk(Request $request)
-// {
-//     /*
-//     |--------------------------------------------------------------------------
-//     | Validate Bulk Request
-//     |--------------------------------------------------------------------------
-//     */
-
-//     $request->validate([
-//         "students" => "required|array|min:1",
-
-//         "students.*.schid" => "required",
-//         "students.*.password" => "required|string|min:6",
-
-//         "students.*.fname" => "required|string|max:100",
-//         "students.*.lname" => "required|string|max:100",
-//         "students.*.mname" => "nullable|string|max:100",
-
-//         "students.*.term" => "required",
-//         "students.*.trm" => "required|integer|in:1,2,3",
-
-//         "students.*.ssn" => "required",
-//         "students.*.sch3" => "required",
-//         "students.*.stat" => "required",
-
-//         "students.*.last_school" => "required",
-//         "students.*.last_class" => "required",
-//         "students.*.new_class" => "required",
-//         "students.*.new_class_main" => "required",
-
-//         "students.*.dob" => [
-//             "required",
-//             "date_format:Y-m-d",
-//             "before:today",
-//         ],
-
-//         "students.*.sex" => "required|string|in:M,F,m,f,Male,Female,male,female",
-
-//         "students.*.height" => "required",
-//         "students.*.country" => "required",
-//         "students.*.state" => "required",
-//         "students.*.lga" => "required",
-//         "students.*.addr" => "required",
-
-//         "students.*.count" => "nullable",
-//         "students.*.cuid" => "nullable",
-//     ]);
-
-//     try {
-
-//         /*
-//         |--------------------------------------------------------------------------
-//         | Start Database Transaction
-//         |--------------------------------------------------------------------------
-//         */
-
-//         DB::transaction(function () use ($request) {
-
-//             /*
-//             |--------------------------------------------------------------------------
-//             | Cache School Records And Student Counts
-//             |--------------------------------------------------------------------------
-//             */
-
-//             $schoolCache = [];
-//             $countCache = [];
-
-//             /*
-//             |--------------------------------------------------------------------------
-//             | Track Students Already Processed In This Upload
-//             |--------------------------------------------------------------------------
-//             */
-
-//             $seenInUpload = [];
-
-//             foreach ($request->students as $index => $data) {
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Convert Names To Uppercase
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 $fname = strtoupper(trim($data['fname']));
-//                 $lname = strtoupper(trim($data['lname']));
-
-//                 $mname = !empty($data['mname'])
-//                     ? strtoupper(trim($data['mname']))
-//                     : null;
-
-//                 $schoolId = (string) $data['schid'];
-
-//                 $cuid = !empty($data['cuid'])
-//                     ? trim($data['cuid'])
-//                     : null;
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Validate DOB
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 try {
-
-//                     $dobObject = Carbon::createFromFormat(
-//                         'Y-m-d',
-//                         $data['dob']
-//                     );
-
-//                     if ($dobObject->format('Y-m-d') !== $data['dob']) {
-//                         throw new \Exception();
-//                     }
-
-//                     $dob = $dobObject->format('Y-m-d');
-
-//                 } catch (\Exception $e) {
-
-//                     throw new \Exception(
-//                         "Invalid date of birth for student: "
-//                         . $fname . " " . $lname
-//                         . ". DOB must be YYYY-MM-DD."
-//                     );
-//                 }
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | DUPLICATE CHECK 1: CURRENT UPLOAD
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 $identityKey = json_encode([
-//                     $schoolId,
-//                     $fname,
-//                     $mname ?? '',
-//                     $lname,
-//                     $dob,
-//                 ]);
-
-//                 $cuidKey = $cuid !== null
-//                     ? 'cuid|' . $schoolId . '|' . strtoupper($cuid)
-//                     : null;
-
-//                 if (
-//                     isset($seenInUpload[$identityKey]) ||
-//                     (
-//                         $cuidKey !== null &&
-//                         isset($seenInUpload[$cuidKey])
-//                     )
-//                 ) {
-
-//                     Log::info(
-//                         'Bulk registration: skipped duplicate row in upload (row '
-//                         . ($index + 1)
-//                         . '), student: '
-//                         . $fname . ' ' . $lname
-//                         . ', CUID: '
-//                         . ($cuid ?? 'not supplied')
-//                     );
-
-//                     continue;
-//                 }
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Mark This Row As Seen
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 $seenInUpload[$identityKey] = true;
-
-//                 if ($cuidKey !== null) {
-//                     $seenInUpload[$cuidKey] = true;
-//                 }
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | DUPLICATE CHECK 2: EXISTING DATABASE RECORDS
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 $existing = null;
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Check CUID Within The Same School
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 if ($cuid !== null) {
-
-//                     $existing = student::where('schid', $data['schid'])
-//                         ->whereRaw(
-//                             'UPPER(TRIM(cuid)) = ?',
-//                             [strtoupper($cuid)]
-//                         )
-//                         ->first();
-//                 }
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | If No CUID Match, Check Names And DOB
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 if (!$existing) {
-
-//                     $existing = student::where('schid', $data['schid'])
-//                         ->whereRaw(
-//                             'UPPER(TRIM(fname)) = ?',
-//                             [$fname]
-//                         )
-//                         ->whereRaw(
-//                             'UPPER(TRIM(lname)) = ?',
-//                             [$lname]
-//                         )
-//                         ->when(
-//                             $mname !== null,
-//                             function ($q) use ($mname) {
-//                                 $q->whereRaw(
-//                                     'UPPER(TRIM(mname)) = ?',
-//                                     [$mname]
-//                                 );
-//                             },
-//                             function ($q) {
-//                                 $q->where(function ($q2) {
-//                                     $q2->whereNull('mname')
-//                                         ->orWhere('mname', '');
-//                                 });
-//                             }
-//                         )
-//                         ->whereIn('sid', function ($q) use ($dob) {
-//                             $q->select('user_id')
-//                                 ->from('student_basic_data')
-//                                 ->where('dob', $dob);
-//                         })
-//                         ->first();
-//                 }
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Skip Existing Student
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 if ($existing) {
-
-//                     Log::info(
-//                         'Bulk registration: skipped existing student (row '
-//                         . ($index + 1)
-//                         . '), student: '
-//                         . $fname . ' ' . $lname
-//                         . ', existing sid: '
-//                         . $existing->sid
-//                         . ', existing CUID: '
-//                         . ($existing->cuid ?? 'not supplied')
-//                     );
-
-//                     continue;
-//                 }
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Get School (Cached)
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 if (!array_key_exists($schoolId, $schoolCache)) {
-//                     $schoolCache[$schoolId] = school::where(
-//                         'sid',
-//                         $schoolId
-//                     )->first();
-//                 }
-
-//                 $school = $schoolCache[$schoolId];
-
-//                 if (!$school) {
-//                     throw new \Exception(
-//                         "School not found for schid: " . $data['schid']
-//                     );
-//                 }
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Check School Email Domain
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 if (empty($school->sbd)) {
-//                     throw new \Exception(
-//                         "School email domain is not configured for schid: "
-//                         . $data['schid']
-//                     );
-//                 }
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Generate Email Username
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 $emailParts = [
-//                     strtolower($fname),
-//                 ];
-
-//                 if (!empty($mname)) {
-//                     $emailParts[] = strtolower($mname);
-//                 }
-
-//                 $emailParts[] = strtolower($lname);
-
-//                 $emailUsername = implode('_', $emailParts);
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Remove Invalid Characters From Email Username
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 $emailUsername = preg_replace(
-//                     '/[^a-z0-9_]/',
-//                     '',
-//                     $emailUsername
-//                 );
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Get School Domain
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 $schoolDomain = strtolower(trim($school->sbd));
-
-//                 $schoolDomain = preg_replace(
-//                     '/[^a-z0-9.-]/',
-//                     '',
-//                     $schoolDomain
-//                 );
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Prevent Duplicate .com
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 $schoolDomain = preg_replace(
-//                     '/\.com$/i',
-//                     '',
-//                     $schoolDomain
-//                 );
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Generate Email Address For The User Account
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 $email = $emailUsername
-//                     . '@'
-//                     . $schoolDomain
-//                     . '.com';
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Ensure Email Is Unique
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 if (User::where('email', $email)->exists()) {
-
-//                     do {
-
-//                         $digits = random_int(1000, 9999);
-
-//                         $email = $emailUsername
-//                             . $digits
-//                             . '@'
-//                             . $schoolDomain
-//                             . '.com';
-
-//                     } while (User::where('email', $email)->exists());
-//                 }
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Create User
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 $usr = User::create([
-//                     "email" => $email,
-//                     "typ" => 'z',
-//                     "verif" => '1',
-//                     "password" => bcrypt($data['password']),
-//                 ]);
-
-//                 $user_id = strval($usr->id);
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Generate Student Count (Cached)
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 $count = $data['count'] ?? null;
-
-//                 if (!$count) {
-
-//                     if (!array_key_exists($schoolId, $countCache)) {
-//                         $countCache[$schoolId] = student::where(
-//                             'schid',
-//                             $schoolId
-//                         )->count();
-//                     }
-
-//                     $countCache[$schoolId]++;
-
-//                     $count = $countCache[$schoolId];
-//                 }
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Student SSN
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 $ssn = $data['ssn'];
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Create Student
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 student::updateOrCreate(
-//                     [
-//                         'sid' => $user_id,
-//                     ],
-//                     [
-//                         'schid' => $data['schid'],
-
-//                         'fname' => $fname,
-//                         'mname' => $mname,
-//                         'lname' => $lname,
-
-//                         'year' => $data['ssn'],
-//                         'term' => $data['term'],
-
-//                         'count' => strval($count),
-
-//                         'sch3' => $data['sch3'],
-
-//                         's_basic' => '1',
-//                         's_medical' => '0',
-//                         's_parent' => '0',
-//                         's_academic' => '1',
-
-//                         'rfee' => 1,
-//                         'stat' => 1,
-
-//                         'cuid' => $cuid,
-//                     ]
-//                 );
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Student Academic Data
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 student_academic_data::updateOrCreate(
-//                     [
-//                         "user_id" => $user_id,
-//                     ],
-//                     [
-//                         "last_school" => $data['last_school'],
-//                         "last_class" => $data['last_class'],
-//                         "new_class" => $data['new_class'],
-//                         "new_class_main" => $data['new_class_main'],
-//                     ]
-//                 );
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Student Basic Data
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 student_basic_data::updateOrCreate(
-//                     [
-//                         "user_id" => $user_id,
-//                     ],
-//                     [
-//                         "dob" => $dob,
-//                         "sex" => $data['sex'],
-//                         "height" => $data['height'],
-//                         "country" => $data['country'],
-//                         "state" => $data['state'],
-//                         "lga" => $data['lga'],
-//                         "addr" => $data['addr'],
-//                     ]
-//                 );
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Mark Student Profile As Complete
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 student::where('sid', $user_id)->update([
-//                     "s_basic" => '1',
-//                     "s_academic" => '1',
-//                 ]);
-
-//                 /*
-//                 |--------------------------------------------------------------------------
-//                 | Set Acceptance Fee Record
-//                 |--------------------------------------------------------------------------
-//                 */
-
-//                 $uid = $user_id
-//                     . $data['schid']
-//                     . $data['new_class_main'];
-
-//                 afeerec::updateOrCreate(
-//                     [
-//                         "uid" => $uid,
-//                     ],
-//                     [
-//                         "stid" => $user_id,
-//                         "schid" => $data['schid'],
-//                         "clsid" => $data['new_class_main'],
-//                         "ssn" => $data['ssn'],
-//                         "term" => $data['trm'],
-//                         "amt" => 0,
-//                     ]
-//                 );
-//             }
-//         });
-
-//         /*
-//         |--------------------------------------------------------------------------
-//         | Successful Response (unchanged)
-//         |--------------------------------------------------------------------------
-//         */
-
-//         return response()->json([
-//             "status" => true,
-//             "message" => "Bulk student registration successful",
-//             "total" => count($request->students),
-//         ]);
-//     }
-
-//     /*
-//     |--------------------------------------------------------------------------
-//     | Handle Error (unchanged)
-//     |--------------------------------------------------------------------------
-//     */
-
-//     catch (\Exception $e) {
-
-//         Log::error(
-//             "Bulk student registration failed: "
-//             . $e->getMessage()
-//         );
-
-//         return response()->json([
-//             "status" => false,
-//             "message" => "Bulk student registration failed.",
-//             "error" => $e->getMessage(),
-//         ], 500);
-//     }
-// }
-
 
 
 
@@ -5908,9 +4673,11 @@ public function setStudentAtOnceBulk(Request $request)
                 |--------------------------------------------------------------------------
                 */
 
-                $existingOtherTypeUser = User::where('email', $email)
-                    ->where('typ', '!=', 'z')
-                    ->exists();
+                $typ = 'z';
+
+                $existingOtherTypeUser = User::where("email", $email)
+                    ->where("typ", "!=", $typ)
+                    ->first();
 
                 if ($existingOtherTypeUser) {
                     throw new \Exception(
@@ -5925,11 +4692,11 @@ public function setStudentAtOnceBulk(Request $request)
                 */
 
                 // Multiple typ = z accounts can share the same email.
-                // No email is generated here. Use the supplied email.
+                // Other account types cannot share this email.
 
                 $usr = User::create([
                     "email" => $email,
-                    "typ" => 'z',
+                    "typ" => $typ,
                     "verif" => '1',
                     "password" => bcrypt($data['password']),
                 ]);
@@ -6112,6 +4879,7 @@ public function setStudentAtOnceBulk(Request $request)
         ], 500);
     }
 }
+
 
 
 

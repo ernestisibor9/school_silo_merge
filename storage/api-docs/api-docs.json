@@ -2653,7 +2653,7 @@
                     "Api"
                 ],
                 "summary": "Bulk register students",
-                "description": "Creates multiple student accounts and their related student, academic, basic, and acceptance fee records in a single request. Email addresses are generated automatically from the student's name and the school's sbd domain.",
+                "description": "Registers multiple students and creates their user accounts, student records, academic records, basic records, and acceptance fee records. Email addresses must be supplied by the frontend. Multiple accounts with typ = z can share the same email, but an email already belonging to another account type cannot be used.",
                 "operationId": "setStudentAtOnceBulk",
                 "requestBody": {
                     "required": true,
@@ -2673,18 +2673,14 @@
                                                 "password",
                                                 "fname",
                                                 "lname",
+                                                "email",
                                                 "term",
-                                                "trm",
                                                 "ssn",
                                                 "sch3",
                                                 "stat",
-                                                "last_school",
-                                                "last_class",
                                                 "new_class",
                                                 "new_class_main",
-                                                "dob",
                                                 "sex",
-                                                "height",
                                                 "country",
                                                 "state",
                                                 "lga",
@@ -2703,6 +2699,14 @@
                                                     "minLength": 6,
                                                     "example": "password123"
                                                 },
+                                                "phone": {
+                                                    "description": "Student phone number. Optional; numbers only, maximum 15 digits.",
+                                                    "type": "string",
+                                                    "maxLength": 15,
+                                                    "pattern": "^[0-9]+$",
+                                                    "example": "08012345678",
+                                                    "nullable": true
+                                                },
                                                 "fname": {
                                                     "description": "Student first name. Converted to uppercase by the server.",
                                                     "type": "string",
@@ -2710,32 +2714,28 @@
                                                     "example": "Daniel"
                                                 },
                                                 "mname": {
-                                                    "description": "Student middle name. Optional. Converted to uppercase by the server.",
+                                                    "description": "Student middle name. Optional.",
                                                     "type": "string",
                                                     "maxLength": 100,
                                                     "example": "Chinedu",
                                                     "nullable": true
                                                 },
                                                 "lname": {
-                                                    "description": "Student surname/last name. Converted to uppercase by the server.",
+                                                    "description": "Student surname. Converted to uppercase by the server.",
                                                     "type": "string",
                                                     "maxLength": 100,
                                                     "example": "Okafor"
                                                 },
+                                                "email": {
+                                                    "description": "Student email address. Required and supplied by the frontend. Email is not generated automatically.",
+                                                    "type": "string",
+                                                    "format": "email",
+                                                    "example": "daniel@gmail.com"
+                                                },
                                                 "term": {
-                                                    "description": "Academic term.",
+                                                    "description": "Academic term. Also used for the acceptance fee record.",
                                                     "type": "string",
                                                     "example": "1"
-                                                },
-                                                "trm": {
-                                                    "description": "Term used for the acceptance fee record.",
-                                                    "type": "integer",
-                                                    "enum": [
-                                                        1,
-                                                        2,
-                                                        3
-                                                    ],
-                                                    "example": 1
                                                 },
                                                 "ssn": {
                                                     "description": "Academic session.",
@@ -2743,7 +2743,7 @@
                                                     "example": "2026"
                                                 },
                                                 "sch3": {
-                                                    "description": "School code used when generating the student ID.",
+                                                    "description": "School code.",
                                                     "type": "string",
                                                     "example": "ABC"
                                                 },
@@ -2753,14 +2753,16 @@
                                                     "example": "NEW"
                                                 },
                                                 "last_school": {
-                                                    "description": "Student's previous school.",
+                                                    "description": "Student's previous school. Optional.",
                                                     "type": "string",
-                                                    "example": "Previous Secondary School"
+                                                    "example": "Previous Secondary School",
+                                                    "nullable": true
                                                 },
                                                 "last_class": {
-                                                    "description": "Student's previous class.",
+                                                    "description": "Student's previous class. Optional.",
                                                     "type": "string",
-                                                    "example": "JSS3"
+                                                    "example": "JSS3",
+                                                    "nullable": true
                                                 },
                                                 "new_class": {
                                                     "description": "Student's new class.",
@@ -2773,14 +2775,14 @@
                                                     "example": "12"
                                                 },
                                                 "dob": {
-                                                    "description": "Student date of birth. Must use YYYY-MM-DD format.",
+                                                    "description": "Student date of birth. Optional.",
                                                     "type": "string",
-                                                    "format": "date",
-                                                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-                                                    "example": "2010-05-15"
+                                                    "maxLength": 50,
+                                                    "example": "2010-05-15",
+                                                    "nullable": true
                                                 },
                                                 "sex": {
-                                                    "description": "Student gender.",
+                                                    "description": "Student gender. Only M or F is accepted.",
                                                     "type": "string",
                                                     "enum": [
                                                         "M",
@@ -2789,9 +2791,10 @@
                                                     "example": "M"
                                                 },
                                                 "height": {
-                                                    "description": "Student height.",
+                                                    "description": "Student height. Optional.",
                                                     "type": "string",
-                                                    "example": "150"
+                                                    "example": "150",
+                                                    "nullable": true
                                                 },
                                                 "country": {
                                                     "description": "Country of residence.",
@@ -2820,7 +2823,7 @@
                                                     "nullable": true
                                                 },
                                                 "cuid": {
-                                                    "description": "Existing/custom student ID. Optional.",
+                                                    "description": "Existing or custom student ID. Optional.",
                                                     "type": "string",
                                                     "example": "ABC/2026/0015",
                                                     "nullable": true
@@ -2863,7 +2866,7 @@
                         }
                     },
                     "422": {
-                        "description": "Validation error or school configuration error",
+                        "description": "Validation error",
                         "content": {
                             "application/json": {
                                 "schema": {
