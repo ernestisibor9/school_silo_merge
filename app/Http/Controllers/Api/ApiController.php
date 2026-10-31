@@ -2653,6 +2653,7 @@ class ApiController extends Controller
 // }
 
 
+
 public function registerStudent(Request $request)
 {
     /*
@@ -2753,6 +2754,21 @@ public function registerStudent(Request $request)
 
     $typ = 'z';
 
+    // Prevent this email from being used by another account type.
+    // Multiple accounts with typ = 'z' can use the same email.
+    $existingOtherTypeUser = User::where("email", $request->email)
+        ->where("typ", "!=", $typ)
+        ->first();
+
+    if ($existingOtherTypeUser) {
+        return response()->json([
+            "status" => false,
+            "message" => "Account already exists",
+        ], 400);
+    }
+
+    // Always create a new user for each student.
+    // Duplicate emails are allowed for typ = 'z'.
     $usr = User::create([
         "email" => $request->email,
         "typ" => $typ,
