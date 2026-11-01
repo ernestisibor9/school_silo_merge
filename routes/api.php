@@ -145,6 +145,8 @@ Route::get('getStudentDetails', [ApiController::class, 'getStudentDetails']);
 Route::get('getSchoolAppFee/{uid}', [ApiController::class, 'getSchoolAppFee']);
 Route::get('getAdmissionInfo/{schid}', [ApiController::class, 'getAdmissionInfo']);
 
+ Route::get('getClasses', [ApiController::class, 'getClss']);
+
 
 Route::group([
     'middleware' => ['auth:api'],
@@ -293,7 +295,7 @@ Route::group([
     Route::get('getPaysByReceiver/{rid}', [ApiController::class, 'getPaysByReceiver']);
     Route::get('getPaysBySender/{sid}', [ApiController::class, 'getPaysBySender']);
     Route::get('getPaysBySenderAndReceiver/{sid}/{rid}', [ApiController::class, 'getPaysBySenderAndReceiver']);
-    Route::get('getClasses', [ApiController::class, 'getClss']);
+    // Route::get('getClasses', [ApiController::class, 'getClss']);
     Route::get('getClassesStat', [ApiController::class, 'getClssStat']);
     Route::get('getPaymentStat/{schid}/{clsid}/{ssnid}/{trmid}', [ApiController::class, 'getPaymentStat']);
     Route::get('getPayments/{schid}/{clsid}/{ssnid}/{trmid}', [ApiController::class, 'getPayments']);

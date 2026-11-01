@@ -19702,7 +19702,7 @@ public function paystackConf(Request $request)
     /**
      * @OA\Get(
      *     path="/api/getClasses",
-     *     tags={"Admin"},
+     *     tags={"Unprotected"},
      *     summary="Get Classes",
      *     description="Use this endpoint to get a list of classes",
      *     security={{"bearerAuth": {}}},
