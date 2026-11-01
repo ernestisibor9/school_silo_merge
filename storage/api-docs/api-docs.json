@@ -13783,7 +13783,7 @@
         "/api/getClasses": {
             "get": {
                 "tags": [
-                    "Admin"
+                    "Unprotected"
                 ],
                 "summary": "Get Classes",
                 "description": "Use this endpoint to get a list of classes",
