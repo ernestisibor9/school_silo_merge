@@ -149,6 +149,7 @@ Route::get('getAdmissionInfo/{schid}', [ApiController::class, 'getAdmissionInfo'
 
  Route::post('uploadFile', [ApiController::class, 'uploadFile']);
 Route::get('getSchoolClasses/{schid}', [ApiController::class, 'getSchoolClasses']);
+ Route::get('getRegFeePayments/{schid}/{rfee}', [ApiController::class, 'getRegFeePayments']);
 
 
 Route::group([
@@ -309,7 +310,7 @@ Route::group([
     Route::get('getAcceptancePayments/{schid}/{clsid}', [ApiController::class, 'getAcceptancePayments']);
     Route::get('confirmAcceptancePayment/{schid}/{clsid}/{stid}/{ssn}/{trm}', [ApiController::class, 'confirmAcceptancePayment']);
     Route::get('getRegFeePaymentStat/{schid}/{rfee}', [ApiController::class, 'getRegFeePaymentStat']);
-    Route::get('getRegFeePayments/{schid}/{rfee}', [ApiController::class, 'getRegFeePayments']);
+    // Route::get('getRegFeePayments/{schid}/{rfee}', [ApiController::class, 'getRegFeePayments']);
     Route::get('getAcctPref/{schid}/{ssn}/{trm}', [ApiController::class, 'getAcctPref']);
     Route::get('getAccountStat/{schid}/{ssn}/{trm}', [ApiController::class, 'getAccountStat']);
     Route::get('getAccountsBySchool/{schid}/{ssn}/{trm}', [ApiController::class, 'getAccountsBySchool']);
