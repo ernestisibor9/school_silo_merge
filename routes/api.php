@@ -148,6 +148,7 @@ Route::get('getAdmissionInfo/{schid}', [ApiController::class, 'getAdmissionInfo'
  Route::get('getClasses', [ApiController::class, 'getClss']);
 
  Route::post('uploadFile', [ApiController::class, 'uploadFile']);
+Route::get('getSchoolClasses/{schid}', [ApiController::class, 'getSchoolClasses']);
 
 
 Route::group([
@@ -327,7 +328,7 @@ Route::group([
     Route::get('getSchoolClassArms/{schid}/{clsid}', [ApiController::class, 'getSchoolClassArms']);
     Route::get('getStaffByClassArmAndSubject/{schid}/{clsid}/{sbid}', [ApiController::class, 'getStaffByClassArmAndSubject']);
     Route::get('getSchoolArmsStat/{schid}/{clsid}', [ApiController::class, 'getSchoolArmsStat']);
-    Route::get('getSchoolClasses/{schid}', [ApiController::class, 'getSchoolClasses']);
+    // Route::get('getSchoolClasses/{schid}', [ApiController::class, 'getSchoolClasses']);
     Route::get('getSubjectsStat', [ApiController::class, 'getSubjsStat']);
     Route::get('getSubject/{sbid}', [ApiController::class, 'getSubj']);
     Route::get('getTerm/{trmid}', [ApiController::class, 'getTrm']);
