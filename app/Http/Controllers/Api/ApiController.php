@@ -2654,6 +2654,305 @@ class ApiController extends Controller
 
 
 
+// public function registerStudent(Request $request)
+// {
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Validate request
+//     |--------------------------------------------------------------------------
+//     */
+
+//     $request->validate([
+//         "schid" => "required",
+//         "email" => "required|email",
+//         "password" => "required",
+//         "fname" => "required|string|max:100",
+//         "lname" => "required|string|max:100",
+//         "mname" => "nullable|string|max:100",
+//         "phone" => "nullable|regex:/^[0-9]+$/|max:15",
+
+//         "term" => "required",
+//         "ssn" => "required",
+//         "sch3" => "required",
+//         "stat" => "required",
+
+//         "cuid" => "nullable|unique:student,cuid",
+
+//         "dob" => "nullable|string|max:50",
+
+//         "sex" => "required|in:M,F",
+//         "height" => "nullable|string|max:255",
+//         "country" => "required|string|max:255",
+//         "state" => "required|string|max:255",
+//         "lga" => "required|string|max:255",
+//         "addr" => "required|string",
+
+//         "last_school" => "nullable|string|max:255",
+//         "last_class" => "nullable|string|max:255",
+//         "new_class" => "required",
+//         "new_class_main" => "required",
+//     ], [
+//         "ssn.required" => "The session field is required.",
+//     ]);
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Convert names to uppercase
+//     |--------------------------------------------------------------------------
+//     */
+
+//     $fname = strtoupper(trim($request->fname));
+//     $lname = strtoupper(trim($request->lname));
+
+//     $mname = $request->filled('mname')
+//         ? strtoupper(trim($request->mname))
+//         : null;
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Password validation
+//     |--------------------------------------------------------------------------
+//     */
+
+//     if (strlen($request->password) < 6) {
+//         return response()->json([
+//             "status" => false,
+//             "message" => "Password must be at least 6 char",
+//         ], 400);
+//     }
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Check existing student
+//     |--------------------------------------------------------------------------
+//     */
+
+//     $tstd = null;
+
+//     if ($request->filled('cuid')) {
+//         $tstd = student::where('cuid', $request->cuid)->first();
+//     } elseif ($request->filled('count')) {
+//         $tstd = student::where('sch3', $request->sch3)
+//             ->where('year', $request->ssn)
+//             ->where('term', $request->term)
+//             ->where('count', $request->count)
+//             ->first();
+//     }
+
+//     if ($tstd) {
+//         return response()->json([
+//             "status" => false,
+//             "message" => "Student already exists",
+//         ], 400);
+//     }
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Create user
+//     |--------------------------------------------------------------------------
+//     */
+
+//     $typ = 'z';
+
+//     // Prevent this email from being used by another account type.
+//     // Multiple accounts with typ = 'z' can use the same email.
+//     $existingOtherTypeUser = User::where("email", $request->email)
+//         ->where("typ", "!=", $typ)
+//         ->first();
+
+//     if ($existingOtherTypeUser) {
+//         return response()->json([
+//             "status" => false,
+//             "message" => "Account already exists",
+//         ], 400);
+//     }
+
+//     // Always create a new user for each student.
+//     // Duplicate emails are allowed for typ = 'z'.
+//     $usr = User::create([
+//         "email" => $request->email,
+//         "typ" => $typ,
+//         "verif" => '1',
+//         "password" => bcrypt($request->password),
+//     ]);
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Generate student count
+//     |--------------------------------------------------------------------------
+//     */
+
+//     $count = $request->count;
+
+//     if (!$count) {
+//         $count = student::where('schid', $request->schid)->count() + 1;
+//     }
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Student session / year
+//     |--------------------------------------------------------------------------
+//     */
+
+//     $ssn = $request->ssn;
+//     $user_id = strval($usr->id);
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Create student record
+//     |--------------------------------------------------------------------------
+//     */
+
+//     student::create([
+//         "sid" => $user_id,
+//         "schid" => $request->schid,
+
+//         "fname" => $fname,
+//         "mname" => $mname,
+//         "lname" => $lname,
+
+//         "count" => strval($count),
+//         "year" => $ssn,
+//         "term" => $request->term,
+//         "sch3" => $request->sch3,
+
+//         "s_basic" => '0',
+//         "s_medical" => '0',
+//         "s_parent" => '0',
+//         "s_academic" => '0',
+
+//         "rfee" => $request->stat,
+//         "stat" => $request->stat,
+//         "cuid" => $request->cuid,
+//     ]);
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Generate student ID
+//     |--------------------------------------------------------------------------
+//     */
+
+//     $sid = $request->sch3
+//         . '/'
+//         . $ssn
+//         . '/'
+//         . $request->term
+//         . '/'
+//         . strval($count);
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Save basic student information
+//     |--------------------------------------------------------------------------
+//     */
+
+//     student_basic_data::updateOrCreate(
+//         [
+//             "user_id" => $user_id,
+//         ],
+//         [
+//             "dob" => $request->dob,
+//             "sex" => $request->sex,
+//             "height" => $request->input('height', '') ?? '',
+//             "country" => $request->country,
+//             "state" => $request->state,
+//             "lga" => $request->lga,
+//             "addr" => $request->addr,
+//         ]
+//     );
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Save academic information
+//     |--------------------------------------------------------------------------
+//     */
+
+//     student_academic_data::updateOrCreate(
+//         [
+//             "user_id" => $user_id,
+//         ],
+//         [
+//             "last_school" => $request->input('last_school') ?? '',
+//             "last_class" => $request->input('last_class') ?? '',
+//             "new_class" => $request->new_class,
+//             "new_class_main" => $request->new_class_main,
+//         ]
+//     );
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Send welcome email
+//     |--------------------------------------------------------------------------
+//     */
+
+//     try {
+//         $portalUrl = rtrim(
+//             config('app.portal_url', 'https://portal.schoolsilomerge.top'),
+//             '/'
+//         );
+
+//         $loginUrl = $portalUrl . '/studentLogin/' . $request->schid;
+
+//         if ($request->filled('cuid')) {
+//             $data = [
+//                 'name' => $fname,
+//                 'subject' => 'Welcome Back, Your ID remains ' . $request->cuid,
+//                 'body' => "Welcome back to your school's platform. Your account was created successfully.\n\n"
+//                     . "Please log in to your dashboard using the link below and complete your student profile.\n\n"
+//                     . "If the link isn't clickable, copy it into your browser. If this email arrives in your spam folder, please mark it as Not Spam.\n\n"
+//                     . "Your Student ID is " . $request->cuid . ".\n\n"
+//                     . "Use the password created during registration to log in.",
+//                 'link' => $loginUrl,
+//             ];
+//         } else {
+//             $data = [
+//                 'name' => $fname,
+//                 'subject' => 'Welcome, Your ID is ' . $sid,
+//                 'body' => "Welcome to your school's platform. Your account was created successfully.\n\n"
+//                     . "Please log in to your dashboard and complete your student profile using the link below.\n\n"
+//                     . "If the link isn't clickable, copy it into your browser. If this email arrives in your spam folder, please mark it as Not Spam.\n\n"
+//                     . "Your Learner's ID is " . $sid . ".\n\n"
+//                     . "Use the password created during registration to log in.",
+//                 'link' => $loginUrl,
+//             ];
+//         }
+
+//         Mail::to($request->email)->send(new SSSMails($data));
+
+//         Log::info('Student welcome email sent successfully.', [
+//             'student_id' => $usr->id,
+//             'email' => $request->email,
+//             'school_id' => $request->schid,
+//             'login_url' => $loginUrl,
+//         ]);
+
+//     } catch (\Throwable $e) {
+//         Log::error('Failed to send student welcome email.', [
+//             'student_id' => $usr->id,
+//             'email' => $request->email,
+//             'school_id' => $request->schid,
+//             'error' => $e->getMessage(),
+//         ]);
+//     }
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Return response
+//     |--------------------------------------------------------------------------
+//     */
+
+//     return response()->json([
+//         "status" => true,
+//         "message" => "Success",
+//         "pld" => [
+//             "cuid" => $request->cuid,
+//             "schid" => $request->schid,
+//             "fname" => $fname,
+//             "lname" => $lname,
+//             ],
+//     ]);
+// }
+
 public function registerStudent(Request $request)
 {
     /*
@@ -2675,8 +2974,6 @@ public function registerStudent(Request $request)
         "ssn" => "required",
         "sch3" => "required",
         "stat" => "required",
-
-        "cuid" => "nullable|unique:student,cuid",
 
         "dob" => "nullable|string|max:50",
 
@@ -2708,6 +3005,8 @@ public function registerStudent(Request $request)
         ? strtoupper(trim($request->mname))
         : null;
 
+    $name = trim($fname . ' ' . ($mname ?? '') . ' ' . $lname);
+
     /*
     |--------------------------------------------------------------------------
     | Password validation
@@ -2729,9 +3028,7 @@ public function registerStudent(Request $request)
 
     $tstd = null;
 
-    if ($request->filled('cuid')) {
-        $tstd = student::where('cuid', $request->cuid)->first();
-    } elseif ($request->filled('count')) {
+    if ($request->filled('count')) {
         $tstd = student::where('sch3', $request->sch3)
             ->where('year', $request->ssn)
             ->where('term', $request->term)
@@ -2799,6 +3096,20 @@ public function registerStudent(Request $request)
 
     /*
     |--------------------------------------------------------------------------
+    | Generate CUID
+    |--------------------------------------------------------------------------
+    */
+
+    $cuid = $request->sch3
+        . '/'
+        . $ssn
+        . '/'
+        . $request->term
+        . '/'
+        . strval($count);
+
+    /*
+    |--------------------------------------------------------------------------
     | Create student record
     |--------------------------------------------------------------------------
     */
@@ -2823,7 +3134,7 @@ public function registerStudent(Request $request)
 
         "rfee" => $request->stat,
         "stat" => $request->stat,
-        "cuid" => $request->cuid,
+        "cuid" => $cuid,
     ]);
 
     /*
@@ -2893,29 +3204,16 @@ public function registerStudent(Request $request)
 
         $loginUrl = $portalUrl . '/studentLogin/' . $request->schid;
 
-        if ($request->filled('cuid')) {
-            $data = [
-                'name' => $fname,
-                'subject' => 'Welcome Back, Your ID remains ' . $request->cuid,
-                'body' => "Welcome back to your school's platform. Your account was created successfully.\n\n"
-                    . "Please log in to your dashboard using the link below and complete your student profile.\n\n"
-                    . "If the link isn't clickable, copy it into your browser. If this email arrives in your spam folder, please mark it as Not Spam.\n\n"
-                    . "Your Student ID is " . $request->cuid . ".\n\n"
-                    . "Use the password created during registration to log in.",
-                'link' => $loginUrl,
-            ];
-        } else {
-            $data = [
-                'name' => $fname,
-                'subject' => 'Welcome, Your ID is ' . $sid,
-                'body' => "Welcome to your school's platform. Your account was created successfully.\n\n"
-                    . "Please log in to your dashboard and complete your student profile using the link below.\n\n"
-                    . "If the link isn't clickable, copy it into your browser. If this email arrives in your spam folder, please mark it as Not Spam.\n\n"
-                    . "Your Learner's ID is " . $sid . ".\n\n"
-                    . "Use the password created during registration to log in.",
-                'link' => $loginUrl,
-            ];
-        }
+        $data = [
+            'name' => $name,
+            'subject' => 'Welcome, Your ID is ' . $cuid,
+            'body' => "Welcome to your school's platform. Your account was created successfully.\n\n"
+                . "Please log in to your dashboard and complete your student profile using the link below.\n\n"
+                . "If the link isn't clickable, copy it into your browser. If this email arrives in your spam folder, please mark it as Not Spam.\n\n"
+                . "Your Student ID is " . $cuid . ".\n\n"
+                . "Use the password created during registration to log in.",
+            'link' => $loginUrl,
+        ];
 
         Mail::to($request->email)->send(new SSSMails($data));
 
@@ -2945,11 +3243,11 @@ public function registerStudent(Request $request)
         "status" => true,
         "message" => "Success",
         "pld" => [
-            "cuid" => $request->cuid,
+            "cuid" => $cuid,
             "schid" => $request->schid,
             "fname" => $fname,
             "lname" => $lname,
-            ],
+        ],
     ]);
 }
 
