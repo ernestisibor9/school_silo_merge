@@ -3243,6 +3243,7 @@ public function registerStudent(Request $request)
         "status" => true,
         "message" => "Success",
         "pld" => [
+            "sid" => $user_id,
             "cuid" => $cuid,
             "schid" => $request->schid,
             "fname" => $fname,
