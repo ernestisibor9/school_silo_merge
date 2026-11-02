@@ -2945,7 +2945,6 @@ public function registerStudent(Request $request)
         "status" => true,
         "message" => "Success",
         "pld" => [
-            "sid" => $sid,
             "cuid" => $request->cuid,
             "schid" => $request->schid,
             "fname" => $fname,
