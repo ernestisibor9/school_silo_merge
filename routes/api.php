@@ -147,6 +147,8 @@ Route::get('getAdmissionInfo/{schid}', [ApiController::class, 'getAdmissionInfo'
 
  Route::get('getClasses', [ApiController::class, 'getClss']);
 
+ Route::post('uploadFile', [ApiController::class, 'uploadFile']);
+
 
 Route::group([
     'middleware' => ['auth:api'],
@@ -545,7 +547,7 @@ Route::group([
     Route::get('getMessageThread/{tid}', [ApiController::class, 'getMessageThread']);
 
     //--FILE
-    Route::post('uploadFile', [ApiController::class, 'uploadFile']);
+    // Route::post('uploadFile', [ApiController::class, 'uploadFile']);
 
     Route::get('getFiles/{uid}', [ApiController::class, 'getFiles']);
     Route::get('fileExists/{folder}/{filename}', [ApiController::class, 'fileExists']);
