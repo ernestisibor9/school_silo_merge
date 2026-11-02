@@ -3278,7 +3278,7 @@ public function registerStudent(Request $request)
      */
     public function studentLoginByEmail(Request $request)
     {
-        //Data validation
+        //Data validation now
         $request->validate([
             "email" => "required|email",
             "password" => "required",
