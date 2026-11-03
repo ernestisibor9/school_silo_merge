@@ -3288,7 +3288,6 @@ public function registerStudent(Request $request)
         "pld" => [
             "sid" => $user_id,
             "cuid" => $cuid,
-            "uid" => $uid,
             "schid" => $request->schid,
             "fname" => $fname,
             "lname" => $lname,
@@ -7521,7 +7520,7 @@ public function setStudentAtOnceBulk(Request $request)
             if (count($compo) == 4) {
                 [$sch3, $year, $term, $count] = $compo;
                 $members = student::where("schid", $schid)
-                    ->where("stat", "1")
+                    // ->where("stat", "1")
                     ->where("sch3", $sch3)
                     ->where("year", $year)
                     ->where("term", $term)
@@ -7529,7 +7528,7 @@ public function setStudentAtOnceBulk(Request $request)
                     ->get();
             } else {
                 $members = student::where("schid", $schid)
-                    ->where("stat", "1")
+                    // ->where("stat", "1")
                     ->where("cuid", $uid)
                     ->get();
             }
