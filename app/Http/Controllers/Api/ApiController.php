@@ -2009,12 +2009,13 @@ class ApiController extends Controller
 //--STUDENT
 
 
+
 /**
  * @OA\Post(
  *     path="/api/registerStudent",
  *     tags={"Unprotected"},
  *     summary="Register a new student",
- *     description="Registers a new student account, saves the student's basic and academic information, and sends a welcome email. First, middle, and last names are converted to uppercase. Date of birth is optional and accepts text in different date formats.",
+ *     description="Registers a new student account, saves basic and academic information, and sends a welcome email. First, middle, and last names are converted to uppercase. The backend generates the student's database sid and cuid. Multiple student accounts may use the same email, provided the email is not already used by another account type. Date of birth is optional and accepts text in different date formats.",
  *
  *     @OA\RequestBody(
  *         required=true,
@@ -2043,51 +2044,45 @@ class ApiController extends Controller
  *                 property="schid",
  *                 type="string",
  *                 description="School ID to which the student belongs.",
- *                 example="3531"
+ *                 example="12"
  *             ),
- *
  *             @OA\Property(
  *                 property="email",
  *                 type="string",
  *                 format="email",
- *                 description="Student email address.",
- *                 example="student@example.com"
+ *                 description="Student email address. May be reused by another student account, but not by an account of a different type.",
+ *                 example="adeniyijanet61@gmail.com"
  *             ),
- *
  *             @OA\Property(
  *                 property="password",
  *                 type="string",
  *                 format="password",
  *                 minLength=6,
  *                 description="Student password. Must contain at least 6 characters.",
- *                 example="password123"
+ *                 example="123456"
  *             ),
- *
  *             @OA\Property(
  *                 property="fname",
  *                 type="string",
  *                 maxLength=100,
  *                 description="Student first name. Automatically converted to uppercase.",
- *                 example="JOHN"
+ *                 example="ADENIYI"
  *             ),
- *
  *             @OA\Property(
  *                 property="lname",
  *                 type="string",
  *                 maxLength=100,
  *                 description="Student last name. Automatically converted to uppercase.",
- *                 example="DOE"
+ *                 example="SOLA"
  *             ),
- *
  *             @OA\Property(
  *                 property="mname",
  *                 type="string",
  *                 nullable=true,
  *                 maxLength=100,
- *                 description="Student middle name. Optional and converted to uppercase.",
- *                 example="MICHAEL"
+ *                 description="Optional middle name. Automatically converted to uppercase.",
+ *                 example="OPEYEMI"
  *             ),
- *
  *             @OA\Property(
  *                 property="phone",
  *                 type="string",
@@ -2095,70 +2090,54 @@ class ApiController extends Controller
  *                 maxLength=15,
  *                 pattern="^[0-9]+$",
  *                 description="Optional phone number containing digits only. Leading zeros are allowed.",
- *                 example="08012345678"
+ *                 example="08130053448"
  *             ),
- *
  *             @OA\Property(
  *                 property="term",
  *                 type="string",
  *                 description="Student academic term.",
  *                 example="1"
  *             ),
- *
  *             @OA\Property(
  *                 property="ssn",
  *                 type="string",
  *                 description="Academic session/year. Saved in the student.year column.",
  *                 example="2026"
  *             ),
- *
  *             @OA\Property(
  *                 property="sch3",
  *                 type="string",
- *                 description="School code used to generate the student ID.",
- *                 example="ABC"
+ *                 description="School code used to generate the student's cuid.",
+ *                 example="HGC"
  *             ),
- *
  *             @OA\Property(
  *                 property="stat",
  *                 type="string",
- *                 description="Student registration status/fee value.",
- *                 example="5000"
+ *                 description="Registration status/fee value saved to the student record.",
+ *                 example="0"
  *             ),
- *
- *             @OA\Property(
- *                 property="cuid",
- *                 type="string",
- *                 nullable=true,
- *                 description="Optional unique student ID. Must not already exist in the student table.",
- *                 example="ABC/2026/1/001"
- *             ),
- *
  *             @OA\Property(
  *                 property="count",
  *                 type="string",
  *                 nullable=true,
- *                 description="Optional student count. Generated automatically if omitted.",
+ *                 description="Optional student count. If omitted or empty, the backend generates it using the number of students registered under the school ID plus one.",
  *                 example="1"
  *             ),
- *
  *             @OA\Property(
  *                 property="dob",
  *                 type="string",
  *                 nullable=true,
  *                 maxLength=50,
  *                 description="Optional date of birth. Accepted as text without enforcing a specific date format.",
- *                 example="25/12/2005"
+ *                 example="05/11/2012"
  *             ),
- *
  *             @OA\Property(
  *                 property="sex",
  *                 type="string",
  *                 enum={"M", "F"},
- *                 description="Student gender. M for male, F for female.",
+ *                 description="Student gender: M for male, F for female.",
  *                 example="M"
  *             ),
- *
  *             @OA\Property(
  *                 property="height",
  *                 type="string",
@@ -2167,38 +2146,33 @@ class ApiController extends Controller
  *                 description="Optional student height.",
  *                 example="150 cm"
  *             ),
- *
  *             @OA\Property(
  *                 property="country",
  *                 type="string",
  *                 maxLength=255,
  *                 description="Student country.",
- *                 example="Nigeria"
+ *                 example="NG"
  *             ),
- *
  *             @OA\Property(
  *                 property="state",
  *                 type="string",
  *                 maxLength=255,
- *                 description="Student state of origin.",
- *                 example="Lagos"
+ *                 description="Student state identifier.",
+ *                 example="29"
  *             ),
- *
  *             @OA\Property(
  *                 property="lga",
  *                 type="string",
  *                 maxLength=255,
- *                 description="Student local government area.",
- *                 example="Ikeja"
+ *                 description="Student local government area identifier.",
+ *                 example="14"
  *             ),
- *
  *             @OA\Property(
  *                 property="addr",
  *                 type="string",
  *                 description="Student residential address.",
- *                 example="12 Example Street, Ikeja, Lagos"
+ *                 example="12 ayola street"
  *             ),
- *
  *             @OA\Property(
  *                 property="last_school",
  *                 type="string",
@@ -2207,35 +2181,32 @@ class ApiController extends Controller
  *                 description="Optional name of the last school attended.",
  *                 example="Bright Future Academy"
  *             ),
- *
  *             @OA\Property(
  *                 property="last_class",
  *                 type="string",
  *                 nullable=true,
  *                 maxLength=255,
  *                 description="Optional last class attended.",
- *                 example="Primary 6"
+ *                 example="14"
  *             ),
- *
  *             @OA\Property(
  *                 property="new_class",
  *                 type="string",
  *                 description="New class the student is registering for.",
- *                 example="JSS 1"
+ *                 example="NIL"
  *             ),
- *
  *             @OA\Property(
  *                 property="new_class_main",
  *                 type="string",
  *                 description="Main class ID for the student's academic record.",
- *                 example="12"
+ *                 example="15"
  *             )
  *         )
  *     ),
  *
  *     @OA\Response(
  *         response=200,
- *         description="Student registered successfully.",
+ *         description="Student registered successfully. The database sid and generated cuid are returned in pld.",
  *         @OA\JsonContent(
  *             type="object",
  *             @OA\Property(
@@ -2247,13 +2218,44 @@ class ApiController extends Controller
  *                 property="message",
  *                 type="string",
  *                 example="Success"
+ *             ),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="object",
+ *                 @OA\Property(
+ *                     property="sid",
+ *                     type="string",
+ *                     description="Database student ID, matching the users table ID.",
+ *                     example="12345"
+ *                 ),
+ *                 @OA\Property(
+ *                     property="cuid",
+ *                     type="string",
+ *                     description="Student code generated by the backend in the format school code/session/term/count.",
+ *                     example="HGC/2026/1/1"
+ *                 ),
+ *                 @OA\Property(
+ *                     property="schid",
+ *                     type="string",
+ *                     example="12"
+ *                 ),
+ *                 @OA\Property(
+ *                     property="fname",
+ *                     type="string",
+ *                     example="ADENIYI"
+ *                 ),
+ *                 @OA\Property(
+ *                     property="lname",
+ *                     type="string",
+ *                     example="SOLA"
+ *                 )
  *             )
  *         )
  *     ),
  *
  *     @OA\Response(
  *         response=400,
- *         description="Password is too short or student already exists.",
+ *         description="Password is too short, student already exists, or the email is already used by another account type.",
  *         @OA\JsonContent(
  *             type="object",
  *             @OA\Property(
@@ -2275,6 +2277,7 @@ class ApiController extends Controller
  *     )
  * )
  */
+
 
 
     // public function registerStudent(Request $request)

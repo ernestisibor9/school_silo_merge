@@ -1908,7 +1908,7 @@
                     "Unprotected"
                 ],
                 "summary": "Register a new student",
-                "description": "Registers a new student account, saves the student's basic and academic information, and sends a welcome email. First, middle, and last names are converted to uppercase. Date of birth is optional and accepts text in different date formats.",
+                "description": "Registers a new student account, saves basic and academic information, and sends a welcome email. First, middle, and last names are converted to uppercase. The backend generates the student's database sid and cuid. Multiple student accounts may use the same email, provided the email is not already used by another account type. Date of birth is optional and accepts text in different date formats.",
                 "operationId": "be7cf7d821314e08bcf500e402daf894",
                 "requestBody": {
                     "required": true,
@@ -1937,38 +1937,38 @@
                                     "schid": {
                                         "description": "School ID to which the student belongs.",
                                         "type": "string",
-                                        "example": "3531"
+                                        "example": "12"
                                     },
                                     "email": {
-                                        "description": "Student email address.",
+                                        "description": "Student email address. May be reused by another student account, but not by an account of a different type.",
                                         "type": "string",
                                         "format": "email",
-                                        "example": "student@example.com"
+                                        "example": "adeniyijanet61@gmail.com"
                                     },
                                     "password": {
                                         "description": "Student password. Must contain at least 6 characters.",
                                         "type": "string",
                                         "format": "password",
                                         "minLength": 6,
-                                        "example": "password123"
+                                        "example": "123456"
                                     },
                                     "fname": {
                                         "description": "Student first name. Automatically converted to uppercase.",
                                         "type": "string",
                                         "maxLength": 100,
-                                        "example": "JOHN"
+                                        "example": "ADENIYI"
                                     },
                                     "lname": {
                                         "description": "Student last name. Automatically converted to uppercase.",
                                         "type": "string",
                                         "maxLength": 100,
-                                        "example": "DOE"
+                                        "example": "SOLA"
                                     },
                                     "mname": {
-                                        "description": "Student middle name. Optional and converted to uppercase.",
+                                        "description": "Optional middle name. Automatically converted to uppercase.",
                                         "type": "string",
                                         "maxLength": 100,
-                                        "example": "MICHAEL",
+                                        "example": "OPEYEMI",
                                         "nullable": true
                                     },
                                     "phone": {
@@ -1976,7 +1976,7 @@
                                         "type": "string",
                                         "maxLength": 15,
                                         "pattern": "^[0-9]+$",
-                                        "example": "08012345678",
+                                        "example": "08130053448",
                                         "nullable": true
                                     },
                                     "term": {
@@ -1990,23 +1990,17 @@
                                         "example": "2026"
                                     },
                                     "sch3": {
-                                        "description": "School code used to generate the student ID.",
+                                        "description": "School code used to generate the student's cuid.",
                                         "type": "string",
-                                        "example": "ABC"
+                                        "example": "HGC"
                                     },
                                     "stat": {
-                                        "description": "Student registration status/fee value.",
+                                        "description": "Registration status/fee value saved to the student record.",
                                         "type": "string",
-                                        "example": "5000"
-                                    },
-                                    "cuid": {
-                                        "description": "Optional unique student ID. Must not already exist in the student table.",
-                                        "type": "string",
-                                        "example": "ABC/2026/1/001",
-                                        "nullable": true
+                                        "example": "0"
                                     },
                                     "count": {
-                                        "description": "Optional student count. Generated automatically if omitted.",
+                                        "description": "Optional student count. If omitted or empty, the backend generates it using the number of students registered under the school ID plus one.",
                                         "type": "string",
                                         "example": "1",
                                         "nullable": true
@@ -2015,11 +2009,11 @@
                                         "description": "Optional date of birth. Accepted as text without enforcing a specific date format.",
                                         "type": "string",
                                         "maxLength": 50,
-                                        "example": "25/12/2005",
+                                        "example": "05/11/2012",
                                         "nullable": true
                                     },
                                     "sex": {
-                                        "description": "Student gender. M for male, F for female.",
+                                        "description": "Student gender: M for male, F for female.",
                                         "type": "string",
                                         "enum": [
                                             "M",
@@ -2038,24 +2032,24 @@
                                         "description": "Student country.",
                                         "type": "string",
                                         "maxLength": 255,
-                                        "example": "Nigeria"
+                                        "example": "NG"
                                     },
                                     "state": {
-                                        "description": "Student state of origin.",
+                                        "description": "Student state identifier.",
                                         "type": "string",
                                         "maxLength": 255,
-                                        "example": "Lagos"
+                                        "example": "29"
                                     },
                                     "lga": {
-                                        "description": "Student local government area.",
+                                        "description": "Student local government area identifier.",
                                         "type": "string",
                                         "maxLength": 255,
-                                        "example": "Ikeja"
+                                        "example": "14"
                                     },
                                     "addr": {
                                         "description": "Student residential address.",
                                         "type": "string",
-                                        "example": "12 Example Street, Ikeja, Lagos"
+                                        "example": "12 ayola street"
                                     },
                                     "last_school": {
                                         "description": "Optional name of the last school attended.",
@@ -2068,18 +2062,18 @@
                                         "description": "Optional last class attended.",
                                         "type": "string",
                                         "maxLength": 255,
-                                        "example": "Primary 6",
+                                        "example": "14",
                                         "nullable": true
                                     },
                                     "new_class": {
                                         "description": "New class the student is registering for.",
                                         "type": "string",
-                                        "example": "JSS 1"
+                                        "example": "NIL"
                                     },
                                     "new_class_main": {
                                         "description": "Main class ID for the student's academic record.",
                                         "type": "string",
-                                        "example": "12"
+                                        "example": "15"
                                     }
                                 },
                                 "type": "object"
@@ -2089,7 +2083,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Student registered successfully.",
+                        "description": "Student registered successfully. The database sid and generated cuid are returned in pld.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2101,6 +2095,33 @@
                                         "message": {
                                             "type": "string",
                                             "example": "Success"
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "sid": {
+                                                    "description": "Database student ID, matching the users table ID.",
+                                                    "type": "string",
+                                                    "example": "12345"
+                                                },
+                                                "cuid": {
+                                                    "description": "Student code generated by the backend in the format school code/session/term/count.",
+                                                    "type": "string",
+                                                    "example": "HGC/2026/1/1"
+                                                },
+                                                "schid": {
+                                                    "type": "string",
+                                                    "example": "12"
+                                                },
+                                                "fname": {
+                                                    "type": "string",
+                                                    "example": "ADENIYI"
+                                                },
+                                                "lname": {
+                                                    "type": "string",
+                                                    "example": "SOLA"
+                                                }
+                                            },
+                                            "type": "object"
                                         }
                                     },
                                     "type": "object"
@@ -2109,7 +2130,7 @@
                         }
                     },
                     "400": {
-                        "description": "Password is too short or student already exists.",
+                        "description": "Password is too short, student already exists, or the email is already used by another account type.",
                         "content": {
                             "application/json": {
                                 "schema": {
