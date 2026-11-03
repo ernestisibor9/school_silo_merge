@@ -3154,6 +3154,45 @@ public function registerStudent(Request $request)
         . '/'
         . strval($count);
 
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Insert legacy student record into old_student
+    |--------------------------------------------------------------------------
+    */
+
+    DB::table('old_student')->insert([
+        "uid" => $ssn . $request->term . $user_id,
+        "sid" => $user_id,
+        "schid" => $request->schid,
+
+        "fname" => $fname,
+        "mname" => $mname,
+        "lname" => $lname,
+
+        "status" => "active",
+        "suid" => $cuid,
+
+        "ssn" => $ssn,
+        "trm" => $request->term,
+        "clsm" => $request->new_class_main,
+
+        "clsa" => null,
+        "cls_sbj_students" => "0",
+
+        "adm_ssn" => null,
+        "adm_trm" => null,
+        "cls_of_adm" => null,
+        "date_of_adm" => null,
+        "adm_status" => "0",
+        "more" => null,
+
+        "created_at" => now(),
+        "updated_at" => now(),
+    ]);
+
+
     /*
     |--------------------------------------------------------------------------
     | Save basic student information
