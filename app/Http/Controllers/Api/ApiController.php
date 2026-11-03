@@ -7557,7 +7557,7 @@ public function setStudentAtOnceBulk(Request $request)
             }
         } else {
             $student = student::where("schid", $schid)
-                ->where("stat", "1")
+                // ->where("stat", "1")
                 ->where("sid", $uid)
                 ->first();
 
