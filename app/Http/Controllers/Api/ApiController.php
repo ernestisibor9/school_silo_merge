@@ -3161,9 +3161,10 @@ public function registerStudent(Request $request)
     | Insert legacy student record into old_student
     |--------------------------------------------------------------------------
     */
+    $uid = $ssn . $request->term . $user_id;
 
     DB::table('old_student')->insert([
-        "uid" => $ssn . $request->term . $user_id,
+        "uid" => $uid,
         "sid" => $user_id,
         "schid" => $request->schid,
 
@@ -3287,6 +3288,7 @@ public function registerStudent(Request $request)
         "pld" => [
             "sid" => $user_id,
             "cuid" => $cuid,
+            "uid" => $uid,
             "schid" => $request->schid,
             "fname" => $fname,
             "lname" => $lname,
