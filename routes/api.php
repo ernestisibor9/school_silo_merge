@@ -145,11 +145,12 @@ Route::get('getStudentDetails', [ApiController::class, 'getStudentDetails']);
 Route::get('getSchoolAppFee/{uid}', [ApiController::class, 'getSchoolAppFee']);
 Route::get('getAdmissionInfo/{schid}', [ApiController::class, 'getAdmissionInfo']);
 
- Route::get('getClasses', [ApiController::class, 'getClss']);
+Route::get('getClasses', [ApiController::class, 'getClss']);
 
- Route::post('uploadFile', [ApiController::class, 'uploadFile']);
+Route::post('uploadFile', [ApiController::class, 'uploadFile']);
 Route::get('getSchoolClasses/{schid}', [ApiController::class, 'getSchoolClasses']);
- Route::get('getRegFeePayments/{schid}/{rfee}', [ApiController::class, 'getRegFeePayments']);
+Route::get('getRegFeePayments/{schid}/{rfee}', [ApiController::class, 'getRegFeePayments']);
+Route::post('setAppFeePaid', [ApiController::class, 'setAppFeePaid']);
 
 
 Route::group([
@@ -173,7 +174,7 @@ Route::group([
     Route::post('setTerm', [ApiController::class, 'setTrm']);
     Route::post('setSchoolTerm', [ApiController::class, 'setSchTrm']);
     Route::post('admitStudent', [ApiController::class, 'admitStudent']);
-    Route::post('setAppFeePaid', [ApiController::class, 'setAppFeePaid']);
+    // Route::post('setAppFeePaid', [ApiController::class, 'setAppFeePaid']);
     Route::post('setStudentBasicInfo', [ApiController::class, 'setStudentBasicInfo']);
     Route::post('setStudentMedicalInfo', [ApiController::class, 'setStudentMedicalInfo']);
     Route::post('setStudentParentInfo', [ApiController::class, 'setStudentParentInfo']);
