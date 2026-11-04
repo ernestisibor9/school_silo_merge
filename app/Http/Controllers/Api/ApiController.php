@@ -5244,6 +5244,7 @@ public function setStudentAtOnce(Request $request)
 
 
 
+
 public function setStudentAtOnceBulk(Request $request)
 {
     /*
@@ -5386,6 +5387,7 @@ public function setStudentAtOnceBulk(Request $request)
             */
 
             $studentRows = [];
+            $oldStudentRows = [];
             $academicRows = [];
             $basicRows = [];
             $feeRows = [];
@@ -5649,6 +5651,26 @@ public function setStudentAtOnceBulk(Request $request)
 
                 /*
                 |--------------------------------------------------------------------------
+                | Generate Student CUID
+                |--------------------------------------------------------------------------
+                |
+                | Use supplied CUID where available.
+                | Otherwise generate it like registerStudent().
+                |
+                */
+
+                $studentCuid = $cuid ?: (
+                    $data['sch3']
+                    . '/'
+                    . $ssn
+                    . '/'
+                    . $data['term']
+                    . '/'
+                    . (string) $count
+                );
+
+                /*
+                |--------------------------------------------------------------------------
                 | Prepare Student Record
                 |--------------------------------------------------------------------------
                 */
@@ -5677,7 +5699,51 @@ public function setStudentAtOnceBulk(Request $request)
                     'rfee' => 1,
                     'stat' => 1,
 
-                    'cuid' => $cuid,
+                    'cuid' => $studentCuid,
+
+                    'created_at' => $timestamp,
+                    'updated_at' => $timestamp,
+
+                ];
+
+                /*
+                |--------------------------------------------------------------------------
+                | Prepare Legacy Old Student Record
+                |--------------------------------------------------------------------------
+                */
+
+                $oldStudentUid = $ssn . $data['term'] . $user_id;
+
+                $oldStudentRows[] = [
+
+                    'uid' => $oldStudentUid,
+
+                    'sid' => $user_id,
+                    'schid' => $schoolId,
+
+                    'fname' => $fname,
+                    'mname' => $mname,
+                    'lname' => $lname,
+
+                    'status' => 'active',
+
+                    'suid' => $studentCuid,
+
+                    'ssn' => $ssn,
+                    'trm' => $data['term'],
+
+                    'clsm' => $data['new_class_main'],
+
+                    'clsa' => null,
+                    'cls_sbj_students' => '0',
+
+                    'adm_ssn' => null,
+                    'adm_trm' => null,
+                    'cls_of_adm' => null,
+                    'date_of_adm' => null,
+
+                    'adm_status' => '0',
+                    'more' => null,
 
                     'created_at' => $timestamp,
                     'updated_at' => $timestamp,
@@ -5799,6 +5865,18 @@ public function setStudentAtOnceBulk(Request $request)
 
             /*
             |--------------------------------------------------------------------------
+            | Batch Insert Legacy Old Student Records
+            |--------------------------------------------------------------------------
+            */
+
+            foreach (array_chunk($oldStudentRows, 500) as $chunk) {
+
+                DB::table('old_student')->insert($chunk);
+
+            }
+
+            /*
+            |--------------------------------------------------------------------------
             | Batch Insert Academic Records
             |--------------------------------------------------------------------------
             */
@@ -5905,6 +5983,7 @@ public function setStudentAtOnceBulk(Request $request)
 
     }
 }
+
 
 
 
