@@ -4752,8 +4752,17 @@ public function setStudentAtOnce(Request $request)
 
 
 
+
 public function setStudentAtOnceBulk(Request $request)
 {
+    /*
+    |--------------------------------------------------------------------------
+    | Set Execution Time
+    |--------------------------------------------------------------------------
+    */
+
+    set_time_limit(120);
+
     /*
     |--------------------------------------------------------------------------
     | Validate Bulk Request
@@ -4924,7 +4933,7 @@ public function setStudentAtOnceBulk(Request $request)
 
                 if ($cuid !== null) {
 
-                    $existing = student::where('schid', $data['schid'])
+                    $existing = student::where('schid', $schoolId)
                         ->whereRaw(
                             'UPPER(TRIM(cuid)) = ?',
                             [strtoupper($cuid)]
@@ -4940,7 +4949,7 @@ public function setStudentAtOnceBulk(Request $request)
 
                 if (!$existing) {
 
-                    $existing = student::where('schid', $data['schid'])
+                    $existing = student::where('schid', $schoolId)
                         ->whereRaw(
                             'UPPER(TRIM(fname)) = ?',
                             [$fname]
@@ -5001,18 +5010,22 @@ public function setStudentAtOnceBulk(Request $request)
                 */
 
                 if (!array_key_exists($schoolId, $schoolCache)) {
+
                     $schoolCache[$schoolId] = school::where(
                         'sid',
                         $schoolId
                     )->first();
+
                 }
 
                 $school = $schoolCache[$schoolId];
 
                 if (!$school) {
+
                     throw new \Exception(
-                        "School not found for schid: " . $data['schid']
+                        "School not found for schid: " . $schoolId
                     );
+
                 }
 
                 /*
@@ -5028,9 +5041,11 @@ public function setStudentAtOnceBulk(Request $request)
                     ->first();
 
                 if ($existingOtherTypeUser) {
+
                     throw new \Exception(
                         "Account already exists for email: " . $email
                     );
+
                 }
 
                 /*
@@ -5041,6 +5056,8 @@ public function setStudentAtOnceBulk(Request $request)
 
                 // Multiple typ = z accounts can share the same email.
                 // Other account types cannot share this email.
+                //
+                // Each student receives an individually salted password hash.
 
                 $usr = User::create([
                     "email" => $email,
@@ -5062,15 +5079,18 @@ public function setStudentAtOnceBulk(Request $request)
                 if (!$count) {
 
                     if (!array_key_exists($schoolId, $countCache)) {
+
                         $countCache[$schoolId] = student::where(
                             'schid',
                             $schoolId
                         )->count();
+
                     }
 
                     $countCache[$schoolId]++;
 
                     $count = $countCache[$schoolId];
+
                 }
 
                 /*
@@ -5092,13 +5112,13 @@ public function setStudentAtOnceBulk(Request $request)
                         'sid' => $user_id,
                     ],
                     [
-                        'schid' => $data['schid'],
+                        'schid' => $schoolId,
 
                         'fname' => $fname,
                         'mname' => $mname,
                         'lname' => $lname,
 
-                        'year' => $data['ssn'],
+                        'year' => $ssn,
                         'term' => $data['term'],
 
                         'count' => strval($count),
@@ -5159,23 +5179,12 @@ public function setStudentAtOnceBulk(Request $request)
 
                 /*
                 |--------------------------------------------------------------------------
-                | Mark Student Profile As Complete
-                |--------------------------------------------------------------------------
-                */
-
-                student::where('sid', $user_id)->update([
-                    "s_basic" => '1',
-                    "s_academic" => '1',
-                ]);
-
-                /*
-                |--------------------------------------------------------------------------
                 | Set Acceptance Fee Record
                 |--------------------------------------------------------------------------
                 */
 
                 $uid = $user_id
-                    . $data['schid']
+                    . $schoolId
                     . $data['new_class_main'];
 
                 afeerec::updateOrCreate(
@@ -5184,19 +5193,21 @@ public function setStudentAtOnceBulk(Request $request)
                     ],
                     [
                         "stid" => $user_id,
-                        "schid" => $data['schid'],
+                        "schid" => $schoolId,
                         "clsid" => $data['new_class_main'],
-                        "ssn" => $data['ssn'],
+                        "ssn" => $ssn,
                         "term" => $data['term'],
                         "amt" => 0,
                     ]
                 );
+
             }
+
         });
 
         /*
         |--------------------------------------------------------------------------
-        | Successful Response (unchanged)
+        | Successful Response (UNCHANGED)
         |--------------------------------------------------------------------------
         */
 
@@ -5205,11 +5216,12 @@ public function setStudentAtOnceBulk(Request $request)
             "message" => "Bulk student registration successful",
             "total" => count($request->students),
         ]);
+
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Handle Error (unchanged)
+    | Handle Error (UNCHANGED)
     |--------------------------------------------------------------------------
     */
 
@@ -5225,8 +5237,10 @@ public function setStudentAtOnceBulk(Request $request)
             "message" => "Bulk student registration failed.",
             "error" => $e->getMessage(),
         ], 500);
+
     }
 }
+
 
 
 
