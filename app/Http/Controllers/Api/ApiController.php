@@ -25039,6 +25039,7 @@ public function restoreStudent(Request $request, $schid, $stid)
                 ->where('schid', $schid)
                 ->update([
                     'status' => 'active',
+                    'exit_student' => NULL,
                     'suid' => $placement['suid'],
                     'updated_at' => now(),
                 ]);
@@ -25051,6 +25052,8 @@ public function restoreStudent(Request $request, $schid, $stid)
                 ->where('schid', $schid)
                 ->update([
                     'status' => 'active',
+                    'exit_student' => NULL,
+                    'suid' => $placement['suid'],
                     'updated_at' => now(),
                 ]);
 
