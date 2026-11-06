@@ -2403,7 +2403,7 @@
                     "Api"
                 ],
                 "summary": "Create student account and student records",
-                "description": "Creates a student account using the supplied email address and creates the student's academic, basic, and acceptance fee records. A registration email is sent after successful registration.",
+                "description": "Creates a student user account and its student, old student, academic, basic, and acceptance fee records. A registration email is sent after successful registration. Multiple student accounts can share the same email address, but the email cannot belong to another account type.",
                 "operationId": "setStudentAtOnce",
                 "requestBody": {
                     "required": true,
@@ -2441,20 +2441,14 @@
                                         "minLength": 6,
                                         "example": "password123"
                                     },
-                                    "email": {
-                                        "description": "Student's email address. Used to create the account and send the registration email.",
-                                        "type": "string",
-                                        "format": "email",
-                                        "example": "daniel.okafor@gmail.com"
-                                    },
                                     "fname": {
-                                        "description": "Student first name",
+                                        "description": "Student first name. Stored in uppercase.",
                                         "type": "string",
                                         "maxLength": 100,
                                         "example": "Daniel"
                                     },
                                     "lname": {
-                                        "description": "Student surname/last name",
+                                        "description": "Student surname/last name. Stored in uppercase.",
                                         "type": "string",
                                         "maxLength": 100,
                                         "example": "Okafor"
@@ -2466,13 +2460,11 @@
                                         "example": "Chinedu",
                                         "nullable": true
                                     },
-                                    "phone": {
-                                        "description": "Student phone number. Optional. Digits only; leading zeros are allowed.",
+                                    "email": {
+                                        "description": "Student email address. Multiple student accounts may share an email, but it cannot already belong to another account type.",
                                         "type": "string",
-                                        "maxLength": 15,
-                                        "pattern": "^[0-9]+$",
-                                        "example": "08012345678",
-                                        "nullable": true
+                                        "format": "email",
+                                        "example": "daniel.okafor@gmail.com"
                                     },
                                     "term": {
                                         "description": "Academic term",
@@ -2490,9 +2482,9 @@
                                         "example": "ABC"
                                     },
                                     "stat": {
-                                        "description": "Student status / registration status",
+                                        "description": "Student registration status. Used for both rfee and stat fields.",
                                         "type": "string",
-                                        "example": "NEW"
+                                        "example": "1"
                                     },
                                     "last_school": {
                                         "description": "Student's previous school. Optional.",
@@ -2517,7 +2509,7 @@
                                         "example": "12"
                                     },
                                     "dob": {
-                                        "description": "Student date of birth. Optional. Accepts different text formats, for example 25/12/2010, 2010-12-25, or 25-12-2010.",
+                                        "description": "Student date of birth. Optional. Accepts different text formats, such as 25/12/2010, 2010-12-25, or 25-12-2010.",
                                         "type": "string",
                                         "maxLength": 50,
                                         "example": "25/12/2010",
@@ -2554,26 +2546,20 @@
                                         "example": "Ikeja"
                                     },
                                     "addr": {
-                                        "description": "Residential address",
+                                        "description": "Student residential address",
                                         "type": "string",
                                         "example": "12 Allen Avenue, Ikeja"
                                     },
                                     "count": {
-                                        "description": "Student registration count. Optional. If omitted, it is generated automatically.",
+                                        "description": "Student registration count. Optional. Automatically generated from the school's student count when omitted.",
                                         "type": "string",
                                         "example": "15",
                                         "nullable": true
                                     },
                                     "cuid": {
-                                        "description": "Existing/custom student ID. Optional.",
+                                        "description": "Existing or custom student ID. Optional. If omitted, a student ID is generated automatically.",
                                         "type": "string",
-                                        "example": "ABC/2026/0015",
-                                        "nullable": true
-                                    },
-                                    "trm": {
-                                        "description": "Term used for acceptance fee record.",
-                                        "type": "string",
-                                        "example": "1",
+                                        "example": "ABC/2026/1/15",
                                         "nullable": true
                                     }
                                 },
@@ -2584,7 +2570,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Student account created successfully",
+                        "description": "Student account and records created successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2604,44 +2590,7 @@
                         }
                     },
                     "400": {
-                        "description": "Bad request",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "oneOf": [
-                                        {
-                                            "properties": {
-                                                "status": {
-                                                    "type": "boolean",
-                                                    "example": false
-                                                },
-                                                "message": {
-                                                    "type": "string",
-                                                    "example": "Account already exists"
-                                                }
-                                            },
-                                            "type": "object"
-                                        },
-                                        {
-                                            "properties": {
-                                                "status": {
-                                                    "type": "boolean",
-                                                    "example": false
-                                                },
-                                                "message": {
-                                                    "type": "string",
-                                                    "example": "Password must be at least 6 characters"
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation or school error",
+                        "description": "Email already belongs to another account type",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2652,7 +2601,33 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "School not found."
+                                            "example": "Account already exists"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation failed, school not found, or student already exists",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "description": "Returned for custom school and duplicate student errors.",
+                                            "type": "boolean",
+                                            "example": false,
+                                            "nullable": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Student already exists."
+                                        },
+                                        "errors": {
+                                            "description": "Laravel validation errors, returned when request validation fails..",
+                                            "type": "object"
                                         }
                                     },
                                     "type": "object"

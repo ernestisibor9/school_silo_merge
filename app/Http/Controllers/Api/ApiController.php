@@ -3681,7 +3681,7 @@ public function admitStudent(Request $request)
  * @OA\Post(
  *     path="/api/setStudentAtOnce",
  *     summary="Create student account and student records",
- *     description="Creates a student account using the supplied email address and creates the student's academic, basic, and acceptance fee records. A registration email is sent after successful registration.",
+ *     description="Creates a student user account and its student, old student, academic, basic, and acceptance fee records. A registration email is sent after successful registration. Multiple student accounts can share the same email address, but the email cannot belong to another account type.",
  *     operationId="setStudentAtOnce",
  *     tags={"Api"},
  *     security={{"bearerAuth": {}}},
@@ -3725,19 +3725,11 @@ public function admitStudent(Request $request)
  *             ),
  *
  *             @OA\Property(
- *                 property="email",
- *                 type="string",
- *                 format="email",
- *                 example="daniel.okafor@gmail.com",
- *                 description="Student's email address. Used to create the account and send the registration email."
- *             ),
- *
- *             @OA\Property(
  *                 property="fname",
  *                 type="string",
  *                 maxLength=100,
  *                 example="Daniel",
- *                 description="Student first name"
+ *                 description="Student first name. Stored in uppercase."
  *             ),
  *
  *             @OA\Property(
@@ -3745,7 +3737,7 @@ public function admitStudent(Request $request)
  *                 type="string",
  *                 maxLength=100,
  *                 example="Okafor",
- *                 description="Student surname/last name"
+ *                 description="Student surname/last name. Stored in uppercase."
  *             ),
  *
  *             @OA\Property(
@@ -3758,13 +3750,11 @@ public function admitStudent(Request $request)
  *             ),
  *
  *             @OA\Property(
- *                 property="phone",
+ *                 property="email",
  *                 type="string",
- *                 nullable=true,
- *                 maxLength=15,
- *                 pattern="^[0-9]+$",
- *                 example="08012345678",
- *                 description="Student phone number. Optional. Digits only; leading zeros are allowed."
+ *                 format="email",
+ *                 example="daniel.okafor@gmail.com",
+ *                 description="Student email address. Multiple student accounts may share an email, but it cannot already belong to another account type."
  *             ),
  *
  *             @OA\Property(
@@ -3791,8 +3781,8 @@ public function admitStudent(Request $request)
  *             @OA\Property(
  *                 property="stat",
  *                 type="string",
- *                 example="NEW",
- *                 description="Student status / registration status"
+ *                 example="1",
+ *                 description="Student registration status. Used for both rfee and stat fields."
  *             ),
  *
  *             @OA\Property(
@@ -3831,7 +3821,7 @@ public function admitStudent(Request $request)
  *                 nullable=true,
  *                 maxLength=50,
  *                 example="25/12/2010",
- *                 description="Student date of birth. Optional. Accepts different text formats, for example 25/12/2010, 2010-12-25, or 25-12-2010."
+ *                 description="Student date of birth. Optional. Accepts different text formats, such as 25/12/2010, 2010-12-25, or 25-12-2010."
  *             ),
  *
  *             @OA\Property(
@@ -3875,7 +3865,7 @@ public function admitStudent(Request $request)
  *                 property="addr",
  *                 type="string",
  *                 example="12 Allen Avenue, Ikeja",
- *                 description="Residential address"
+ *                 description="Student residential address"
  *             ),
  *
  *             @OA\Property(
@@ -3883,30 +3873,22 @@ public function admitStudent(Request $request)
  *                 type="string",
  *                 nullable=true,
  *                 example="15",
- *                 description="Student registration count. Optional. If omitted, it is generated automatically."
+ *                 description="Student registration count. Optional. Automatically generated from the school's student count when omitted."
  *             ),
  *
  *             @OA\Property(
  *                 property="cuid",
  *                 type="string",
  *                 nullable=true,
- *                 example="ABC/2026/0015",
- *                 description="Existing/custom student ID. Optional."
- *             ),
- *
- *             @OA\Property(
- *                 property="trm",
- *                 type="string",
- *                 nullable=true,
- *                 example="1",
- *                 description="Term used for acceptance fee record."
+ *                 example="ABC/2026/1/15",
+ *                 description="Existing or custom student ID. Optional. If omitted, a student ID is generated automatically."
  *             )
  *         )
  *     ),
  *
  *     @OA\Response(
  *         response=200,
- *         description="Student account created successfully",
+ *         description="Student account and records created successfully",
  *         @OA\JsonContent(
  *             @OA\Property(
  *                 property="status",
@@ -3923,40 +3905,7 @@ public function admitStudent(Request $request)
  *
  *     @OA\Response(
  *         response=400,
- *         description="Bad request",
- *         @OA\JsonContent(
- *             oneOf={
- *                 @OA\Schema(
- *                     @OA\Property(
- *                         property="status",
- *                         type="boolean",
- *                         example=false
- *                     ),
- *                     @OA\Property(
- *                         property="message",
- *                         type="string",
- *                         example="Account already exists"
- *                     )
- *                 ),
- *                 @OA\Schema(
- *                     @OA\Property(
- *                         property="status",
- *                         type="boolean",
- *                         example=false
- *                     ),
- *                     @OA\Property(
- *                         property="message",
- *                         type="string",
- *                         example="Password must be at least 6 characters"
- *                     )
- *                 )
- *             }
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=422,
- *         description="Validation or school error",
+ *         description="Email already belongs to another account type",
  *         @OA\JsonContent(
  *             @OA\Property(
  *                 property="status",
@@ -3966,7 +3915,31 @@ public function admitStudent(Request $request)
  *             @OA\Property(
  *                 property="message",
  *                 type="string",
- *                 example="School not found."
+ *                 example="Account already exists"
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation failed, school not found, or student already exists",
+ *         @OA\JsonContent(
+ *             @OA\Property(
+ *                 property="status",
+ *                 type="boolean",
+ *                 nullable=true,
+ *                 example=false,
+ *                 description="Returned for custom school and duplicate student errors."
+ *             ),
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="Student already exists."
+ *             ),
+ *             @OA\Property(
+ *                 property="errors",
+ *                 type="object",
+ *                 description="Laravel validation errors, returned when request validation fails.."
  *             )
  *         )
  *     )
@@ -4196,6 +4169,263 @@ public function admitStudent(Request $request)
 //     }
 
 
+// public function setStudentAtOnce(Request $request)
+// {
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Validate request
+//     |--------------------------------------------------------------------------
+//     */
+
+//     $request->validate([
+//         "schid" => "required",
+//         "password" => "required",
+//         "phone" => "nullable|regex:/^[0-9]+$/|max:15",
+
+//         "fname" => "required|string|max:100",
+//         "lname" => "required|string|max:100",
+//         "mname" => "nullable|string|max:100",
+//         "email" => "required|email",
+
+//         "term" => "required",
+//         "ssn" => "required",
+//         "sch3" => "required",
+//         "stat" => "required",
+//         "last_school" => "nullable",
+//         "last_class" => "nullable",
+//         "new_class" => "required",
+//         "new_class_main" => "required",
+
+//         "dob" => "nullable|string|max:50",
+
+//         "sex" => "required|in:M,F",
+
+//         "height" => "nullable",
+//         "country" => "required",
+//         "state" => "required",
+//         "lga" => "required",
+//         "addr" => "required",
+//     ]);
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Convert names to uppercase
+//     |--------------------------------------------------------------------------
+//     */
+
+//     $fname = strtoupper(trim($request->fname));
+//     $lname = strtoupper(trim($request->lname));
+
+//     $mname = $request->filled('mname')
+//         ? strtoupper(trim($request->mname))
+//         : null;
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Get school
+//     |--------------------------------------------------------------------------
+//     */
+
+//     $school = school::where('sid', $request->schid)->first();
+
+//     if (!$school) {
+//         return response()->json([
+//             "status" => false,
+//             "message" => "School not found.",
+//         ], 422);
+//     }
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Password validation
+//     |--------------------------------------------------------------------------
+//     */
+
+//     if (strlen($request->password) < 6) {
+//         return response()->json([
+//             "status" => false,
+//             "message" => "Password must be at least 6 characters",
+//         ], 400);
+//     }
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Create user
+//     |--------------------------------------------------------------------------
+//     */
+
+//     $typ = 'z';
+
+//     // Prevent this email from being used by another account type.
+//     // Multiple accounts with typ = 'z' can use the same email.
+//     $existingOtherTypeUser = User::where("email", $request->email)
+//         ->where("typ", "!=", $typ)
+//         ->first();
+
+//     if ($existingOtherTypeUser) {
+//         return response()->json([
+//             "status" => false,
+//             "message" => "Account already exists",
+//         ], 400);
+//     }
+
+//     // Always create a new user for each student.
+//     // Duplicate emails are allowed for typ = 'z'.
+//     $usr = User::create([
+//         "email" => $request->email,
+//         "typ" => $typ,
+//         "verif" => '1',
+//         "password" => bcrypt($request->password),
+//     ]);
+
+//     $count = $request->count;
+
+//     if (!$count) {
+//         $count = student::where('schid', $request->schid)->count() + 1;
+//     }
+
+//     $ssn = $request->ssn;
+
+//     student::updateOrCreate(
+//         [
+//             'sid' => strval($usr->id), // primary unique key
+//         ],
+//         [
+//             'schid' => $request->schid,
+//             'fname' => $request->fname,
+//             'mname' => $request->mname, // optional
+//             'lname' => $request->lname,
+//             'year' => $request->ssn,
+//             'term' => $request->term,
+//             'count' => strval($count),
+//             'sch3' => $request->sch3,
+//             's_basic' => '0',
+//             's_medical' => '0',
+//             's_parent' => '0',
+//             's_academic' => '0',
+//             'rfee' => $request->stat,
+//             'stat' => $request->stat,
+//             'cuid' => $request->cuid,
+//         ]
+//     );
+
+//     $sid = $request->sch3 . '/' . $ssn . '/' . $request->term . '/' . strval($count);
+
+//     $user_id = strval($usr->id);
+
+//     $refreshSubjects = false;
+
+//     $oldData = student_academic_data::where('user_id', $user_id)->first();
+
+//     if ($oldData) {
+//         $refreshSubjects = $oldData->new_class_main != $request->new_class_main;
+//     } else {
+//         $refreshSubjects = true;
+//     }
+
+//     student_academic_data::updateOrCreate(
+//         ["user_id" => $user_id,],
+//         [
+//             "last_school" => $request->input('last_school', '') ?? '',
+//             "last_class" => $request->input('last_class', '') ?? '',
+//             "new_class" => $request->new_class,
+//             "new_class_main" => $request->new_class_main,
+//         ]
+//     );
+
+//     if ($refreshSubjects) { //Delete all subjs and set new, comps ones
+//         student_subj::where('stid', $user_id)->delete();
+//         // $schid = $request->schid;
+//         // $clsid = $request->new_class_main;
+//         // $members = class_subj::where("schid", $schid)->where("clsid", $clsid)->where("comp", '1')->get();
+//         // $pld = [];
+//         // foreach ($members as $member) {
+//         //     $sbj = $member->subj_id;
+//         //     $stid = $user_id;
+//         //     student_subj::updateOrCreate(
+//         //         ["uid"=> $sbj.$stid],
+//         //         [
+//         //         "stid"=> $stid,
+//         //         "sbj"=> $sbj,
+//         //         "comp"=> $member->comp,
+//         //         "schid"=> $member->schid,
+//         //     ]);
+//         // }
+//     }
+
+//     student_basic_data::updateOrCreate(
+//         ["user_id" => $user_id,],
+//         [
+//             "dob" => $request->input('dob', '') ?? '',
+//             "sex" => $request->sex,
+//             "height" => $request->input('height', '') ?? '',
+//             "phone" => $request->input('phone', '') ?? '',
+//             "country" => $request->country,
+//             "state" => $request->state,
+//             "lga" => $request->lga,
+//             "addr" => $request->addr,
+//         ]
+//     );
+
+//     student::where('sid', $user_id)->update([
+//         "s_basic" => '1',
+//         "s_academic" => '1'
+//     ]);
+
+//     //Set paid acceptance fee
+//     $uid = $user_id . $request->schid . $request->new_class_main;
+
+//     afeerec::updateOrCreate(
+//         ["uid" => $uid,],
+//         [
+//             "stid" => $user_id,
+//             "schid" => $request->schid,
+//             "clsid" => $request->new_class_main,
+//             "ssn" => $request->ssn,
+//             "term" => $request->term,
+//             "amt" => 0,
+//         ]
+//     );
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Send registration email
+//     |--------------------------------------------------------------------------
+//     */
+
+//     try {
+
+//         if ($request->cuid) {
+//             $data = [
+//                 'name' => $fname,
+//                 'subject' => 'Welcome Back, Your ID remains ' . $request->cuid,
+//                 'body' => "Welcome back to your school's platform. Your account was created successfully. If you havent already, please login to your dashboard using the link below and complete your student profile. If the link isnt clickable, please copy the link to your browser. If this arrived in spam folder, please mark as Not Spam. Your Student ID is " . $request->cuid,
+//                 'link' => env('PORTAL_URL') . '/studentLogin' . '/' . $request->schid,
+//             ];
+//         } else {
+//             $data = [
+//                 'name' => $fname,
+//                 'subject' => 'Welcome, Your ID is ' . $sid,
+//                 'body' => "Welcome to your school's platform. Your account was created successfully. If you havent already, please login to your dashboard using the link below and complete your student profile. If the link isnt clickable, please copy the link to your browser. If this arrived in spam folder, please mark as Not Spam. Your Student ID is " . $sid,
+//                 'link' => env('PORTAL_URL') . '/studentLogin' . '/' . $request->schid,
+//             ];
+//         }
+
+//         Mail::to($request->email)->send(new SSSMails($data));
+
+//     } catch (\Exception $e) {
+//         // Log the email error, but don't stop the registration process
+//         Log::error('Failed to send email: ' . $e->getMessage());
+//     }
+
+//     return response()->json([
+//         "status" => true,
+//         "message" => "Success",
+//     ]);
+// }
+
+
+
 public function setStudentAtOnce(Request $request)
 {
     /*
@@ -4206,8 +4436,7 @@ public function setStudentAtOnce(Request $request)
 
     $request->validate([
         "schid" => "required",
-        "password" => "required",
-        "phone" => "nullable|regex:/^[0-9]+$/|max:15",
+        "password" => "required|string|min:6",
 
         "fname" => "required|string|max:100",
         "lname" => "required|string|max:100",
@@ -4232,6 +4461,9 @@ public function setStudentAtOnce(Request $request)
         "state" => "required",
         "lga" => "required",
         "addr" => "required",
+
+        "count" => "nullable",
+        "cuid" => "nullable",
     ]);
 
     /*
@@ -4243,8 +4475,18 @@ public function setStudentAtOnce(Request $request)
     $fname = strtoupper(trim($request->fname));
     $lname = strtoupper(trim($request->lname));
 
-    $mname = $request->filled('mname')
+    $mname = !empty($request->mname)
         ? strtoupper(trim($request->mname))
+        : null;
+
+    $email = trim($request->email);
+
+    $cuid = !empty($request->cuid)
+        ? trim($request->cuid)
+        : null;
+
+    $dob = !empty($request->dob)
+        ? trim($request->dob)
         : null;
 
     /*
@@ -4264,28 +4506,91 @@ public function setStudentAtOnce(Request $request)
 
     /*
     |--------------------------------------------------------------------------
-    | Password validation
+    | Duplicate Check 1: Existing CUID
     |--------------------------------------------------------------------------
     */
 
-    if (strlen($request->password) < 6) {
-        return response()->json([
-            "status" => false,
-            "message" => "Password must be at least 6 characters",
-        ], 400);
+    if ($cuid !== null) {
+
+        $existing = student::where('schid', $request->schid)
+            ->whereRaw(
+                'UPPER(TRIM(cuid)) = ?',
+                [strtoupper($cuid)]
+            )
+            ->first();
+
+        if ($existing) {
+            return response()->json([
+                "status" => false,
+                "message" => "Student already exists.",
+            ], 422);
+        }
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Create user
+    | Duplicate Check 2: Existing Name And DOB
+    |--------------------------------------------------------------------------
+    */
+
+    $existing = student::where('schid', $request->schid)
+        ->whereRaw(
+            'UPPER(TRIM(fname)) = ?',
+            [$fname]
+        )
+        ->whereRaw(
+            'UPPER(TRIM(lname)) = ?',
+            [$lname]
+        )
+        ->when(
+            $mname !== null,
+            function ($q) use ($mname) {
+
+                $q->whereRaw(
+                    'UPPER(TRIM(mname)) = ?',
+                    [$mname]
+                );
+
+            },
+            function ($q) {
+
+                $q->where(function ($q2) {
+
+                    $q2->whereNull('mname')
+                        ->orWhere('mname', '');
+
+                });
+
+            }
+        )
+        ->whereIn('sid', function ($q) use ($dob) {
+
+            $q->select('user_id')
+                ->from('student_basic_data')
+                ->where('dob', $dob);
+
+        })
+        ->first();
+
+    if ($existing) {
+        return response()->json([
+            "status" => false,
+            "message" => "Student already exists.",
+        ], 422);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Check Email Against Other Account Types
     |--------------------------------------------------------------------------
     */
 
     $typ = 'z';
 
-    // Prevent this email from being used by another account type.
-    // Multiple accounts with typ = 'z' can use the same email.
-    $existingOtherTypeUser = User::where("email", $request->email)
+    // Multiple student accounts (typ = z) can share an email.
+    // Other account types cannot share that email.
+
+    $existingOtherTypeUser = User::where("email", $email)
         ->where("typ", "!=", $typ)
         ->first();
 
@@ -4296,160 +4601,343 @@ public function setStudentAtOnce(Request $request)
         ], 400);
     }
 
-    // Always create a new user for each student.
-    // Duplicate emails are allowed for typ = 'z'.
-    $usr = User::create([
-        "email" => $request->email,
-        "typ" => $typ,
-        "verif" => '1',
-        "password" => bcrypt($request->password),
-    ]);
+    /*
+    |--------------------------------------------------------------------------
+    | Start Database Transaction
+    |--------------------------------------------------------------------------
+    */
 
-    $count = $request->count;
+    $result = DB::transaction(function () use (
+        $request,
+        $fname,
+        $lname,
+        $mname,
+        $email,
+        $cuid,
+        $dob,
+        $typ
+    ) {
 
-    if (!$count) {
-        $count = student::where('schid', $request->schid)->count() + 1;
-    }
+        /*
+        |--------------------------------------------------------------------------
+        | Create user
+        |--------------------------------------------------------------------------
+        */
 
-    $ssn = $request->ssn;
+        // Always create a new user for each student.
+        // Duplicate emails are allowed for typ = z.
 
-    student::updateOrCreate(
-        [
-            'sid' => strval($usr->id), // primary unique key
-        ],
-        [
+        $usr = User::create([
+            "email" => $email,
+            "typ" => $typ,
+            "verif" => '1',
+            "password" => bcrypt($request->password),
+        ]);
+
+        $user_id = strval($usr->id);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Generate Student Count
+        |--------------------------------------------------------------------------
+        */
+
+        $count = $request->count;
+
+        if (!$count) {
+            $count = student::where(
+                'schid',
+                $request->schid
+            )->count() + 1;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Student SSN
+        |--------------------------------------------------------------------------
+        */
+
+        $ssn = $request->ssn;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Generate Student CUID
+        |--------------------------------------------------------------------------
+        */
+
+        // Use supplied CUID where available.
+        // Otherwise generate it like the bulk method.
+
+        $studentCuid = $cuid ?: (
+            $request->sch3
+            . '/'
+            . $ssn
+            . '/'
+            . $request->term
+            . '/'
+            . (string) $count
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Prepare Student Record
+        |--------------------------------------------------------------------------
+        */
+
+        student::updateOrCreate(
+            [
+                'sid' => $user_id,
+            ],
+            [
+                'schid' => $request->schid,
+
+                'fname' => $fname,
+                'mname' => $mname,
+                'lname' => $lname,
+
+                'year' => $ssn,
+                'term' => $request->term,
+
+                'count' => (string) $count,
+
+                'sch3' => $request->sch3,
+
+                's_basic' => '1',
+                's_medical' => '0',
+                's_parent' => '0',
+                's_academic' => '1',
+
+                'rfee' => $request->stat,
+                'stat' => $request->stat,
+
+                'cuid' => $studentCuid,
+            ]
+        );
+
+        $sid = $request->sch3
+            . '/'
+            . $ssn
+            . '/'
+            . $request->term
+            . '/'
+            . (string) $count;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Create Legacy Old Student Record
+        |--------------------------------------------------------------------------
+        */
+
+        $oldStudentUid = $ssn
+            . $request->term
+            . $user_id;
+
+        DB::table('old_student')->insert([
+            'uid' => $oldStudentUid,
+
+            'sid' => $user_id,
             'schid' => $request->schid,
-            'fname' => $request->fname,
-            'mname' => $request->mname, // optional
-            'lname' => $request->lname,
-            'year' => $request->ssn,
-            'term' => $request->term,
-            'count' => strval($count),
-            'sch3' => $request->sch3,
-            's_basic' => '0',
-            's_medical' => '0',
-            's_parent' => '0',
-            's_academic' => '0',
-            'rfee' => $request->stat,
-            'stat' => $request->stat,
-            'cuid' => $request->cuid,
-        ]
-    );
 
-    $sid = $request->sch3 . '/' . $ssn . '/' . $request->term . '/' . strval($count);
+            'fname' => $fname,
+            'mname' => $mname,
+            'lname' => $lname,
 
-    $user_id = strval($usr->id);
+            'status' => 'active',
 
-    $refreshSubjects = false;
+            'suid' => $studentCuid,
 
-    $oldData = student_academic_data::where('user_id', $user_id)->first();
+            'ssn' => $ssn,
+            'trm' => $request->term,
 
-    if ($oldData) {
-        $refreshSubjects = $oldData->new_class_main != $request->new_class_main;
-    } else {
-        $refreshSubjects = true;
-    }
+            'clsm' => $request->new_class_main,
 
-    student_academic_data::updateOrCreate(
-        ["user_id" => $user_id,],
-        [
-            "last_school" => $request->input('last_school', '') ?? '',
-            "last_class" => $request->input('last_class', '') ?? '',
-            "new_class" => $request->new_class,
-            "new_class_main" => $request->new_class_main,
-        ]
-    );
+            'clsa' => null,
+            'cls_sbj_students' => '0',
 
-    if ($refreshSubjects) { //Delete all subjs and set new, comps ones
-        student_subj::where('stid', $user_id)->delete();
-        // $schid = $request->schid;
-        // $clsid = $request->new_class_main;
-        // $members = class_subj::where("schid", $schid)->where("clsid", $clsid)->where("comp", '1')->get();
-        // $pld = [];
-        // foreach ($members as $member) {
-        //     $sbj = $member->subj_id;
-        //     $stid = $user_id;
-        //     student_subj::updateOrCreate(
-        //         ["uid"=> $sbj.$stid],
-        //         [
-        //         "stid"=> $stid,
-        //         "sbj"=> $sbj,
-        //         "comp"=> $member->comp,
-        //         "schid"=> $member->schid,
-        //     ]);
-        // }
-    }
+            'adm_ssn' => null,
+            'adm_trm' => null,
+            'cls_of_adm' => null,
+            'date_of_adm' => null,
 
-    student_basic_data::updateOrCreate(
-        ["user_id" => $user_id,],
-        [
-            "dob" => $request->input('dob', '') ?? '',
-            "sex" => $request->sex,
-            "height" => $request->input('height', '') ?? '',
-            "phone" => $request->input('phone', '') ?? '',
-            "country" => $request->country,
-            "state" => $request->state,
-            "lga" => $request->lga,
-            "addr" => $request->addr,
-        ]
-    );
+            'adm_status' => '0',
+            'more' => null,
 
-    student::where('sid', $user_id)->update([
-        "s_basic" => '1',
-        "s_academic" => '1'
-    ]);
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
-    //Set paid acceptance fee
-    $uid = $user_id . $request->schid . $request->new_class_main;
+        /*
+        |--------------------------------------------------------------------------
+        | Prepare Student Academic Data
+        |--------------------------------------------------------------------------
+        */
 
-    afeerec::updateOrCreate(
-        ["uid" => $uid,],
-        [
-            "stid" => $user_id,
-            "schid" => $request->schid,
-            "clsid" => $request->new_class_main,
-            "ssn" => $request->ssn,
-            "term" => $request->term,
-            "amt" => 0,
-        ]
-    );
+        $refreshSubjects = false;
+
+        $oldData = student_academic_data::where(
+            'user_id',
+            $user_id
+        )->first();
+
+        if ($oldData) {
+            $refreshSubjects = $oldData->new_class_main != $request->new_class_main;
+        } else {
+            $refreshSubjects = true;
+        }
+
+        student_academic_data::updateOrCreate(
+            [
+                "user_id" => $user_id,
+            ],
+            [
+                "last_school" => $request->input('last_school', '') ?? '',
+                "last_class" => $request->input('last_class', '') ?? '',
+                "new_class" => $request->new_class,
+                "new_class_main" => $request->new_class_main,
+            ]
+        );
+
+        if ($refreshSubjects) {
+
+            // Delete all subjects when class changes.
+            // New compulsory subjects can be assigned separately.
+
+            student_subj::where('stid', $user_id)->delete();
+
+            // $schid = $request->schid;
+            // $clsid = $request->new_class_main;
+            // $members = class_subj::where("schid", $schid)
+            //     ->where("clsid", $clsid)
+            //     ->where("comp", '1')->get();
+            // $pld = [];
+            // foreach ($members as $member) {
+            //     $sbj = $member->subj_id;
+            //     $stid = $user_id;
+            //     student_subj::updateOrCreate(
+            //         ["uid" => $sbj.$stid],
+            //         [
+            //             "stid" => $stid,
+            //             "sbj" => $sbj,
+            //             "comp" => $member->comp,
+            //             "schid" => $member->schid,
+            //         ]
+            //     );
+            // }
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Prepare Student Basic Data
+        |--------------------------------------------------------------------------
+        */
+
+        student_basic_data::updateOrCreate(
+            [
+                "user_id" => $user_id,
+            ],
+            [
+                "dob" => $dob,
+                "sex" => $request->sex,
+                "height" => $request->input('height', '') ?? '',
+
+                "country" => $request->country,
+                "state" => $request->state,
+                "lga" => $request->lga,
+                "addr" => $request->addr,
+            ]
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Prepare Acceptance Fee Record
+        |--------------------------------------------------------------------------
+        */
+
+        $uid = $user_id
+            . $request->schid
+            . $request->new_class_main;
+
+        afeerec::updateOrCreate(
+            [
+                "uid" => $uid,
+            ],
+            [
+                "stid" => $user_id,
+                "schid" => $request->schid,
+                "clsid" => $request->new_class_main,
+                "ssn" => $ssn,
+
+                // Correct database column is trm, not term.
+                "trm" => $request->term,
+
+                "amt" => 0,
+            ]
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Return Registration Details
+        |--------------------------------------------------------------------------
+        */
+
+        return [
+            'sid' => $sid,
+            'cuid' => $studentCuid,
+            'user_id' => $user_id,
+        ];
+
+    });
 
     /*
     |--------------------------------------------------------------------------
-    | Send registration email
+    | Send Registration Email
     |--------------------------------------------------------------------------
     */
 
     try {
 
-        if ($request->cuid) {
+        if ($cuid) {
+
             $data = [
                 'name' => $fname,
-                'subject' => 'Welcome Back, Your ID remains ' . $request->cuid,
-                'body' => "Welcome back to your school's platform. Your account was created successfully. If you havent already, please login to your dashboard using the link below and complete your student profile. If the link isnt clickable, please copy the link to your browser. If this arrived in spam folder, please mark as Not Spam. Your Student ID is " . $request->cuid,
+                'subject' => 'Welcome Back, Your ID remains ' . $result['cuid'],
+                'body' => "Welcome back to your school's platform. Your account was created successfully. If you havent already, please login to your dashboard using the link below and complete your student profile. If the link isnt clickable, please copy the link to your browser. If this arrived in spam folder, please mark as Not Spam. Your Student ID is " . $result['cuid'],
                 'link' => env('PORTAL_URL') . '/studentLogin' . '/' . $request->schid,
             ];
+
         } else {
+
             $data = [
                 'name' => $fname,
-                'subject' => 'Welcome, Your ID is ' . $sid,
-                'body' => "Welcome to your school's platform. Your account was created successfully. If you havent already, please login to your dashboard using the link below and complete your student profile. If the link isnt clickable, please copy the link to your browser. If this arrived in spam folder, please mark as Not Spam. Your Student ID is " . $sid,
+                'subject' => 'Welcome, Your ID is ' . $result['sid'],
+                'body' => "Welcome to your school's platform. Your account was created successfully. If you havent already, please login to your dashboard using the link below and complete your student profile. If the link isnt clickable, please copy the link to your browser. If this arrived in spam folder, please mark as Not Spam. Your Student ID is " . $result['sid'],
                 'link' => env('PORTAL_URL') . '/studentLogin' . '/' . $request->schid,
             ];
+
         }
 
-        Mail::to($request->email)->send(new SSSMails($data));
+        Mail::to($email)->send(new SSSMails($data));
 
     } catch (\Exception $e) {
-        // Log the email error, but don't stop the registration process
+
+        // Log the email error, but don't stop the registration process.
+
         Log::error('Failed to send email: ' . $e->getMessage());
+
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Successful Response (UNCHANGED)
+    |--------------------------------------------------------------------------
+    */
 
     return response()->json([
         "status" => true,
         "message" => "Success",
     ]);
 }
+
 
 
 
