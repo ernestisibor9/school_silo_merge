@@ -32,7 +32,14 @@ return [
     ],
 
     'paystack' => [
-    'secret' => env('PAYSTACK_SECRET'),
-],
+        'secret' => env('PAYSTACK_SECRET'),
+    ],
+
+    'billing_paystack' => [
+        'public_key' => env('BILLING_PAYSTACK_PUBLIC_KEY'),
+        'secret_key' => env('BILLING_PAYSTACK_SECRET_KEY'),
+        'payment_url' => 'https://api.paystack.co/transaction/initialize',
+        'verify_url' => 'https://api.paystack.co/transaction/verify/',
+    ],
 
 ];

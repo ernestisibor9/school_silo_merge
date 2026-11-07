@@ -95,9 +95,7 @@ class SchoolBillController extends Controller
         return response()->json([
             'status' => true,
             'message' => 'School bills retrieved successfully.',
-            'pld' => [
-                'bills' => $bills,
-            ],
+            'pld' => $bills
         ], 200);
     }
 }

@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\ApiController;
 use App\Http\Controllers\Api\TechnologyFeeController;
 use App\Http\Controllers\Api\SchoolBillController;
+use App\Http\Controllers\Api\SchoolBillPaymentController;
 
 
 
@@ -171,6 +172,7 @@ Route::group([
 
         // Technology Billing - School Admin
     Route::get('/billing/school-bills', [SchoolBillController::class, 'index']);
+    Route::post('/billing/school-bills/{billId}/payments/initialize',[SchoolBillPaymentController::class, 'initialize']);
 
     Route::post('sendEmailVerificationLink', [ApiController::class, 'sendEmailVerificationLink']);
     Route::post('setSchool', [ApiController::class, 'setSchool']);
