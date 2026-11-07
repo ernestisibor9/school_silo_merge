@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\SchoolBillPaymentController;
 
 
 
+
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
@@ -154,6 +155,9 @@ Route::post('uploadFile', [ApiController::class, 'uploadFile']);
 Route::get('getSchoolClasses/{schid}', [ApiController::class, 'getSchoolClasses']);
 Route::get('getRegFeePayments/{schid}/{rfee}', [ApiController::class, 'getRegFeePayments']);
 Route::post('setAppFeePaid', [ApiController::class, 'setAppFeePaid']);
+
+
+Route::post('/billing/paystack/webhook',[SchoolBillPaymentController::class, 'webhook']);
 
 
 Route::group([
