@@ -177,6 +177,7 @@ Route::group([
         // Technology Billing - School Admin
     Route::get('/billing/school-bills', [SchoolBillController::class, 'index']);
     Route::post('/billing/school-bills/{billId}/payments/initialize',[SchoolBillPaymentController::class, 'initialize']);
+    Route::post('/billing/school-bill-payments/{reference}/verify',[SchoolBillPaymentController::class, 'verify']);
 
     Route::post('sendEmailVerificationLink', [ApiController::class, 'sendEmailVerificationLink']);
     Route::post('setSchool', [ApiController::class, 'setSchool']);

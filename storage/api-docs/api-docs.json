@@ -36729,6 +36729,56 @@
                 ]
             }
         },
+        "/api/billing/school-bill-payments/{reference}/verify": {
+            "post": {
+                "tags": [
+                    "School Technology Billing"
+                ],
+                "summary": "Verify school technology billing payment",
+                "description": "Verifies a technology billing payment directly with Paystack and updates its payment and bill status.",
+                "operationId": "verifySchoolBillPayment",
+                "parameters": [
+                    {
+                        "name": "reference",
+                        "in": "path",
+                        "description": "Paystack payment reference",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "TECHBILL-1-123e4567-e89b-12d3-a456-426614174000"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Payment verification result"
+                    },
+                    "202": {
+                        "description": "Payment is still pending"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Only School Admins can verify payments"
+                    },
+                    "404": {
+                        "description": "Payment not found"
+                    },
+                    "422": {
+                        "description": "Payment verification failed"
+                    },
+                    "502": {
+                        "description": "Paystack verification request failed"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/billing/technology-fees": {
             "post": {
                 "tags": [
