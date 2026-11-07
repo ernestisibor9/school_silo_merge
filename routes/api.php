@@ -178,6 +178,8 @@ Route::group([
     Route::get('/billing/school-bills', [SchoolBillController::class, 'index']);
     Route::post('/billing/school-bills/{billId}/payments/initialize',[SchoolBillPaymentController::class, 'initialize']);
     Route::post('/billing/school-bill-payments/{reference}/verify',[SchoolBillPaymentController::class, 'verify']);
+    Route::post('/billing/schools/{schoolId}/suspend',[SchoolSuspensionController::class, 'suspend']);
+    Route::post('/billing/schools/{schoolId}/reactivate',[SchoolSuspensionController::class, 'reactivate']);
 
     Route::post('sendEmailVerificationLink', [ApiController::class, 'sendEmailVerificationLink']);
     Route::post('setSchool', [ApiController::class, 'setSchool']);
