@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\ApiController;
+use App\Http\Controllers\Api\TechnologyFeeController;
 
 
 
@@ -159,9 +160,13 @@ Route::group([
 
     Route::get('/getDomainAdmin', [ApiController::class, 'getDomainAdmin']);
     Route::get('/getDomainSupportAdmin', [ApiController::class, 'getDomainSupportAdmin']);
-
-
     Route::post('setAdmissionInfo', [ApiController::class, 'setAdmissionInfo']);
+
+    // Technology Billing - Domain Admin
+    Route::post('/billing/technology-fees',[TechnologyFeeController::class, 'store']);
+    Route::put('/billing/technology-fees/{id}',[TechnologyFeeController::class, 'update']);
+    Route::post('/billing/technology-fees/{id}/publish',[TechnologyFeeController::class, 'publish']
+);
 
     Route::post('sendEmailVerificationLink', [ApiController::class, 'sendEmailVerificationLink']);
     Route::post('setSchool', [ApiController::class, 'setSchool']);

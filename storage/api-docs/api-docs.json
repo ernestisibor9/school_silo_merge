@@ -36538,6 +36538,167 @@
                     }
                 }
             }
+        },
+        "/api/billing/technology-fees": {
+            "post": {
+                "tags": [
+                    "Billing"
+                ],
+                "summary": "Create a technology fee",
+                "description": "Creates a technology fee in draft status. Only the Domain Admin can create technology fees.",
+                "operationId": "createTechnologyFee",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "academic_session",
+                                    "term",
+                                    "fee_per_student"
+                                ],
+                                "properties": {
+                                    "academic_session": {
+                                        "type": "string",
+                                        "example": "2026/2027"
+                                    },
+                                    "term": {
+                                        "type": "string",
+                                        "example": "First Term"
+                                    },
+                                    "fee_per_student": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 1500
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Technology fee created successfully as a draft"
+                    },
+                    "403": {
+                        "description": "Unauthorized. Only the Domain Admin can manage technology fees."
+                    },
+                    "409": {
+                        "description": "A technology fee already exists for this academic session and term."
+                    },
+                    "422": {
+                        "description": "Validation failed"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/billing/technology-fees/{id}": {
+            "put": {
+                "tags": [
+                    "Billing"
+                ],
+                "summary": "Update a technology fee",
+                "description": "Updates the per-student technology fee. If the fee has already been published, existing unpaid school bills are automatically recalculated. Paid bills remain unchanged.",
+                "operationId": "updateTechnologyFee",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Technology fee ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "fee_per_student"
+                                ],
+                                "properties": {
+                                    "fee_per_student": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 2000
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Technology fee updated successfully"
+                    },
+                    "403": {
+                        "description": "Unauthorized. Only the Domain Admin can manage technology fees."
+                    },
+                    "404": {
+                        "description": "Technology fee not found"
+                    },
+                    "422": {
+                        "description": "Validation failed"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/billing/technology-fees/{id}/publish": {
+            "post": {
+                "tags": [
+                    "Billing"
+                ],
+                "summary": "Publish a technology fee",
+                "description": "Publishes a draft technology fee and generates individual bills for all schools with billable learners for the selected academic session and term. Schools without billable learners are skipped.",
+                "operationId": "publishTechnologyFee",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Technology fee ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Technology fee published successfully and school bills generated"
+                    },
+                    "403": {
+                        "description": "Unauthorized. Only the Domain Admin can manage technology fees."
+                    },
+                    "404": {
+                        "description": "Technology fee not found"
+                    },
+                    "409": {
+                        "description": "This technology fee has already been published."
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
