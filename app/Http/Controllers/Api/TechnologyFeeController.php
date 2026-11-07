@@ -66,7 +66,7 @@ class TechnologyFeeController extends Controller
     public function store(Request $request)
     {
         // Only the Domain Admin can create technology fees.
-        $admin = auth('api')->user();
+        $admin = auth()->user();
 
         if (!$admin || $admin->typ !== 'a') {
             return response()->json([
@@ -173,7 +173,7 @@ class TechnologyFeeController extends Controller
 public function update(Request $request, $id)
 {
     // Only the Domain Admin can update technology fees.
-    $admin = auth('api')->user();
+    $admin = auth()->user();
 
     if (!$admin || $admin->typ !== 'a') {
         return response()->json([
@@ -287,7 +287,7 @@ public function update(Request $request, $id)
 public function publish($id)
 {
     // Only the Domain Admin can publish technology fees.
-    $admin = auth('api')->user();
+    $admin = auth()->user();
 
     if (!$admin || $admin->typ !== 'a') {
         return response()->json([
