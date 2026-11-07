@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\ApiController;
 use App\Http\Controllers\Api\TechnologyFeeController;
 use App\Http\Controllers\Api\SchoolBillController;
 use App\Http\Controllers\Api\SchoolBillPaymentController;
+use App\Http\Controllers\Api\SchoolSuspensionController;
+
 
 
 
@@ -171,15 +173,15 @@ Route::group([
     // Technology Billing - Domain Admin
     Route::post('/billing/technology-fees', [TechnologyFeeController::class, 'store']);
     Route::put('/billing/technology-fees/{id}', [TechnologyFeeController::class, 'update']);
-    Route::post('/billing/technology-fees/{id}/publish',[TechnologyFeeController::class, 'publish']
-    );
+    Route::post('/billing/technology-fees/{id}/publish',[TechnologyFeeController::class, 'publish']);
+    Route::post('/billing/schools/{schoolId}/suspend',[SchoolSuspensionController::class, 'suspend']);
+    Route::post('/billing/schools/{schoolId}/reactivate',[SchoolSuspensionController::class, 'reactivate']);
 
         // Technology Billing - School Admin
     Route::get('/billing/school-bills', [SchoolBillController::class, 'index']);
     Route::post('/billing/school-bills/{billId}/payments/initialize',[SchoolBillPaymentController::class, 'initialize']);
     Route::post('/billing/school-bill-payments/{reference}/verify',[SchoolBillPaymentController::class, 'verify']);
-    Route::post('/billing/schools/{schoolId}/suspend',[SchoolSuspensionController::class, 'suspend']);
-    Route::post('/billing/schools/{schoolId}/reactivate',[SchoolSuspensionController::class, 'reactivate']);
+
 
     Route::post('sendEmailVerificationLink', [ApiController::class, 'sendEmailVerificationLink']);
     Route::post('setSchool', [ApiController::class, 'setSchool']);
