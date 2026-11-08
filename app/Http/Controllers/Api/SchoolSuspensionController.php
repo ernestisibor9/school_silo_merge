@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\SchoolSuspensionLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class SchoolSuspensionController extends Controller
 {
@@ -214,5 +216,154 @@ class SchoolSuspensionController extends Controller
             $result['response'],
             $result['http_code']
         );
+    }
+
+
+    /**
+     * @OA\Get(
+     *     path="/api/billing/school-status",
+     *     summary="Get authenticated user's school suspension status",
+     *     description="Returns the suspension status of the school associated with the authenticated user. Domain Admins and Support Admins do not belong to a single school.",
+     *     tags={"School Suspension"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="School status retrieved successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="role", type="string", example="school_user"),
+     *             @OA\Property(property="school_id", type="string", nullable=true, example="12"),
+     *             @OA\Property(property="suspended", type="boolean", example=false),
+     *             @OA\Property(property="school_status", type="integer", nullable=true, example=1),
+     *             @OA\Property(property="message", type="string", nullable=true, example="THIS SCHOOL IS SUSPENDED, KINDLY CONTACT THE ADMINISTRATOR.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated"
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Unsupported account type"
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="School association or school not found"
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Unable to retrieve school status"
+     *     )
+     * )
+     */
+    public function schoolStatus(Request $request)
+    {
+        try {
+            // The route is protected by auth:api.
+            $user = $request->user();
+
+            if (!$user) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unauthenticated.',
+                ], 401);
+            }
+
+            // Domain Admin
+            if ($user->typ === 'a') {
+                return response()->json([
+                    'status' => true,
+                    'role' => 'domain_admin',
+                    'school_id' => null,
+                    'suspended' => false,
+                    'school_status' => null,
+                    'message' => null,
+                ]);
+            }
+
+            // Support Admin
+            if ($user->typ === 'sa') {
+                return response()->json([
+                    'status' => true,
+                    'role' => 'support_admin',
+                    'school_id' => null,
+                    'suspended' => false,
+                    'school_status' => null,
+                    'message' => null,
+                ]);
+            }
+
+            $schoolId = null;
+
+            // School Admin: users.id maps directly to school.sid.
+            if ($user->typ === 's') {
+
+                $schoolId = (string) $user->id;
+            } elseif ($user->typ === 'z') {
+
+                // Student: users.id maps to old_student.sid.
+                $schoolId = DB::table('old_student')
+                    ->where('sid', (string) $user->id)
+                    ->orderByDesc('ssn')
+                    ->orderByDesc('trm')
+                    ->value('schid');
+            } elseif ($user->typ === 'w') {
+
+                // Staff: users.id maps to old_staff.sid.
+                $schoolId = DB::table('old_staff')
+                    ->where('sid', (string) $user->id)
+                    ->orderByDesc('ssn')
+                    ->orderByDesc('trm')
+                    ->value('schid');
+            } else {
+
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unsupported account type.',
+                ], 403);
+            }
+
+            if (!$schoolId) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'School association not found.',
+                ], 404);
+            }
+
+            // Retrieve the school's suspension status.
+            $school = DB::table('school')
+                ->where('sid', $schoolId)
+                ->first(['sid', 'school_status']);
+
+            if (!$school) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'School not found.',
+                ], 404);
+            }
+
+            $suspended = (int) $school->school_status === 0;
+
+            return response()->json([
+                'status' => true,
+                'role' => 'school_user',
+                'school_id' => $school->sid,
+                'suspended' => $suspended,
+                'school_status' => (int) $school->school_status,
+                'message' => $suspended
+                    ? 'THIS SCHOOL IS SUSPENDED, KINDLY CONTACT THE ADMINISTRATOR.'
+                    : null,
+            ]);
+        } catch (\Throwable $e) {
+
+            Log::error('Unable to retrieve school suspension status.', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Unable to retrieve school status.',
+            ], 500);
+        }
     }
 }

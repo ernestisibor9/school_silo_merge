@@ -36894,6 +36894,74 @@
                 ]
             }
         },
+        "/api/billing/school-status": {
+            "get": {
+                "tags": [
+                    "School Suspension"
+                ],
+                "summary": "Get authenticated user's school suspension status",
+                "description": "Returns the suspension status of the school associated with the authenticated user. Domain Admins and Support Admins do not belong to a single school.",
+                "operationId": "8e0659c6594babd56556cfcb3d151f26",
+                "responses": {
+                    "200": {
+                        "description": "School status retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "role": {
+                                            "type": "string",
+                                            "example": "school_user"
+                                        },
+                                        "school_id": {
+                                            "type": "string",
+                                            "example": "12",
+                                            "nullable": true
+                                        },
+                                        "suspended": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "school_status": {
+                                            "type": "integer",
+                                            "example": 1,
+                                            "nullable": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "THIS SCHOOL IS SUSPENDED, KINDLY CONTACT THE ADMINISTRATOR.",
+                                            "nullable": true
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Unsupported account type"
+                    },
+                    "404": {
+                        "description": "School association or school not found"
+                    },
+                    "500": {
+                        "description": "Unable to retrieve school status"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/billing/technology-fees": {
             "post": {
                 "tags": [

@@ -176,6 +176,7 @@ Route::group([
     Route::post('/billing/technology-fees/{id}/publish',[TechnologyFeeController::class, 'publish']);
     Route::post('/billing/schools/{schoolId}/suspend',[SchoolSuspensionController::class, 'suspend']);
     Route::post('/billing/schools/{schoolId}/reactivate',[SchoolSuspensionController::class, 'reactivate']);
+    Route::get('/billing/school-status', [SchoolSuspensionController::class, 'schoolStatus']);
 
         // Technology Billing - School Admin
     Route::get('/billing/school-bills', [SchoolBillController::class, 'index']);
