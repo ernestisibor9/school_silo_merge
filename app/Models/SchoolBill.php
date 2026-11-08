@@ -33,4 +33,5 @@ class SchoolBill extends Model
     {
         return $this->hasMany(SchoolBillPayment::class);
     }
+    
 }
