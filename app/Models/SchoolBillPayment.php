@@ -13,6 +13,7 @@ class SchoolBillPayment extends Model
     protected $fillable = [
         'school_bill_id',
         'payment_reference',
+        'receipt_number',
         'paystack_transaction_id',
         'amount',
         'currency',

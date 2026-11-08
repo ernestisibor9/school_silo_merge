@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SchoolBill extends Model
 {
@@ -27,4 +28,9 @@ class SchoolBill extends Model
         'total_amount' => 'decimal:2',
         'paid_at' => 'datetime',
     ];
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(SchoolBillPayment::class);
+    }
 }
