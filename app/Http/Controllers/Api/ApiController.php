@@ -6515,7 +6515,7 @@ public function setStudentAtOnceBulk(Request $request)
         // Data validation
         $request->validate([
             "user_id" => "required",
-            "dob" => "required",
+            "dob" => "nullable",
             "sex" => "required",
             "height" => "required",
             "country" => "required",
@@ -8214,7 +8214,7 @@ public function setStudentAtOnceBulk(Request $request)
             $resexist = $res->stat ?? "0";
 
             // Individual attendance logic
-// Individual attendance logic (Morning + Evening aware)
+            // Individual attendance logic (Morning + Evening aware)
             $attendanceRows = DB::table('attendances')
                 ->where('schid', $schid)
                 ->where('ssn', $ssn)
@@ -8275,9 +8275,7 @@ public function setStudentAtOnceBulk(Request $request)
                 'b' => $basicData ? array_merge(
                     $basicData->toArray(),
                     [
-                        'dob' => !empty($basicData->dob)
-                            ? Carbon::parse($basicData->dob)->format('Y-m-d')
-                            : null
+                        'dob' => $basicData->dob ?? null
                     ]
                 ) : null,
                 'a' => $academicData,
@@ -8786,11 +8784,6 @@ public function setStudentAtOnceBulk(Request $request)
                 $academicData = student_academic_data::where('user_id', $user_id)->first();
                 $basicData = student_basic_data::where('user_id', $user_id)->first();
 
-                // ✅ DOB FIX (DATE → Y-m-d, NO timestamp logic)
-                if ($basicData && !empty($basicData->dob)) {
-                    $basicData->dob = Carbon::parse($basicData->dob)->format('Y-m-d');
-                }
-
                 $oldStudent = old_student::where('sid', $user_id)
                     ->where('schid', $schid)
                     ->first();
@@ -8815,11 +8808,6 @@ public function setStudentAtOnceBulk(Request $request)
             if ($student) {
                 $academicData = student_academic_data::where('user_id', $student->sid)->first();
                 $basicData = student_basic_data::where('user_id', $student->sid)->first();
-
-                // ✅ DOB FIX (DATE → Y-m-d, NO timestamp logic)
-                if ($basicData && !empty($basicData->dob)) {
-                    $basicData->dob = Carbon::parse($basicData->dob)->format('Y-m-d');
-                }
             }
 
             $oldStudent = old_student::where('sid', $uid)
@@ -12765,26 +12753,26 @@ public function setStudentAtOnceBulk(Request $request)
                 }
             }
 
-$totalStd = student::join('old_student', 'student.sid', '=', 'old_student.sid')
-    ->where('student.schid', $schid)
-    ->where('student.stat', '1')
-    // ->where('student.status', 'active')
-    ->where('old_student.ssn', $ssn)
-    ->where('old_student.trm', $trm)
-    ->where('old_student.clsm', $clsm)
-    // ->where('old_student.status', 'active')
-    ->where('old_student.clsa', $clsa)
-    ->distinct()
-    ->count('student.sid');
+        $totalStd = student::join('old_student', 'student.sid', '=', 'old_student.sid')
+            ->where('student.schid', $schid)
+            ->where('student.stat', '1')
+            // ->where('student.status', 'active')
+            ->where('old_student.ssn', $ssn)
+            ->where('old_student.trm', $trm)
+            ->where('old_student.clsm', $clsm)
+            // ->where('old_student.status', 'active')
+            ->where('old_student.clsa', $clsa)
+            ->distinct()
+            ->count('student.sid');
 
-$std = old_student::where('schid', $schid)
-    ->where('ssn', $ssn)
-    ->where('trm', $trm)
-    ->where('clsm', $clsm)
-    ->where('clsa', $clsa)
-    // ->where('status', 'active')
-    ->where('sid', $stid)
-    ->first();
+        $std = old_student::where('schid', $schid)
+            ->where('ssn', $ssn)
+            ->where('trm', $trm)
+            ->where('clsm', $clsm)
+            ->where('clsa', $clsa)
+            // ->where('status', 'active')
+            ->where('sid', $stid)
+            ->first();
 
             if (!$std) {
                 return response()->json([
@@ -12937,11 +12925,9 @@ $std = old_student::where('schid', $schid)
             $eveningAbsent = max(0, $totalSchoolDays - $eveningPresent);
 
             // Date of birth
+            // Date of birth (VARCHAR - preserve original value)
             $basicData = student_basic_data::where('user_id', $user_id)->first();
-            $dob = $basicData && $basicData->dob
-                ? Carbon::parse($basicData->dob)->format('Y-m-d')
-                : null;
-
+            $dob = $basicData ? $basicData->dob : null;
 
 
             $pld = [
@@ -30602,32 +30588,32 @@ public function getSingleLessonPlan($schid, $ssn, $trm, $clsm, $sbj, $id)
 
             $current = collect($averagesWithTerms)->firstWhere('stid', $stid);
 
-if ($current) {
+            if ($current) {
 
-    // Skip subjects that have zero across all terms
-    if (($current['t1'] + $current['t2'] + $current['t3']) == 0) {
-        continue;
-    }
+                // Skip subjects that have zero across all terms
+                if (($current['t1'] + $current['t2'] + $current['t3']) == 0) {
+                    continue;
+                }
 
-    $grade = $assignGrade($current['average']);
-    $studentSubjectAverages[] = $current['average'];
+                $grade = $assignGrade($current['average']);
+                $studentSubjectAverages[] = $current['average'];
 
-    $positions = [];
-    foreach ($averagesWithTerms as $index => $entry) {
-        $positions[$entry['stid']] = $index + 1;
-    }
+                $positions = [];
+                foreach ($averagesWithTerms as $index => $entry) {
+                    $positions[$entry['stid']] = $index + 1;
+                }
 
-    $result[] = [
-        'subject_id' => $subjectId,
-        'subject_name' => $subjectNames[$subjectId] ?? 'Unknown',
-        '1st_term_total' => $current['t1'],
-        '2nd_term_total' => $current['t2'],
-        '3rd_term_total' => $current['t3'],
-        'yearly_average' => $current['average'],
-        'grade' => $grade,
-        'position' => $positions[$stid] ?? null,
-    ];
-}
+                $result[] = [
+                    'subject_id' => $subjectId,
+                    'subject_name' => $subjectNames[$subjectId] ?? 'Unknown',
+                    '1st_term_total' => $current['t1'],
+                    '2nd_term_total' => $current['t2'],
+                    '3rd_term_total' => $current['t3'],
+                    'yearly_average' => $current['average'],
+                    'grade' => $grade,
+                    'position' => $positions[$stid] ?? null,
+                ];
+            }
         }
 
         // Final averages
@@ -36957,15 +36943,8 @@ public function BulkPromoteStudent(Request $request)
             $status = $student->status === 'inactive' ? 'Alumni' : $student->status;
             $currentClass = $student->status === 'inactive' ? 'Alumni' : $student->class_name;
 
-            // ✅ DOB FIX (DATE → Y-m-d)
-            $dob = null;
-            if (!empty($student->dob)) {
-                try {
-                    $dob = Carbon::parse($student->dob)->format('Y-m-d');
-                } catch (\Exception $e) {
-                    $dob = null;
-                }
-            }
+            // DOB is VARCHAR - return exactly as stored in database
+            $dob = $student->dob ?? null;
 
             return [
                 "sid" => $student->sid,
@@ -39959,22 +39938,6 @@ public function BulkPromoteStudent(Request $request)
             )
             ->orderBy('os.lname', 'asc')
             ->get();
-
-        // ✅ Format DOB properly as YYYY-MM-DD
-        foreach ($records as $record) {
-            if (!empty($record->dob)) {
-                try {
-                    // If numeric (milliseconds), convert; else parse normally
-                    $record->dob = is_numeric($record->dob)
-                        ? \Carbon\Carbon::createFromTimestamp($record->dob / 1000)->format('Y-m-d')
-                        : \Carbon\Carbon::parse($record->dob)->format('Y-m-d');
-                } catch (\Exception $e) {
-                    $record->dob = null;
-                }
-            } else {
-                $record->dob = null;
-            }
-        }
 
         return response()->json([
             'status' => true,
@@ -43839,7 +43802,7 @@ public function maintainPreviousStudents(Request $request)
     {
         try {
             $validated = $request->validate([
-                'dob' => ['nullable', 'date', 'before:today'],
+                'dob' => ['nullable', 'string', 'max:255'],
                 'schid' => ['required', 'integer', 'exists:student,schid'],
             ]);
         } catch (ValidationException $e) {

@@ -16,7 +16,7 @@ use Throwable;
 class SchoolBillPaymentController extends Controller
 {
     /**
-     * Generate a unique technology billing receipt number.
+     * Generate a unique technology billing receipt number..
      *
      * Format: SSM-YYYYMMDD-UUID
      */
@@ -191,7 +191,6 @@ class SchoolBillPaymentController extends Controller
                     'access_code' => data_get($responseData, 'data.access_code'),
                 ],
             ], 200);
-
         } catch (Throwable $e) {
 
             if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) {
@@ -531,7 +530,6 @@ class SchoolBillPaymentController extends Controller
                     'receipt_number' => $payment->fresh()->receipt_number,
                 ],
             ], 200);
-
         } catch (Throwable $e) {
 
             Log::error('Technology billing webhook processing error.', [
@@ -915,7 +913,6 @@ class SchoolBillPaymentController extends Controller
                     'receipt_number' => $freshPayment->receipt_number,
                 ],
             ], 200);
-
         } catch (Throwable $e) {
 
             Log::error('Technology billing payment verification error.', [
@@ -933,131 +930,131 @@ class SchoolBillPaymentController extends Controller
 
 
     /**
- * @OA\Get(
- *     path="/api/billing/school-bill-payments/{reference}/receipt",
- *     operationId="getSchoolBillPaymentReceipt",
- *     tags={"School Bill Payments"},
- *     summary="Retrieve a verified school bill payment receipt",
- *     description="Retrieves the receipt for a successfully verified technology billing payment. Only the authenticated School Admin who owns the bill can access the receipt.",
- *     security={{"bearerAuth":{}}},
- *
- *     @OA\Parameter(
- *         name="reference",
- *         in="path",
- *         required=true,
- *         description="Paystack payment reference",
- *         @OA\Schema(type="string", example="TECHBILL-1-82e15631-53b0-421d-ac")
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Payment receipt retrieved successfully",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Payment receipt retrieved successfully."),
- *             @OA\Property(
- *                 property="pld",
- *                 type="object",
- *                 @OA\Property(property="receipt_number", type="string", example="SSM-20261108-550e8400-e29b-41d4-a716-446655440000"),
- *                 @OA\Property(property="school_name", type="string", example="Holy Ghost College"),
- *                 @OA\Property(property="school_id", type="string", example="12"),
- *                 @OA\Property(property="academic_session", type="string", example="2026/2027"),
- *                 @OA\Property(property="term", type="string", example="First Term"),
- *                 @OA\Property(property="student_count", type="integer", example=471),
- *                 @OA\Property(property="fee_per_student", type="number", format="float", example=2000.00),
- *                 @OA\Property(property="amount_paid", type="number", format="float", example=942000.00),
- *                 @OA\Property(property="currency", type="string", example="NGN"),
- *                 @OA\Property(property="payment_reference", type="string", example="TECHBILL-1-82e15631-53b0-421d-ac"),
- *                 @OA\Property(property="paystack_transaction_id", type="integer", nullable=true, example=123456789),
- *                 @OA\Property(property="payment_date", type="string", format="date-time", example="2026-11-08T10:30:00.000000Z"),
- *                 @OA\Property(property="status", type="string", example="successful")
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=401,
- *         description="Unauthenticated"
- *     ),
- *     @OA\Response(
- *         response=403,
- *         description="Only School Admins can access payment receipts",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="Unauthorized. Only School Admins can access payment receipts.")
- *         )
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="Receipt not found or does not belong to the authenticated school",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="Receipt not found.")
- *         )
- *     ),
- *     @OA\Response(
- *         response=409,
- *         description="Payment has not been successfully verified",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=false),
- *             @OA\Property(property="message", type="string", example="A receipt is only available for successfully verified payments.")
- *         )
- *     )
- * )
- */
+     * @OA\Get(
+     *     path="/api/billing/school-bill-payments/{reference}/receipt",
+     *     operationId="getSchoolBillPaymentReceipt",
+     *     tags={"School Bill Payments"},
+     *     summary="Retrieve a verified school bill payment receipt",
+     *     description="Retrieves the receipt for a successfully verified technology billing payment. Only the authenticated School Admin who owns the bill can access the receipt.",
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="reference",
+     *         in="path",
+     *         required=true,
+     *         description="Paystack payment reference",
+     *         @OA\Schema(type="string", example="TECHBILL-1-82e15631-53b0-421d-ac")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Payment receipt retrieved successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Payment receipt retrieved successfully."),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 @OA\Property(property="receipt_number", type="string", example="SSM-20261108-550e8400-e29b-41d4-a716-446655440000"),
+     *                 @OA\Property(property="school_name", type="string", example="Holy Ghost College"),
+     *                 @OA\Property(property="school_id", type="string", example="12"),
+     *                 @OA\Property(property="academic_session", type="string", example="2026/2027"),
+     *                 @OA\Property(property="term", type="string", example="First Term"),
+     *                 @OA\Property(property="student_count", type="integer", example=471),
+     *                 @OA\Property(property="fee_per_student", type="number", format="float", example=2000.00),
+     *                 @OA\Property(property="amount_paid", type="number", format="float", example=942000.00),
+     *                 @OA\Property(property="currency", type="string", example="NGN"),
+     *                 @OA\Property(property="payment_reference", type="string", example="TECHBILL-1-82e15631-53b0-421d-ac"),
+     *                 @OA\Property(property="paystack_transaction_id", type="integer", nullable=true, example=123456789),
+     *                 @OA\Property(property="payment_date", type="string", format="date-time", example="2026-11-08T10:30:00.000000Z"),
+     *                 @OA\Property(property="status", type="string", example="successful")
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated"
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Only School Admins can access payment receipts",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Unauthorized. Only School Admins can access payment receipts.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Receipt not found or does not belong to the authenticated school",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Receipt not found.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=409,
+     *         description="Payment has not been successfully verified",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="A receipt is only available for successfully verified payments.")
+     *         )
+     *     )
+     * )
+     */
 
     public function receipt(Request $request, $reference)
-{
-    $user = $request->user();
+    {
+        $user = $request->user();
 
-    // Only School Admins can retrieve school payment receipts.
-    if (!$user || $user->typ !== 's') {
+        // Only School Admins can retrieve school payment receipts.
+        if (!$user || $user->typ !== 's') {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized. Only School Admins can access payment receipts.',
+            ], 403);
+        }
+
+        $receipt = DB::table('school_bill_payments as payments')
+            ->join('school_bills as bills', 'payments.school_bill_id', '=', 'bills.id')
+            ->join('school', 'bills.school_id', '=', 'school.sid')
+            ->where('payments.payment_reference', $reference)
+            ->where('bills.school_id', (string) $user->id)
+            ->select([
+                'payments.receipt_number',
+                'school.name as school_name',
+                'school.sid as school_id',
+                'bills.academic_session',
+                'bills.term',
+                'bills.student_count',
+                'bills.fee_per_student',
+                'payments.amount as amount_paid',
+                'payments.currency',
+                'payments.payment_reference',
+                'payments.paystack_transaction_id',
+                'payments.verified_at as payment_date',
+                'payments.status',
+            ])
+            ->first();
+
+        if (!$receipt) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Receipt not found.',
+            ], 404);
+        }
+
+        if ($receipt->status !== 'successful' || !$receipt->receipt_number) {
+            return response()->json([
+                'status' => false,
+                'message' => 'A receipt is only available for successfully verified payments.',
+            ], 409);
+        }
+
         return response()->json([
-            'status' => false,
-            'message' => 'Unauthorized. Only School Admins can access payment receipts.',
-        ], 403);
+            'status' => true,
+            'message' => 'Payment receipt retrieved successfully.',
+            'pld' => $receipt,
+        ], 200);
     }
-
-    $receipt = DB::table('school_bill_payments as payments')
-        ->join('school_bills as bills', 'payments.school_bill_id', '=', 'bills.id')
-        ->join('school', 'bills.school_id', '=', 'school.sid')
-        ->where('payments.payment_reference', $reference)
-        ->where('bills.school_id', (string) $user->id)
-        ->select([
-            'payments.receipt_number',
-            'school.name as school_name',
-            'school.sid as school_id',
-            'bills.academic_session',
-            'bills.term',
-            'bills.student_count',
-            'bills.fee_per_student',
-            'payments.amount as amount_paid',
-            'payments.currency',
-            'payments.payment_reference',
-            'payments.paystack_transaction_id',
-            'payments.verified_at as payment_date',
-            'payments.status',
-        ])
-        ->first();
-
-    if (!$receipt) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Receipt not found.',
-        ], 404);
-    }
-
-    if ($receipt->status !== 'successful' || !$receipt->receipt_number) {
-        return response()->json([
-            'status' => false,
-            'message' => 'A receipt is only available for successfully verified payments.',
-        ], 409);
-    }
-
-    return response()->json([
-        'status' => true,
-        'message' => 'Payment receipt retrieved successfully.',
-        'pld' => $receipt,
-    ], 200);
-}
 }
