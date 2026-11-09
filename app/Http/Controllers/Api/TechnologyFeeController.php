@@ -182,7 +182,7 @@ public function update(Request $request, $id)
         ], 403);
     }
 
-    // Validate the submitted data.
+    // Validate the submitted data..
     $validator = Validator::make($request->all(), [
         'fee_per_student' => [
             'required',
