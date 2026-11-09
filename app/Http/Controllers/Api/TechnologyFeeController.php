@@ -65,7 +65,7 @@ class TechnologyFeeController extends Controller
  */
     public function store(Request $request)
     {
-        // Only the Domain Admin can create technology fees.
+        // Only the Domain Admin can create technology fees..
         $admin = auth()->user();
 
         if (!$admin || $admin->typ !== 'a') {
