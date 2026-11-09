@@ -42862,8 +42862,6 @@ public function setStudentSubjectBulk(Request $request)
 
 
 
-
-
 public function setStudentAcademicInfoBulk(Request $request)
 {
     $request->validate([
@@ -42885,11 +42883,8 @@ public function setStudentAcademicInfoBulk(Request $request)
         // Collect IDs and values needed for batch lookups.
         $userIds = $students->pluck('user_id')->unique()->values()->all();
         $ssns = $students->pluck('ssn')->unique()->values()->all();
-        $terms = $students->pluck('trm')
-            ->map(fn ($term) => (int) $term)
-            ->unique()
-            ->values()
-            ->all();
+        $terms = $students->pluck('trm')->map(fn ($term) => (int) $term)
+            ->unique()->values()->all();
 
         DB::transaction(function () use ($students, $userIds, $ssns, $terms) {
 
@@ -42916,7 +42911,6 @@ public function setStudentAcademicInfoBulk(Request $request)
             foreach ($oldStudentCache as $oldRecord) {
                 $combinationKey = implode('|', [
                     $oldRecord->sid,
-                    $oldRecord->schid,
                     $oldRecord->ssn,
                     $oldRecord->trm,
                     $oldRecord->clsm,
@@ -42989,58 +42983,33 @@ public function setStudentAcademicInfoBulk(Request $request)
                 // Handle old_student only if new_class is valid.
                 if (!empty($new_class) && $new_class !== 'NIL') {
 
-                    /*
-                     * Delete the previous allocation for the same:
-                     * student, school, session, term and main class.
-                     *
-                     * This handles both:
-                     * - A different existing class arm.
-                     * - An existing NULL class arm.
-                     *
-                     * schid is included to prevent deleting another
-                     * school's allocation.
-                     */
-
-                    $recordsToDelete = old_student::where('sid', $user_id)
-                        ->where('schid', $schid)
+                    // Delete the old record for the same class but a different arm.
+                    old_student::where('sid', $user_id)
                         ->where('ssn', $ssn)
                         ->where('trm', $trm)
                         ->where('clsm', $new_class_main)
-                        ->where(function ($query) use ($new_class) {
-                            $query->where('clsa', '!=', $new_class)
-                                ->orWhereNull('clsa');
-                        })
-                        ->get();
+                        ->where('clsa', '!=', $new_class)
+                        ->delete();
 
-                    // Remove deleted records from both in-memory caches.
-                    if ($recordsToDelete->isNotEmpty()) {
+                    // Remove deleted class arms from the in-memory cache.
+                    foreach ($combinationCache as $key => $exists) {
+                        $parts = explode('|', $key, 5);
 
-                        foreach ($recordsToDelete as $deletedRecord) {
-
-                            $deletedCombinationKey = implode('|', [
-                                $deletedRecord->sid,
-                                $deletedRecord->schid,
-                                $deletedRecord->ssn,
-                                $deletedRecord->trm,
-                                $deletedRecord->clsm,
-                                $deletedRecord->clsa,
-                            ]);
-
-                            unset($combinationCache[$deletedCombinationKey]);
-                            unset($uidCache[$deletedRecord->uid]);
+                        if (
+                            count($parts) === 5
+                            && (string) $parts[0] === (string) $user_id
+                            && (string) $parts[1] === (string) $ssn
+                            && (string) $parts[2] === (string) $trm
+                            && (string) $parts[3] === (string) $new_class_main
+                            && (string) $parts[4] !== (string) $new_class
+                        ) {
+                            unset($combinationCache[$key]);
                         }
-
-                        // Delete the old database records in one query.
-                        old_student::whereIn(
-                            'uid',
-                            $recordsToDelete->pluck('uid')->all()
-                        )->delete();
                     }
 
                     // Check whether the exact combination already exists.
                     $combinationKey = implode('|', [
                         $user_id,
-                        $schid,
                         $ssn,
                         $trm,
                         $new_class_main,
@@ -43048,11 +43017,10 @@ public function setStudentAcademicInfoBulk(Request $request)
                     ]);
 
                     if (isset($combinationCache[$combinationKey])) {
-
-                        // Throwing an exception rolls back the entire transaction.
-                        throw new \RuntimeException(
-                            'DUPLICATE_STUDENT_ALLOCATION'
-                        );
+                        return response()->json([
+                            'status' => false,
+                            'message' => 'Duplicate record of students for the specified session, term, and class.',
+                        ]);
                     }
 
                     // UID includes term to prevent duplicates.
@@ -43090,7 +43058,7 @@ public function setStudentAcademicInfoBulk(Request $request)
                         $uidCache[$uid] = $oldRecord;
                     }
 
-                    // Update the in-memory combination cache.
+                    // Update the in-memory caches for subsequent rows.
                     $combinationCache[$combinationKey] = true;
                 }
 
@@ -43100,17 +43068,7 @@ public function setStudentAcademicInfoBulk(Request $request)
                 ]);
             }
         });
-
     } catch (\Exception $e) {
-
-        // Return the original duplicate response from the controller.
-        if ($e->getMessage() === 'DUPLICATE_STUDENT_ALLOCATION') {
-            return response()->json([
-                'status' => false,
-                'message' => 'Duplicate record of students for the specified session, term, and class.',
-            ]);
-        }
-
         Log::error("Bulk upload failed: " . $e->getMessage());
 
         return response()->json([
@@ -43125,7 +43083,6 @@ public function setStudentAcademicInfoBulk(Request $request)
         "message" => "Bulk upload successful",
     ]);
 }
-
 
 
 
