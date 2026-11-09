@@ -33960,158 +33960,216 @@ public function getSingleLessonPlan($schid, $ssn, $trm, $clsm, $sbj, $id)
      */
 
 
+
 public function promoteStudent(Request $request)
 {
     $request->validate([
-        'sid'  => 'required',
+        'sid'   => 'required',
         'schid' => 'required',
-        'sesn' => 'required',
-        'trm'  => 'required',
-        'clsm' => 'required',
-        'clsa' => 'required',
-        'suid' => 'required',
+        'sesn'  => 'required',
+        'trm'   => 'required',
+        'clsm'  => 'required',
+        'clsa'  => 'required',
+        'suid'  => 'required',
     ]);
 
-    // ---------------------------------------------------------
-    // 1. Find the student
-    // ---------------------------------------------------------
+    DB::beginTransaction();
 
-    $student = student::where('sid', $request->sid)->first();
+    try {
 
-    if (!$student) {
+        // ---------------------------------------------------------
+        // 1. Find the student
+        // ---------------------------------------------------------
+
+        $student = student::where('sid', $request->sid)
+            ->where('schid', $request->schid)
+            ->lockForUpdate()
+            ->first();
+
+        if (!$student) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Something went wrong.',
+                'sid' => $request->sid,
+            ], 404);
+        }
+
+
+        // ---------------------------------------------------------
+        // 2. Make sure the selected class arm belongs to the class
+        // ---------------------------------------------------------
+
+        $validArm = DB::table('sch_cls')
+            ->where('id', $request->clsa)
+            ->where('cls_id', $request->clsm)
+            ->where('schid', $request->schid)
+            ->first();
+
+        if (!$validArm) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Invalid class arm for the selected class.',
+            ], 422);
+        }
+
+
+        // ---------------------------------------------------------
+        // 3. Find an existing record using the actual unique index.
+        //
+        // uniq_student_term:
+        // sid + schid + ssn + trm + clsm
+        //
+        // IMPORTANT: clsa is NOT included in this lookup.
+        // ---------------------------------------------------------
+
+        $existingPlacement = old_student::where('sid', $request->sid)
+            ->where('schid', $request->schid)
+            ->where('ssn', $request->sesn)
+            ->where('trm', $request->trm)
+            ->where('clsm', $request->clsm)
+            ->lockForUpdate()
+            ->first();
+
+
+        // ---------------------------------------------------------
+        // 4. Handle an existing promotion record
+        // ---------------------------------------------------------
+
+        if ($existingPlacement) {
+
+            // If the same arm already exists and is active,
+            // retain the original duplicate-promotion response.
+
+            if (
+                $existingPlacement->status === 'active' &&
+                (string) $existingPlacement->clsa === (string) $request->clsa
+            ) {
+                DB::rollBack();
+
+                return response()->json([
+                    'status' => false,
+                    'message' => 'This student has already been promoted for the selected session, term and class.',
+                ], 409);
+            }
+
+            // Existing record has a different arm or NULL arm.
+            // Update the existing record instead of inserting another one.
+
+            $existingPlacement->update([
+                'clsa' => $request->clsa,
+                'suid' => $request->suid,
+                'status' => 'active',
+                'exit_student' => NULL,
+                'updated_at' => now(),
+            ]);
+
+            // Preserve the existing UID.
+            $promotion = $existingPlacement;
+
+        } else {
+
+            // ---------------------------------------------------------
+            // 5. Generate deterministic UID for a new promotion
+            // ---------------------------------------------------------
+
+            $uid = $request->sesn
+                . $request->trm
+                . $request->sid
+                . $request->clsm;
+
+
+            // Check whether the generated UID already exists.
+            $uidExists = old_student::where('uid', $uid)->exists();
+
+            if ($uidExists) {
+                DB::rollBack();
+
+                return response()->json([
+                    'status' => false,
+                    'message' => 'The generated record UID already exists. Please review the UID generation rule.',
+                ], 409);
+            }
+
+
+            // ---------------------------------------------------------
+            // 6. Create promotion record
+            // ---------------------------------------------------------
+
+            $promotion = old_student::create([
+                'uid' => $uid,
+                'sid' => $request->sid,
+                'schid' => $request->schid,
+
+                'fname' => $student->fname,
+                'mname' => $student->mname,
+                'lname' => $student->lname,
+
+                'suid' => $request->suid,
+
+                'ssn' => $request->sesn,
+                'trm' => $request->trm,
+                'clsm' => $request->clsm,
+                'clsa' => $request->clsa,
+
+                'status' => 'active',
+                'more' => '',
+            ]);
+        }
+
+
+        // ---------------------------------------------------------
+        // 7. Update student academic data
+        // ---------------------------------------------------------
+
+        student_academic_data::where('user_id', $request->sid)
+            ->update([
+                'new_class_main' => $request->clsm,
+                'new_class' => $validArm->id,
+            ]);
+
+
+        // ---------------------------------------------------------
+        // 8. Return response
+        // ---------------------------------------------------------
+
+        DB::commit();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Student promoted successfully for this term',
+
+            'data' => [
+                'sid' => $promotion->sid,
+                'suid' => $promotion->suid,
+                'ssn' => $promotion->ssn,
+                'trm' => $promotion->trm,
+                'clsm' => $promotion->clsm,
+                'clsa' => $promotion->clsa,
+                'clsa_name' => $validArm->name,
+            ],
+        ]);
+
+    } catch (\Throwable $e) {
+
+        DB::rollBack();
+
+        \Log::error('Student promotion failed', [
+            'sid' => $request->sid,
+            'schid' => $request->schid,
+            'error' => $e->getMessage(),
+        ]);
+
         return response()->json([
             'status' => false,
             'message' => 'Something went wrong.',
             'sid' => $request->sid,
-        ], 404);
+        ], 500);
     }
-
-
-
-    // ---------------------------------------------------------
-    // 2. Make sure the selected class arm belongs to the class
-    // ---------------------------------------------------------
-
-    $validArm = DB::table('sch_cls')
-        ->where('id', $request->clsa)
-        ->where('cls_id', $request->clsm)
-        ->where('schid', $request->schid)
-        ->first();
-
-    if (!$validArm) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Invalid class arm for the selected class.',
-        ], 422);
-    }
-
-
-    // ---------------------------------------------------------
-    // 3. Check whether student has already been promoted
-    // ---------------------------------------------------------
-
-    $alreadyPromoted = old_student::where('sid', $request->sid)
-        ->where('schid', $request->schid)
-        ->where('ssn', $request->sesn)
-        ->where('trm', $request->trm)
-        ->where('clsm', $request->clsm)
-        ->where('clsa', $request->clsa)
-        ->first();
-
-    if ($alreadyPromoted) {
-        return response()->json([
-            'status' => false,
-            'message' => 'This student has already been promoted for the selected session, term and class.',
-        ], 409);
-    }
-
-
-    // ---------------------------------------------------------
-    // 4. Generate deterministic UID
-    // ---------------------------------------------------------
-
-    $uid = $request->sesn
-        . $request->trm
-        . $request->sid
-        . $request->clsm;
-
-
-    // ---------------------------------------------------------
-    // 5. Double-check duplicate combination
-    // ---------------------------------------------------------
-
-    $exists = old_student::where('sid', $request->sid)
-        ->where('schid', $request->schid)
-        ->where('ssn', $request->sesn)
-        ->where('trm', $request->trm)
-        ->where('clsm', $request->clsm)
-        ->where('clsa', $request->clsa)
-        ->exists();
-
-    if ($exists) {
-        return response()->json([
-            'status' => false,
-            'message' => 'This student has already been promoted for the selected session, term and class.',
-        ], 409);
-    }
-
-
-    // ---------------------------------------------------------
-    // 6. Create promotion record
-    // ---------------------------------------------------------
-
-    $promotion = old_student::create([
-        'uid' => $uid,
-        'sid' => $request->sid,
-        'schid' => $request->schid,
-
-        'fname' => $student->fname,
-        'mname' => $student->mname,
-        'lname' => $student->lname,
-
-        'suid' => $request->suid,
-
-        'ssn' => $request->sesn,
-        'trm' => $request->trm,
-        'clsm' => $request->clsm,
-        'clsa' => $request->clsa,
-
-        'status' => 'active',
-        'more' => '',
-    ]);
-
-
-    // ---------------------------------------------------------
-    // 7. Update student academic data
-    // ---------------------------------------------------------
-
-    student_academic_data::where('user_id', $request->sid)
-        ->update([
-            'new_class_main' => $request->clsm,
-            'new_class' => $validArm->id,
-        ]);
-
-
-    // ---------------------------------------------------------
-    // 8. Return response
-    // ---------------------------------------------------------
-
-    return response()->json([
-        'status' => true,
-        'message' => 'Student promoted successfully for this term',
-
-        'data' => [
-            'sid' => $promotion->sid,
-            'suid' => $promotion->suid,
-            'ssn' => $promotion->ssn,
-            'trm' => $promotion->trm,
-            'clsm' => $promotion->clsm,
-            'clsa' => $promotion->clsa,
-            'clsa_name' => $validArm->name,
-        ],
-    ]);
 }
-
 
 
 
@@ -34324,9 +34382,9 @@ public function promoteStudent(Request $request)
  * )
  */
 
+
 public function BulkPromoteStudent(Request $request)
 {
-
     $request->validate([
         'sid'   => 'required',
         'schid' => 'required',
@@ -34376,9 +34434,6 @@ public function BulkPromoteStudent(Request $request)
 
     $suids = array_map(function ($value) {
 
-        // If something unexpected is an array/object,
-        // do NOT allow it to reach the database.
-
         if (is_array($value)) {
             return null;
         }
@@ -34394,12 +34449,6 @@ public function BulkPromoteStudent(Request $request)
 
     // =========================================================
     // 4. VALIDATE SUID COUNT
-    //
-    // One SUID:
-    //     use the same SUID for every student.
-    //
-    // Multiple SUIDs:
-    //     one SUID for each student.
     // =========================================================
 
     if (count($suids) > 1 && count($suids) !== count($studentIds)) {
@@ -34467,13 +34516,9 @@ public function BulkPromoteStudent(Request $request)
 
         if (count($suids) === 1) {
 
-            // One SUID = same SUID for every student
-
             $suid = $suids[0];
 
         } else {
-
-            // Multiple SUIDs = match by index
 
             $suid = $suids[$index] ?? null;
         }
@@ -34481,8 +34526,6 @@ public function BulkPromoteStudent(Request $request)
 
         // -----------------------------------------------------
         // ABSOLUTE SAFETY CHECK
-        //
-        // Never allow an array/object to reach the database.
         // -----------------------------------------------------
 
         if (is_array($suid) || is_object($suid)) {
@@ -34522,7 +34565,9 @@ public function BulkPromoteStudent(Request $request)
         // Find student
         // -----------------------------------------------------
 
-        $student = student::where('sid', $sid)->first();
+        $student = student::where('sid', $sid)
+            ->where('schid', $request->schid)
+            ->first();
 
         if (!$student) {
 
@@ -34533,6 +34578,7 @@ public function BulkPromoteStudent(Request $request)
 
             continue;
         }
+
 
         // =====================================================
         // SKIP EXITED STUDENTS ONLY
@@ -34546,6 +34592,7 @@ public function BulkPromoteStudent(Request $request)
             ->exists();
 
         if ($hasExited) {
+
             $failed[] = [
                 'sid' => $sid,
                 'message' => 'Student has exited and was skipped.',
@@ -34555,136 +34602,187 @@ public function BulkPromoteStudent(Request $request)
         }
 
 
-        // -----------------------------------------------------
-        // Check if already promoted
-        // -----------------------------------------------------
-
-        $alreadyPromoted = old_student::where('sid', $sid)
-            ->where('schid', $request->schid)
-            ->where('ssn', $request->sesn)
-            ->where('trm', $request->trm)
-            ->where('clsm', $request->clsm)
-            ->where('clsa', $request->clsa)
-            ->exists();
-
-        if ($alreadyPromoted) {
-
-            $failed[] = [
-                'sid' => $sid,
-                'message' => 'This student has already been promoted for the selected session, term and class.',
-            ];
-
-            continue;
-        }
-
-
-        // -----------------------------------------------------
-        // Generate UID
-        // -----------------------------------------------------
-
-        $uid = (string) (
-            $request->sesn
-            . $request->trm
-            . $sid
-            . $request->clsm
-        );
-
-
-        // -----------------------------------------------------
-        // Double-check duplicate
-        // -----------------------------------------------------
-
-        $exists = old_student::where('sid', $sid)
-            ->where('schid', $request->schid)
-            ->where('ssn', $request->sesn)
-            ->where('trm', $request->trm)
-            ->where('clsm', $request->clsm)
-            ->where('clsa', $request->clsa)
-            ->exists();
-
-        if ($exists) {
-
-            $failed[] = [
-                'sid' => $sid,
-                'message' => 'This student has already been promoted for the selected session, term and class.',
-            ];
-
-            continue;
-        }
-
-
         // =====================================================
-        // FINAL INSERT SAFETY CHECK
-        // =====================================================
-
-        $insertData = [
-            'uid' => $uid,
-            'sid' => $sid,
-            'schid' => $request->schid,
-
-            'fname' => (string) ($student->fname ?? ''),
-            'mname' => (string) ($student->mname ?? ''),
-            'lname' => (string) ($student->lname ?? ''),
-
-            // IMPORTANT:
-            // This is now guaranteed to be a string.
-            'suid' => $suid,
-
-            'ssn' => $request->sesn,
-            'trm' => $request->trm,
-            'clsm' => $request->clsm,
-            'clsa' => $request->clsa,
-
-            'status' => 'active',
-            'more' => '',
-
-            'created_at' => now(),
-            'updated_at' => now(),
-        ];
-
-
-        // -----------------------------------------------------
-        // Log exactly what is going into the database
-        // -----------------------------------------------------
-
-        Log::info('BULK PROMOTION INSERT DATA', [
-            'sid' => $sid,
-            'suid' => $insertData['suid'],
-            'suid_type' => gettype($insertData['suid']),
-            'uid' => $insertData['uid'],
-            'uid_type' => gettype($insertData['uid']),
-            'data' => $insertData,
-        ]);
-
-
-        // =====================================================
-        // INSERT DIRECTLY INTO DATABASE
+        // FIND EXISTING RECORD USING THE ACTUAL UNIQUE INDEX
         //
-        // Using DB::table() prevents an Eloquent model event,
-        // observer, cast, mutator, or trait from changing
-        // the SUID before the INSERT.
+        // uniq_student_term:
+        // sid + schid + ssn + trm + clsm
+        //
+        // IMPORTANT:
+        // clsa is deliberately excluded.
         // =====================================================
 
-        try {
+        $existingPlacement = old_student::where('sid', $sid)
+            ->where('schid', $request->schid)
+            ->where('ssn', $request->sesn)
+            ->where('trm', $request->trm)
+            ->where('clsm', $request->clsm)
+            ->first();
 
-            DB::table('old_student')->insert($insertData);
 
-        } catch (\Throwable $e) {
+        // =====================================================
+        // HANDLE EXISTING RECORD
+        // =====================================================
 
-            Log::error('BULK PROMOTION INSERT FAILED', [
+        if ($existingPlacement) {
+
+            // Same arm already exists and record is active.
+            // Retain the original duplicate-promotion response.
+
+            if (
+                $existingPlacement->status === 'active' &&
+                (string) $existingPlacement->clsa === (string) $request->clsa
+            ) {
+
+                $failed[] = [
+                    'sid' => $sid,
+                    'message' => 'This student has already been promoted for the selected session, term and class.',
+                ];
+
+                continue;
+            }
+
+
+            // Existing record has a different arm or NULL arm,
+            // or the record is inactive.
+            //
+            // Update the existing record instead of inserting
+            // another row with the same unique-index combination.
+
+            try {
+
+                DB::table('old_student')
+                    ->where('uid', $existingPlacement->uid)
+                    ->where('schid', $request->schid)
+                    ->update([
+                        'clsa' => $request->clsa,
+                        'suid' => $suid,
+                        'status' => 'active',
+                        'exit_student' => NULL,
+                        'updated_at' => now(),
+                    ]);
+
+                // Preserve the original UID.
+                $promotionUid = $existingPlacement->uid;
+
+            } catch (\Throwable $e) {
+
+                Log::error('BULK PROMOTION UPDATE FAILED', [
+                    'sid' => $sid,
+                    'suid' => $suid,
+                    'uid' => $existingPlacement->uid,
+                    'error' => $e->getMessage(),
+                ]);
+
+                $failed[] = [
+                    'sid' => $sid,
+                    'message' => 'Student promotion failed: ' . $e->getMessage(),
+                ];
+
+                continue;
+            }
+
+        } else {
+
+            // =================================================
+            // NO EXISTING UNIQUE-INDEX RECORD
+            // CREATE A NEW PROMOTION RECORD
+            // =================================================
+
+            // Generate deterministic UID.
+
+            $uid = (string) (
+                $request->sesn
+                . $request->trm
+                . $sid
+                . $request->clsm
+            );
+
+
+            // Check whether generated UID already exists.
+
+            $uidExists = old_student::where('uid', $uid)->exists();
+
+            if ($uidExists) {
+
+                $failed[] = [
+                    'sid' => $sid,
+                    'message' => 'The generated record UID already exists. Please review the UID generation rule.',
+                ];
+
+                continue;
+            }
+
+
+            // =================================================
+            // PREPARE INSERT DATA
+            // =================================================
+
+            $insertData = [
+                'uid' => $uid,
                 'sid' => $sid,
+                'schid' => $request->schid,
+
+                'fname' => (string) ($student->fname ?? ''),
+                'mname' => (string) ($student->mname ?? ''),
+                'lname' => (string) ($student->lname ?? ''),
+
                 'suid' => $suid,
-                'suid_type' => gettype($suid),
-                'insert_data' => $insertData,
-                'error' => $e->getMessage(),
+
+                'ssn' => $request->sesn,
+                'trm' => $request->trm,
+                'clsm' => $request->clsm,
+                'clsa' => $request->clsa,
+
+                'status' => 'active',
+                'more' => '',
+
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+
+
+            // -------------------------------------------------
+            // Log exactly what is going into the database
+            // -------------------------------------------------
+
+            Log::info('BULK PROMOTION INSERT DATA', [
+                'sid' => $sid,
+                'suid' => $insertData['suid'],
+                'suid_type' => gettype($insertData['suid']),
+                'uid' => $insertData['uid'],
+                'uid_type' => gettype($insertData['uid']),
+                'data' => $insertData,
             ]);
 
-            $failed[] = [
-                'sid' => $sid,
-                'message' => 'Student promotion failed: ' . $e->getMessage(),
-            ];
 
-            continue;
+            // =================================================
+            // INSERT DIRECTLY INTO DATABASE
+            // =================================================
+
+            try {
+
+                DB::table('old_student')->insert($insertData);
+
+                $promotionUid = $uid;
+
+            } catch (\Throwable $e) {
+
+                Log::error('BULK PROMOTION INSERT FAILED', [
+                    'sid' => $sid,
+                    'suid' => $suid,
+                    'suid_type' => gettype($suid),
+                    'insert_data' => $insertData,
+                    'error' => $e->getMessage(),
+                ]);
+
+                $failed[] = [
+                    'sid' => $sid,
+                    'message' => 'Student promotion failed: ' . $e->getMessage(),
+                ];
+
+                continue;
+            }
         }
 
 
@@ -34707,8 +34805,8 @@ public function BulkPromoteStudent(Request $request)
                 'error' => $e->getMessage(),
             ]);
 
-            // The promotion record was already inserted.
-            // We therefore report the promotion as successful
+            // The promotion record was already inserted or updated.
+            // We therefore report the promotion as successful,
             // but log the academic-data update problem.
         }
 
@@ -34751,6 +34849,7 @@ public function BulkPromoteStudent(Request $request)
         'failed' => $failed,
     ]);
 }
+
 
 
 
