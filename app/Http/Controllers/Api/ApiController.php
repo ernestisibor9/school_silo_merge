@@ -42860,8 +42860,7 @@ public function setStudentSubjectBulk(Request $request)
     //     ]);
     // }
 
-
-    public function setStudentAcademicInfoBulk(Request $request)
+public function setStudentAcademicInfoBulk(Request $request)
 {
     $request->validate([
         "students" => "required|array|min:1",
@@ -42979,12 +42978,10 @@ public function setStudentSubjectBulk(Request $request)
                     continue;
                 }
 
-                // Handle old_student only if new_class is valid.
+                // Handle old_student only if new_class is valid..
                 if (!empty($new_class) && $new_class !== 'NIL') {
 
-                    // Delete the previous class-arm record for this student.
-                    // Keep the new class-arm record.
-                    // Only affect the same student, session, term and main class.
+                    // Delete the old record for the same class but a different arm.
                     old_student::where('sid', $user_id)
                         ->where('ssn', $ssn)
                         ->where('trm', $trm)
@@ -43084,6 +43081,7 @@ public function setStudentSubjectBulk(Request $request)
         "message" => "Bulk upload successful",
     ]);
 }
+
 
 
     /**
