@@ -42879,7 +42879,7 @@ public function setStudentAcademicInfoBulk(Request $request)
     try {
         $students = collect($request->students);
 
-        // Collect IDs and values needed for batch lookups.
+        // Collect IDs and values needed for batch lookups..
         $userIds = $students->pluck('user_id')->unique()->values()->all();
         $ssns = $students->pluck('ssn')->unique()->values()->all();
         $terms = $students->pluck('trm')->map(fn ($term) => (int) $term)
