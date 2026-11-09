@@ -42861,7 +42861,6 @@ public function setStudentSubjectBulk(Request $request)
     // }
 
 
-
 public function setStudentAcademicInfoBulk(Request $request)
 {
     $request->validate([
@@ -42878,266 +42877,231 @@ public function setStudentAcademicInfoBulk(Request $request)
     ]);
 
     try {
-        $students = collect($request->students);
 
-        // Collect IDs and values needed for batch lookups.
-        $userIds = $students->pluck('user_id')->unique()->values()->all();
+        $students = collect($request->input('students'));
 
-        $ssns = $students->pluck('ssn')->unique()->values()->all();
-
-        $terms = $students->pluck('trm')
-            ->map(fn ($term) => (int) $term)
-            ->unique()
-            ->values()
-            ->all();
-
-        DB::transaction(function () use ($students, $userIds, $ssns, $terms) {
-
-            // Load academic records once.
-            $academicCache = student_academic_data::whereIn('user_id', $userIds)
-                ->get()
-                ->keyBy('user_id');
-
-            // Load student records once.
-            $studentCache = student::whereIn('sid', $userIds)
-                ->get()
-                ->keyBy('sid');
-
-            /*
-            |--------------------------------------------------------------------------
-            | Load Existing old_student Records
-            |--------------------------------------------------------------------------
-            |
-            | The unique database index consists of:
-            | sid + schid + ssn + trm + clsm
-            |
-            | Therefore, we identify existing records using these five columns.
-            | We deliberately do not use UID as the lookup key.
-            |
-            */
-
-            $oldStudentCache = old_student::whereIn('sid', $userIds)
-                ->whereIn('ssn', $ssns)
-                ->whereIn('trm', $terms)
-                ->get()
-                ->keyBy(function ($record) {
-                    return implode('|', [
-                        (string) $record->sid,
-                        (string) $record->schid,
-                        (string) $record->ssn,
-                        (string) $record->trm,
-                        (string) $record->clsm,
-                    ]);
-                });
-
-            // Cache subject-refresh decisions.
-            $refreshCache = [];
+        DB::transaction(function () use ($students) {
 
             foreach ($students as $data) {
 
                 $user_id = $data['user_id'];
+
                 $schid = $data['schid'];
+
                 $ssn = $data['ssn'];
+
                 $trm = (int) $data['trm'];
 
-                $last_class = $data['last_class'] ?? 'NIL';
-                $new_class = $data['new_class'] ?? 'NIL';
-                $new_class_main = $data['new_class_main'] ?? 'NIL';
+                $new_class = $data['new_class'] ?? null;
+
+                $new_class_main = $data['new_class_main'] ?? null;
 
                 /*
                 |--------------------------------------------------------------------------
-                | Determine Whether Subjects Need Refreshing
+                | Fetch Existing Student
                 |--------------------------------------------------------------------------
                 */
 
-                if (!array_key_exists($user_id, $refreshCache)) {
+                $std = student::where('sid', $user_id)->first();
 
-                    $oldData = $academicCache->get($user_id);
+                if (!$std) {
 
-                    $refreshCache[$user_id] = !$oldData
-                        || $oldData->new_class_main != $new_class_main;
-                }
-
-                $refreshSubjects = $refreshCache[$user_id];
-
-                /*
-                |--------------------------------------------------------------------------
-                | Update or Create Academic Data
-                |--------------------------------------------------------------------------
-                */
-
-                $academicData = [
-                    'last_school' => $data['last_school'],
-                    'last_class' => $last_class,
-                    'new_class' => $new_class,
-                    'new_class_main' => $new_class_main,
-                ];
-
-                $oldData = $academicCache->get($user_id);
-
-                if ($oldData) {
-
-                    $oldData->update($academicData);
-
-                } else {
-
-                    $oldData = student_academic_data::create(
-                        array_merge(
-                            ['user_id' => $user_id],
-                            $academicData
-                        )
+                    throw new \Exception(
+                        "Student not found: {$user_id}"
                     );
 
-                    $academicCache->put($user_id, $oldData);
                 }
 
                 /*
                 |--------------------------------------------------------------------------
-                | Clear Subjects If Class Changed
+                | Determine Whether Subjects Should Be Refreshed
+                |--------------------------------------------------------------------------
+                */
+
+                $oldData = student_academic_data::where(
+                    'user_id',
+                    $user_id
+                )->first();
+
+                $refreshSubjects = !$oldData ||
+                    $oldData->new_class_main != $new_class_main;
+
+                /*
+                |--------------------------------------------------------------------------
+                | Save / Update Student Academic Information
+                |--------------------------------------------------------------------------
+                */
+
+                student_academic_data::updateOrCreate(
+                    [
+                        'user_id' => $user_id,
+                    ],
+                    [
+                        'last_school' => $data['last_school'],
+
+                        'last_class' => $data['last_class'] ?? 'NIL',
+
+                        'new_class' => $new_class ?? 'NIL',
+
+                        'new_class_main' => $new_class_main ?? 'NIL',
+                    ]
+                );
+
+                /*
+                |--------------------------------------------------------------------------
+                | Clear Subjects If Main Class Changes
                 |--------------------------------------------------------------------------
                 */
 
                 if ($refreshSubjects) {
-                    student_subj::where('stid', $user_id)->delete();
+
+                    student_subj::where(
+                        'stid',
+                        $user_id
+                    )->delete();
+
                 }
 
                 /*
                 |--------------------------------------------------------------------------
-                | Get Student Record
+                | Process Class Arm Assignment
                 |--------------------------------------------------------------------------
                 */
 
-                $std = $studentCache->get($user_id);
+                if (
+                    $new_class !== null &&
+                    $new_class !== '' &&
+                    $new_class !== 'NIL' &&
+                    $new_class_main !== null &&
+                    $new_class_main !== '' &&
+                    $new_class_main !== 'NIL'
+                ) {
 
-                if (!$std) {
+                    $classMain = (int) $new_class_main;
 
-                    Log::warning("Student not found: {$user_id}");
-
-                    continue;
-                }
-
-                /*
-                |--------------------------------------------------------------------------
-                | Handle old_student Class Assignment
-                |--------------------------------------------------------------------------
-                */
-
-                if (!empty($new_class) && $new_class !== 'NIL') {
-
-                    // Normalize class values.
-                    $classMain = is_numeric($new_class_main)
-                        ? (int) $new_class_main
-                        : 0;
-
-                    $classArm = is_numeric($new_class)
-                        ? (int) $new_class
-                        : 0;
+                    $classArm = (int) $new_class;
 
                     /*
                     |--------------------------------------------------------------------------
-                    | Build Database Unique Index Key
+                    | Find Existing Class Allocation
                     |--------------------------------------------------------------------------
                     |
-                    | Must match:
+                    | Match the database unique index:
+                    |
                     | sid + schid + ssn + trm + clsm
                     |
-                    */
-
-                    $uniqueKey = implode('|', [
-                        (string) $user_id,
-                        (string) $schid,
-                        (string) $ssn,
-                        (string) $trm,
-                        (string) $classMain,
-                    ]);
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Prepare old_student Data
-                    |--------------------------------------------------------------------------
-                    */
-
-                    $oldStudentData = [
-                        'sid' => (int) $user_id,
-                        'schid' => (int) $schid,
-                        'ssn' => is_numeric($ssn) ? (int) $ssn : 0,
-                        'trm' => $trm,
-                        'clsm' => $classMain,
-                        'fname' => $std->fname ?? 'Unknown',
-                        'mname' => $std->mname ?? '',
-                        'lname' => $std->lname ?? 'Unknown',
-                        'clsa' => $classArm,
-                        'status' => 'active',
-                        'suid' => $data['suid'],
-                        'more' => '',
-                    ];
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Update Existing Record or Create New Record
-                    |--------------------------------------------------------------------------
-                    |
-                    | If the student already exists in this session, term,
-                    | school and main class, UPDATE the existing record.
-                    |
-                    | This replaces the previous class arm instead of
-                    | attempting to insert another record.
+                    | Do not include clsa in this lookup because
+                    | we want to replace its existing value.
                     |
                     */
 
-                    if ($oldStudentCache->has($uniqueKey)) {
+                    $oldRecord = old_student::where('sid', $user_id)
+                        ->where('schid', $schid)
+                        ->where('ssn', $ssn)
+                        ->where('trm', $trm)
+                        ->where('clsm', $classMain)
+                        ->lockForUpdate()
+                        ->first();
 
-                        // Update existing record, including its class arm.
-                        $oldRecord = $oldStudentCache->get($uniqueKey);
+                    if ($oldRecord) {
 
-                        $oldRecord->update($oldStudentData);
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Update Existing Class Arm
+                        |--------------------------------------------------------------------------
+                        |
+                        | Handles NULL, 1, 2, 3, etc.
+                        |
+                        | Preserve sid, uid, clsm and all other fields.
+                        |
+                        */
+
+                        $oldRecord->update([
+                            'clsa' => $classArm,
+                        ]);
 
                     } else {
 
-                        // UID is only generated when creating a new record.
-                        $uid = $ssn . $user_id . $classMain . $trm;
+                        /*
+                        |--------------------------------------------------------------------------
+                        | No Existing Record: Create New Allocation
+                        |--------------------------------------------------------------------------
+                        */
 
-                        $oldRecord = old_student::create(
-                            array_merge(
-                                ['uid' => $uid],
-                                $oldStudentData
-                            )
-                        );
+                        old_student::create([
 
-                        // Update cache for subsequent rows in this batch.
-                        $oldStudentCache->put($uniqueKey, $oldRecord);
+                            'uid' => (string) Str::uuid(),
+
+                            'sid' => $user_id,
+
+                            'schid' => $schid,
+
+                            'ssn' => $ssn,
+
+                            'trm' => $trm,
+
+                            'clsm' => $classMain,
+
+                            'clsa' => $classArm,
+
+                            'fname' => $std->fname ?? 'Unknown',
+
+                            'mname' => $std->mname ?? '',
+
+                            'lname' => $std->lname ?? 'Unknown',
+
+                            'status' => 'active',
+
+                            'suid' => $data['suid'],
+
+                            'more' => '',
+
+                        ]);
+
                     }
+
                 }
 
                 /*
                 |--------------------------------------------------------------------------
-                | Mark Academic Record As Set
+                | Mark Student Academic Information As Set
                 |--------------------------------------------------------------------------
                 */
 
                 $std->update([
-                    "s_academic" => 1,
+                    's_academic' => '1',
                 ]);
+
             }
+
         });
 
     } catch (\Exception $e) {
 
-        Log::error("Bulk upload failed: " . $e->getMessage());
+        Log::error(
+            "Bulk upload failed: " . $e->getMessage()
+        );
 
         return response()->json([
             "status" => false,
             "message" => "Server Error",
             "error" => $e->getMessage(),
         ], 500);
+
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Successful Response
+    |--------------------------------------------------------------------------
+    */
 
     return response()->json([
         "status" => true,
         "message" => "Bulk upload successful",
     ]);
-}
 
+}
 
 
 
