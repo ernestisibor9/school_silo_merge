@@ -9550,105 +9550,242 @@ public function setStudentAtOnceBulk(Request $request)
 //     }
 
 
-    public function setStudentAcademicInfo(Request $request)
-    {
-        // Data validation
-        $request->validate([
-            "user_id" => "required",
-            "schid" => "required",
-            "last_school" => "required",
-            "last_class" => "nullable",
-            "new_class" => "nullable",
-            "new_class_main" => "nullable",
-            "ssn" => "required",
-            "suid" => "required",
-            "trm" => "required", // add term
-        ]);
 
-        // Determine if we need to refresh subjects
-        $oldData = student_academic_data::where('user_id', $request->user_id)->first();
-        $refreshSubjects = !$oldData || $oldData->new_class_main != ($request->new_class_main ?? null);
+public function setStudentAcademicInfo(Request $request)
+{
+    // Data validation
+    $request->validate([
+        "user_id" => "required",
+        "schid" => "required",
+        "last_school" => "required",
+        "last_class" => "nullable",
+        "new_class" => "nullable",
+        "new_class_main" => "nullable",
+        "ssn" => "required",
+        "suid" => "required",
+        "trm" => "required|integer|in:1,2,3",
+    ]);
 
-        // Save/update student academic info
-        student_academic_data::updateOrCreate(
-            ["user_id" => $request->user_id],
-            [
-                "last_school" => $request->last_school,
-                "last_class" => $request->last_class ?? 'NIL',
-                "new_class" => $request->new_class ?? 'NIL',
-                "new_class_main" => $request->new_class_main ?? 'NIL',
-            ]
+    try {
+
+        DB::transaction(function () use ($request) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Determine If Subjects Should Be Refreshed
+            |--------------------------------------------------------------------------
+            */
+
+            $oldData = student_academic_data::where(
+                'user_id',
+                $request->user_id
+            )->first();
+
+            $refreshSubjects = !$oldData ||
+                $oldData->new_class_main != (
+                    $request->new_class_main ?? null
+                );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Save / Update Student Academic Information
+            |--------------------------------------------------------------------------
+            */
+
+            student_academic_data::updateOrCreate(
+                [
+                    "user_id" => $request->user_id,
+                ],
+                [
+                    "last_school" => $request->last_school,
+
+                    "last_class" => $request->last_class ?? 'NIL',
+
+                    "new_class" => $request->new_class ?? 'NIL',
+
+                    "new_class_main" => $request->new_class_main ?? 'NIL',
+                ]
+            );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Clear Subjects If Main Class Changes
+            |--------------------------------------------------------------------------
+            */
+
+            if ($refreshSubjects) {
+
+                student_subj::where(
+                    'stid',
+                    $request->user_id
+                )->delete();
+
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Fetch Student
+            |--------------------------------------------------------------------------
+            */
+
+            $std = student::where(
+                'sid',
+                $request->user_id
+            )->first();
+
+            if (!$std) {
+
+                throw new \Exception("Student not found");
+
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Process Class Arm Assignment
+            |--------------------------------------------------------------------------
+            */
+
+            $new_class = $request->new_class;
+
+            $new_class_main = $request->new_class_main;
+
+            if (
+                $new_class !== null &&
+                $new_class !== '' &&
+                $new_class !== 'NIL' &&
+                $new_class_main !== null &&
+                $new_class_main !== '' &&
+                $new_class_main !== 'NIL'
+            ) {
+
+                $classMain = (int) $new_class_main;
+
+                $classArm = (int) $new_class;
+
+                /*
+                |--------------------------------------------------------------------------
+                | Find Existing Class Allocation
+                |--------------------------------------------------------------------------
+                |
+                | Match the database unique index:
+                |
+                | sid + schid + ssn + trm + clsm
+                |
+                | Do not include clsa because we want to update it.
+                |
+                */
+
+                $oldRecord = old_student::where(
+                    'sid',
+                    $request->user_id
+                )
+                    ->where('schid', $request->schid)
+                    ->where('ssn', $request->ssn)
+                    ->where('trm', $request->trm)
+                    ->where('clsm', $classMain)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($oldRecord) {
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Update Existing Class Arm
+                    |--------------------------------------------------------------------------
+                    |
+                    | Handles NULL, 1, 2, 3, etc.
+                    |
+                    | Preserve sid, uid, clsm and other existing fields.
+                    |
+                    */
+
+                    $oldRecord->update([
+                        'clsa' => $classArm,
+                    ]);
+
+                } else {
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Create New Class Allocation
+                    |--------------------------------------------------------------------------
+                    */
+
+                    old_student::create([
+
+                        'uid' => (string) Str::uuid(),
+
+                        'sid' => $request->user_id,
+
+                        'schid' => $request->schid,
+
+                        'ssn' => $request->ssn,
+
+                        'trm' => $request->trm,
+
+                        'clsm' => $classMain,
+
+                        'clsa' => $classArm,
+
+                        'fname' => $std->fname ?? 'Unknown',
+
+                        'mname' => $std->mname ?? '',
+
+                        'lname' => $std->lname ?? 'Unknown',
+
+                        'status' => 'active',
+
+                        'suid' => $request->suid,
+
+                        'more' => '',
+
+                    ]);
+
+                }
+
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Mark Student Academic Information As Set
+            |--------------------------------------------------------------------------
+            */
+
+            $std->update([
+                "s_academic" => '1'
+            ]);
+
+        });
+
+    } catch (\Exception $e) {
+
+        Log::error(
+            "Student academic information update failed: " . $e->getMessage()
         );
 
-        // If class changed, clear subjects
-        if ($refreshSubjects) {
-            student_subj::where('stid', $request->user_id)->delete();
-        }
+        if ($e->getMessage() === "Student not found") {
 
-        // Fetch student
-        $std = student::where('sid', $request->user_id)->first();
-        if (!$std) {
             return response()->json([
                 "status" => false,
                 "message" => "Student not found",
             ], 404);
+
         }
-
-        // Only proceed if new_class is valid
-        if (!empty($request->new_class) && $request->new_class != 'NIL') {
-
-            // 🔹 Delete old record for the former class arm (if reposting)
-            old_student::where('sid', $request->user_id)
-                ->where('ssn', $request->ssn)
-                ->where('trm', $request->trm)
-                ->where('clsm', $request->new_class_main)
-                ->where('clsa', '!=', $request->new_class)
-                ->delete();
-
-            // 🔹 Guard against duplicates (NO redundancy after this)
-            $exists = old_student::where([
-                'sid' => $request->user_id,
-                'ssn' => $request->ssn,
-                'trm' => $request->trm,
-                'clsm' => $request->new_class_main,
-                'clsa' => $request->new_class,
-            ])->exists();
-
-            if ($exists) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'This student already exists in the selected session, term, and class arm.',
-                ], );
-            }
-
-            // 🔹 Insert ONLY (no update, no overwrite, no corruption)
-            old_student::create([
-                'uid' => (string) Str::uuid(),
-                'sid' => $request->user_id,
-                'schid' => $request->schid,
-                'ssn' => $request->ssn,
-                'trm' => $request->trm,
-                'clsm' => $request->new_class_main,
-                'clsa' => $request->new_class,
-                'fname' => $std->fname ?? 'Unknown',
-                'mname' => $std->mname ?? '',
-                'lname' => $std->lname ?? 'Unknown',
-                'status' => 'active',
-                'suid' => $request->suid,
-                'more' => '',
-            ]);
-        }
-
-        // Mark student academic record as set
-        $std->update([
-            "s_academic" => '1'
-        ]);
 
         return response()->json([
-            "status" => true,
-            "message" => "Success",
-        ]);
+            "status" => false,
+            "message" => "Server Error",
+            "error" => $e->getMessage(),
+        ], 500);
+
     }
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+    ]);
+}
+
 
 
 
