@@ -2956,6 +2956,345 @@ class ApiController extends Controller
 //     ]);
 // }
 
+// public function registerStudent(Request $request)
+// {
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Validate request
+//     |--------------------------------------------------------------------------
+//     */
+
+//     $request->validate([
+//         "schid" => "required",
+//         "email" => "required|email",
+//         "password" => "required",
+//         "fname" => "required|string|max:100",
+//         "lname" => "required|string|max:100",
+//         "mname" => "nullable|string|max:100",
+//         "phone" => "nullable|regex:/^[0-9]+$/|max:15",
+
+//         "term" => "required",
+//         "ssn" => "required",
+//         "sch3" => "required",
+//         "stat" => "required",
+
+//         "dob" => "nullable|string|max:50",
+
+//         "sex" => "required|in:M,F",
+//         "height" => "nullable|string|max:255",
+//         "country" => "required|string|max:255",
+//         "state" => "required|string|max:255",
+//         "lga" => "required|string|max:255",
+//         "addr" => "required|string",
+
+//         "last_school" => "nullable|string|max:255",
+//         "last_class" => "nullable|string|max:255",
+//         "new_class" => "required",
+//         "new_class_main" => "required",
+//     ], [
+//         "ssn.required" => "The session field is required.",
+//     ]);
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Convert names to uppercase
+//     |--------------------------------------------------------------------------
+//     */
+
+//     $fname = strtoupper(trim($request->fname));
+//     $lname = strtoupper(trim($request->lname));
+
+//     $mname = $request->filled('mname')
+//         ? strtoupper(trim($request->mname))
+//         : null;
+
+//     $name = trim($fname . ' ' . ($mname ?? '') . ' ' . $lname);
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Password validation
+//     |--------------------------------------------------------------------------
+//     */
+
+//     if (strlen($request->password) < 6) {
+//         return response()->json([
+//             "status" => false,
+//             "message" => "Password must be at least 6 char",
+//         ], 400);
+//     }
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Check existing student
+//     |--------------------------------------------------------------------------
+//     */
+
+//     $tstd = null;
+
+//     if ($request->filled('count')) {
+//         $tstd = student::where('sch3', $request->sch3)
+//             ->where('year', $request->ssn)
+//             ->where('term', $request->term)
+//             ->where('count', $request->count)
+//             ->first();
+//     }
+
+//     if ($tstd) {
+//         return response()->json([
+//             "status" => false,
+//             "message" => "Student already exists",
+//         ], 400);
+//     }
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Create user
+//     |--------------------------------------------------------------------------
+//     */
+
+//     $typ = 'z';
+
+//     // Prevent this email from being used by another account type.
+//     // Multiple accounts with typ = 'z' can use the same email.
+//     $existingOtherTypeUser = User::where("email", $request->email)
+//         ->where("typ", "!=", $typ)
+//         ->first();
+
+//     if ($existingOtherTypeUser) {
+//         return response()->json([
+//             "status" => false,
+//             "message" => "Account already exists",
+//         ], 400);
+//     }
+
+//     // Always create a new user for each student.
+//     // Duplicate emails are allowed for typ = 'z'.
+//     $usr = User::create([
+//         "email" => $request->email,
+//         "typ" => $typ,
+//         "verif" => '1',
+//         "password" => bcrypt($request->password),
+//     ]);
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Generate student count
+//     |--------------------------------------------------------------------------
+//     */
+
+//     $count = $request->count;
+
+//     if (!$count) {
+//         $count = student::where('schid', $request->schid)->count() + 1;
+//     }
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Student session / year
+//     |--------------------------------------------------------------------------
+//     */
+
+//     $ssn = $request->ssn;
+//     $user_id = strval($usr->id);
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Generate CUID
+//     |--------------------------------------------------------------------------
+//     */
+
+//     $cuid = $request->sch3
+//         . '/'
+//         . $ssn
+//         . '/'
+//         . $request->term
+//         . '/'
+//         . strval($count);
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Create student record
+//     |--------------------------------------------------------------------------
+//     */
+
+//     student::create([
+//         "sid" => $user_id,
+//         "schid" => $request->schid,
+
+//         "fname" => $fname,
+//         "mname" => $mname,
+//         "lname" => $lname,
+
+//         "count" => strval($count),
+//         "year" => $ssn,
+//         "term" => $request->term,
+//         "sch3" => $request->sch3,
+
+//         "s_basic" => '0',
+//         "s_medical" => '0',
+//         "s_parent" => '0',
+//         "s_academic" => '0',
+
+//         "rfee" => $request->stat,
+//         "stat" => $request->stat,
+//         "cuid" => $cuid,
+//     ]);
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Generate student ID
+//     |--------------------------------------------------------------------------
+//     */
+
+//     $sid = $request->sch3
+//         . '/'
+//         . $ssn
+//         . '/'
+//         . $request->term
+//         . '/'
+//         . strval($count);
+
+
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Insert legacy student record into old_student
+//     |--------------------------------------------------------------------------
+//     */
+//     $uid = $ssn . $request->term . $user_id;
+
+//     DB::table('old_student')->insert([
+//         "uid" => $uid,
+//         "sid" => $user_id,
+//         "schid" => $request->schid,
+
+//         "fname" => $fname,
+//         "mname" => $mname,
+//         "lname" => $lname,
+
+//         "status" => "active",
+//         "suid" => $cuid,
+
+//         "ssn" => $ssn,
+//         "trm" => $request->term,
+//         "clsm" => $request->new_class_main,
+
+//         "clsa" => null,
+//         "cls_sbj_students" => "0",
+
+//         "adm_ssn" => null,
+//         "adm_trm" => null,
+//         "cls_of_adm" => null,
+//         "date_of_adm" => null,
+//         "adm_status" => "0",
+//         "more" => null,
+
+//         "created_at" => now(),
+//         "updated_at" => now(),
+//     ]);
+
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Save basic student information
+//     |--------------------------------------------------------------------------
+//     */
+
+//     student_basic_data::updateOrCreate(
+//         [
+//             "user_id" => $user_id,
+//         ],
+//         [
+//             "dob" => $request->dob,
+//             "sex" => $request->sex,
+//             "height" => $request->input('height', '') ?? '',
+//             "country" => $request->country,
+//             "state" => $request->state,
+//             "lga" => $request->lga,
+//             "addr" => $request->addr,
+//         ]
+//     );
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Save academic information
+//     |--------------------------------------------------------------------------
+//     */
+
+//     student_academic_data::updateOrCreate(
+//         [
+//             "user_id" => $user_id,
+//         ],
+//         [
+//             "last_school" => $request->input('last_school') ?? '',
+//             "last_class" => $request->input('last_class') ?? '',
+//             "new_class" => $request->new_class,
+//             "new_class_main" => $request->new_class_main,
+//         ]
+//     );
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Send welcome email
+//     |--------------------------------------------------------------------------
+//     */
+
+//     try {
+//         $portalUrl = rtrim(
+//             config('app.portal_url', 'https://portal.schoolsilomerge.top'),
+//             '/'
+//         );
+
+//         $loginUrl = $portalUrl . '/studentLogin/' . $request->schid;
+
+//         $data = [
+//             'name' => $name,
+//             'subject' => 'Welcome, Your ID is ' . $cuid,
+//             'body' => "Welcome to your school's platform. Your account was created successfully.\n\n"
+//                 . "Please log in to your dashboard and complete your student profile using the link below.\n\n"
+//                 . "If the link isn't clickable, copy it into your browser. If this email arrives in your spam folder, please mark it as Not Spam.\n\n"
+//                 . "Your Student ID is " . $cuid . ".\n\n"
+//                 . "Use the password created during registration to log in.",
+//             'link' => $loginUrl,
+//         ];
+
+//         Mail::to($request->email)->send(new SSSMails($data));
+
+//         Log::info('Student welcome email sent successfully.', [
+//             'student_id' => $usr->id,
+//             'email' => $request->email,
+//             'school_id' => $request->schid,
+//             'login_url' => $loginUrl,
+//         ]);
+
+//     } catch (\Throwable $e) {
+//         Log::error('Failed to send student welcome email.', [
+//             'student_id' => $usr->id,
+//             'email' => $request->email,
+//             'school_id' => $request->schid,
+//             'error' => $e->getMessage(),
+//         ]);
+//     }
+
+//     /*
+//     |--------------------------------------------------------------------------
+//     | Return response
+//     |--------------------------------------------------------------------------
+//     */
+
+//     return response()->json([
+//         "status" => true,
+//         "message" => "Success",
+//         "pld" => [
+//             "sid" => $user_id,
+//             "cuid" => $cuid,
+//             "schid" => $request->schid,
+//             "fname" => $fname,
+//             "lname" => $lname,
+//         ],
+//     ]);
+// }
+
 public function registerStudent(Request $request)
 {
     /*
@@ -3154,14 +3493,28 @@ public function registerStudent(Request $request)
         . '/'
         . strval($count);
 
-
-
     /*
     |--------------------------------------------------------------------------
     | Insert legacy student record into old_student
     |--------------------------------------------------------------------------
     */
-    $uid = $ssn . $request->term . $user_id;
+
+    // Include school ID in the UID to reduce the possibility of collisions.
+    $uid = $request->schid . $ssn . $request->term . $user_id;
+
+    // Check whether this UID already exists in the database.
+    if (DB::table('old_student')->where('uid', $uid)->exists()) {
+
+        Log::error('Student registration: duplicate old_student UID detected.', [
+            'uid' => $uid,
+            'student_id' => $user_id,
+            'school_id' => $request->schid,
+        ]);
+
+        throw new \Exception(
+            "The old_student UID already exists: " . $uid
+        );
+    }
 
     DB::table('old_student')->insert([
         "uid" => $uid,
@@ -3192,7 +3545,6 @@ public function registerStudent(Request $request)
         "created_at" => now(),
         "updated_at" => now(),
     ]);
-
 
     /*
     |--------------------------------------------------------------------------
@@ -5880,6 +6232,9 @@ public function setStudentAtOnceBulk(Request $request)
             $basicRows = [];
             $feeRows = [];
 
+            // Prevent duplicate old_student primary keys within this upload.
+            $generatedOldStudentUids = [];
+
             $timestamp = now();
 
             /*
@@ -6200,7 +6555,34 @@ public function setStudentAtOnceBulk(Request $request)
                 |--------------------------------------------------------------------------
                 */
 
-                $oldStudentUid = $ssn . $data['term'] . $user_id;
+                // Include schid to reduce the chance of UID collisions across schools.
+                $oldStudentUid = $schoolId . $ssn . $data['term'] . $user_id;
+
+                // Check for duplicate UIDs generated within this upload.
+                if (isset($generatedOldStudentUids[$oldStudentUid])) {
+
+                    throw new \Exception(
+                        "Duplicate old_student UID generated in this upload at row "
+                        . ($index + 1)
+                        . ": "
+                        . $oldStudentUid
+                    );
+
+                }
+
+                // Check whether this UID already exists in the database.
+                if (DB::table('old_student')->where('uid', $oldStudentUid)->exists()) {
+
+                    throw new \Exception(
+                        "The old_student UID already exists at row "
+                        . ($index + 1)
+                        . ": "
+                        . $oldStudentUid
+                    );
+
+                }
+
+                $generatedOldStudentUids[$oldStudentUid] = true;
 
                 $oldStudentRows[] = [
 
@@ -6471,7 +6853,6 @@ public function setStudentAtOnceBulk(Request $request)
 
     }
 }
-
 
 
 
@@ -42481,6 +42862,8 @@ public function setStudentSubjectBulk(Request $request)
 
 
 
+
+
 public function setStudentAcademicInfoBulk(Request $request)
 {
     $request->validate([
@@ -42502,8 +42885,11 @@ public function setStudentAcademicInfoBulk(Request $request)
         // Collect IDs and values needed for batch lookups.
         $userIds = $students->pluck('user_id')->unique()->values()->all();
         $ssns = $students->pluck('ssn')->unique()->values()->all();
-        $terms = $students->pluck('trm')->map(fn ($term) => (int) $term)
-            ->unique()->values()->all();
+        $terms = $students->pluck('trm')
+            ->map(fn ($term) => (int) $term)
+            ->unique()
+            ->values()
+            ->all();
 
         DB::transaction(function () use ($students, $userIds, $ssns, $terms) {
 
@@ -42530,6 +42916,7 @@ public function setStudentAcademicInfoBulk(Request $request)
             foreach ($oldStudentCache as $oldRecord) {
                 $combinationKey = implode('|', [
                     $oldRecord->sid,
+                    $oldRecord->schid,
                     $oldRecord->ssn,
                     $oldRecord->trm,
                     $oldRecord->clsm,
@@ -42602,33 +42989,58 @@ public function setStudentAcademicInfoBulk(Request $request)
                 // Handle old_student only if new_class is valid.
                 if (!empty($new_class) && $new_class !== 'NIL') {
 
-                    // Delete the old record for the same class but a different arm.
-                    old_student::where('sid', $user_id)
+                    /*
+                     * Delete the previous allocation for the same:
+                     * student, school, session, term and main class.
+                     *
+                     * This handles both:
+                     * - A different existing class arm.
+                     * - An existing NULL class arm.
+                     *
+                     * schid is included to prevent deleting another
+                     * school's allocation.
+                     */
+
+                    $recordsToDelete = old_student::where('sid', $user_id)
+                        ->where('schid', $schid)
                         ->where('ssn', $ssn)
                         ->where('trm', $trm)
                         ->where('clsm', $new_class_main)
-                        ->where('clsa', '!=', $new_class)
-                        ->delete();
+                        ->where(function ($query) use ($new_class) {
+                            $query->where('clsa', '!=', $new_class)
+                                ->orWhereNull('clsa');
+                        })
+                        ->get();
 
-                    // Remove deleted class arms from the in-memory cache.
-                    foreach ($combinationCache as $key => $exists) {
-                        $parts = explode('|', $key, 5);
+                    // Remove deleted records from both in-memory caches.
+                    if ($recordsToDelete->isNotEmpty()) {
 
-                        if (
-                            count($parts) === 5
-                            && (string) $parts[0] === (string) $user_id
-                            && (string) $parts[1] === (string) $ssn
-                            && (string) $parts[2] === (string) $trm
-                            && (string) $parts[3] === (string) $new_class_main
-                            && (string) $parts[4] !== (string) $new_class
-                        ) {
-                            unset($combinationCache[$key]);
+                        foreach ($recordsToDelete as $deletedRecord) {
+
+                            $deletedCombinationKey = implode('|', [
+                                $deletedRecord->sid,
+                                $deletedRecord->schid,
+                                $deletedRecord->ssn,
+                                $deletedRecord->trm,
+                                $deletedRecord->clsm,
+                                $deletedRecord->clsa,
+                            ]);
+
+                            unset($combinationCache[$deletedCombinationKey]);
+                            unset($uidCache[$deletedRecord->uid]);
                         }
+
+                        // Delete the old database records in one query.
+                        old_student::whereIn(
+                            'uid',
+                            $recordsToDelete->pluck('uid')->all()
+                        )->delete();
                     }
 
                     // Check whether the exact combination already exists.
                     $combinationKey = implode('|', [
                         $user_id,
+                        $schid,
                         $ssn,
                         $trm,
                         $new_class_main,
@@ -42636,10 +43048,11 @@ public function setStudentAcademicInfoBulk(Request $request)
                     ]);
 
                     if (isset($combinationCache[$combinationKey])) {
-                        return response()->json([
-                            'status' => false,
-                            'message' => 'Duplicate record of students for the specified session, term, and class.',
-                        ]);
+
+                        // Throwing an exception rolls back the entire transaction.
+                        throw new \RuntimeException(
+                            'DUPLICATE_STUDENT_ALLOCATION'
+                        );
                     }
 
                     // UID includes term to prevent duplicates.
@@ -42677,7 +43090,7 @@ public function setStudentAcademicInfoBulk(Request $request)
                         $uidCache[$uid] = $oldRecord;
                     }
 
-                    // Update the in-memory caches for subsequent rows.
+                    // Update the in-memory combination cache.
                     $combinationCache[$combinationKey] = true;
                 }
 
@@ -42687,7 +43100,17 @@ public function setStudentAcademicInfoBulk(Request $request)
                 ]);
             }
         });
+
     } catch (\Exception $e) {
+
+        // Return the original duplicate response from the controller.
+        if ($e->getMessage() === 'DUPLICATE_STUDENT_ALLOCATION') {
+            return response()->json([
+                'status' => false,
+                'message' => 'Duplicate record of students for the specified session, term, and class.',
+            ]);
+        }
+
         Log::error("Bulk upload failed: " . $e->getMessage());
 
         return response()->json([
@@ -42702,6 +43125,7 @@ public function setStudentAcademicInfoBulk(Request $request)
         "message" => "Bulk upload successful",
     ]);
 }
+
 
 
 
