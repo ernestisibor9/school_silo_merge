@@ -42860,6 +42860,8 @@ public function setStudentSubjectBulk(Request $request)
     //     ]);
     // }
 
+
+
 public function setStudentAcademicInfoBulk(Request $request)
 {
     $request->validate([
@@ -42880,13 +42882,18 @@ public function setStudentAcademicInfoBulk(Request $request)
 
         // Collect IDs and values needed for batch lookups.
         $userIds = $students->pluck('user_id')->unique()->values()->all();
+
         $ssns = $students->pluck('ssn')->unique()->values()->all();
-        $terms = $students->pluck('trm')->map(fn ($term) => (int) $term)
-            ->unique()->values()->all();
+
+        $terms = $students->pluck('trm')
+            ->map(fn ($term) => (int) $term)
+            ->unique()
+            ->values()
+            ->all();
 
         DB::transaction(function () use ($students, $userIds, $ssns, $terms) {
 
-            // Load academic records once instead of querying for every student.
+            // Load academic records once.
             $academicCache = student_academic_data::whereIn('user_id', $userIds)
                 ->get()
                 ->keyBy('user_id');
@@ -42896,33 +42903,38 @@ public function setStudentAcademicInfoBulk(Request $request)
                 ->get()
                 ->keyBy('sid');
 
-            // Load relevant old_student records once for duplicate checks.
+            /*
+            |--------------------------------------------------------------------------
+            | Load Existing old_student Records
+            |--------------------------------------------------------------------------
+            |
+            | The unique database index consists of:
+            | sid + schid + ssn + trm + clsm
+            |
+            | Therefore, we identify existing records using these five columns.
+            | We deliberately do not use UID as the lookup key.
+            |
+            */
+
             $oldStudentCache = old_student::whereIn('sid', $userIds)
                 ->whereIn('ssn', $ssns)
                 ->whereIn('trm', $terms)
-                ->get();
+                ->get()
+                ->keyBy(function ($record) {
+                    return implode('|', [
+                        (string) $record->sid,
+                        (string) $record->schid,
+                        (string) $record->ssn,
+                        (string) $record->trm,
+                        (string) $record->clsm,
+                    ]);
+                });
 
-            // Track existing class combinations and UID records in memory.
-            $combinationCache = [];
-            $uidCache = [];
-
-            foreach ($oldStudentCache as $oldRecord) {
-                $combinationKey = implode('|', [
-                    $oldRecord->sid,
-                    $oldRecord->ssn,
-                    $oldRecord->trm,
-                    $oldRecord->clsm,
-                    $oldRecord->clsa,
-                ]);
-
-                $combinationCache[$combinationKey] = true;
-                $uidCache[$oldRecord->uid] = $oldRecord;
-            }
-
-            // Cache subject-refresh decisions for repeated user IDs.
+            // Cache subject-refresh decisions.
             $refreshCache = [];
 
             foreach ($students as $data) {
+
                 $user_id = $data['user_id'];
                 $schid = $data['schid'];
                 $ssn = $data['ssn'];
@@ -42932,8 +42944,14 @@ public function setStudentAcademicInfoBulk(Request $request)
                 $new_class = $data['new_class'] ?? 'NIL';
                 $new_class_main = $data['new_class_main'] ?? 'NIL';
 
-                // Determine whether subjects need refreshing.
+                /*
+                |--------------------------------------------------------------------------
+                | Determine Whether Subjects Need Refreshing
+                |--------------------------------------------------------------------------
+                */
+
                 if (!array_key_exists($user_id, $refreshCache)) {
+
                     $oldData = $academicCache->get($user_id);
 
                     $refreshCache[$user_id] = !$oldData
@@ -42942,7 +42960,12 @@ public function setStudentAcademicInfoBulk(Request $request)
 
                 $refreshSubjects = $refreshCache[$user_id];
 
-                // Update or create academic data using the preloaded record.
+                /*
+                |--------------------------------------------------------------------------
+                | Update or Create Academic Data
+                |--------------------------------------------------------------------------
+                */
+
                 $academicData = [
                     'last_school' => $data['last_school'],
                     'last_class' => $last_class,
@@ -42953,8 +42976,11 @@ public function setStudentAcademicInfoBulk(Request $request)
                 $oldData = $academicCache->get($user_id);
 
                 if ($oldData) {
+
                     $oldData->update($academicData);
+
                 } else {
+
                     $oldData = student_academic_data::create(
                         array_merge(
                             ['user_id' => $user_id],
@@ -42965,87 +42991,112 @@ public function setStudentAcademicInfoBulk(Request $request)
                     $academicCache->put($user_id, $oldData);
                 }
 
-                // Clear subjects if the class changed.
+                /*
+                |--------------------------------------------------------------------------
+                | Clear Subjects If Class Changed
+                |--------------------------------------------------------------------------
+                */
+
                 if ($refreshSubjects) {
                     student_subj::where('stid', $user_id)->delete();
                 }
 
-                // Use the preloaded student record.
+                /*
+                |--------------------------------------------------------------------------
+                | Get Student Record
+                |--------------------------------------------------------------------------
+                */
+
                 $std = $studentCache->get($user_id);
 
                 if (!$std) {
+
                     Log::warning("Student not found: {$user_id}");
+
                     continue;
                 }
 
-                // Handle old_student only if new_class is valid.
+                /*
+                |--------------------------------------------------------------------------
+                | Handle old_student Class Assignment
+                |--------------------------------------------------------------------------
+                */
+
                 if (!empty($new_class) && $new_class !== 'NIL') {
 
-                    // Delete the old record for the same class but a different arm.
-                    old_student::where('sid', $user_id)
-                        ->where('ssn', $ssn)
-                        ->where('trm', $trm)
-                        ->where('clsm', $new_class_main)
-                        ->where('clsa', '!=', $new_class)
-                        ->delete();
+                    // Normalize class values.
+                    $classMain = is_numeric($new_class_main)
+                        ? (int) $new_class_main
+                        : 0;
 
-                    // Remove deleted class arms from the in-memory cache.
-                    foreach ($combinationCache as $key => $exists) {
-                        $parts = explode('|', $key, 5);
+                    $classArm = is_numeric($new_class)
+                        ? (int) $new_class
+                        : 0;
 
-                        if (
-                            count($parts) === 5
-                            && (string) $parts[0] === (string) $user_id
-                            && (string) $parts[1] === (string) $ssn
-                            && (string) $parts[2] === (string) $trm
-                            && (string) $parts[3] === (string) $new_class_main
-                            && (string) $parts[4] !== (string) $new_class
-                        ) {
-                            unset($combinationCache[$key]);
-                        }
-                    }
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Build Database Unique Index Key
+                    |--------------------------------------------------------------------------
+                    |
+                    | Must match:
+                    | sid + schid + ssn + trm + clsm
+                    |
+                    */
 
-                    // Check whether the exact combination already exists.
-                    $combinationKey = implode('|', [
-                        $user_id,
-                        $ssn,
-                        $trm,
-                        $new_class_main,
-                        $new_class,
+                    $uniqueKey = implode('|', [
+                        (string) $user_id,
+                        (string) $schid,
+                        (string) $ssn,
+                        (string) $trm,
+                        (string) $classMain,
                     ]);
 
-                    if (isset($combinationCache[$combinationKey])) {
-                        return response()->json([
-                            'status' => false,
-                            'message' => 'Duplicate record of students for the specified session, term, and class.',
-                        ]);
-                    }
-
-                    // UID includes term to prevent duplicates.
-                    $uid = $ssn . $user_id . $new_class_main . $trm;
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Prepare old_student Data
+                    |--------------------------------------------------------------------------
+                    */
 
                     $oldStudentData = [
                         'sid' => (int) $user_id,
                         'schid' => (int) $schid,
                         'ssn' => is_numeric($ssn) ? (int) $ssn : 0,
                         'trm' => $trm,
-                        'clsm' => is_numeric($new_class_main)
-                            ? (int) $new_class_main
-                            : 0,
+                        'clsm' => $classMain,
                         'fname' => $std->fname ?? 'Unknown',
                         'mname' => $std->mname ?? '',
                         'lname' => $std->lname ?? 'Unknown',
-                        'clsa' => $new_class,
+                        'clsa' => $classArm,
                         'status' => 'active',
                         'suid' => $data['suid'],
                         'more' => '',
                     ];
 
-                    // Reuse the preloaded UID record when available.
-                    if (isset($uidCache[$uid])) {
-                        $uidCache[$uid]->update($oldStudentData);
-                        $oldRecord = $uidCache[$uid];
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Update Existing Record or Create New Record
+                    |--------------------------------------------------------------------------
+                    |
+                    | If the student already exists in this session, term,
+                    | school and main class, UPDATE the existing record.
+                    |
+                    | This replaces the previous class arm instead of
+                    | attempting to insert another record.
+                    |
+                    */
+
+                    if ($oldStudentCache->has($uniqueKey)) {
+
+                        // Update existing record, including its class arm.
+                        $oldRecord = $oldStudentCache->get($uniqueKey);
+
+                        $oldRecord->update($oldStudentData);
+
                     } else {
+
+                        // UID is only generated when creating a new record.
+                        $uid = $ssn . $user_id . $classMain . $trm;
+
                         $oldRecord = old_student::create(
                             array_merge(
                                 ['uid' => $uid],
@@ -43053,20 +43104,25 @@ public function setStudentAcademicInfoBulk(Request $request)
                             )
                         );
 
-                        $uidCache[$uid] = $oldRecord;
+                        // Update cache for subsequent rows in this batch.
+                        $oldStudentCache->put($uniqueKey, $oldRecord);
                     }
-
-                    // Update the in-memory caches for subsequent rows.
-                    $combinationCache[$combinationKey] = true;
                 }
 
-                // Mark academic record as set.
+                /*
+                |--------------------------------------------------------------------------
+                | Mark Academic Record As Set
+                |--------------------------------------------------------------------------
+                */
+
                 $std->update([
                     "s_academic" => 1,
                 ]);
             }
         });
+
     } catch (\Exception $e) {
+
         Log::error("Bulk upload failed: " . $e->getMessage());
 
         return response()->json([
@@ -43081,6 +43137,8 @@ public function setStudentAcademicInfoBulk(Request $request)
         "message" => "Bulk upload successful",
     ]);
 }
+
+
 
 
 
