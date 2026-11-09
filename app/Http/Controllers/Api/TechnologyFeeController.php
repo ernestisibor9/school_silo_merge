@@ -107,7 +107,7 @@ class TechnologyFeeController extends Controller
 
         } catch (QueryException $e) {
 
-            // The database unique constraint prevents duplicate session/term fees.
+            // The database unique constraint prevents duplicate session/term fees..
             if ($e->getCode() === '23000') {
                 return response()->json([
                     'status' => false,
