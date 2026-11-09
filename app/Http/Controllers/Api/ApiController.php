@@ -42861,7 +42861,6 @@ public function setStudentSubjectBulk(Request $request)
     // }
 
 
-
 public function setStudentAcademicInfoBulk(Request $request)
 {
     $request->validate([
