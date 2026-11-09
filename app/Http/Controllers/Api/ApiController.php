@@ -25905,10 +25905,257 @@ public function setChangePasswordAdmin(Request $request)
 
 
 
+// public function restoreStudent(Request $request, $schid, $stid)
+// {
+//     // A new placement is optional.
+//     // If supplied, all placement fields must be provided..
+//     $request->validate([
+//         'sesn' => 'sometimes|required',
+//         'trm'  => 'sometimes|required',
+//         'clsm' => 'sometimes|required',
+//         'clsa' => 'sometimes|required',
+//         'suid' => 'sometimes|required',
+//     ]);
+
+//     $hasPlacement = collect(['sesn', 'trm', 'clsm', 'clsa', 'suid'])
+//         ->contains(fn ($field) => $request->filled($field));
+
+//     if ($hasPlacement) {
+//         $request->validate([
+//             'sesn' => 'required',
+//             'trm'  => 'required',
+//             'clsm' => 'required',
+//             'clsa' => 'required',
+//             'suid' => 'required',
+//         ]);
+//     }
+
+//     DB::beginTransaction();
+
+//     try {
+//         // 1. Find the student belonging to this school.
+//         $student = DB::table('student')
+//             ->where('schid', $schid)
+//             ->where('sid', $stid)
+//             ->lockForUpdate()
+//             ->first();
+
+//         if (!$student) {
+//             DB::rollBack();
+
+//             return response()->json([
+//                 'status' => false,
+//                 'message' => 'Student not found in this school.',
+//             ], 404);
+//         }
+
+//         // 2. Find the most recently updated inactive record.
+//         $previousRecord = DB::table('old_student')
+//             ->where('schid', $schid)
+//             ->where('sid', $stid)
+//             ->where('status', 'inactive')
+//             ->orderByDesc('updated_at')
+//             ->orderByDesc('uid')
+//             ->lockForUpdate()
+//             ->first();
+
+//         if (!$previousRecord) {
+//             DB::rollBack();
+
+//             return response()->json([
+//                 'status' => false,
+//                 'message' => 'No inactive student record was found to restore.',
+//             ], 404);
+//         }
+
+//         // Default to the student's previous placement.
+//         $placement = [
+//             'ssn' => $previousRecord->ssn,
+//             'trm' => $previousRecord->trm,
+//             'clsm' => $previousRecord->clsm,
+//             'clsa' => $previousRecord->clsa,
+//             'suid' => $previousRecord->suid,
+//         ];
+
+//         // 3. If a new placement was supplied, validate it.
+//         if ($hasPlacement) {
+//             $validArm = DB::table('sch_cls')
+//                 ->where('id', $request->clsa)
+//                 ->where('cls_id', $request->clsm)
+//                 ->where('schid', $schid)
+//                 ->first();
+
+//             if (!$validArm) {
+//                 DB::rollBack();
+
+//                 return response()->json([
+//                     'status' => false,
+//                     'message' => 'Invalid class arm for the selected class.',
+//                 ], 422);
+//             }
+
+//             $placement = [
+//                 'ssn' => $request->sesn,
+//                 'trm' => $request->trm,
+//                 'clsm' => $request->clsm,
+//                 'clsa' => $request->clsa,
+//                 'suid' => $request->suid,
+//             ];
+//         }
+
+//         // 4. Check for an existing record for this exact placement.
+//         $existingPlacement = DB::table('old_student')
+//             ->where('schid', $schid)
+//             ->where('sid', $stid)
+//             ->where('ssn', $placement['ssn'])
+//             ->where('trm', $placement['trm'])
+//             ->where('clsm', $placement['clsm'])
+//             ->where('clsa', $placement['clsa'])
+//             ->lockForUpdate()
+//             ->first();
+
+//         if ($existingPlacement && $existingPlacement->status === 'active') {
+//             DB::rollBack();
+
+//             return response()->json([
+//                 'status' => false,
+//                 'message' => 'An active record already exists for this session, term and class.',
+//             ], 409);
+//         }
+
+//         // 5. Restore the existing placement or create a new one.
+//         if ($existingPlacement) {
+//             // Same placement already exists but is inactive.
+//             DB::table('old_student')
+//                 ->where('uid', $existingPlacement->uid)
+//                 ->where('schid', $schid)
+//                 ->update([
+//                     'status' => 'active',
+//                     'exit_student' => NULL,
+//                     'suid' => $placement['suid'],
+//                     'updated_at' => now(),
+//                 ]);
+
+//             $restoredUid = $existingPlacement->uid;
+//         } elseif (!$hasPlacement) {
+//             // No new placement requested: reactivate the previous record.
+//             DB::table('old_student')
+//                 ->where('uid', $previousRecord->uid)
+//                 ->where('schid', $schid)
+//                 ->update([
+//                     'status' => 'active',
+//                     'exit_student' => NULL,
+//                     'suid' => $placement['suid'],
+//                     'updated_at' => now(),
+//                 ]);
+
+//             $restoredUid = $previousRecord->uid;
+//         } else {
+//             // New session/class: preserve the previous record and create
+//             // a separate active placement, following promoteStudent().
+//             $restoredUid = $placement['ssn']
+//                 . $placement['trm']
+//                 . $stid
+//                 . $placement['clsm'];
+
+//             $uidExists = DB::table('old_student')
+//                 ->where('uid', $restoredUid)
+//                 ->exists();
+
+//             if ($uidExists) {
+//                 DB::rollBack();
+
+//                 return response()->json([
+//                     'status' => false,
+//                     'message' => 'The generated record UID already exists. Please review the UID generation rule.',
+//                 ], 409);
+//             }
+
+//             DB::table('old_student')->insert([
+//                 'uid' => $restoredUid,
+//                 'sid' => $stid,
+//                 'schid' => $schid,
+//                 'fname' => $student->fname,
+//                 'mname' => $student->mname,
+//                 'lname' => $student->lname,
+//                 'suid' => $placement['suid'],
+//                 'ssn' => $placement['ssn'],
+//                 'trm' => $placement['trm'],
+//                 'clsm' => $placement['clsm'],
+//                 'clsa' => $placement['clsa'],
+//                 'status' => 'active',
+//                 'more' => '',
+//                 'created_at' => now(),
+//                 'updated_at' => now(),
+//             ]);
+//         }
+
+//         // 6. Reactivate the main student record.
+//         DB::table('student')
+//             ->where('schid', $schid)
+//             ->where('sid', $stid)
+//             ->update([
+//                 'status' => 'active',
+//                 'exit_status' => null,
+//             ]);
+
+//         // 7. Update the student's current class and arm.
+//         // new_class_main = class ID
+//         // new_class = class arm ID
+//         DB::table('student_academic_data')
+//             ->where('user_id', $stid)
+//             ->update([
+//                 'new_class_main' => $placement['clsm'],
+//                 'new_class' => $placement['clsa'],
+//                 'updated_at' => now(),
+//             ]);
+
+//         // 8. Remove the alumni record, if present.
+//         DB::table('alumnis')
+//             ->where('schid', $schid)
+//             ->where('stid', $stid)
+//             ->delete();
+
+//         DB::commit();
+
+//         return response()->json([
+//             'status' => true,
+//             'message' => 'Student restored successfully.',
+//             'pld' => [
+//                 'sid' => $stid,
+//                 'schid' => $schid,
+//                 'ssn' => $placement['ssn'],
+//                 'trm' => $placement['trm'],
+//                 'clsm' => $placement['clsm'],
+//                 'clsa' => $placement['clsa'],
+//                 'suid' => $placement['suid'],
+//                 'uid' => $restoredUid,
+//                 'new_placement' => $hasPlacement,
+//             ],
+//         ], 200);
+
+//     } catch (\Throwable $e) {
+//         DB::rollBack();
+
+//         \Log::error('Student restoration failed', [
+//             'schid' => $schid,
+//             'sid' => $stid,
+//             'error' => $e->getMessage(),
+//         ]);
+
+//         return response()->json([
+//             'status' => false,
+//             'message' => 'Failed to restore student. Please try again.',
+//         ], 500);
+//     }
+// }
+
+
+
 public function restoreStudent(Request $request, $schid, $stid)
 {
     // A new placement is optional.
-    // If supplied, all placement fields must be provided..
+    // If supplied, all placement fields must be provided.
     $request->validate([
         'sesn' => 'sometimes|required',
         'trm'  => 'sometimes|required',
@@ -26003,46 +26250,62 @@ public function restoreStudent(Request $request, $schid, $stid)
             ];
         }
 
-        // 4. Check for an existing record for this exact placement.
+        // 4. Find an existing record using the actual unique index fields.
+        // IMPORTANT: clsa is intentionally excluded from this lookup.
+        // uniq_student_term = sid + schid + ssn + trm + clsm
+
         $existingPlacement = DB::table('old_student')
             ->where('schid', $schid)
             ->where('sid', $stid)
             ->where('ssn', $placement['ssn'])
             ->where('trm', $placement['trm'])
             ->where('clsm', $placement['clsm'])
-            ->where('clsa', $placement['clsa'])
             ->lockForUpdate()
             ->first();
 
-        if ($existingPlacement && $existingPlacement->status === 'active') {
-            DB::rollBack();
-
-            return response()->json([
-                'status' => false,
-                'message' => 'An active record already exists for this session, term and class.',
-            ], 409);
-        }
-
         // 5. Restore the existing placement or create a new one.
+
         if ($existingPlacement) {
-            // Same placement already exists but is inactive.
+
+            // A matching record already exists and is active.
+            if ($existingPlacement->status === 'active') {
+                DB::rollBack();
+
+                return response()->json([
+                    'status' => false,
+                    'message' => 'An active record already exists for this session, term and class.',
+                ], 409);
+            }
+
+            // Matching record exists but is inactive.
+            // Update clsa even if its previous value was NULL.
+            // Preserve its existing UID and other record details.
+
             DB::table('old_student')
                 ->where('uid', $existingPlacement->uid)
                 ->where('schid', $schid)
                 ->update([
+                    'clsa' => $placement['clsa'],
                     'status' => 'active',
                     'exit_student' => NULL,
                     'suid' => $placement['suid'],
                     'updated_at' => now(),
                 ]);
 
+            // Keep the original UID.
             $restoredUid = $existingPlacement->uid;
+
         } elseif (!$hasPlacement) {
-            // No new placement requested: reactivate the previous record.
+
+            // No new placement requested.
+            // Reactivate the previous inactive record.
+            // Also update clsa, including when its previous value was NULL.
+
             DB::table('old_student')
                 ->where('uid', $previousRecord->uid)
                 ->where('schid', $schid)
                 ->update([
+                    'clsa' => $placement['clsa'],
                     'status' => 'active',
                     'exit_student' => NULL,
                     'suid' => $placement['suid'],
@@ -26050,9 +26313,12 @@ public function restoreStudent(Request $request, $schid, $stid)
                 ]);
 
             $restoredUid = $previousRecord->uid;
+
         } else {
-            // New session/class: preserve the previous record and create
-            // a separate active placement, following promoteStudent().
+
+            // New session/class:
+            // Preserve the previous record and create a separate active placement.
+
             $restoredUid = $placement['ssn']
                 . $placement['trm']
                 . $stid
@@ -26149,7 +26415,6 @@ public function restoreStudent(Request $request, $schid, $stid)
         ], 500);
     }
 }
-
 
 
 
