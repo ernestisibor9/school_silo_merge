@@ -348,4 +348,230 @@ public function publish($id)
 }
 
 
+
+
+/**
+ * @OA\Get(
+ *     path="/api/billing/technology-fees/{id}/schools",
+ *     tags={"Billing"},
+ *     summary="Get schools under a technology fee",
+ *     description="Returns schools with generated bills under a selected technology fee. The status query parameter filters the results to paid or unpaid bills. Only the Domain Admin can access this endpoint.",
+ *     operationId="getSchoolsForTechnologyFee",
+ *     security={{"bearerAuth": {}}},
+ *
+ *     @OA\Parameter(
+ *         name="id",
+ *         in="path",
+ *         required=true,
+ *         description="Technology fee ID",
+ *         @OA\Schema(type="integer", example=2)
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="status",
+ *         in="query",
+ *         required=true,
+ *         description="Filter school bills by payment status",
+ *         @OA\Schema(
+ *             type="string",
+ *             enum={"paid", "unpaid"},
+ *             example="paid"
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Schools retrieved successfully"
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthenticated"
+ *     ),
+ *     @OA\Response(
+ *         response=403,
+ *         description="Only the Domain Admin can access this endpoint"
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="Technology fee not found"
+ *     ),
+ *     @OA\Response(
+ *         response=422,
+ *         description="Invalid or missing status. Accepted values are paid and unpaid"
+ *     )
+ * )
+ */
+public function schools(Request $request, $id)
+{
+    // Only the Domain Admin can access this endpoint.
+    $admin = $request->user();
+
+    if (!$admin || $admin->typ !== 'a') {
+        return response()->json([
+            'status' => false,
+            'message' => 'Unauthorized. Only the Domain Admin can access this endpoint.',
+        ], 403);
+    }
+
+    // Validate the requested payment status.
+    $validator = Validator::make($request->query(), [
+        'status' => ['required', 'in:paid,unpaid'],
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Validation failed.',
+            'errors' => $validator->errors(),
+        ], 422);
+    }
+
+    // Find the selected technology fee.
+    $technologyFee = TechnologyFee::find($id);
+
+    if (!$technologyFee) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Technology fee not found.',
+        ], 404);
+    }
+
+    // Retrieve schools with bills under this technology fee
+    // filtered by the requested payment status.
+    $schools = DB::table('school_bills')
+        ->join('school', 'school.sid', '=', 'school_bills.school_id')
+        ->where('school_bills.technology_fee_id', $technologyFee->id)
+        ->where('school_bills.status', $request->query('status'))
+        ->select(
+            'school.sid as school_id',
+            'school.name as school_name',
+            'school_bills.id as bill_id',
+            'school_bills.academic_session',
+            'school_bills.term',
+            'school_bills.student_count',
+            'school_bills.fee_per_student',
+            'school_bills.total_amount',
+            'school_bills.status as payment_status',
+            'school_bills.paid_at',
+            'school_bills.created_at as bill_created_at'
+        )
+        ->orderBy('school.name', 'asc')
+        ->paginate(50);
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Schools retrieved successfully.',
+        'pld' => [
+            'technology_fee' => [
+                'id' => $technologyFee->id,
+                'academic_session' => $technologyFee->academic_session,
+                'term' => $technologyFee->term,
+                'fee_per_student' => $technologyFee->fee_per_student,
+                'status' => $technologyFee->status,
+                'published_at' => $technologyFee->published_at,
+            ],
+            'schools' => $schools,
+        ],
+    ], 200);
+}
+
+
+
+
+/**
+ * @OA\Get(
+ *     path="/api/billing/schools",
+ *     tags={"Billing"},
+ *     summary="Get all schools with technology billing records",
+ *     description="Returns school bills across all academic sessions and terms. The status query parameter filters results to paid or unpaid bills. Each record represents one school bill. Only the Domain Admin can access this endpoint.",
+ *     operationId="getAllSchoolsWithTechnologyBills",
+ *     security={{"bearerAuth": {}}},
+ *
+ *     @OA\Parameter(
+ *         name="status",
+ *         in="query",
+ *         required=true,
+ *         description="Filter school bills by payment status",
+ *         @OA\Schema(
+ *             type="string",
+ *             enum={"paid", "unpaid"},
+ *             example="unpaid"
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Schools retrieved successfully"
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthenticated"
+ *     ),
+ *     @OA\Response(
+ *         response=403,
+ *         description="Only the Domain Admin can access this endpoint"
+ *     ),
+ *     @OA\Response(
+ *         response=422,
+ *         description="Invalid or missing status. Accepted values are paid and unpaid"
+ *     )
+ * )
+ */
+public function allSchools(Request $request)
+{
+    // Only the Domain Admin can access this endpoint.
+    $admin = $request->user();
+
+    if (!$admin || $admin->typ !== 'a') {
+        return response()->json([
+            'status' => false,
+            'message' => 'Unauthorized. Only the Domain Admin can access this endpoint.',
+        ], 403);
+    }
+
+    // Validate the requested payment status.
+    $validator = Validator::make($request->query(), [
+        'status' => ['required', 'in:paid,unpaid'],
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Validation failed.',
+            'errors' => $validator->errors(),
+        ], 422);
+    }
+
+    // Retrieve all school bills across every session and term,
+    // filtered by the requested payment status.
+    $schools = DB::table('school_bills')
+        ->join('school', 'school.sid', '=', 'school_bills.school_id')
+        ->where('school_bills.status', $request->query('status'))
+        ->select(
+            'school.sid as school_id',
+            'school.name as school_name',
+            'school_bills.id as bill_id',
+            'school_bills.technology_fee_id',
+            'school_bills.academic_session',
+            'school_bills.term',
+            'school_bills.student_count',
+            'school_bills.fee_per_student',
+            'school_bills.total_amount',
+            'school_bills.status as payment_status',
+            'school_bills.paid_at',
+            'school_bills.created_at as bill_created_at'
+        )
+        ->orderBy('school.name', 'asc')
+        ->orderBy('school_bills.academic_session', 'desc')
+        ->orderBy('school_bills.term', 'asc')
+        ->paginate(50);
+
+    return response()->json([
+        'status' => true,
+        'message' => 'All schools with technology billing records retrieved successfully.',
+        'pld' => $schools,
+    ], 200);
+}
+
+
 }

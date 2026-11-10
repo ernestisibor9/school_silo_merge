@@ -177,9 +177,12 @@ Route::group([
     Route::post('/billing/schools/{schoolId}/suspend',[SchoolSuspensionController::class, 'suspend']);
     Route::post('/billing/schools/{schoolId}/reactivate',[SchoolSuspensionController::class, 'reactivate']);
     Route::get('/billing/school-status', [SchoolSuspensionController::class, 'schoolStatus']);
+    Route::get('/billing/technology-fees/{id}/schools',[TechnologyFeeController::class, 'schools']);
+    Route::get('/billing/schools',[TechnologyFeeController::class, 'allSchools']);
+
 
         // Technology Billing - School Admin
-    Route::get('/billing/school-bills', [SchoolBillController::class, 'index']);
+    Route::get('/billing/school-bills/{schid}', [SchoolBillController::class, 'index']);
     Route::post('/billing/school-bills/{billId}/payments/initialize',[SchoolBillPaymentController::class, 'initialize']);
     Route::post('/billing/school-bill-payments/{reference}/verify',[SchoolBillPaymentController::class, 'verify']);
     Route::get('/billing/school-bill-payments/{reference}/receipt',[SchoolBillPaymentController::class, 'receipt']);
