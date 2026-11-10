@@ -6085,6 +6085,7 @@ public function setStudentAtOnce(Request $request)
 
 
 
+
 public function setStudentAtOnceBulk(Request $request)
 {
     /*
@@ -6115,7 +6116,6 @@ public function setStudentAtOnceBulk(Request $request)
         "students.*.email" => "required|email",
 
         "students.*.term" => "required",
-
         "students.*.ssn" => "required",
         "students.*.sch3" => "required",
         "students.*.stat" => "required",
@@ -6126,7 +6126,6 @@ public function setStudentAtOnceBulk(Request $request)
         "students.*.new_class_main" => "required",
 
         "students.*.dob" => "nullable|string|max:50",
-
         "students.*.sex" => "required|in:M,F",
 
         "students.*.height" => "nullable",
@@ -6214,8 +6213,12 @@ public function setStudentAtOnceBulk(Request $request)
 
             /*
             |--------------------------------------------------------------------------
-            | Track Duplicate Students In Current Upload
+            | Track Duplicate Counts In Current Upload
             |--------------------------------------------------------------------------
+            |
+            | Use the same duplicate fields as registerStudent():
+            | sch3 + year + term + count.
+            |
             */
 
             $seenInUpload = [];
@@ -6232,7 +6235,6 @@ public function setStudentAtOnceBulk(Request $request)
             $basicRows = [];
             $feeRows = [];
 
-            // Prevent duplicate old_student primary keys within this upload.
             $generatedOldStudentUids = [];
 
             $timestamp = now();
@@ -6262,153 +6264,13 @@ public function setStudentAtOnceBulk(Request $request)
 
                 $email = trim($data['email']);
 
-                $cuid = !empty($data['cuid'])
-                    ? trim($data['cuid'])
-                    : null;
-
                 $dob = !empty($data['dob'])
                     ? trim($data['dob'])
                     : null;
 
-                /*
-                |--------------------------------------------------------------------------
-                | Duplicate Check 1: Current Upload
-                |--------------------------------------------------------------------------
-                */
-
-                $identityKey = json_encode([
-                    $schoolId,
-                    $fname,
-                    $mname ?? '',
-                    $lname,
-                    $dob,
-                ]);
-
-                $cuidKey = $cuid !== null
-                    ? 'cuid|' . $schoolId . '|' . strtoupper($cuid)
-                    : null;
-
-                if (
-                    isset($seenInUpload[$identityKey]) ||
-                    (
-                        $cuidKey !== null &&
-                        isset($seenInUpload[$cuidKey])
-                    )
-                ) {
-
-                    Log::info(
-                        'Bulk registration: skipped duplicate row in upload (row '
-                        . ($index + 1)
-                        . '), student: '
-                        . $fname . ' ' . $lname
-                        . ', CUID: '
-                        . ($cuid ?? 'not supplied')
-                    );
-
-                    continue;
-                }
-
-                /*
-                |--------------------------------------------------------------------------
-                | Mark Student As Seen
-                |--------------------------------------------------------------------------
-                */
-
-                $seenInUpload[$identityKey] = true;
-
-                if ($cuidKey !== null) {
-                    $seenInUpload[$cuidKey] = true;
-                }
-
-                /*
-                |--------------------------------------------------------------------------
-                | Duplicate Check 2: Existing CUID
-                |--------------------------------------------------------------------------
-                */
-
-                $existing = null;
-
-                if ($cuid !== null) {
-
-                    $existing = student::where('schid', $schoolId)
-                        ->whereRaw(
-                            'UPPER(TRIM(cuid)) = ?',
-                            [strtoupper($cuid)]
-                        )
-                        ->first();
-
-                }
-
-                /*
-                |--------------------------------------------------------------------------
-                | Duplicate Check 3: Existing Name And DOB
-                |--------------------------------------------------------------------------
-                */
-
-                if (!$existing) {
-
-                    $existing = student::where('schid', $schoolId)
-                        ->whereRaw(
-                            'UPPER(TRIM(fname)) = ?',
-                            [$fname]
-                        )
-                        ->whereRaw(
-                            'UPPER(TRIM(lname)) = ?',
-                            [$lname]
-                        )
-                        ->when(
-                            $mname !== null,
-                            function ($q) use ($mname) {
-
-                                $q->whereRaw(
-                                    'UPPER(TRIM(mname)) = ?',
-                                    [$mname]
-                                );
-
-                            },
-                            function ($q) {
-
-                                $q->where(function ($q2) {
-
-                                    $q2->whereNull('mname')
-                                        ->orWhere('mname', '');
-
-                                });
-
-                            }
-                        )
-                        ->whereIn('sid', function ($q) use ($dob) {
-
-                            $q->select('user_id')
-                                ->from('student_basic_data')
-                                ->where('dob', $dob);
-
-                        })
-                        ->first();
-
-                }
-
-                /*
-                |--------------------------------------------------------------------------
-                | Skip Existing Student
-                |--------------------------------------------------------------------------
-                */
-
-                if ($existing) {
-
-                    Log::info(
-                        'Bulk registration: skipped existing student (row '
-                        . ($index + 1)
-                        . '), student: '
-                        . $fname . ' ' . $lname
-                        . ', existing sid: '
-                        . $existing->sid
-                        . ', existing CUID: '
-                        . ($existing->cuid ?? 'not supplied')
-                    );
-
-                    continue;
-                }
+                $ssn = $data['ssn'];
+                $term = $data['term'];
+                $sch3 = $data['sch3'];
 
                 /*
                 |--------------------------------------------------------------------------
@@ -6423,6 +6285,80 @@ public function setStudentAtOnceBulk(Request $request)
                     throw new \Exception(
                         "School not found for schid: " . $schoolId
                     );
+
+                }
+
+                /*
+                |--------------------------------------------------------------------------
+                | Duplicate Check 1: Existing Student
+                |--------------------------------------------------------------------------
+                |
+                | Same duplicate check as registerStudent().
+                |
+                | Only check when count is supplied.
+                |
+                */
+
+                $count = $data['count'] ?? null;
+
+                if ($count !== null && $count !== '') {
+
+                    $existing = student::where('sch3', $sch3)
+                        ->where('year', $ssn)
+                        ->where('term', $term)
+                        ->where('count', $count)
+                        ->first();
+
+                    if ($existing) {
+
+                        Log::info(
+                            'Bulk registration: skipped existing student (row '
+                            . ($index + 1)
+                            . '), student: '
+                            . $fname . ' ' . $lname
+                            . ', existing sid: '
+                            . $existing->sid
+                            . ', existing CUID: '
+                            . ($existing->cuid ?? 'not supplied')
+                        );
+
+                        continue;
+
+                    }
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Duplicate Check 2: Current Upload
+                    |--------------------------------------------------------------------------
+                    |
+                    | Prevent two rows with the same registration count
+                    | from being registered in the same upload.
+                    |
+                    */
+
+                    $duplicateKey = json_encode([
+                        $sch3,
+                        $ssn,
+                        $term,
+                        (string) $count,
+                    ]);
+
+                    if (isset($seenInUpload[$duplicateKey])) {
+
+                        Log::info(
+                            'Bulk registration: skipped duplicate count in upload (row '
+                            . ($index + 1)
+                            . '), student: '
+                            . $fname . ' ' . $lname
+                            . ', count: '
+                            . $count
+                        );
+
+                        continue;
+
+                    }
+
+                    $seenInUpload[$duplicateKey] = true;
 
                 }
 
@@ -6445,7 +6381,6 @@ public function setStudentAtOnceBulk(Request $request)
                 | Create User
                 |--------------------------------------------------------------------------
                 |
-                | Keep individual user creation.
                 | Each student receives an individually salted password hash.
                 |
                 */
@@ -6465,9 +6400,7 @@ public function setStudentAtOnceBulk(Request $request)
                 |--------------------------------------------------------------------------
                 */
 
-                $count = $data['count'] ?? null;
-
-                if (!$count) {
+                if ($count === null || $count === '') {
 
                     if (!array_key_exists($schoolId, $countCache)) {
 
@@ -6486,14 +6419,6 @@ public function setStudentAtOnceBulk(Request $request)
 
                 /*
                 |--------------------------------------------------------------------------
-                | Student SSN
-                |--------------------------------------------------------------------------
-                */
-
-                $ssn = $data['ssn'];
-
-                /*
-                |--------------------------------------------------------------------------
                 | Generate Student CUID
                 |--------------------------------------------------------------------------
                 |
@@ -6502,15 +6427,17 @@ public function setStudentAtOnceBulk(Request $request)
                 |
                 */
 
-                $studentCuid = $cuid ?: (
-                    $data['sch3']
-                    . '/'
-                    . $ssn
-                    . '/'
-                    . $data['term']
-                    . '/'
-                    . (string) $count
-                );
+                $studentCuid = !empty($data['cuid'])
+                    ? trim($data['cuid'])
+                    : (
+                        $sch3
+                        . '/'
+                        . $ssn
+                        . '/'
+                        . $term
+                        . '/'
+                        . (string) $count
+                    );
 
                 /*
                 |--------------------------------------------------------------------------
@@ -6528,11 +6455,11 @@ public function setStudentAtOnceBulk(Request $request)
                     'lname' => $lname,
 
                     'year' => $ssn,
-                    'term' => $data['term'],
+                    'term' => $term,
 
                     'count' => (string) $count,
 
-                    'sch3' => $data['sch3'],
+                    'sch3' => $sch3,
 
                     's_basic' => '1',
                     's_medical' => '0',
@@ -6555,10 +6482,8 @@ public function setStudentAtOnceBulk(Request $request)
                 |--------------------------------------------------------------------------
                 */
 
-                // Include schid to reduce the chance of UID collisions across schools.
-                $oldStudentUid = $schoolId . $ssn . $data['term'] . $user_id;
+                $oldStudentUid = $schoolId . $ssn . $term . $user_id;
 
-                // Check for duplicate UIDs generated within this upload.
                 if (isset($generatedOldStudentUids[$oldStudentUid])) {
 
                     throw new \Exception(
@@ -6570,7 +6495,6 @@ public function setStudentAtOnceBulk(Request $request)
 
                 }
 
-                // Check whether this UID already exists in the database.
                 if (DB::table('old_student')->where('uid', $oldStudentUid)->exists()) {
 
                     throw new \Exception(
@@ -6600,7 +6524,7 @@ public function setStudentAtOnceBulk(Request $request)
                     'suid' => $studentCuid,
 
                     'ssn' => $ssn,
-                    'trm' => $data['term'],
+                    'trm' => $term,
 
                     'clsm' => $data['new_class_main'],
 
@@ -6689,7 +6613,7 @@ public function setStudentAtOnceBulk(Request $request)
                     'ssn' => $ssn,
 
                     // Correct database column is trm, not term.
-                    'trm' => $data['term'],
+                    'trm' => $term,
 
                     'amt' => 0,
 
@@ -6853,6 +6777,7 @@ public function setStudentAtOnceBulk(Request $request)
 
     }
 }
+
 
 
 
