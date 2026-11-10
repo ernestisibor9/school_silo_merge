@@ -26417,6 +26417,7 @@ public function setChangePasswordAdmin(Request $request)
 // }
 
 
+
 public function restoreStudent(Request $request, $schid, $stid)
 {
     /*
@@ -26473,7 +26474,7 @@ public function restoreStudent(Request $request, $schid, $stid)
 
         /*
         |--------------------------------------------------------------------------
-        | 3. Find the most recently updated exited record
+        | 3. Find the most recently updated inactive record
         |--------------------------------------------------------------------------
         */
 
@@ -26504,10 +26505,7 @@ public function restoreStudent(Request $request, $schid, $stid)
         |
         | sid + schid + ssn + trm
         |
-        | clsm and clsa must NOT determine whether a duplicate exists.
-        |
-        | This check prevents restoring multiple historical records for
-        | the same session and term.
+        | clsm and clsa do NOT determine whether a duplicate exists.
         |
         */
 
@@ -26579,18 +26577,7 @@ public function restoreStudent(Request $request, $schid, $stid)
         | 7. Check whether the selected session and term already exist
         |--------------------------------------------------------------------------
         |
-        | IMPORTANT:
         | Do not include clsm or clsa in this lookup.
-        |
-        | A student cannot have:
-        |
-        | ssn = 2026, trm = 1, clsm = 11
-        | ssn = 2026, trm = 1, clsm = 12
-        |
-        | But the student can have:
-        |
-        | ssn = 2026, trm = 1, clsm = 11
-        | ssn = 2026, trm = 2, clsm = 12
         |
         */
 
@@ -26610,11 +26597,7 @@ public function restoreStudent(Request $request, $schid, $stid)
 
         if (
             $existingPlacement &&
-            $existingPlacement->status === 'active' &&
-            (
-                !isset($existingPlacement->exit_student) ||
-                $existingPlacement->exit_student != 1
-            )
+            $existingPlacement->status === 'active'
         ) {
             DB::rollBack();
 
@@ -26626,13 +26609,22 @@ public function restoreStudent(Request $request, $schid, $stid)
 
         /*
         |--------------------------------------------------------------------------
-        | 9. Reactivate ALL previous exited records
+        | 9. RESTORE ALL INACTIVE HISTORICAL RECORDS
         |--------------------------------------------------------------------------
         |
-        | This reverses what exitStudent() did.
+        | IMPORTANT:
         |
-        | All previous exited records for this student and school
-        | become active again.
+        | Do NOT use exit_student as a condition.
+        |
+        | Older exited records may have exit_student = NULL because
+        | the column was introduced after those students exited.
+        |
+        | Every inactive record for this student and school will become:
+        |
+        | status = active
+        | exit_student = NULL
+        |
+        | Historical session, term, class and class arm are preserved.
         |
         */
 
@@ -26640,7 +26632,6 @@ public function restoreStudent(Request $request, $schid, $stid)
             ->where('schid', $schid)
             ->where('sid', $stid)
             ->where('status', 'inactive')
-            ->where('exit_student', 1)
             ->update([
                 'status' => 'active',
                 'exit_student' => NULL,
@@ -26656,12 +26647,8 @@ public function restoreStudent(Request $request, $schid, $stid)
         if ($existingPlacement) {
 
             /*
-             * The selected session and term already have a record.
-             *
-             * Update its class and class arm to the values selected
-             * in the restore form.
-             *
              * Preserve the existing UID.
+             * Update the selected placement details.
              */
 
             DB::table('old_student')
@@ -26685,7 +26672,6 @@ public function restoreStudent(Request $request, $schid, $stid)
 
             /*
              * No record exists for the selected session and term.
-             *
              * Create a new placement.
              */
 
@@ -26755,10 +26741,6 @@ public function restoreStudent(Request $request, $schid, $stid)
         |--------------------------------------------------------------------------
         | 12. Update the student's current class and class arm
         |--------------------------------------------------------------------------
-        |
-        | new_class_main = class ID
-        | new_class      = class arm ID
-        |
         */
 
         DB::table('student_academic_data')
@@ -26808,7 +26790,7 @@ public function restoreStudent(Request $request, $schid, $stid)
 
         DB::rollBack();
 
-        \Log::error('Student restoration failed', [
+        Log::error('Student restoration failed', [
             'schid' => $schid,
             'sid' => $stid,
             'error' => $e->getMessage(),
