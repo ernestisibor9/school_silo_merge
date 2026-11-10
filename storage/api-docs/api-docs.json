@@ -36539,14 +36539,26 @@
                 }
             }
         },
-        "/api/billing/school-bills": {
+        "/api/billing/school-bills/{schid}": {
             "get": {
                 "tags": [
                     "Billing"
                 ],
                 "summary": "Get school technology bills",
-                "description": "Retrieves all technology bills belonging to the authenticated School Admin's school. Only School Admins can access this endpoint.",
+                "description": "Retrieves technology bills for the specified school. Only the authenticated School Admin belonging to that school can access its bills.",
                 "operationId": "getSchoolTechnologyBills",
+                "parameters": [
+                    {
+                        "name": "schid",
+                        "in": "path",
+                        "description": "School ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "12"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "School bills retrieved successfully",
@@ -36585,12 +36597,12 @@
                                                     "fee_per_student": {
                                                         "type": "number",
                                                         "format": "float",
-                                                        "example": 2000
+                                                        "example": 20
                                                     },
                                                     "total_amount": {
                                                         "type": "number",
                                                         "format": "float",
-                                                        "example": 942000
+                                                        "example": 9420
                                                     },
                                                     "status": {
                                                         "type": "string",
@@ -36598,18 +36610,18 @@
                                                             "unpaid",
                                                             "paid"
                                                         ],
-                                                        "example": "unpaid"
+                                                        "example": "paid"
                                                     },
                                                     "paid_at": {
                                                         "type": "string",
                                                         "format": "date-time",
-                                                        "example": null,
+                                                        "example": "2026-11-08T11:35:42",
                                                         "nullable": true
                                                     },
                                                     "created_at": {
                                                         "type": "string",
                                                         "format": "date-time",
-                                                        "example": "2026-11-07T10:00:00.000000Z"
+                                                        "example": "2026-11-07T10:00:00"
                                                     }
                                                 },
                                                 "type": "object"
@@ -36622,10 +36634,10 @@
                         }
                     },
                     "401": {
-                        "description": "Unauthenticated. A valid JWT token is required."
+                        "description": "Unauthenticated"
                     },
                     "403": {
-                        "description": "Unauthorized. Only School Admins can access school bills."
+                        "description": "Unauthorized or school ID does not belong to authenticated School Admin"
                     }
                 },
                 "security": [
@@ -37287,6 +37299,109 @@
                     },
                     "409": {
                         "description": "This technology fee has already been published."
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/billing/technology-fees/{id}/schools": {
+            "get": {
+                "tags": [
+                    "Billing"
+                ],
+                "summary": "Get schools under a technology fee",
+                "description": "Returns schools with generated bills under a selected technology fee. The status query parameter filters the results to paid or unpaid bills. Only the Domain Admin can access this endpoint.",
+                "operationId": "getSchoolsForTechnologyFee",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Technology fee ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 2
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "Filter school bills by payment status",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "paid",
+                                "unpaid"
+                            ],
+                            "example": "paid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Schools retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Only the Domain Admin can access this endpoint"
+                    },
+                    "404": {
+                        "description": "Technology fee not found"
+                    },
+                    "422": {
+                        "description": "Invalid or missing status. Accepted values are paid and unpaid"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/billing/schools": {
+            "get": {
+                "tags": [
+                    "Billing"
+                ],
+                "summary": "Get all schools with technology billing records",
+                "description": "Returns school bills across all academic sessions and terms. The status query parameter filters results to paid or unpaid bills. Each record represents one school bill. Only the Domain Admin can access this endpoint.",
+                "operationId": "getAllSchoolsWithTechnologyBills",
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "Filter school bills by payment status",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "paid",
+                                "unpaid"
+                            ],
+                            "example": "unpaid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Schools retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Only the Domain Admin can access this endpoint"
+                    },
+                    "422": {
+                        "description": "Invalid or missing status. Accepted values are paid and unpaid"
                     }
                 },
                 "security": [
