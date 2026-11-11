@@ -18,9 +18,25 @@ class TechnologyFeeController extends Controller
  *     path="/api/billing/technology-fees",
  *     tags={"Billing"},
  *     summary="Retrieve all technology fees",
- *     description="Returns all technology fees created by the Domain Admin, including draft and published records. Results are paginated.",
+ *     description="Returns technology fees, including draft and published records. Supports filtering by academic session, term, and pagination.",
  *     operationId="getAllTechnologyFees",
  *     security={{"bearerAuth": {}}},
+ *
+ *     @OA\Parameter(
+ *         name="session",
+ *         in="query",
+ *         required=false,
+ *         description="Academic session starting year. For example, 2026 represents 2026/2027.",
+ *         @OA\Schema(type="integer", example=2026)
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="term",
+ *         in="query",
+ *         required=false,
+ *         description="Academic term: 1 = First Term, 2 = Second Term, 3 = Third Term.",
+ *         @OA\Schema(type="integer", enum={1, 2, 3}, example=1)
+ *     ),
  *
  *     @OA\Parameter(
  *         name="page",
@@ -41,9 +57,14 @@ class TechnologyFeeController extends Controller
  *     @OA\Response(
  *         response=403,
  *         description="Only the Domain Admin can access this endpoint"
+ *     ),
+ *     @OA\Response(
+ *         response=422,
+ *         description="Invalid session or term parameter"
  *     )
  * )
  */
+
 public function index(Request $request)
 {
     // Only the Domain Admin can access this endpoint.
@@ -56,11 +77,91 @@ public function index(Request $request)
         ], 403);
     }
 
-    // Retrieve all technology fees, including drafts and published fees.
-    $technologyFees = TechnologyFee::query()
+    /*
+    |--------------------------------------------------------------------------
+    | Validate Query Parameters
+    |--------------------------------------------------------------------------
+    */
+
+    $validator = Validator::make($request->query(), [
+        'session' => 'sometimes|required|digits:4|exists:sesn,year',
+        'term'    => 'sometimes|required|integer|in:1,2,3',
+        'page'    => 'sometimes|required|integer|min:1',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Invalid query parameters.',
+            'errors' => $validator->errors(),
+        ], 422);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Retrieve Technology Fees
+    |--------------------------------------------------------------------------
+    */
+
+    $query = TechnologyFee::query();
+
+    /*
+    |--------------------------------------------------------------------------
+    | Filter By Academic Session
+    |--------------------------------------------------------------------------
+    |
+    | Example:
+    | session=2026
+    |
+    | sesn.year = 2026
+    | sesn.name  = 2026/2027
+    |
+    */
+
+    if ($request->filled('session')) {
+
+        $sessionName = DB::table('sesn')
+            ->where('year', $request->query('session'))
+            ->value('name');
+
+        $query->where('academic_session', $sessionName);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Filter By Term
+    |--------------------------------------------------------------------------
+    |
+    | 1 = First Term
+    | 2 = Second Term
+    | 3 = Third Term
+    |
+    */
+
+    if ($request->filled('term')) {
+
+        $terms = [
+            1 => 'First Term',
+            2 => 'Second Term',
+            3 => 'Third Term',
+        ];
+
+        $termName = $terms[(int) $request->query('term')];
+
+        $query->where('term', $termName);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Paginate Results
+    |--------------------------------------------------------------------------
+    */
+
+    $technologyFees = $query
         ->orderBy('created_at', 'desc')
         ->orderBy('id', 'desc')
-        ->paginate(50);
+        ->paginate(50)
+        ->appends($request->query());
 
     return response()->json([
         'status' => true,

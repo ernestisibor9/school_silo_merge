@@ -37153,9 +37153,34 @@
                     "Billing"
                 ],
                 "summary": "Retrieve all technology fees",
-                "description": "Returns all technology fees created by the Domain Admin, including draft and published records. Results are paginated.",
+                "description": "Returns technology fees, including draft and published records. Supports filtering by academic session, term, and pagination.",
                 "operationId": "getAllTechnologyFees",
                 "parameters": [
+                    {
+                        "name": "session",
+                        "in": "query",
+                        "description": "Academic session starting year. For example, 2026 represents 2026/2027.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 2026
+                        }
+                    },
+                    {
+                        "name": "term",
+                        "in": "query",
+                        "description": "Academic term: 1 = First Term, 2 = Second Term, 3 = Third Term.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "enum": [
+                                1,
+                                2,
+                                3
+                            ],
+                            "example": 1
+                        }
+                    },
                     {
                         "name": "page",
                         "in": "query",
@@ -37177,6 +37202,9 @@
                     },
                     "403": {
                         "description": "Only the Domain Admin can access this endpoint"
+                    },
+                    "422": {
+                        "description": "Invalid session or term parameter"
                     }
                 },
                 "security": [
