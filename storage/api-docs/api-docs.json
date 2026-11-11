@@ -37170,7 +37170,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Technology fees retrieved successfully"
+                        "description": "Technology fees retrieved successfully."
                     },
                     "401": {
                         "description": "Unauthenticated"

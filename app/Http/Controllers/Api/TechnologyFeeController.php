@@ -32,7 +32,7 @@ class TechnologyFeeController extends Controller
  *
  *     @OA\Response(
  *         response=200,
- *         description="Technology fees retrieved successfully"
+ *         description="Technology fees retrieved successfully."
  *     ),
  *     @OA\Response(
  *         response=401,
