@@ -37148,6 +37148,43 @@
             }
         },
         "/api/billing/technology-fees": {
+            "get": {
+                "tags": [
+                    "Billing"
+                ],
+                "summary": "Retrieve all technology fees",
+                "description": "Returns all technology fees created by the Domain Admin, including draft and published records. Results are paginated.",
+                "operationId": "getAllTechnologyFees",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Pagination page number",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Technology fees retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Only the Domain Admin can access this endpoint"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
             "post": {
                 "tags": [
                     "Billing"

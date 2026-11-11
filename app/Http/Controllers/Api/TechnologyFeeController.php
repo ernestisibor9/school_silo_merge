@@ -12,6 +12,64 @@ use Illuminate\Support\Facades\DB;
 class TechnologyFeeController extends Controller
 {
 
+
+/**
+ * @OA\Get(
+ *     path="/api/billing/technology-fees",
+ *     tags={"Billing"},
+ *     summary="Retrieve all technology fees",
+ *     description="Returns all technology fees created by the Domain Admin, including draft and published records. Results are paginated.",
+ *     operationId="getAllTechnologyFees",
+ *     security={{"bearerAuth": {}}},
+ *
+ *     @OA\Parameter(
+ *         name="page",
+ *         in="query",
+ *         required=false,
+ *         description="Pagination page number",
+ *         @OA\Schema(type="integer", minimum=1, example=1)
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Technology fees retrieved successfully"
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthenticated"
+ *     ),
+ *     @OA\Response(
+ *         response=403,
+ *         description="Only the Domain Admin can access this endpoint"
+ *     )
+ * )
+ */
+public function index(Request $request)
+{
+    // Only the Domain Admin can access this endpoint.
+    $admin = $request->user();
+
+    if (!$admin || $admin->typ !== 'a') {
+        return response()->json([
+            'status' => false,
+            'message' => 'Unauthorized. Only the Domain Admin can access this endpoint.',
+        ], 403);
+    }
+
+    // Retrieve all technology fees, including drafts and published fees.
+    $technologyFees = TechnologyFee::query()
+        ->orderBy('created_at', 'desc')
+        ->orderBy('id', 'desc')
+        ->paginate(50);
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Technology fees retrieved successfully.',
+        'pld' => $technologyFees,
+    ], 200);
+}
+
+
     /**
  * @OA\Post(
  *     path="/api/billing/technology-fees",
