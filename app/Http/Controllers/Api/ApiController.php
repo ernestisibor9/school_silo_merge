@@ -34892,21 +34892,23 @@ public function BulkPromoteStudent(Request $request)
 
 
         // =====================================================
-        // SKIP EXITED STUDENTS ONLY
-        // Continue promoting the remaining students
+        // SKIP INACTIVE STUDENTS
+        // Only students whose latest record is active can be promoted.
+        // Continue promoting the remaining students.
         // =====================================================
 
-        $hasExited = DB::table('old_student')
+        $latestStudentRecord = DB::table('old_student')
             ->where('sid', $sid)
             ->where('schid', $request->schid)
-            ->where('exit_student', 1)
-            ->exists();
+            ->orderByDesc('updated_at')
+            ->orderByDesc('created_at')
+            ->first();
 
-        if ($hasExited) {
+        if ($latestStudentRecord && $latestStudentRecord->status === 'inactive') {
 
             $failed[] = [
                 'sid' => $sid,
-                'message' => 'Student has exited and was skipped.',
+                'message' => 'Student is inactive and was skipped.',
             ];
 
             continue;
