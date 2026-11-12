@@ -597,4 +597,127 @@ class TechnologyFeeController extends Controller
             ],
         ], 200);
     }
+
+
+
+
+    /**
+     * @OA\Get(
+     *     path="/api/billing/schools",
+     *     tags={"Billing"},
+     *     summary="Get schools with technology billing records",
+     *     description="Returns school bills across all academic sessions and terms. Supports filtering by payment status and school ID, with offset pagination.",
+     *     operationId="getAllSchoolsWithTechnologyBills",
+     *     security={{"bearerAuth": {}}},
+     *
+     *     @OA\Parameter(
+     *         name="status",
+     *         in="query",
+     *         required=true,
+     *         description="Filter school bills by payment status.",
+     *         @OA\Schema(type="string", enum={"paid", "unpaid"}, example="unpaid")
+     *     ),
+     *     @OA\Parameter(
+     *         name="school_id",
+     *         in="query",
+     *         required=false,
+     *         description="Filter billing records by school ID (school.sid).",
+     *         @OA\Schema(type="string", example="12")
+     *     ),
+     *     @OA\Parameter(
+     *         name="start",
+     *         in="query",
+     *         required=false,
+     *         description="Number of records to skip.",
+     *         @OA\Schema(type="integer", minimum=0, example=0)
+     *     ),
+     *     @OA\Parameter(
+     *         name="count",
+     *         in="query",
+     *         required=false,
+     *         description="Maximum number of records to return.",
+     *         @OA\Schema(type="integer", minimum=1, maximum=100, example=20)
+     *     ),
+     *     @OA\Response(response=200, description="Schools retrieved successfully"),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Only the Domain Admin can access this endpoint"),
+     *     @OA\Response(response=422, description="Invalid query parameters")
+     * )
+     */
+    public function allSchools(Request $request)
+    {
+        // Only the Domain Admin can access this endpoint.
+        $admin = $request->user();
+
+        if (!$admin || $admin->typ !== 'a') {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized. Only the Domain Admin can access this endpoint.',
+            ], 403);
+        }
+
+        // Pagination defaults
+        $start = request()->query('start', 0);
+        $count = request()->query('count', 20);
+
+        // Validate query parameters.
+        $validator = Validator::make($request->query(), [
+            'status'    => ['required', 'in:paid,unpaid'],
+            'school_id' => ['sometimes', 'required', 'string', 'exists:school,sid'],
+            'start'     => ['sometimes', 'required', 'integer', 'min:0'],
+            'count'     => ['sometimes', 'required', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validation failed.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        // Retrieve all school bills filtered by payment status.
+        $query = DB::table('school_bills')
+            ->join('school', 'school.sid', '=', 'school_bills.school_id')
+            ->where('school_bills.status', $request->query('status'));
+
+        // Optional filter by school ID.
+        if ($request->filled('school_id')) {
+            $query->where('school_bills.school_id', $request->query('school_id'));
+        }
+
+        // Apply offset pagination.
+        $schools = $query
+            ->select(
+                'school.sid as school_id',
+                'school.name as school_name',
+                'school_bills.id as bill_id',
+                'school_bills.technology_fee_id',
+                'school_bills.academic_session',
+                'school_bills.term',
+                'school_bills.student_count',
+                'school_bills.fee_per_student',
+                'school_bills.total_amount',
+                'school_bills.status as payment_status',
+                'school_bills.paid_at',
+                'school_bills.created_at as bill_created_at'
+            )
+            ->orderBy('school.name', 'asc')
+            ->orderBy('school_bills.academic_session', 'desc')
+            ->orderBy('school_bills.term', 'asc')
+            ->skip((int) $start)
+            ->take((int) $count)
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'All schools with technology billing records retrieved successfully.',
+            'pld' => [
+                'school_id' => $request->query('school_id'),
+                'start' => (int) $start,
+                'count' => $schools->count(),
+                'schools' => $schools,
+            ],
+        ], 200);
+    }
 }
