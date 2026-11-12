@@ -37512,7 +37512,7 @@
                     "Billing"
                 ],
                 "summary": "Get schools with technology billing records",
-                "description": "Returns school bills across all academic sessions and terms. Supports filtering by payment status and school ID, with offset pagination.",
+                "description": "Returns school bills across all academic sessions and terms. Supports filtering by payment status, school ID, academic session and term, with offset pagination.",
                 "operationId": "getAllSchoolsWithTechnologyBills",
                 "parameters": [
                     {
@@ -37537,6 +37537,31 @@
                         "schema": {
                             "type": "string",
                             "example": "12"
+                        }
+                    },
+                    {
+                        "name": "session",
+                        "in": "query",
+                        "description": "Filter billing records by academic session.",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "2026/2027"
+                        }
+                    },
+                    {
+                        "name": "term",
+                        "in": "query",
+                        "description": "Filter billing records by academic term.",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "First Term",
+                                "Second Term",
+                                "Third Term"
+                            ],
+                            "example": "First Term"
                         }
                     },
                     {
