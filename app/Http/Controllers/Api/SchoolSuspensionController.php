@@ -369,6 +369,7 @@ class SchoolSuspensionController extends Controller
 
 
 
+
 /**
  * Get all suspended schools.
  *
@@ -378,7 +379,7 @@ class SchoolSuspensionController extends Controller
  *     path="/api/billing/suspended-schools",
  *     tags={"School Suspension"},
  *     summary="Get all suspended schools",
- *     description="Returns all suspended schools. Supports optional filtering by school ID, session year and term number, with offset pagination.",
+ *     description="Returns suspended schools. Supports optional filtering by school ID, academic session and term using school billing records, with offset pagination.",
  *     operationId="getSuspendedSchools",
  *     security={{"bearerAuth": {}}},
  *
@@ -386,22 +387,22 @@ class SchoolSuspensionController extends Controller
  *         name="school_id",
  *         in="query",
  *         required=false,
- *         description="Filter by school ID (school.sid).",
- *         @OA\Schema(type="string", example="12")
+ *         description="Filter by school ID.",
+ *         @OA\Schema(type="string", example="13")
  *     ),
  *     @OA\Parameter(
  *         name="session",
  *         in="query",
  *         required=false,
- *         description="Filter by session year in the sesn table.",
- *         @OA\Schema(type="integer", example=2026)
+ *         description="Filter by academic session year.",
+ *         @OA\Schema(type="integer", example=2024)
  *     ),
  *     @OA\Parameter(
  *         name="term",
  *         in="query",
  *         required=false,
- *         description="Filter by academic term number: 1 = First Term, 2 = Second Term, 3 = Third Term.",
- *         @OA\Schema(type="integer", enum={1, 2, 3}, example=1)
+ *         description="Filter by academic term: 1 = First Term, 2 = Second Term, 3 = Third Term.",
+ *         @OA\Schema(type="integer", enum={1, 2, 3}, example=2)
  *     ),
  *     @OA\Parameter(
  *         name="start",
@@ -417,10 +418,13 @@ class SchoolSuspensionController extends Controller
  *         description="Maximum number of records to return.",
  *         @OA\Schema(type="integer", minimum=1, maximum=100, example=20)
  *     ),
- *     @OA\Response(response=200, description="Suspended schools retrieved successfully"),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Suspended schools retrieved successfully"
+ *     ),
  *     @OA\Response(response=401, description="Unauthenticated"),
  *     @OA\Response(response=403, description="Only Domain Admins can access this endpoint"),
- *     @OA\Response(response=422, description="Invalid query parameters")
+ *     @OA\Response(response=422, description="Validation failed")
  * )
  */
 public function suspendedSchools(Request $request)
@@ -459,16 +463,7 @@ public function suspendedSchools(Request $request)
         ], 422);
     }
 
-    // Retrieve suspended schools only.
-    $query = DB::table('school')
-        ->where('school.school_status', 0);
-
-    // Optional filter by school ID.
-    if ($request->filled('school_id')) {
-        $query->where('school.sid', $request->query('school_id'));
-    }
-
-    // Translate the supplied session year to its academic session name.
+    // Get the academic session name from the sesn table.
     $sessionName = null;
 
     if ($request->filled('session')) {
@@ -477,7 +472,7 @@ public function suspendedSchools(Request $request)
             ->value('name');
     }
 
-    // Translate the supplied term number to its academic term name.
+    // Map the supplied term number to its billing term name.
     $termName = null;
 
     if ($request->filled('term')) {
@@ -490,13 +485,34 @@ public function suspendedSchools(Request $request)
         $termName = $terms[(int) $request->query('term')];
     }
 
-    // Apply session and/or term filters through matching school bills.
-    // Schools without a matching bill will not appear when these filters are used.
+    // Start with suspended schools only.
+    // school_status is retrieved exclusively from the school table.
+    $query = DB::table('school')
+        ->where('school.school_status', 0);
+
+    // Optional school ID filter.
+    if ($request->filled('school_id')) {
+        $query->where(
+            'school.sid',
+            $request->query('school_id')
+        );
+    }
+
+    // Filter using actual school billing records.
+    // A school must have a matching billing record when
+    // a session or term filter is supplied.
     if ($sessionName !== null || $termName !== null) {
-        $query->whereExists(function ($subQuery) use ($sessionName, $termName) {
+
+        $query->whereExists(function ($subQuery) use (
+            $sessionName,
+            $termName
+        ) {
             $subQuery->select(DB::raw(1))
                 ->from('school_bills')
-                ->whereColumn('school_bills.school_id', 'school.sid');
+                ->whereColumn(
+                    'school_bills.school_id',
+                    'school.sid'
+                );
 
             if ($sessionName !== null) {
                 $subQuery->where(
@@ -514,7 +530,7 @@ public function suspendedSchools(Request $request)
         });
     }
 
-    // Retrieve the suspended schools with offset pagination.
+    // Retrieve suspended schools with offset pagination.
     $schools = $query
         ->select(
             'school.sid as school_id',
@@ -541,5 +557,6 @@ public function suspendedSchools(Request $request)
         ],
     ], 200);
 }
+
 
 }

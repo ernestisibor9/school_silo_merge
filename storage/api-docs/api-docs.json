@@ -37193,33 +37193,33 @@
                     "School Suspension"
                 ],
                 "summary": "Get all suspended schools",
-                "description": "Returns all suspended schools. Supports optional filtering by school ID, session year and term number, with offset pagination.",
+                "description": "Returns suspended schools. Supports optional filtering by school ID, academic session and term using school billing records, with offset pagination.",
                 "operationId": "getSuspendedSchools",
                 "parameters": [
                     {
                         "name": "school_id",
                         "in": "query",
-                        "description": "Filter by school ID (school.sid).",
+                        "description": "Filter by school ID.",
                         "required": false,
                         "schema": {
                             "type": "string",
-                            "example": "12"
+                            "example": "13"
                         }
                     },
                     {
                         "name": "session",
                         "in": "query",
-                        "description": "Filter by session year in the sesn table.",
+                        "description": "Filter by academic session year.",
                         "required": false,
                         "schema": {
                             "type": "integer",
-                            "example": 2026
+                            "example": 2024
                         }
                     },
                     {
                         "name": "term",
                         "in": "query",
-                        "description": "Filter by academic term number: 1 = First Term, 2 = Second Term, 3 = Third Term.",
+                        "description": "Filter by academic term: 1 = First Term, 2 = Second Term, 3 = Third Term.",
                         "required": false,
                         "schema": {
                             "type": "integer",
@@ -37228,7 +37228,7 @@
                                 2,
                                 3
                             ],
-                            "example": 1
+                            "example": 2
                         }
                     },
                     {
@@ -37266,7 +37266,7 @@
                         "description": "Only Domain Admins can access this endpoint"
                     },
                     "422": {
-                        "description": "Invalid query parameters"
+                        "description": "Validation failed"
                     }
                 },
                 "security": [
