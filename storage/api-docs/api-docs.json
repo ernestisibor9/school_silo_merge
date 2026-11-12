@@ -37512,7 +37512,7 @@
                     "Billing"
                 ],
                 "summary": "Get schools with technology billing records",
-                "description": "Returns school bills across all academic sessions and terms. Supports filtering by payment status, school ID, academic session and term, with offset pagination.",
+                "description": "Returns school bills across all academic sessions and terms. Supports filtering by payment status, school ID, session year and term number, with offset pagination.",
                 "operationId": "getAllSchoolsWithTechnologyBills",
                 "parameters": [
                     {
@@ -37542,26 +37542,26 @@
                     {
                         "name": "session",
                         "in": "query",
-                        "description": "Filter billing records by academic session.",
+                        "description": "Filter by the session year in the sesn table.",
                         "required": false,
                         "schema": {
-                            "type": "string",
-                            "example": "2026/2027"
+                            "type": "integer",
+                            "example": 2026
                         }
                     },
                     {
                         "name": "term",
                         "in": "query",
-                        "description": "Filter billing records by academic term.",
+                        "description": "Filter by academic term number: 1 = First Term, 2 = Second Term, 3 = Third Term.",
                         "required": false,
                         "schema": {
-                            "type": "string",
+                            "type": "integer",
                             "enum": [
-                                "First Term",
-                                "Second Term",
-                                "Third Term"
+                                1,
+                                2,
+                                3
                             ],
-                            "example": "First Term"
+                            "example": 1
                         }
                     },
                     {
