@@ -36545,7 +36545,7 @@
                     "Billing"
                 ],
                 "summary": "Get school technology bills",
-                "description": "Retrieves technology bills for the specified school. Only the authenticated School Admin belonging to that school can access its bills.",
+                "description": "Retrieves technology bills for the specified school with optional offset-based pagination. Only the authenticated School Admin belonging to that school can access its bills.",
                 "operationId": "getSchoolTechnologyBills",
                 "parameters": [
                     {
@@ -36556,6 +36556,28 @@
                         "schema": {
                             "type": "string",
                             "example": "12"
+                        }
+                    },
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Start index for pagination (default 0)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 0,
+                            "minimum": 0
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "Number of school bills to fetch (default 20)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 20,
+                            "minimum": 1
                         }
                     }
                 ],
@@ -36575,57 +36597,72 @@
                                             "example": "School bills retrieved successfully."
                                         },
                                         "pld": {
-                                            "type": "array",
-                                            "items": {
-                                                "properties": {
-                                                    "id": {
-                                                        "type": "integer",
-                                                        "example": 1
-                                                    },
-                                                    "academic_session": {
-                                                        "type": "string",
-                                                        "example": "2026/2027"
-                                                    },
-                                                    "term": {
-                                                        "type": "string",
-                                                        "example": "First Term"
-                                                    },
-                                                    "student_count": {
-                                                        "type": "integer",
-                                                        "example": 471
-                                                    },
-                                                    "fee_per_student": {
-                                                        "type": "number",
-                                                        "format": "float",
-                                                        "example": 20
-                                                    },
-                                                    "total_amount": {
-                                                        "type": "number",
-                                                        "format": "float",
-                                                        "example": 9420
-                                                    },
-                                                    "status": {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "unpaid",
-                                                            "paid"
-                                                        ],
-                                                        "example": "paid"
-                                                    },
-                                                    "paid_at": {
-                                                        "type": "string",
-                                                        "format": "date-time",
-                                                        "example": "2026-11-08T11:35:42",
-                                                        "nullable": true
-                                                    },
-                                                    "created_at": {
-                                                        "type": "string",
-                                                        "format": "date-time",
-                                                        "example": "2026-11-07T10:00:00"
-                                                    }
+                                            "properties": {
+                                                "schid": {
+                                                    "type": "string",
+                                                    "example": "12"
                                                 },
-                                                "type": "object"
-                                            }
+                                                "start": {
+                                                    "type": "integer",
+                                                    "example": 0
+                                                },
+                                                "count": {
+                                                    "type": "integer",
+                                                    "example": 2
+                                                },
+                                                "school_bills": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer",
+                                                                "example": 1
+                                                            },
+                                                            "academic_session": {
+                                                                "type": "string",
+                                                                "example": "2026/2027"
+                                                            },
+                                                            "term": {
+                                                                "type": "string",
+                                                                "example": "First Term"
+                                                            },
+                                                            "student_count": {
+                                                                "type": "integer",
+                                                                "example": 471
+                                                            },
+                                                            "fee_per_student": {
+                                                                "type": "number",
+                                                                "format": "float",
+                                                                "example": 20
+                                                            },
+                                                            "total_amount": {
+                                                                "type": "number",
+                                                                "format": "float",
+                                                                "example": 9420
+                                                            },
+                                                            "status": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "unpaid",
+                                                                    "paid"
+                                                                ],
+                                                                "example": "paid"
+                                                            },
+                                                            "paid_at": {
+                                                                "type": "string",
+                                                                "format": "date-time",
+                                                                "nullable": true
+                                                            },
+                                                            "created_at": {
+                                                                "type": "string",
+                                                                "format": "date-time"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
                                         }
                                     },
                                     "type": "object"
@@ -36638,6 +36675,9 @@
                     },
                     "403": {
                         "description": "Unauthorized or school ID does not belong to authenticated School Admin"
+                    },
+                    "422": {
+                        "description": "Invalid pagination parameters"
                     }
                 },
                 "security": [
@@ -37153,7 +37193,7 @@
                     "Billing"
                 ],
                 "summary": "Retrieve all technology fees",
-                "description": "Returns technology fees, including draft and published records. Supports filtering by academic session, term, and pagination.",
+                "description": "Returns technology fees, including draft and published records. Supports filtering by academic session, term, and offset pagination.",
                 "operationId": "getAllTechnologyFees",
                 "parameters": [
                     {
@@ -37182,14 +37222,26 @@
                         }
                     },
                     {
-                        "name": "page",
+                        "name": "start",
                         "in": "query",
-                        "description": "Pagination page number",
+                        "description": "Number of records to skip.",
                         "required": false,
                         "schema": {
                             "type": "integer",
+                            "minimum": 0,
+                            "example": 0
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "Maximum number of records to return.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 100,
                             "minimum": 1,
-                            "example": 1
+                            "example": 20
                         }
                     }
                 ],
@@ -37204,7 +37256,7 @@
                         "description": "Only the Domain Admin can access this endpoint"
                     },
                     "422": {
-                        "description": "Invalid session or term parameter"
+                        "description": "Invalid query parameters"
                     }
                 },
                 "security": [
@@ -37379,7 +37431,7 @@
                     "Billing"
                 ],
                 "summary": "Get schools under a technology fee",
-                "description": "Returns schools with generated bills under a selected technology fee. The status query parameter filters the results to paid or unpaid bills. Only the Domain Admin can access this endpoint.",
+                "description": "Returns schools with generated bills under a selected technology fee. Supports payment status filtering and offset pagination.",
                 "operationId": "getSchoolsForTechnologyFee",
                 "parameters": [
                     {
@@ -37395,7 +37447,7 @@
                     {
                         "name": "status",
                         "in": "query",
-                        "description": "Filter school bills by payment status",
+                        "description": "Filter school bills by payment status.",
                         "required": true,
                         "schema": {
                             "type": "string",
@@ -37404,6 +37456,29 @@
                                 "unpaid"
                             ],
                             "example": "paid"
+                        }
+                    },
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Number of records to skip.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "example": 0
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "Maximum number of records to return.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 100,
+                            "minimum": 1,
+                            "example": 20
                         }
                     }
                 ],
@@ -37421,7 +37496,7 @@
                         "description": "Technology fee not found"
                     },
                     "422": {
-                        "description": "Invalid or missing status. Accepted values are paid and unpaid"
+                        "description": "Invalid query parameters"
                     }
                 },
                 "security": [
@@ -37436,14 +37511,14 @@
                 "tags": [
                     "Billing"
                 ],
-                "summary": "Get all schools with technology billing records",
-                "description": "Returns school bills across all academic sessions and terms. The status query parameter filters results to paid or unpaid bills. Each record represents one school bill. Only the Domain Admin can access this endpoint.",
+                "summary": "Get schools with technology billing records",
+                "description": "Returns school bills across all academic sessions and terms. Supports filtering by payment status and school ID, with offset pagination.",
                 "operationId": "getAllSchoolsWithTechnologyBills",
                 "parameters": [
                     {
                         "name": "status",
                         "in": "query",
-                        "description": "Filter school bills by payment status",
+                        "description": "Filter school bills by payment status.",
                         "required": true,
                         "schema": {
                             "type": "string",
@@ -37452,6 +37527,39 @@
                                 "unpaid"
                             ],
                             "example": "unpaid"
+                        }
+                    },
+                    {
+                        "name": "school_id",
+                        "in": "query",
+                        "description": "Filter billing records by school ID (school.sid).",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "12"
+                        }
+                    },
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Number of records to skip.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "example": 0
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "Maximum number of records to return.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 100,
+                            "minimum": 1,
+                            "example": 20
                         }
                     }
                 ],
@@ -37466,7 +37574,7 @@
                         "description": "Only the Domain Admin can access this endpoint"
                     },
                     "422": {
-                        "description": "Invalid or missing status. Accepted values are paid and unpaid"
+                        "description": "Invalid query parameters"
                     }
                 },
                 "security": [
