@@ -180,6 +180,7 @@ Route::group([
     Route::get('/billing/technology-fees/{id}/schools',[TechnologyFeeController::class, 'schools']);
     Route::get('/billing/schools',[TechnologyFeeController::class, 'allSchools']);
     Route::get('/billing/technology-fees', [TechnologyFeeController::class, 'index']);
+    Route::get('/billing/suspended-schools',[SchoolSuspensionController::class, 'suspendedSchools']);
 
 
         // Technology Billing - School Admin

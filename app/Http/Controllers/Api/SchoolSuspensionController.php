@@ -366,4 +366,180 @@ class SchoolSuspensionController extends Controller
             ], 500);
         }
     }
+
+
+
+/**
+ * Get all suspended schools.
+ *
+ * Only Domain Admins can access this endpoint.
+ *
+ * @OA\Get(
+ *     path="/api/billing/suspended-schools",
+ *     tags={"School Suspension"},
+ *     summary="Get all suspended schools",
+ *     description="Returns all suspended schools. Supports optional filtering by school ID, session year and term number, with offset pagination.",
+ *     operationId="getSuspendedSchools",
+ *     security={{"bearerAuth": {}}},
+ *
+ *     @OA\Parameter(
+ *         name="school_id",
+ *         in="query",
+ *         required=false,
+ *         description="Filter by school ID (school.sid).",
+ *         @OA\Schema(type="string", example="12")
+ *     ),
+ *     @OA\Parameter(
+ *         name="session",
+ *         in="query",
+ *         required=false,
+ *         description="Filter by session year in the sesn table.",
+ *         @OA\Schema(type="integer", example=2026)
+ *     ),
+ *     @OA\Parameter(
+ *         name="term",
+ *         in="query",
+ *         required=false,
+ *         description="Filter by academic term number: 1 = First Term, 2 = Second Term, 3 = Third Term.",
+ *         @OA\Schema(type="integer", enum={1, 2, 3}, example=1)
+ *     ),
+ *     @OA\Parameter(
+ *         name="start",
+ *         in="query",
+ *         required=false,
+ *         description="Number of records to skip.",
+ *         @OA\Schema(type="integer", minimum=0, example=0)
+ *     ),
+ *     @OA\Parameter(
+ *         name="count",
+ *         in="query",
+ *         required=false,
+ *         description="Maximum number of records to return.",
+ *         @OA\Schema(type="integer", minimum=1, maximum=100, example=20)
+ *     ),
+ *     @OA\Response(response=200, description="Suspended schools retrieved successfully"),
+ *     @OA\Response(response=401, description="Unauthenticated"),
+ *     @OA\Response(response=403, description="Only Domain Admins can access this endpoint"),
+ *     @OA\Response(response=422, description="Invalid query parameters")
+ * )
+ */
+public function suspendedSchools(Request $request)
+{
+    // Only Domain Admins can access this endpoint.
+    $admin = $request->user();
+
+    if (!$admin || $admin->typ !== 'a') {
+        return response()->json([
+            'status' => false,
+            'message' => 'Unauthorized. Only Domain Admins can access this endpoint.',
+        ], 403);
+    }
+
+    // Pagination defaults.
+    $start = $request->query('start', 0);
+    $count = $request->query('count', 20);
+
+    // Validate query parameters.
+    $validator = \Illuminate\Support\Facades\Validator::make(
+        $request->query(),
+        [
+            'school_id' => ['sometimes', 'required', 'string', 'exists:school,sid'],
+            'session'   => ['sometimes', 'required', 'integer', 'digits:4', 'exists:sesn,year'],
+            'term'      => ['sometimes', 'required', 'integer', 'in:1,2,3'],
+            'start'     => ['sometimes', 'required', 'integer', 'min:0'],
+            'count'     => ['sometimes', 'required', 'integer', 'min:1', 'max:100'],
+        ]
+    );
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Validation failed.',
+            'errors' => $validator->errors(),
+        ], 422);
+    }
+
+    // Retrieve suspended schools only.
+    $query = DB::table('school')
+        ->where('school.school_status', 0);
+
+    // Optional filter by school ID.
+    if ($request->filled('school_id')) {
+        $query->where('school.sid', $request->query('school_id'));
+    }
+
+    // Translate the supplied session year to its academic session name.
+    $sessionName = null;
+
+    if ($request->filled('session')) {
+        $sessionName = DB::table('sesn')
+            ->where('year', $request->query('session'))
+            ->value('name');
+    }
+
+    // Translate the supplied term number to its academic term name.
+    $termName = null;
+
+    if ($request->filled('term')) {
+        $terms = [
+            1 => 'First Term',
+            2 => 'Second Term',
+            3 => 'Third Term',
+        ];
+
+        $termName = $terms[(int) $request->query('term')];
+    }
+
+    // Apply session and/or term filters through matching school bills.
+    // Schools without a matching bill will not appear when these filters are used.
+    if ($sessionName !== null || $termName !== null) {
+        $query->whereExists(function ($subQuery) use ($sessionName, $termName) {
+            $subQuery->select(DB::raw(1))
+                ->from('school_bills')
+                ->whereColumn('school_bills.school_id', 'school.sid');
+
+            if ($sessionName !== null) {
+                $subQuery->where(
+                    'school_bills.academic_session',
+                    $sessionName
+                );
+            }
+
+            if ($termName !== null) {
+                $subQuery->where(
+                    'school_bills.term',
+                    $termName
+                );
+            }
+        });
+    }
+
+    // Retrieve the suspended schools with offset pagination.
+    $schools = $query
+        ->select(
+            'school.sid as school_id',
+            'school.name as school_name',
+            'school.school_status',
+            'school.created_at',
+            'school.updated_at'
+        )
+        ->orderBy('school.name', 'asc')
+        ->skip((int) $start)
+        ->take((int) $count)
+        ->get();
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Suspended schools retrieved successfully.',
+        'pld' => [
+            'school_id' => $request->query('school_id'),
+            'session' => $request->query('session'),
+            'term' => $request->query('term'),
+            'start' => (int) $start,
+            'count' => $schools->count(),
+            'schools' => $schools,
+        ],
+    ], 200);
+}
+
 }

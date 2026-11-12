@@ -37187,6 +37187,95 @@
                 ]
             }
         },
+        "/api/billing/suspended-schools": {
+            "get": {
+                "tags": [
+                    "School Suspension"
+                ],
+                "summary": "Get all suspended schools",
+                "description": "Returns all suspended schools. Supports optional filtering by school ID, session year and term number, with offset pagination.",
+                "operationId": "getSuspendedSchools",
+                "parameters": [
+                    {
+                        "name": "school_id",
+                        "in": "query",
+                        "description": "Filter by school ID (school.sid).",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "12"
+                        }
+                    },
+                    {
+                        "name": "session",
+                        "in": "query",
+                        "description": "Filter by session year in the sesn table.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 2026
+                        }
+                    },
+                    {
+                        "name": "term",
+                        "in": "query",
+                        "description": "Filter by academic term number: 1 = First Term, 2 = Second Term, 3 = Third Term.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "enum": [
+                                1,
+                                2,
+                                3
+                            ],
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Number of records to skip.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "example": 0
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "Maximum number of records to return.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 100,
+                            "minimum": 1,
+                            "example": 20
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Suspended schools retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Only Domain Admins can access this endpoint"
+                    },
+                    "422": {
+                        "description": "Invalid query parameters"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/billing/technology-fees": {
             "get": {
                 "tags": [
