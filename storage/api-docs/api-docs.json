@@ -36545,7 +36545,7 @@
                     "Billing"
                 ],
                 "summary": "Get school technology bills",
-                "description": "Retrieves technology bills for the specified school with optional offset-based pagination. Only the authenticated School Admin belonging to that school can access its bills.",
+                "description": "Retrieves technology bills for the specified school with optional academic session, term and offset-based pagination. Only the authenticated School Admin belonging to that school can access its bills.",
                 "operationId": "getSchoolTechnologyBills",
                 "parameters": [
                     {
@@ -36559,9 +36559,34 @@
                         }
                     },
                     {
+                        "name": "session",
+                        "in": "query",
+                        "description": "Filter by academic session year.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 2026
+                        }
+                    },
+                    {
+                        "name": "term",
+                        "in": "query",
+                        "description": "Filter by academic term: 1 = First Term, 2 = Second Term, 3 = Third Term.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "enum": [
+                                1,
+                                2,
+                                3
+                            ],
+                            "example": 1
+                        }
+                    },
+                    {
                         "name": "start",
                         "in": "query",
-                        "description": "Start index for pagination (default 0)",
+                        "description": "Start index for pagination (default 0).",
                         "required": false,
                         "schema": {
                             "type": "integer",
@@ -36572,11 +36597,12 @@
                     {
                         "name": "count",
                         "in": "query",
-                        "description": "Number of school bills to fetch (default 20)",
+                        "description": "Number of school bills to fetch (default 20).",
                         "required": false,
                         "schema": {
                             "type": "integer",
                             "default": 20,
+                            "maximum": 100,
                             "minimum": 1
                         }
                     }
@@ -36677,7 +36703,7 @@
                         "description": "Unauthorized or school ID does not belong to authenticated School Admin"
                     },
                     "422": {
-                        "description": "Invalid pagination parameters"
+                        "description": "Invalid query parameters"
                     }
                 },
                 "security": [

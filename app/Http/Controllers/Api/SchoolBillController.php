@@ -8,12 +8,13 @@ use Illuminate\Http\Request;
 
 class SchoolBillController extends Controller
 {
+
     /**
      * @OA\Get(
      *     path="/api/billing/school-bills/{schid}",
      *     tags={"Billing"},
      *     summary="Get school technology bills",
-     *     description="Retrieves technology bills for the specified school with optional offset-based pagination. Only the authenticated School Admin belonging to that school can access its bills.",
+     *     description="Retrieves technology bills for the specified school with optional academic session, term and offset-based pagination. Only the authenticated School Admin belonging to that school can access its bills.",
      *     operationId="getSchoolTechnologyBills",
      *     security={{"bearerAuth": {}}},
      *
@@ -24,21 +25,33 @@ class SchoolBillController extends Controller
      *         description="School ID",
      *         @OA\Schema(type="string", example="12")
      *     ),
-     *
+     *     @OA\Parameter(
+     *         name="session",
+     *         in="query",
+     *         required=false,
+     *         description="Filter by academic session year.",
+     *         @OA\Schema(type="integer", example=2026)
+     *     ),
+     *     @OA\Parameter(
+     *         name="term",
+     *         in="query",
+     *         required=false,
+     *         description="Filter by academic term: 1 = First Term, 2 = Second Term, 3 = Third Term.",
+     *         @OA\Schema(type="integer", enum={1, 2, 3}, example=1)
+     *     ),
      *     @OA\Parameter(
      *         name="start",
      *         in="query",
      *         required=false,
-     *         description="Start index for pagination (default 0)",
+     *         description="Start index for pagination (default 0).",
      *         @OA\Schema(type="integer", default=0, minimum=0)
      *     ),
-     *
      *     @OA\Parameter(
      *         name="count",
      *         in="query",
      *         required=false,
-     *         description="Number of school bills to fetch (default 20)",
-     *         @OA\Schema(type="integer", default=20, minimum=1)
+     *         description="Number of school bills to fetch (default 20).",
+     *         @OA\Schema(type="integer", default=20, minimum=1, maximum=100)
      *     ),
      *
      *     @OA\Response(
@@ -81,7 +94,7 @@ class SchoolBillController extends Controller
      *
      *     @OA\Response(response=401, description="Unauthenticated"),
      *     @OA\Response(response=403, description="Unauthorized or school ID does not belong to authenticated School Admin"),
-     *     @OA\Response(response=422, description="Invalid pagination parameters")
+     *     @OA\Response(response=422, description="Invalid query parameters")
      * )
      */
     public function index(Request $request, $schid)
@@ -104,11 +117,27 @@ class SchoolBillController extends Controller
             ], 403);
         }
 
-        // Validate pagination parameters.
-        $validator = \Illuminate\Support\Facades\Validator::make($request->query(), [
-            'start' => 'sometimes|required|integer|min:0',
-            'count' => 'sometimes|required|integer|min:1|max:100',
-        ]);
+        // Validate query parameters.
+        $validator = \Illuminate\Support\Facades\Validator::make(
+            $request->query(),
+            [
+                'session' => [
+                    'sometimes',
+                    'required',
+                    'integer',
+                    'digits:4',
+                    'exists:sesn,year',
+                ],
+                'term' => [
+                    'sometimes',
+                    'required',
+                    'integer',
+                    'in:1,2,3',
+                ],
+                'start' => 'sometimes|required|integer|min:0',
+                'count' => 'sometimes|required|integer|min:1|max:100',
+            ]
+        );
 
         if ($validator->fails()) {
             return response()->json([
@@ -119,11 +148,39 @@ class SchoolBillController extends Controller
         }
 
         // Pagination defaults.
-        $start = $request->query('start', 0);
-        $count = $request->query('count', 20);
+        $start = (int) $request->query('start', 0);
+        $count = (int) $request->query('count', 20);
 
-        // Retrieve bills for the requested school.
-        $bills = SchoolBill::where('school_id', (string) $schid)
+        // Start with all bills belonging to the requested school.
+        $query = SchoolBill::where('school_id', (string) $schid);
+
+        // Optional academic session filter.
+        if ($request->filled('session')) {
+
+            // Convert session year to its readable academic session.
+            $sessionName = \Illuminate\Support\Facades\DB::table('sesn')
+                ->where('year', $request->query('session'))
+                ->value('name');
+
+            $query->where('academic_session', $sessionName);
+        }
+
+        // Optional academic term filter.
+        if ($request->filled('term')) {
+
+            $terms = [
+                1 => 'First Term',
+                2 => 'Second Term',
+                3 => 'Third Term',
+            ];
+
+            $termName = $terms[(int) $request->query('term')];
+
+            $query->where('term', $termName);
+        }
+
+        // Retrieve bills with offset pagination.
+        $bills = $query
             ->orderByDesc('id')
             ->skip($start)
             ->take($count)
@@ -144,7 +201,7 @@ class SchoolBillController extends Controller
             'message' => 'School bills retrieved successfully.',
             'pld' => [
                 'schid' => $schid,
-                'start' => (int) $start,
+                'start' => $start,
                 'count' => $bills->count(),
                 'school_bills' => $bills,
             ],
