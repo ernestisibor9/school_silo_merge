@@ -36719,7 +36719,7 @@
                     "School Technology Billing"
                 ],
                 "summary": "Initialize technology billing payment",
-                "description": "Initializes a Paystack payment for an unpaid school technology bill belonging to the authenticated School Admin. The amount is retrieved from the database.",
+                "description": "Initializes a Paystack payment for an unpaid school technology bill belonging to the authenticated School Admin. The amount is retrieved from the database using the separate School Technology Billing Paystack account.",
                 "operationId": "initializeSchoolBillPayment",
                 "parameters": [
                     {
@@ -36752,7 +36752,7 @@
                                             "properties": {
                                                 "payment_reference": {
                                                     "type": "string",
-                                                    "example": "TECHBILL-1-123e4567-e89b-12d3-a456-426614174000"
+                                                    "example": "schoolsilo-billing-1-123e4567-e89b-12d3-a456-426614174000"
                                                 },
                                                 "amount": {
                                                     "type": "string",
@@ -36790,6 +36790,9 @@
                     },
                     "422": {
                         "description": "Bill already paid or has no payable amount"
+                    },
+                    "500": {
+                        "description": "Technology billing payment configuration incomplete or server error"
                     },
                     "502": {
                         "description": "Paystack payment initialization failed"

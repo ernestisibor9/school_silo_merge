@@ -19482,6 +19482,19 @@ public function paystackConf(Request $request)
 
         Log::info('Processing reference', ['ref' => $ref]);
 
+        // BILLING: Check if the reference already exists in the database and has been confirmed
+
+        // Route technology billing payments to their dedicated webhook handler
+        if (strpos($ref, 'schoolsilo-billing-') === 0) {
+
+            Log::info('Routing technology billing webhook', [
+                'reference' => $ref,
+            ]);
+
+            return app(\App\Http\Controllers\Api\SchoolBillPaymentController::class)
+                ->webhook($request);
+        }
+
         // Idempotency check
         $refRow = payment_refs::where('ref', $ref)->first();
         if ($refRow && $refRow->confirmed_at) {
