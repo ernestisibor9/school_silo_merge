@@ -11,55 +11,60 @@ use Illuminate\Support\Facades\DB;
 
 class BillingService
 {
+
     /**
-     * Count active, non-exited students for a school, session and term.
+     * Count active, non-exited students for a school,
+     * academic session and term.
      */
-/**
- * Count active, non-exited students for a school,
- * academic session and term.
- */
-public function countBillableStudents(
-    string $schoolId,
-    string $academicSession,
-    string $term
-): int {
+    public function countBillableStudents(
+        string $schoolId,
+        string $academicSession,
+        string $term
+    ): int {
 
-    // Convert the readable academic session to its database year.
-    $sessionYear = DB::table('sesn')
-        ->where('name', $academicSession)
-        ->value('year');
+        // Convert the readable academic session to its database year.
+        $sessionYear = DB::table('sesn')
+            ->where('name', $academicSession)
+            ->value('year');
 
-    if (!$sessionYear) {
-        throw new \InvalidArgumentException(
-            "Academic session {$academicSession} does not exist."
-        );
+        if (!$sessionYear) {
+            throw new \InvalidArgumentException(
+                "Academic session {$academicSession} does not exist."
+            );
+        }
+
+        // Convert the readable term to the numeric database value.
+        $termMap = [
+            'First Term' => '1',
+            'Second Term' => '2',
+            'Third Term' => '3',
+        ];
+
+        if (!isset($termMap[$term])) {
+            throw new \InvalidArgumentException(
+                "Invalid academic term: {$term}."
+            );
+        }
+
+        $termNumber = $termMap[$term];
+
+        // Count distinct active learners with student basic data.
+        return DB::table('old_student')
+            ->join(
+                'student_basic_data',
+                'old_student.sid',
+                '=',
+                'student_basic_data.user_id'
+            )
+            ->where('old_student.schid', $schoolId)
+            ->where('old_student.ssn', $sessionYear)
+            ->where('old_student.trm', $termNumber)
+            ->where('old_student.status', 'active')
+            ->whereNull('old_student.exit_student')
+            ->distinct()
+            ->count('old_student.sid');
     }
 
-    // Convert the readable term to the numeric database value.
-    $termMap = [
-        'First Term' => '1',
-        'Second Term' => '2',
-        'Third Term' => '3',
-    ];
-
-    if (!isset($termMap[$term])) {
-        throw new \InvalidArgumentException(
-            "Invalid academic term: {$term}."
-        );
-    }
-
-    $termNumber = $termMap[$term];
-
-    // Count active students who have not exited.
-    return DB::table('old_student')
-        ->where('schid', $schoolId)
-        ->where('ssn', $sessionYear)
-        ->where('trm', $termNumber)
-        ->where('status', 'active')
-        ->whereNull('exit_student')
-        ->distinct()
-        ->count('sid');
-}
 
     /**
      * Calculate a school's technology bill.

@@ -152,7 +152,16 @@ class SchoolBillController extends Controller
         $count = (int) $request->query('count', 20);
 
         // Start with all bills belonging to the requested school.
-        $query = SchoolBill::where('school_id', (string) $schid);
+        // $query = SchoolBill::where('school_id', (string) $schid);
+
+        $query = SchoolBill::join(
+            'school',
+            'school.sid',
+            '=',
+            'school_bills.school_id'
+        )
+            ->where('school_bills.school_id', (string) $schid)
+            ->where('school.school_status', 1);
 
         // Optional academic session filter.
         if ($request->filled('session')) {
@@ -185,15 +194,15 @@ class SchoolBillController extends Controller
             ->skip($start)
             ->take($count)
             ->get([
-                'id',
-                'academic_session',
-                'term',
-                'student_count',
-                'fee_per_student',
-                'total_amount',
-                'status',
-                'paid_at',
-                'created_at',
+                'school_bills.id',
+                'school_bills.academic_session',
+                'school_bills.term',
+                'school_bills.student_count',
+                'school_bills.fee_per_student',
+                'school_bills.total_amount',
+                'school_bills.status',
+                'school_bills.paid_at',
+                'school_bills.created_at',
             ]);
 
         return response()->json([
