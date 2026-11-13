@@ -37154,8 +37154,35 @@
                     "School Suspension"
                 ],
                 "summary": "Get authenticated user's school suspension status",
-                "description": "Returns the suspension status of the school associated with the authenticated user. Domain Admins and Support Admins do not belong to a single school.",
+                "description": "Returns the suspension status of the school associated with the authenticated user. Student and Staff accounts can optionally filter their school association by academic session and term. Session should be supplied as a year, e.g. 2026, not 2026/2027. Domain Admins and Support Admins do not belong to a single school.",
                 "operationId": "8e0659c6594babd56556cfcb3d151f26",
+                "parameters": [
+                    {
+                        "name": "session",
+                        "in": "query",
+                        "description": "Optional academic session year, e.g. 2026 (not 2026/2027).",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 2026
+                        }
+                    },
+                    {
+                        "name": "term",
+                        "in": "query",
+                        "description": "Optional academic term: 1 = First Term, 2 = Second Term, 3 = Third Term.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "enum": [
+                                1,
+                                2,
+                                3
+                            ],
+                            "example": 1
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "School status retrieved successfully",
@@ -37204,6 +37231,9 @@
                     },
                     "404": {
                         "description": "School association or school not found"
+                    },
+                    "422": {
+                        "description": "Invalid session or term"
                     },
                     "500": {
                         "description": "Unable to retrieve school status"
