@@ -44934,8 +44934,6 @@ public function setStudentAcademicInfoBulk(Request $request)
 
 
 
-
-
 public function maintainPreviousStudents(Request $request)
 {
     $request->validate([
@@ -44977,47 +44975,73 @@ public function maintainPreviousStudents(Request $request)
     try {
 
         // =====================================================
-        // 1. GET ELIGIBLE STUDENTS AND THEIR CURRENT CLASSES
+        // 1. IDENTIFY JSS 3 STUDENTS
         // =====================================================
 
-        $studentClassMap = DB::table('old_student')
-            ->where('schid', $schid)
-            ->where('trm', $prev_trm)
-            ->where('ssn', $prev_ssn)
-            ->where('status', 'active')
-            ->where(function ($q) {
-                $q->whereNull('exit_student')
-                    ->orWhere('exit_student', '<>', 1);
-            })
-            ->pluck('clsm', 'sid')
-            ->toArray();
-
-        // Identify JSS 3 students who should move to SS 1.
         $jss3StudentIds = [];
 
         if ($isNewSession) {
-            foreach ($studentClassMap as $sid => $classId) {
-                if ((int) $classId === 13) {
-                    $jss3StudentIds[] = $sid;
-                }
-            }
 
-            // Remove previously maintained JSS 3 destination
-            // records for these students.
-            // They will be recreated correctly under SS 1.
-            if (!empty($jss3StudentIds)) {
-                DB::table('old_student')
-                    ->where('schid', $schid)
-                    ->where('ssn', $next_ssn)
-                    ->where('trm', $next_trm)
-                    ->where('clsm', 13)
-                    ->whereIn('sid', $jss3StudentIds)
-                    ->delete();
-            }
+            // Use DISTINCT sid instead of pluck().
+            // A student may have multiple class allocations
+            // in the same session and term.
+            $jss3StudentIds = DB::table('old_student')
+                ->where('schid', $schid)
+                ->where('trm', $prev_trm)
+                ->where('ssn', $prev_ssn)
+                ->where('clsm', 13)
+                ->where('status', 'active')
+                ->where(function ($q) {
+                    $q->whereNull('exit_student')
+                        ->orWhere('exit_student', '<>', 1);
+                })
+                ->distinct()
+                ->pluck('sid')
+                ->toArray();
+        }
+
+        // Create a lookup for quick student identification.
+        $jss3StudentLookup = array_fill_keys(
+            array_map('intval', $jss3StudentIds),
+            true
+        );
+
+        // =====================================================
+        // 2. CLEAN UP EXISTING DESTINATION RECORDS
+        // =====================================================
+
+        if ($isNewSession && !empty($jss3StudentIds)) {
+
+            // Remove ALL existing destination class allocations
+            // for JSS 3 students.
+            //
+            // This prevents an old JSS 2 allocation, including
+            // one with clsa = NULL, from remaining as a duplicate.
+            //
+            // The correct JSS 3 allocation will be recreated
+            // below as SS 1.
+
+            DB::table('old_student')
+                ->where('schid', $schid)
+                ->where('ssn', $next_ssn)
+                ->where('trm', $next_trm)
+                ->whereIn('sid', $jss3StudentIds)
+                ->delete();
+
+            // Remove existing destination student subjects
+            // for these students so their JSS 3 subjects
+            // can be recreated correctly under SS 1.
+
+            DB::table('student_subj')
+                ->where('schid', $schid)
+                ->where('ssn', $next_ssn)
+                ->where('trm', $next_trm)
+                ->whereIn('stid', $jss3StudentIds)
+                ->delete();
         }
 
         // =====================================================
-        // 2. MAINTAIN ELIGIBLE STUDENTS
+        // 3. MAINTAIN ELIGIBLE STUDENTS
         // =====================================================
 
         DB::statement("
@@ -45059,6 +45083,24 @@ public function maintainPreviousStudents(Request $request)
               AND status = 'active'
               AND (exit_student IS NULL OR exit_student <> 1)
 
+              AND (
+                    ? = 0
+                    OR clsm = 13
+                    OR sid NOT IN (
+                        SELECT promoted.sid
+                        FROM (
+                            SELECT DISTINCT sid
+                            FROM old_student
+                            WHERE schid = ?
+                              AND ssn = ?
+                              AND trm = ?
+                              AND clsm = 13
+                              AND status = 'active'
+                              AND (exit_student IS NULL OR exit_student <> 1)
+                        ) AS promoted
+                    )
+              )
+
             ON DUPLICATE KEY UPDATE
                 suid = VALUES(suid),
                 fname = VALUES(fname),
@@ -45079,34 +45121,23 @@ public function maintainPreviousStudents(Request $request)
             $next_trm,
             $schid,
             $prev_trm,
-            $prev_ssn
+            $prev_ssn,
+            $isNewSession ? 1 : 0,
+            $schid,
+            $prev_ssn,
+            $prev_trm
         ]);
-
-        // =====================================================
-        // 3. UPDATE EXISTING DESTINATION STUDENT SUBJECTS
-        // =====================================================
-
-        if ($isNewSession && !empty($jss3StudentIds)) {
-
-            DB::table('student_subj')
-                ->where('schid', $schid)
-                ->where('ssn', $next_ssn)
-                ->where('trm', $next_trm)
-                ->where('clsid', 13)
-                ->whereIn('stid', $jss3StudentIds)
-                ->update([
-                    'clsid' => 14,
-                    'updated_at' => now()
-                ]);
-        }
 
         // =====================================================
         // 4. MAINTAIN STUDENT SUBJECTS
         // =====================================================
 
         DB::table('student_subj')
-            ->whereIn('stid', function ($query) use ($schid, $prev_trm, $prev_ssn) {
-
+            ->whereIn('stid', function ($query) use (
+                $schid,
+                $prev_trm,
+                $prev_ssn
+            ) {
                 $query->select('sid')
                     ->from('old_student')
                     ->where('schid', $schid)
@@ -45117,15 +45148,15 @@ public function maintainPreviousStudents(Request $request)
                         $q->whereNull('exit_student')
                             ->orWhere('exit_student', '<>', 1);
                     });
-
             })
+            ->where('schid', $schid)
             ->where('trm', $prev_trm)
             ->where('ssn', $prev_ssn)
             ->orderBy('stid')
             ->chunk(50, function ($subjects) use (
                 $next_trm,
                 $next_ssn,
-                $studentClassMap,
+                $jss3StudentLookup,
                 $isNewSession
             ) {
 
@@ -45135,12 +45166,20 @@ public function maintainPreviousStudents(Request $request)
 
                     $destinationClassId = $s->clsid;
 
-                    // JSS 3 students move to SS 1.
+                    // For JSS 3 students moving into a new session,
+                    // maintain only their JSS 3 subjects.
                     if (
                         $isNewSession &&
-                        isset($studentClassMap[$s->stid]) &&
-                        (int) $studentClassMap[$s->stid] === 13
+                        isset($jss3StudentLookup[(int) $s->stid])
                     ) {
+
+                        // Ignore subjects belonging to their
+                        // previous additional class allocation.
+                        if ((int) $s->clsid !== 13) {
+                            continue;
+                        }
+
+                        // JSS 3 subjects become SS 1 subjects.
                         $destinationClassId = 14;
                     }
 
