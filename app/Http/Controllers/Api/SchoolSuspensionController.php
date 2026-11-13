@@ -264,7 +264,6 @@ class SchoolSuspensionController extends Controller
      * )
      */
 
-
     public function schoolStatus(Request $request)
     {
         try {
@@ -275,6 +274,7 @@ class SchoolSuspensionController extends Controller
                 return response()->json([
                     'status' => false,
                     'message' => 'Unauthenticated.',
+                    'pld' => [],
                 ], 401);
             }
 
@@ -303,6 +303,7 @@ class SchoolSuspensionController extends Controller
                     'status' => false,
                     'message' => 'Validation failed.',
                     'errors' => $validator->errors(),
+                    'pld' => [],
                 ], 422);
             }
 
@@ -313,24 +314,32 @@ class SchoolSuspensionController extends Controller
             if ($user->typ === 'a') {
                 return response()->json([
                     'status' => true,
-                    'role' => 'domain_admin',
-                    'school_id' => null,
-                    'suspended' => false,
-                    'school_status' => null,
-                    'message' => null,
-                ]);
+                    'message' => 'School status retrieved successfully.',
+                    'pld' => [
+                        'role' => 'domain_admin',
+                        'school_id' => null,
+                        'session' => $session !== null ? (int) $session : null,
+                        'term' => $term !== null ? (int) $term : null,
+                        'suspended' => false,
+                        'school_status' => null,
+                    ],
+                ], 200);
             }
 
             // Support Admin
             if ($user->typ === 'sa') {
                 return response()->json([
                     'status' => true,
-                    'role' => 'support_admin',
-                    'school_id' => null,
-                    'suspended' => false,
-                    'school_status' => null,
-                    'message' => null,
-                ]);
+                    'message' => 'School status retrieved successfully.',
+                    'pld' => [
+                        'role' => 'support_admin',
+                        'school_id' => null,
+                        'session' => $session !== null ? (int) $session : null,
+                        'term' => $term !== null ? (int) $term : null,
+                        'suspended' => false,
+                        'school_status' => null,
+                    ],
+                ], 200);
             }
 
             $schoolId = null;
@@ -384,6 +393,7 @@ class SchoolSuspensionController extends Controller
                 return response()->json([
                     'status' => false,
                     'message' => 'Unsupported account type.',
+                    'pld' => [],
                 ], 403);
             }
 
@@ -391,6 +401,7 @@ class SchoolSuspensionController extends Controller
                 return response()->json([
                     'status' => false,
                     'message' => 'School association not found.',
+                    'pld' => [],
                 ], 404);
             }
 
@@ -403,6 +414,7 @@ class SchoolSuspensionController extends Controller
                 return response()->json([
                     'status' => false,
                     'message' => 'School not found.',
+                    'pld' => [],
                 ], 404);
             }
 
@@ -410,14 +422,16 @@ class SchoolSuspensionController extends Controller
 
             return response()->json([
                 'status' => true,
-                'role' => 'school_user',
-                'school_id' => $school->sid,
-                'suspended' => $suspended,
-                'school_status' => (int) $school->school_status,
-                'message' => $suspended
-                    ? 'THIS SCHOOL IS SUSPENDED, KINDLY CONTACT THE ADMINISTRATOR.'
-                    : null,
-            ]);
+                'message' => 'School status retrieved successfully.',
+                'pld' => [
+                    'role' => 'school_user',
+                    'school_id' => (string) $school->sid,
+                    'session' => $session !== null ? (int) $session : null,
+                    'term' => $term !== null ? (int) $term : null,
+                    'suspended' => $suspended,
+                    'school_status' => (int) $school->school_status,
+                ],
+            ], 200);
         } catch (\Throwable $e) {
 
             Log::error('Unable to retrieve school suspension status.', [
@@ -427,6 +441,7 @@ class SchoolSuspensionController extends Controller
             return response()->json([
                 'status' => false,
                 'message' => 'Unable to retrieve school status.',
+                'pld' => [],
             ], 500);
         }
     }
