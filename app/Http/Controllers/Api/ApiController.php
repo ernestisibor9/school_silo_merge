@@ -11241,9 +11241,10 @@ public function setStudentAcademicInfo(Request $request)
             // Update old_staff table
             old_staff::where('sid', $request->stid)
                 ->where('schid', $request->schid)
+                ->where('role', $request->role)
+                ->where('role2', $request->role2)
                 ->update([
-                    'role' => $request->role,
-                    'role2' => $request->role2,
+                    'updated_at' => now(),
                 ]);
 
             // Get user email
