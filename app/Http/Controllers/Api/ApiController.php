@@ -44951,15 +44951,20 @@ public function maintainPreviousStudents(Request $request)
 
     $current_ssn = (int) $request->ssn;
 
-    // Do not move students into a new session after Term 3.
+    // Determine the destination term and academic session.
     if ($current_trm === 3) {
-        return response()->json([
-            'status' => true,
-            'message' => 'Students maintained successfully',
-            'new_trm' => 3,
-            'new_ssn' => $current_ssn
-        ]);
+        // Third Term moves into First Term of the next session.
+        $next_trm = 1;
+        $next_ssn = $current_ssn + 1;
+    } else {
+        // First Term moves to Second Term.
+        // Second Term moves to Third Term.
+        $next_trm = $current_trm + 1;
+        $next_ssn = $current_ssn;
     }
+
+    $prev_trm = $current_trm;
+    $prev_ssn = $current_ssn;
 
     $next_trm = $current_trm + 1;
     $next_ssn = $current_ssn;
