@@ -44933,6 +44933,7 @@ public function setStudentAcademicInfoBulk(Request $request)
 // }
 
 
+
 public function maintainPreviousStudents(Request $request)
 {
     $request->validate([
@@ -44951,24 +44952,19 @@ public function maintainPreviousStudents(Request $request)
 
     $current_ssn = (int) $request->ssn;
 
-    // Determine the destination term and academic session.
+    // Determine destination session and term.
     if ($current_trm === 3) {
         // Third Term moves into First Term of the next session.
         $next_trm = 1;
         $next_ssn = $current_ssn + 1;
     } else {
-        // First Term moves to Second Term.
-        // Second Term moves to Third Term.
+        // First Term -> Second Term.
+        // Second Term -> Third Term.
         $next_trm = $current_trm + 1;
         $next_ssn = $current_ssn;
     }
 
-    $prev_trm = $current_trm;
-    $prev_ssn = $current_ssn;
-
-    $next_trm = $current_trm + 1;
-    $next_ssn = $current_ssn;
-
+    // Source session and term.
     $prev_trm = $current_trm;
     $prev_ssn = $current_ssn;
 
@@ -44977,13 +44973,7 @@ public function maintainPreviousStudents(Request $request)
     try {
 
         // =====================================================
-        // 1. MAINTAIN ELIGIBLE STUDENTS INTO THE NEXT TERM
-        //
-        // Source: Current session and term.
-        // Destination: Next term in the same session.
-        //
-        // Exited students are excluded.
-        // Existing destination records are updated.
+        // 1. MAINTAIN ELIGIBLE STUDENTS
         // =====================================================
 
         DB::statement("
@@ -45026,12 +45016,8 @@ public function maintainPreviousStudents(Request $request)
             $prev_ssn
         ]);
 
-
         // =====================================================
-        // 2. MAINTAIN SUBJECTS ONLY FOR ELIGIBLE STUDENTS
-        //
-        // Exited students must not receive subjects
-        // in the next term.
+        // 2. MAINTAIN STUDENT SUBJECTS
         // =====================================================
 
         DB::table('student_subj')
@@ -45082,11 +45068,8 @@ public function maintainPreviousStudents(Request $request)
                 }
             });
 
-
         // =====================================================
-        // 3. MAINTAIN CLASS SUBJECTS NORMALLY
-        //
-        // These belong to the class, not an individual student.
+        // 3. MAINTAIN CLASS SUBJECTS
         // =====================================================
 
         DB::table('class_subj')
@@ -45124,7 +45107,6 @@ public function maintainPreviousStudents(Request $request)
                 }
             });
 
-
         // =====================================================
         // 4. COMMIT TRANSACTION
         // =====================================================
@@ -45154,6 +45136,7 @@ public function maintainPreviousStudents(Request $request)
         ], 500);
     }
 }
+
 
 
     /**
