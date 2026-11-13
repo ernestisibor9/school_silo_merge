@@ -44934,6 +44934,8 @@ public function setStudentAcademicInfoBulk(Request $request)
 
 
 
+
+
 public function maintainPreviousStudents(Request $request)
 {
     $request->validate([
@@ -44957,11 +44959,13 @@ public function maintainPreviousStudents(Request $request)
         // Third Term moves into First Term of the next session.
         $next_trm = 1;
         $next_ssn = $current_ssn + 1;
+        $isNewSession = true;
     } else {
         // First Term -> Second Term.
         // Second Term -> Third Term.
         $next_trm = $current_trm + 1;
         $next_ssn = $current_ssn;
+        $isNewSession = false;
     }
 
     // Source session and term.
@@ -44973,7 +44977,47 @@ public function maintainPreviousStudents(Request $request)
     try {
 
         // =====================================================
-        // 1. MAINTAIN ELIGIBLE STUDENTS
+        // 1. GET ELIGIBLE STUDENTS AND THEIR CURRENT CLASSES
+        // =====================================================
+
+        $studentClassMap = DB::table('old_student')
+            ->where('schid', $schid)
+            ->where('trm', $prev_trm)
+            ->where('ssn', $prev_ssn)
+            ->where('status', 'active')
+            ->where(function ($q) {
+                $q->whereNull('exit_student')
+                    ->orWhere('exit_student', '<>', 1);
+            })
+            ->pluck('clsm', 'sid')
+            ->toArray();
+
+        // Identify JSS 3 students who should move to SS 1.
+        $jss3StudentIds = [];
+
+        if ($isNewSession) {
+            foreach ($studentClassMap as $sid => $classId) {
+                if ((int) $classId === 13) {
+                    $jss3StudentIds[] = $sid;
+                }
+            }
+
+            // Remove previously maintained JSS 3 destination
+            // records for these students.
+            // They will be recreated correctly under SS 1.
+            if (!empty($jss3StudentIds)) {
+                DB::table('old_student')
+                    ->where('schid', $schid)
+                    ->where('ssn', $next_ssn)
+                    ->where('trm', $next_trm)
+                    ->where('clsm', 13)
+                    ->whereIn('sid', $jss3StudentIds)
+                    ->delete();
+            }
+        }
+
+        // =====================================================
+        // 2. MAINTAIN ELIGIBLE STUDENTS
         // =====================================================
 
         DB::statement("
@@ -44984,13 +45028,30 @@ public function maintainPreviousStudents(Request $request)
                 ssn, trm, created_at, updated_at
             )
             SELECT
-                CONCAT(?, '-', ?, '-', sid, '-', clsm) AS uid,
+                CONCAT(
+                    ?, '-', ?, '-', sid, '-',
+                    CASE
+                        WHEN clsm = 13 AND ? = 1 THEN 14
+                        ELSE clsm
+                    END
+                ) AS uid,
+
                 suid, sid, schid, fname, mname, lname,
-                clsm, clsa, cls_sbj_students,
+
+                CASE
+                    WHEN clsm = 13 AND ? = 1 THEN 14
+                    ELSE clsm
+                END AS clsm,
+
+                clsa,
+                cls_sbj_students,
+
                 'active',
                 adm_ssn, adm_trm, cls_of_adm,
+
                 ?, ?,
                 NOW(), NOW()
+
             FROM old_student
             WHERE schid = ?
               AND trm = ?
@@ -45003,12 +45064,17 @@ public function maintainPreviousStudents(Request $request)
                 fname = VALUES(fname),
                 mname = VALUES(mname),
                 lname = VALUES(lname),
+                clsm = VALUES(clsm),
+                clsa = VALUES(clsa),
+                cls_sbj_students = VALUES(cls_sbj_students),
                 status = 'active',
                 exit_student = NULL,
                 updated_at = NOW()
         ", [
             $next_ssn,
             $next_trm,
+            $isNewSession ? 1 : 0,
+            $isNewSession ? 1 : 0,
             $next_ssn,
             $next_trm,
             $schid,
@@ -45017,7 +45083,25 @@ public function maintainPreviousStudents(Request $request)
         ]);
 
         // =====================================================
-        // 2. MAINTAIN STUDENT SUBJECTS
+        // 3. UPDATE EXISTING DESTINATION STUDENT SUBJECTS
+        // =====================================================
+
+        if ($isNewSession && !empty($jss3StudentIds)) {
+
+            DB::table('student_subj')
+                ->where('schid', $schid)
+                ->where('ssn', $next_ssn)
+                ->where('trm', $next_trm)
+                ->where('clsid', 13)
+                ->whereIn('stid', $jss3StudentIds)
+                ->update([
+                    'clsid' => 14,
+                    'updated_at' => now()
+                ]);
+        }
+
+        // =====================================================
+        // 4. MAINTAIN STUDENT SUBJECTS
         // =====================================================
 
         DB::table('student_subj')
@@ -45038,11 +45122,27 @@ public function maintainPreviousStudents(Request $request)
             ->where('trm', $prev_trm)
             ->where('ssn', $prev_ssn)
             ->orderBy('stid')
-            ->chunk(50, function ($subjects) use ($next_trm, $next_ssn) {
+            ->chunk(50, function ($subjects) use (
+                $next_trm,
+                $next_ssn,
+                $studentClassMap,
+                $isNewSession
+            ) {
 
                 $insertData = [];
 
                 foreach ($subjects as $s) {
+
+                    $destinationClassId = $s->clsid;
+
+                    // JSS 3 students move to SS 1.
+                    if (
+                        $isNewSession &&
+                        isset($studentClassMap[$s->stid]) &&
+                        (int) $studentClassMap[$s->stid] === 13
+                    ) {
+                        $destinationClassId = 14;
+                    }
 
                     $insertData[] = [
                         'uid' => implode('-', [
@@ -45055,7 +45155,7 @@ public function maintainPreviousStudents(Request $request)
                         'sbj' => $s->sbj,
                         'comp' => $s->comp,
                         'schid' => $s->schid,
-                        'clsid' => $s->clsid,
+                        'clsid' => $destinationClassId,
                         'trm' => $next_trm,
                         'ssn' => $next_ssn,
                         'created_at' => now(),
@@ -45069,7 +45169,7 @@ public function maintainPreviousStudents(Request $request)
             });
 
         // =====================================================
-        // 3. MAINTAIN CLASS SUBJECTS
+        // 5. MAINTAIN CLASS SUBJECTS
         // =====================================================
 
         DB::table('class_subj')
@@ -45077,24 +45177,38 @@ public function maintainPreviousStudents(Request $request)
             ->where('trm', $prev_trm)
             ->where('sesn', $prev_ssn)
             ->orderBy('clsid')
-            ->chunk(50, function ($classes) use ($next_trm, $next_ssn) {
+            ->chunk(50, function ($classes) use (
+                $next_trm,
+                $next_ssn,
+                $isNewSession
+            ) {
 
                 $insertData = [];
 
                 foreach ($classes as $cs) {
 
+                    $destinationClassId = $cs->clsid;
+
+                    // Maintain JSS 3 class subjects under SS 1.
+                    if (
+                        $isNewSession &&
+                        (int) $cs->clsid === 13
+                    ) {
+                        $destinationClassId = 14;
+                    }
+
                     $insertData[] = [
                         'uid' => implode('-', [
                             $next_ssn,
                             $next_trm,
-                            $cs->clsid,
+                            $destinationClassId,
                             $cs->subj_id
                         ]),
                         'subj_id' => $cs->subj_id,
                         'schid' => $cs->schid,
                         'name' => $cs->name,
                         'comp' => $cs->comp,
-                        'clsid' => $cs->clsid,
+                        'clsid' => $destinationClassId,
                         'sesn' => $next_ssn,
                         'trm' => $next_trm,
                         'created_at' => now(),
@@ -45108,7 +45222,7 @@ public function maintainPreviousStudents(Request $request)
             });
 
         // =====================================================
-        // 4. COMMIT TRANSACTION
+        // 6. COMMIT TRANSACTION
         // =====================================================
 
         DB::commit();
@@ -45136,6 +45250,8 @@ public function maintainPreviousStudents(Request $request)
         ], 500);
     }
 }
+
+
 
 
 
