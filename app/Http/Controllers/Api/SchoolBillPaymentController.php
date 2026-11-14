@@ -117,7 +117,7 @@ class SchoolBillPaymentController extends Controller
         $charge = round((float) $chargeInput, 2);
 
         // Use the separate technology billing Paystack credentials.
-        $secretKey = config('services.billing_paystack.secret_key');
+        $secretKey = config('services.paystack.secret');
         $paymentUrl = config('services.billing_paystack.payment_url');
 
         if (empty($secretKey) || empty($paymentUrl)) {
@@ -266,7 +266,7 @@ class SchoolBillPaymentController extends Controller
 
     public function webhook(Request $request)
     {
-        $secretKey = config('services.billing_paystack.secret_key');
+        $secretKey = config('services.paystack.secret');
 
         if (empty($secretKey)) {
             Log::error('Technology billing webhook: billing Paystack secret is missing.');
@@ -654,7 +654,7 @@ class SchoolBillPaymentController extends Controller
             ], 403);
         }
 
-        $secretKey = config('services.billing_paystack.secret_key');
+        $secretKey = config('services.paystack.secret');
         $verifyUrl = config('services.billing_paystack.verify_url');
 
         if (empty($secretKey) || empty($verifyUrl)) {

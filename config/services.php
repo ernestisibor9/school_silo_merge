@@ -35,10 +35,8 @@ return [
         'secret' => env('PAYSTACK_SECRET'),
     ],
 
-        // Separate Paystack account for technology billing
+    // Separate Paystack account for technology billing
     'billing_paystack' => [
-        'public_key' => env('BILLING_PAYSTACK_PUBLIC_KEY'),
-        'secret_key' => env('BILLING_PAYSTACK_SECRET_KEY'),
         'payment_url' => 'https://api.paystack.co/transaction/initialize',
         'verify_url' => 'https://api.paystack.co/transaction/verify/',
     ],

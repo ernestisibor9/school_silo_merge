@@ -19438,20 +19438,13 @@ public function paystackConf(Request $request)
         // Signature verification.
 
         // Verify the original Paystack signature
+        // Signature verification using the same Paystack secret for all payments.
         if (config('app.env') !== 'local') {
+
             $signature = $request->header('x-paystack-signature');
-           // $secretKey = config('services.paystack.secret');
 
-           // Use the dedicated Paystack secret for technology billing.
-            // Preserve the existing secret for all other payment types.
-            $incomingReference = data_get($payload, 'data.reference');
-
-            $isBillingPayment = is_string($incomingReference)
-                && strpos($incomingReference, 'schoolsilo-billing-') === 0;
-
-            $secretKey = $isBillingPayment
-                ? config('services.billing_paystack.secret_key')
-                : config('services.paystack.secret');
+            // Use the same Paystack secret for legacy and technology billing.
+            $secretKey = config('services.paystack.secret');
 
             if (
                 empty($secretKey) ||
