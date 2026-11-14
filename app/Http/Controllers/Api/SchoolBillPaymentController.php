@@ -990,6 +990,100 @@ public function initialize(Request $request, $billId)
     }
 
 
+
+
+/**
+ * @OA\Get(
+ *     path="/api/billing/school-bills/{billId}/payments/reference",
+ *     operationId="getSchoolBillPaymentReference",
+ *     tags={"School Technology Billing"},
+ *     summary="Retrieve the latest pending payment reference for a school bill",
+ *     description="Retrieves the latest pending payment reference belonging to the authenticated School Admin's bill.",
+ *     security={{"bearerAuth":{}}},
+ *
+ *     @OA\Parameter(
+ *         name="billId",
+ *         in="path",
+ *         required=true,
+ *         description="School bill ID",
+ *         @OA\Schema(type="integer", example=52)
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Payment reference retrieved successfully",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Payment reference retrieved successfully."),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="object",
+ *                 @OA\Property(property="payment_reference", type="string", example="schoolsilo-billing-52-333fe7d9-8f1a-4beb-8ff4-f6d7"),
+ *                 @OA\Property(property="amount", type="number", format="float", example=1950.00),
+ *                 @OA\Property(property="currency", type="string", example="NGN"),
+ *                 @OA\Property(property="payment_status", type="string", example="pending")
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(response=401, description="Unauthenticated"),
+ *     @OA\Response(response=403, description="Only School Admins can retrieve payment references"),
+ *     @OA\Response(response=404, description="School bill or pending payment reference not found")
+ * )
+ */
+public function getPaymentReference(Request $request, $billId)
+{
+    $user = $request->user();
+
+    // Only authenticated School Admins can retrieve payment references.
+    if (!$user || $user->typ !== 's') {
+        return response()->json([
+            'status' => false,
+            'message' => 'Unauthorized. Only School Admins can retrieve payment references.',
+        ], 403);
+    }
+
+    // Confirm that the bill belongs to the authenticated School Admin.
+    $bill = SchoolBill::where('id', $billId)
+        ->where('school_id', (string) $user->id)
+        ->first();
+
+    if (!$bill) {
+        return response()->json([
+            'status' => false,
+            'message' => 'School bill not found.',
+        ], 404);
+    }
+
+    // Retrieve the latest pending payment reference for this bill.
+    $payment = SchoolBillPayment::where('school_bill_id', $bill->id)
+        ->where('status', 'pending')
+        ->orderByDesc('id')
+        ->first();
+
+    if (!$payment) {
+        return response()->json([
+            'status' => false,
+            'message' => 'No pending payment reference was found for this school bill.',
+        ], 404);
+    }
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Payment reference retrieved successfully.',
+        'pld' => [
+            'payment_reference' => $payment->payment_reference,
+            'amount' => $payment->amount,
+            'currency' => $payment->currency,
+            'payment_status' => $payment->status,
+        ],
+    ], 200);
+}
+
+
+
+
+
     /**
      * @OA\Get(
      *     path="/api/billing/school-bill-payments/{reference}/receipt",

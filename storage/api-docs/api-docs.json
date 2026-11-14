@@ -36873,6 +36873,86 @@
                 ]
             }
         },
+        "/api/billing/school-bills/{billId}/payments/reference": {
+            "get": {
+                "tags": [
+                    "School Technology Billing"
+                ],
+                "summary": "Retrieve the latest pending payment reference for a school bill",
+                "description": "Retrieves the latest pending payment reference belonging to the authenticated School Admin's bill.",
+                "operationId": "getSchoolBillPaymentReference",
+                "parameters": [
+                    {
+                        "name": "billId",
+                        "in": "path",
+                        "description": "School bill ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 52
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Payment reference retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Payment reference retrieved successfully."
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "payment_reference": {
+                                                    "type": "string",
+                                                    "example": "schoolsilo-billing-52-333fe7d9-8f1a-4beb-8ff4-f6d7"
+                                                },
+                                                "amount": {
+                                                    "type": "number",
+                                                    "format": "float",
+                                                    "example": 1950
+                                                },
+                                                "currency": {
+                                                    "type": "string",
+                                                    "example": "NGN"
+                                                },
+                                                "payment_status": {
+                                                    "type": "string",
+                                                    "example": "pending"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Only School Admins can retrieve payment references"
+                    },
+                    "404": {
+                        "description": "School bill or pending payment reference not found"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/billing/school-bill-payments/{reference}/receipt": {
             "get": {
                 "tags": [
