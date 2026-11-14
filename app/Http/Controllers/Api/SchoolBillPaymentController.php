@@ -1092,21 +1092,36 @@ class SchoolBillPaymentController extends Controller
 
 
 
+
     /**
      * @OA\Get(
      *     path="/api/billing/school-bill-payments/{reference}/receipt",
      *     operationId="getSchoolBillPaymentReceipt",
      *     tags={"School Bill Payments"},
      *     summary="Retrieve a verified school bill payment receipt",
-     *     description="Retrieves the receipt for a successfully verified technology billing payment. Only the authenticated School Admin who owns the bill can access the receipt.",
+     *     description="Retrieves a receipt using either the Paystack payment reference or the school_bill_id query parameter. Only the authenticated School Admin who owns the bill can access the receipt. When both are supplied, the payment reference takes priority.",
      *     security={{"bearerAuth":{}}},
      *
      *     @OA\Parameter(
      *         name="reference",
      *         in="path",
-     *         required=true,
-     *         description="Paystack payment reference",
-     *         @OA\Schema(type="string", example="TECHBILL-1-82e15631-53b0-421d-ac")
+     *         required=false,
+     *         description="Paystack payment reference. Use this to retrieve a specific payment receipt. When using school_bill_id instead, provide 0 as the reference placeholder.",
+     *         @OA\Schema(
+     *             type="string",
+     *             example="schoolsilo-billing-52-e71e1782-3165-4aa6-b646-fea499d7b484"
+     *         )
+     *     ),
+     *
+     *     @OA\Parameter(
+     *         name="school_bill_id",
+     *         in="query",
+     *         required=false,
+     *         description="School bill ID. Retrieves the latest successfully verified payment receipt for the specified bill.",
+     *         @OA\Schema(
+     *             type="integer",
+     *             example=52
+     *         )
      *     ),
      *
      *     @OA\Response(
@@ -1118,18 +1133,18 @@ class SchoolBillPaymentController extends Controller
      *             @OA\Property(
      *                 property="pld",
      *                 type="object",
-     *                 @OA\Property(property="receipt_number", type="string", example="SSM-20261108-550e8400-e29b-41d4-a716-446655440000"),
+     *                 @OA\Property(property="receipt_number", type="string", example="SSM-20261114-550e8400-e29b-41d4-a716-446655440000"),
      *                 @OA\Property(property="school_name", type="string", example="Holy Ghost College"),
      *                 @OA\Property(property="school_id", type="string", example="12"),
      *                 @OA\Property(property="academic_session", type="string", example="2026/2027"),
      *                 @OA\Property(property="term", type="string", example="First Term"),
-     *                 @OA\Property(property="student_count", type="integer", example=471),
-     *                 @OA\Property(property="fee_per_student", type="number", format="float", example=2000.00),
-     *                 @OA\Property(property="amount_paid", type="number", format="float", example=942000.00),
+     *                 @OA\Property(property="student_count", type="integer", example=195),
+     *                 @OA\Property(property="fee_per_student", type="number", format="float", example=10.00),
+     *                 @OA\Property(property="amount_paid", type="number", format="float", example=2039.00),
      *                 @OA\Property(property="currency", type="string", example="NGN"),
-     *                 @OA\Property(property="payment_reference", type="string", example="TECHBILL-1-82e15631-53b0-421d-ac"),
+     *                 @OA\Property(property="payment_reference", type="string", example="schoolsilo-billing-52-e71e1782-3165-4aa6-b646-fea499d7b484"),
      *                 @OA\Property(property="paystack_transaction_id", type="integer", nullable=true, example=123456789),
-     *                 @OA\Property(property="payment_date", type="string", format="date-time", example="2026-11-08T10:30:00.000000Z"),
+     *                 @OA\Property(property="payment_date", type="string", format="date-time", example="2026-11-14T14:47:49.000000Z"),
      *                 @OA\Property(property="status", type="string", example="successful")
      *             )
      *         )
@@ -1139,6 +1154,7 @@ class SchoolBillPaymentController extends Controller
      *         response=401,
      *         description="Unauthenticated"
      *     ),
+     *
      *     @OA\Response(
      *         response=403,
      *         description="Only School Admins can access payment receipts",
@@ -1147,6 +1163,7 @@ class SchoolBillPaymentController extends Controller
      *             @OA\Property(property="message", type="string", example="Unauthorized. Only School Admins can access payment receipts.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=404,
      *         description="Receipt not found or does not belong to the authenticated school",
@@ -1155,6 +1172,7 @@ class SchoolBillPaymentController extends Controller
      *             @OA\Property(property="message", type="string", example="Receipt not found.")
      *         )
      *     ),
+     *
      *     @OA\Response(
      *         response=409,
      *         description="Payment has not been successfully verified",
@@ -1162,11 +1180,22 @@ class SchoolBillPaymentController extends Controller
      *             @OA\Property(property="status", type="boolean", example=false),
      *             @OA\Property(property="message", type="string", example="A receipt is only available for successfully verified payments.")
      *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Missing payment reference and school_bill_id, or invalid school_bill_id",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Please provide a payment reference or school_bill_id.")
+     *         )
      *     )
      * )
      */
 
-    public function receipt(Request $request, $reference)
+
+
+    public function receipt(Request $request, $reference = null)
     {
         $user = $request->user();
 
@@ -1178,11 +1207,38 @@ class SchoolBillPaymentController extends Controller
             ], 403);
         }
 
-        $receipt = DB::table('school_bill_payments as payments')
+        // Validate optional school_bill_id.
+        $request->validate([
+            'school_bill_id' => 'nullable|integer',
+        ]);
+
+        $schoolBillId = $request->input('school_bill_id');
+
+        // Require either payment reference or school_bill_id.
+        if (!$reference && !$schoolBillId) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Please provide a payment reference or school_bill_id.',
+            ], 422);
+        }
+
+        $query = DB::table('school_bill_payments as payments')
             ->join('school_bills as bills', 'payments.school_bill_id', '=', 'bills.id')
             ->join('school', 'bills.school_id', '=', 'school.sid')
-            ->where('payments.payment_reference', $reference)
-            ->where('bills.school_id', (string) $user->id)
+            ->where('bills.school_id', (string) $user->id);
+
+        // If reference is supplied, use it.
+        if ($reference) {
+            $query->where('payments.payment_reference', $reference);
+        }
+
+        // Otherwise, use school_bill_id.
+        elseif ($schoolBillId) {
+            $query->where('payments.school_bill_id', $schoolBillId);
+        }
+
+        $receipt = $query
+            ->orderByDesc('payments.verified_at')
             ->select([
                 'payments.receipt_number',
                 'school.name as school_name',
