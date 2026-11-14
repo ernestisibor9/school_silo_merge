@@ -188,6 +188,7 @@ Route::group([
     Route::post('/billing/school-bills/{billId}/payments/initialize',[SchoolBillPaymentController::class, 'initialize']);
     Route::post('/billing/school-bill-payments/{reference}/verify',[SchoolBillPaymentController::class, 'verify']);
     Route::get('/billing/school-bill-payments/{reference}/receipt',[SchoolBillPaymentController::class, 'receipt']);
+    Route::get('/billing/school-bill-payments/receipt',[SchoolBillPaymentController::class, 'receipt']);
     Route::get('/billing/school-bills/{billId}/payments/reference',[SchoolBillPaymentController::class, 'getPaymentReference']
 );
 

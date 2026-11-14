@@ -36954,30 +36954,20 @@
                 ]
             }
         },
-        "/api/billing/school-bill-payments/{reference}/receipt": {
+        "/api/billing/school-bill-payments/receipt": {
             "get": {
                 "tags": [
                     "School Bill Payments"
                 ],
-                "summary": "Retrieve a verified school bill payment receipt",
-                "description": "Retrieves a receipt using either the Paystack payment reference or the school_bill_id query parameter. Only the authenticated School Admin who owns the bill can access the receipt. When both are supplied, the payment reference takes priority.",
-                "operationId": "getSchoolBillPaymentReceipt",
+                "summary": "Retrieve a school bill payment receipt by bill ID",
+                "description": "Retrieves the latest successfully verified payment receipt for a school bill. Only the authenticated School Admin who owns the bill can access the receipt.",
+                "operationId": "getSchoolBillPaymentReceiptByBillId",
                 "parameters": [
-                    {
-                        "name": "reference",
-                        "in": "path",
-                        "description": "Paystack payment reference.. Use this to retrieve a specific payment receipt. When using school_bill_id instead, provide 0 as the reference placeholder.",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "example": "schoolsilo-billing-52-e71e1782-3165-4aa6-b646-fea499d7b484"
-                        }
-                    },
                     {
                         "name": "school_bill_id",
                         "in": "query",
-                        "description": "School bill ID. Retrieves the latest successfully verified payment receipt for the specified bill.",
-                        "required": false,
+                        "description": "ID of the school bill",
+                        "required": true,
                         "schema": {
                             "type": "integer",
                             "example": 52
@@ -37066,88 +37056,14 @@
                             }
                         }
                     },
-                    "401": {
-                        "description": "Unauthenticated"
-                    },
                     "403": {
-                        "description": "Only School Admins can access payment receipts",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Unauthorized. Only School Admins can access payment receipts."
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Unauthorized"
                     },
                     "404": {
-                        "description": "Receipt not found or does not belong to the authenticated school",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Receipt not found."
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "409": {
-                        "description": "Payment has not been successfully verified",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "A receipt is only available for successfully verified payments."
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Receipt not found"
                     },
                     "422": {
-                        "description": "Missing payment reference and school_bill_id, or invalid school_bill_id",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "status": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Please provide a payment reference or school_bill_id."
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Invalid school_bill_id"
                     }
                 },
                 "security": [
