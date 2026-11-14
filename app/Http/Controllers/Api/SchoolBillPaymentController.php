@@ -26,13 +26,14 @@ class SchoolBillPaymentController extends Controller
     }
 
 
+
 /**
  * @OA\Post(
  *     path="/api/billing/school-bills/{billId}/payments/initialize",
  *     operationId="initializeSchoolBillPayment",
  *     tags={"School Technology Billing"},
  *     summary="Initialize technology billing payment",
- *     description="Initializes a Paystack payment for an unpaid school technology bill belonging to the authenticated School Admin. The amount is retrieved from the database using the separate School Technology Billing Paystack account, with an additional transaction charge.",
+ *     description="Initializes a Paystack payment for an unpaid school technology bill belonging to the authenticated School Admin. The transaction charge is supplied by the frontend in the JSON request body using the charge field. The charge is in Naira.",
  *     security={{"bearerAuth":{}}},
  *
  *     @OA\Parameter(
@@ -45,13 +46,18 @@ class SchoolBillPaymentController extends Controller
  *
  *     @OA\RequestBody(
  *         required=false,
- *         @OA\JsonContent(
- *             @OA\Property(
- *                 property="charge",
- *                 type="number",
- *                 format="float",
- *                 example=89.00,
- *                 description="Additional transaction charge in Naira"
+ *         description="Optional transaction charge. Supply the charge in Naira. If omitted, the charge defaults to 0.",
+ *         @OA\MediaType(
+ *             mediaType="application/json",
+ *             @OA\Schema(
+ *                 type="object",
+ *                 @OA\Property(
+ *                     property="charge",
+ *                     type="number",
+ *                     format="float",
+ *                     example=89.00,
+ *                     description="Additional transaction charge in Naira. Example: 89.00. Defaults to 0 when omitted."
+ *                 )
  *             )
  *         )
  *     ),
@@ -250,6 +256,7 @@ public function initialize(Request $request, $billId)
         ], 500);
     }
 }
+
 
 
     /**
