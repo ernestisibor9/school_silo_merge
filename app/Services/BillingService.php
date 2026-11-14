@@ -13,8 +13,8 @@ class BillingService
 {
 
     /**
-     * Count active, non-exited students for a school,
-     * academic session and term.
+     * Count total active learners for a school.
+     * Uses the same logic as getSchoolHighlights().
      */
     public function countBillableStudents(
         string $schoolId,
@@ -22,33 +22,6 @@ class BillingService
         string $term
     ): int {
 
-        // Convert the readable academic session to its database year.
-        $sessionYear = DB::table('sesn')
-            ->where('name', $academicSession)
-            ->value('year');
-
-        if (!$sessionYear) {
-            throw new \InvalidArgumentException(
-                "Academic session {$academicSession} does not exist."
-            );
-        }
-
-        // Convert the readable term to the numeric database value.
-        $termMap = [
-            'First Term' => '1',
-            'Second Term' => '2',
-            'Third Term' => '3',
-        ];
-
-        if (!isset($termMap[$term])) {
-            throw new \InvalidArgumentException(
-                "Invalid academic term: {$term}."
-            );
-        }
-
-        $termNumber = $termMap[$term];
-
-        // Count distinct active learners with student basic data.
         return DB::table('old_student')
             ->join(
                 'student_basic_data',
@@ -57,14 +30,10 @@ class BillingService
                 'student_basic_data.user_id'
             )
             ->where('old_student.schid', $schoolId)
-            ->where('old_student.ssn', $sessionYear)
-            ->where('old_student.trm', $termNumber)
             ->where('old_student.status', 'active')
-            ->whereNull('old_student.exit_student')
-            ->distinct()
-            ->count('old_student.sid');
+            ->distinct('old_student.sid')
+            ->count();
     }
-
 
     /**
      * Calculate a school's technology bill.
