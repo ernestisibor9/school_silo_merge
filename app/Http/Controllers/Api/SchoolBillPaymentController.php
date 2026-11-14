@@ -27,235 +27,234 @@ class SchoolBillPaymentController extends Controller
 
 
 
-/**
- * @OA\Post(
- *     path="/api/billing/school-bills/{billId}/payments/initialize",
- *     operationId="initializeSchoolBillPayment",
- *     tags={"School Technology Billing"},
- *     summary="Initialize technology billing payment",
- *     description="Initializes a Paystack payment for an unpaid school technology bill belonging to the authenticated School Admin. The transaction charge is supplied by the frontend in the JSON request body using the charge field. The charge is in Naira.",
- *     security={{"bearerAuth":{}}},
- *
- *     @OA\Parameter(
- *         name="billId",
- *         in="path",
- *         required=true,
- *         description="School bill ID",
- *         @OA\Schema(type="integer", example=1)
- *     ),
- *
- *     @OA\RequestBody(
- *         required=false,
- *         description="Optional transaction charge. Supply the charge in Naira. If omitted, the charge defaults to 0.",
- *         @OA\MediaType(
- *             mediaType="application/json",
- *             @OA\Schema(
- *                 type="object",
- *                 @OA\Property(
- *                     property="charge",
- *                     type="number",
- *                     format="float",
- *                     example=89.00,
- *                     description="Additional transaction charge in Naira. Example: 89.00. Defaults to 0 when omitted."
- *                 )
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Payment initialized successfully",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Technology billing payment initialized successfully."),
- *             @OA\Property(
- *                 property="pld",
- *                 type="object",
- *                 @OA\Property(
- *                     property="payment_reference",
- *                     type="string",
- *                     example="schoolsilo-billing-1-123e4567-e89b-12d3-a456-426614174000"
- *                 ),
- *                 @OA\Property(property="amount", type="string", example="2039.00"),
- *                 @OA\Property(property="currency", type="string", example="NGN"),
- *                 @OA\Property(property="authorization_url", type="string", example="https://checkout.paystack.com/example"),
- *                 @OA\Property(property="access_code", type="string", example="example_access_code")
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(response=401, description="Unauthenticated"),
- *     @OA\Response(response=403, description="Only School Admins can initiate payments"),
- *     @OA\Response(response=404, description="School bill not found"),
- *     @OA\Response(response=422, description="Invalid charge, bill already paid or has no payable amount"),
- *     @OA\Response(response=500, description="Technology billing payment configuration incomplete or server error"),
- *     @OA\Response(response=502, description="Paystack payment initialization failed")
- * )
- */
-public function initialize(Request $request, $billId)
-{
-    $user = $request->user();
+    /**
+     * @OA\Post(
+     *     path="/api/billing/school-bills/{billId}/payments/initialize",
+     *     operationId="initializeSchoolBillPayment",
+     *     tags={"School Technology Billing"},
+     *     summary="Initialize technology billing payment",
+     *     description="Initializes a Paystack payment for an unpaid school technology bill belonging to the authenticated School Admin. The transaction charge is supplied by the frontend in the JSON request body using the charge field. The charge is in Naira.",
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="billId",
+     *         in="path",
+     *         required=true,
+     *         description="School bill ID",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *
+     *     @OA\RequestBody(
+     *         required=false,
+     *         description="Optional transaction charge. Supply the charge in Naira. If omitted, the charge defaults to 0.",
+     *         @OA\MediaType(
+     *             mediaType="application/json",
+     *             @OA\Schema(
+     *                 type="object",
+     *                 @OA\Property(
+     *                     property="charge",
+     *                     type="number",
+     *                     format="float",
+     *                     example=89.00,
+     *                     description="Additional transaction charge in Naira. Example: 89.00. Defaults to 0 when omitted."
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Payment initialized successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Technology billing payment initialized successfully."),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 @OA\Property(
+     *                     property="payment_reference",
+     *                     type="string",
+     *                     example="schoolsilo-billing-1-123e4567-e89b-12d3-a456-426614174000"
+     *                 ),
+     *                 @OA\Property(property="amount", type="string", example="2039.00"),
+     *                 @OA\Property(property="currency", type="string", example="NGN"),
+     *                 @OA\Property(property="authorization_url", type="string", example="https://checkout.paystack.com/example"),
+     *                 @OA\Property(property="access_code", type="string", example="example_access_code")
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Only School Admins can initiate payments"),
+     *     @OA\Response(response=404, description="School bill not found"),
+     *     @OA\Response(response=422, description="Invalid charge, bill already paid or has no payable amount"),
+     *     @OA\Response(response=500, description="Technology billing payment configuration incomplete or server error"),
+     *     @OA\Response(response=502, description="Paystack payment initialization failed")
+     * )
+     */
+    public function initialize(Request $request, $billId)
+    {
+        $user = $request->user();
 
-    if (!$user || $user->typ !== 's') {
-        return response()->json([
-            'status' => false,
-            'message' => 'Unauthorized. Only School Admins can initiate school bill payments.',
-        ], 403);
-    }
+        if (!$user || $user->typ !== 's') {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized. Only School Admins can initiate school bill payments.',
+            ], 403);
+        }
 
-    // Validate the transaction charge supplied by the frontend.
-    $chargeInput = $request->input('charge', 0);
+        // Validate the transaction charge supplied by the frontend.
+        $chargeInput = $request->input('charge', 0);
 
-    if (!is_numeric($chargeInput) || (float) $chargeInput < 0) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Invalid transaction charge.',
-        ], 422);
-    }
+        if (!is_numeric($chargeInput) || (float) $chargeInput < 0) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Invalid transaction charge.',
+            ], 422);
+        }
 
-    // Store the charge in Naira, rounded to two decimal places.
-    $charge = round((float) $chargeInput, 2);
+        // Store the charge in Naira, rounded to two decimal places.
+        $charge = round((float) $chargeInput, 2);
 
-    // Use the separate technology billing Paystack credentials.
-    $secretKey = config('services.billing_paystack.secret_key');
-    $paymentUrl = config('services.billing_paystack.payment_url');
+        // Use the separate technology billing Paystack credentials.
+        $secretKey = config('services.billing_paystack.secret_key');
+        $paymentUrl = config('services.billing_paystack.payment_url');
 
-    if (empty($secretKey) || empty($paymentUrl)) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Technology billing payment configuration is incomplete.',
-        ], 500);
-    }
+        if (empty($secretKey) || empty($paymentUrl)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Technology billing payment configuration is incomplete.',
+            ], 500);
+        }
 
-    if (empty($user->email)) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Your account must have an email address before making payment.',
-        ], 422);
-    }
+        if (empty($user->email)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Your account must have an email address before making payment.',
+            ], 422);
+        }
 
-    try {
-        // Find the bill and create a pending payment record.
-        $payment = DB::transaction(function () use ($billId, $user, $charge) {
+        try {
+            // Find the bill and create a pending payment record.
+            $payment = DB::transaction(function () use ($billId, $user, $charge) {
 
-            $bill = SchoolBill::where('id', $billId)
-                ->where('school_id', (string) $user->id)
-                ->lockForUpdate()
-                ->first();
+                $bill = SchoolBill::where('id', $billId)
+                    ->where('school_id', (string) $user->id)
+                    ->lockForUpdate()
+                    ->first();
 
-            if (!$bill) {
-                abort(404, 'School bill not found.');
-            }
+                if (!$bill) {
+                    abort(404, 'School bill not found.');
+                }
 
-            if ($bill->status === 'paid') {
-                abort(422, 'This school bill has already been paid.');
-            }
+                if ($bill->status === 'paid') {
+                    abort(422, 'This school bill has already been paid.');
+                }
 
-            if ((float) $bill->total_amount <= 0) {
-                abort(422, 'This school bill has no payable amount.');
-            }
+                if ((float) $bill->total_amount <= 0) {
+                    abort(422, 'This school bill has no payable amount.');
+                }
 
-            $reference = 'schoolsilo-billing-' . $bill->id . '-' . Str::uuid();
+                $reference = 'schoolsilo-billing-' . $bill->id . '-' . Str::uuid();
 
-            // Add the transaction charge to the original school bill.
-            $totalPayable = round((float) $bill->total_amount + $charge, 2);
+                // Add the transaction charge to the original school bill.
+                $totalPayable = round((float) $bill->total_amount + $charge, 2);
 
-            return SchoolBillPayment::create([
-                'school_bill_id' => $bill->id,
-                'payment_reference' => $reference,
-                'amount' => $totalPayable,
-                'transaction_charge' => $charge,
-                'currency' => 'NGN',
-                'status' => 'pending',
-            ]);
-        });
+                return SchoolBillPayment::create([
+                    'school_bill_id' => $bill->id,
+                    'payment_reference' => $reference,
+                    'amount' => $totalPayable,
+                    'transaction_charge' => $charge,
+                    'currency' => 'NGN',
+                    'status' => 'pending',
+                ]);
+            });
 
-        // Paystack expects amounts in kobo.
-        $amountInKobo = (int) round((float) $payment->amount * 100);
+            // Paystack expects amounts in kobo.
+            $amountInKobo = (int) round((float) $payment->amount * 100);
 
-        $paystackResponse = Http::withToken($secretKey)
-            ->acceptJson()
-            ->timeout(30)
-            ->post($paymentUrl, [
-                'email' => $user->email,
-                'amount' => $amountInKobo,
-                'currency' => 'NGN',
-                'reference' => $payment->payment_reference,
-                'metadata' => [
-                    'payment_type' => 'school_technology_billing',
-                    'school_bill_id' => $payment->school_bill_id,
-                    'school_id' => (string) $user->id,
-                    'school_bill_payment_id' => $payment->id,
-                    'transaction_charge' => $payment->transaction_charge,
-                ],
-            ]);
+            $paystackResponse = Http::withToken($secretKey)
+                ->acceptJson()
+                ->timeout(30)
+                ->post($paymentUrl, [
+                    'email' => $user->email,
+                    'amount' => $amountInKobo,
+                    'currency' => 'NGN',
+                    'reference' => $payment->payment_reference,
+                    'metadata' => [
+                        'payment_type' => 'school_technology_billing',
+                        'school_bill_id' => $payment->school_bill_id,
+                        'school_id' => (string) $user->id,
+                        'school_bill_payment_id' => $payment->id,
+                        'transaction_charge' => $payment->transaction_charge,
+                    ],
+                ]);
 
-        $responseData = $paystackResponse->json();
+            $responseData = $paystackResponse->json();
 
-        // Save Paystack's response for transaction tracking.
-        DB::table('school_bill_payments')
-            ->where('id', $payment->id)
-            ->update([
-                'gateway_response' => json_encode($responseData),
-                'updated_at' => now(),
-            ]);
-
-        if (
-            !$paystackResponse->successful() ||
-            !data_get($responseData, 'status')
-        ) {
+            // Save Paystack's response for transaction tracking.
             DB::table('school_bill_payments')
                 ->where('id', $payment->id)
                 ->update([
-                    'status' => 'failed',
+                    'gateway_response' => json_encode($responseData),
                     'updated_at' => now(),
                 ]);
 
-            Log::error('Technology billing Paystack initialization failed.', [
-                'payment_id' => $payment->id,
-                'reference' => $payment->payment_reference,
-                'response' => $responseData,
+            if (
+                !$paystackResponse->successful() ||
+                !data_get($responseData, 'status')
+            ) {
+                DB::table('school_bill_payments')
+                    ->where('id', $payment->id)
+                    ->update([
+                        'status' => 'failed',
+                        'updated_at' => now(),
+                    ]);
+
+                Log::error('Technology billing Paystack initialization failed.', [
+                    'payment_id' => $payment->id,
+                    'reference' => $payment->payment_reference,
+                    'response' => $responseData,
+                ]);
+
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unable to initialize technology billing payment.',
+                ], 502);
+            }
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Technology billing payment initialized successfully.',
+                'pld' => [
+                    'payment_reference' => $payment->payment_reference,
+                    'amount' => $payment->amount,
+                    'currency' => 'NGN',
+                    'authorization_url' => data_get($responseData, 'data.authorization_url'),
+                    'access_code' => data_get($responseData, 'data.access_code'),
+                ],
+            ], 200);
+        } catch (Throwable $e) {
+
+            if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) {
+                return response()->json([
+                    'status' => false,
+                    'message' => $e->getMessage(),
+                ], $e->getStatusCode());
+            }
+
+            Log::error('Technology billing payment initialization error.', [
+                'bill_id' => $billId,
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'status' => false,
-                'message' => 'Unable to initialize technology billing payment.',
-            ], 502);
+                'message' => 'An error occurred while initializing your payment.',
+            ], 500);
         }
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Technology billing payment initialized successfully.',
-            'pld' => [
-                'payment_reference' => $payment->payment_reference,
-                'amount' => $payment->amount,
-                'currency' => 'NGN',
-                'authorization_url' => data_get($responseData, 'data.authorization_url'),
-                'access_code' => data_get($responseData, 'data.access_code'),
-            ],
-        ], 200);
-
-    } catch (Throwable $e) {
-
-        if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) {
-            return response()->json([
-                'status' => false,
-                'message' => $e->getMessage(),
-            ], $e->getStatusCode());
-        }
-
-        Log::error('Technology billing payment initialization error.', [
-            'bill_id' => $billId,
-            'user_id' => $user->id,
-            'error' => $e->getMessage(),
-        ]);
-
-        return response()->json([
-            'status' => false,
-            'message' => 'An error occurred while initializing your payment.',
-        ], 500);
     }
-}
 
 
 
@@ -391,7 +390,9 @@ public function initialize(Request $request, $billId)
             $verificationResponse = Http::withToken($secretKey)
                 ->acceptJson()
                 ->timeout(30)
-                ->get($verifyUrl . urlencode($reference));
+                ->get(
+                    rtrim($verifyUrl, '/') . '/' . rawurlencode($reference)
+                );
 
             if (!$verificationResponse->successful()) {
                 Log::error('Technology billing webhook: Paystack verification request failed.', [
@@ -999,93 +1000,93 @@ public function initialize(Request $request, $billId)
 
 
 
-/**
- * @OA\Get(
- *     path="/api/billing/school-bills/{billId}/payments/reference",
- *     operationId="getSchoolBillPaymentReference",
- *     tags={"School Technology Billing"},
- *     summary="Retrieve the latest pending payment reference for a school bill",
- *     description="Retrieves the latest pending payment reference belonging to the authenticated School Admin's bill.",
- *     security={{"bearerAuth":{}}},
- *
- *     @OA\Parameter(
- *         name="billId",
- *         in="path",
- *         required=true,
- *         description="School bill ID",
- *         @OA\Schema(type="integer", example=52)
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Payment reference retrieved successfully",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Payment reference retrieved successfully."),
- *             @OA\Property(
- *                 property="pld",
- *                 type="object",
- *                 @OA\Property(property="payment_reference", type="string", example="schoolsilo-billing-52-333fe7d9-8f1a-4beb-8ff4-f6d7"),
- *                 @OA\Property(property="amount", type="number", format="float", example=1950.00),
- *                 @OA\Property(property="currency", type="string", example="NGN"),
- *                 @OA\Property(property="payment_status", type="string", example="pending")
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(response=401, description="Unauthenticated"),
- *     @OA\Response(response=403, description="Only School Admins can retrieve payment references"),
- *     @OA\Response(response=404, description="School bill or pending payment reference not found")
- * )
- */
-public function getPaymentReference(Request $request, $billId)
-{
-    $user = $request->user();
+    /**
+     * @OA\Get(
+     *     path="/api/billing/school-bills/{billId}/payments/reference",
+     *     operationId="getSchoolBillPaymentReference",
+     *     tags={"School Technology Billing"},
+     *     summary="Retrieve the latest pending payment reference for a school bill",
+     *     description="Retrieves the latest pending payment reference belonging to the authenticated School Admin's bill.",
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="billId",
+     *         in="path",
+     *         required=true,
+     *         description="School bill ID",
+     *         @OA\Schema(type="integer", example=52)
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Payment reference retrieved successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Payment reference retrieved successfully."),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 @OA\Property(property="payment_reference", type="string", example="schoolsilo-billing-52-333fe7d9-8f1a-4beb-8ff4-f6d7"),
+     *                 @OA\Property(property="amount", type="number", format="float", example=1950.00),
+     *                 @OA\Property(property="currency", type="string", example="NGN"),
+     *                 @OA\Property(property="payment_status", type="string", example="pending")
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Only School Admins can retrieve payment references"),
+     *     @OA\Response(response=404, description="School bill or pending payment reference not found")
+     * )
+     */
+    public function getPaymentReference(Request $request, $billId)
+    {
+        $user = $request->user();
 
-    // Only authenticated School Admins can retrieve payment references.
-    if (!$user || $user->typ !== 's') {
+        // Only authenticated School Admins can retrieve payment references.
+        if (!$user || $user->typ !== 's') {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized. Only School Admins can retrieve payment references.',
+            ], 403);
+        }
+
+        // Confirm that the bill belongs to the authenticated School Admin.
+        $bill = SchoolBill::where('id', $billId)
+            ->where('school_id', (string) $user->id)
+            ->first();
+
+        if (!$bill) {
+            return response()->json([
+                'status' => false,
+                'message' => 'School bill not found.',
+            ], 404);
+        }
+
+        // Retrieve the latest pending payment reference for this bill.
+        $payment = SchoolBillPayment::where('school_bill_id', $bill->id)
+            ->where('status', 'pending')
+            ->orderByDesc('id')
+            ->first();
+
+        if (!$payment) {
+            return response()->json([
+                'status' => false,
+                'message' => 'No pending payment reference was found for this school bill.',
+            ], 404);
+        }
+
         return response()->json([
-            'status' => false,
-            'message' => 'Unauthorized. Only School Admins can retrieve payment references.',
-        ], 403);
+            'status' => true,
+            'message' => 'Payment reference retrieved successfully.',
+            'pld' => [
+                'payment_reference' => $payment->payment_reference,
+                'amount' => $payment->amount,
+                'currency' => $payment->currency,
+                'payment_status' => $payment->status,
+            ],
+        ], 200);
     }
-
-    // Confirm that the bill belongs to the authenticated School Admin.
-    $bill = SchoolBill::where('id', $billId)
-        ->where('school_id', (string) $user->id)
-        ->first();
-
-    if (!$bill) {
-        return response()->json([
-            'status' => false,
-            'message' => 'School bill not found.',
-        ], 404);
-    }
-
-    // Retrieve the latest pending payment reference for this bill.
-    $payment = SchoolBillPayment::where('school_bill_id', $bill->id)
-        ->where('status', 'pending')
-        ->orderByDesc('id')
-        ->first();
-
-    if (!$payment) {
-        return response()->json([
-            'status' => false,
-            'message' => 'No pending payment reference was found for this school bill.',
-        ], 404);
-    }
-
-    return response()->json([
-        'status' => true,
-        'message' => 'Payment reference retrieved successfully.',
-        'pld' => [
-            'payment_reference' => $payment->payment_reference,
-            'amount' => $payment->amount,
-            'currency' => $payment->currency,
-            'payment_status' => $payment->status,
-        ],
-    ], 200);
-}
 
 
 
