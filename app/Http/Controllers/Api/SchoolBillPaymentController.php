@@ -32,7 +32,7 @@ class SchoolBillPaymentController extends Controller
  *     operationId="initializeSchoolBillPayment",
  *     tags={"School Technology Billing"},
  *     summary="Initialize technology billing payment",
- *     description="Initializes a Paystack payment for an unpaid school technology bill belonging to the authenticated School Admin. The amount is retrieved from the database using the separate School Technology Billing Paystack account.",
+ *     description="Initializes a Paystack payment for an unpaid school technology bill belonging to the authenticated School Admin. The amount is retrieved from the database using the separate School Technology Billing Paystack account, with an additional transaction charge.",
  *     security={{"bearerAuth":{}}},
  *
  *     @OA\Parameter(
@@ -41,6 +41,19 @@ class SchoolBillPaymentController extends Controller
  *         required=true,
  *         description="School bill ID",
  *         @OA\Schema(type="integer", example=1)
+ *     ),
+ *
+ *     @OA\RequestBody(
+ *         required=false,
+ *         @OA\JsonContent(
+ *             @OA\Property(
+ *                 property="charge",
+ *                 type="number",
+ *                 format="float",
+ *                 example=89.00,
+ *                 description="Additional transaction charge in Naira"
+ *             )
+ *         )
  *     ),
  *
  *     @OA\Response(
@@ -57,7 +70,7 @@ class SchoolBillPaymentController extends Controller
  *                     type="string",
  *                     example="schoolsilo-billing-1-123e4567-e89b-12d3-a456-426614174000"
  *                 ),
- *                 @OA\Property(property="amount", type="string", example="942000.00"),
+ *                 @OA\Property(property="amount", type="string", example="2039.00"),
  *                 @OA\Property(property="currency", type="string", example="NGN"),
  *                 @OA\Property(property="authorization_url", type="string", example="https://checkout.paystack.com/example"),
  *                 @OA\Property(property="access_code", type="string", example="example_access_code")
@@ -65,30 +78,12 @@ class SchoolBillPaymentController extends Controller
  *         )
  *     ),
  *
- *     @OA\Response(
- *         response=401,
- *         description="Unauthenticated"
- *     ),
- *     @OA\Response(
- *         response=403,
- *         description="Only School Admins can initiate payments"
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="School bill not found"
- *     ),
- *     @OA\Response(
- *         response=422,
- *         description="Bill already paid or has no payable amount"
- *     ),
- *     @OA\Response(
- *         response=500,
- *         description="Technology billing payment configuration incomplete or server error"
- *     ),
- *     @OA\Response(
- *         response=502,
- *         description="Paystack payment initialization failed"
- *     )
+ *     @OA\Response(response=401, description="Unauthenticated"),
+ *     @OA\Response(response=403, description="Only School Admins can initiate payments"),
+ *     @OA\Response(response=404, description="School bill not found"),
+ *     @OA\Response(response=422, description="Invalid charge, bill already paid or has no payable amount"),
+ *     @OA\Response(response=500, description="Technology billing payment configuration incomplete or server error"),
+ *     @OA\Response(response=502, description="Paystack payment initialization failed")
  * )
  */
 public function initialize(Request $request, $billId)
@@ -101,6 +96,19 @@ public function initialize(Request $request, $billId)
             'message' => 'Unauthorized. Only School Admins can initiate school bill payments.',
         ], 403);
     }
+
+    // Validate the transaction charge supplied by the frontend.
+    $chargeInput = $request->input('charge', 0);
+
+    if (!is_numeric($chargeInput) || (float) $chargeInput < 0) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Invalid transaction charge.',
+        ], 422);
+    }
+
+    // Store the charge in Naira, rounded to two decimal places.
+    $charge = round((float) $chargeInput, 2);
 
     // Use the separate technology billing Paystack credentials.
     $secretKey = config('services.billing_paystack.secret_key');
@@ -122,7 +130,7 @@ public function initialize(Request $request, $billId)
 
     try {
         // Find the bill and create a pending payment record.
-        $payment = DB::transaction(function () use ($billId, $user) {
+        $payment = DB::transaction(function () use ($billId, $user, $charge) {
 
             $bill = SchoolBill::where('id', $billId)
                 ->where('school_id', (string) $user->id)
@@ -143,10 +151,14 @@ public function initialize(Request $request, $billId)
 
             $reference = 'schoolsilo-billing-' . $bill->id . '-' . Str::uuid();
 
+            // Add the transaction charge to the original school bill.
+            $totalPayable = round((float) $bill->total_amount + $charge, 2);
+
             return SchoolBillPayment::create([
                 'school_bill_id' => $bill->id,
                 'payment_reference' => $reference,
-                'amount' => $bill->total_amount,
+                'amount' => $totalPayable,
+                'transaction_charge' => $charge,
                 'currency' => 'NGN',
                 'status' => 'pending',
             ]);
@@ -168,6 +180,7 @@ public function initialize(Request $request, $billId)
                     'school_bill_id' => $payment->school_bill_id,
                     'school_id' => (string) $user->id,
                     'school_bill_payment_id' => $payment->id,
+                    'transaction_charge' => $payment->transaction_charge,
                 ],
             ]);
 

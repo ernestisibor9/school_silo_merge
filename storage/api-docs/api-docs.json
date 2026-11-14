@@ -36719,7 +36719,7 @@
                     "School Technology Billing"
                 ],
                 "summary": "Initialize technology billing payment",
-                "description": "Initializes a Paystack payment for an unpaid school technology bill belonging to the authenticated School Admin. The amount is retrieved from the database using the separate School Technology Billing Paystack account.",
+                "description": "Initializes a Paystack payment for an unpaid school technology bill belonging to the authenticated School Admin. The amount is retrieved from the database using the separate School Technology Billing Paystack account, with an additional transaction charge.",
                 "operationId": "initializeSchoolBillPayment",
                 "parameters": [
                     {
@@ -36733,6 +36733,24 @@
                         }
                     }
                 ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "charge": {
+                                        "description": "Additional transaction charge in Naira",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 89
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Payment initialized successfully",
@@ -36756,7 +36774,7 @@
                                                 },
                                                 "amount": {
                                                     "type": "string",
-                                                    "example": "942000.00"
+                                                    "example": "2039.00"
                                                 },
                                                 "currency": {
                                                     "type": "string",
@@ -36789,7 +36807,7 @@
                         "description": "School bill not found"
                     },
                     "422": {
-                        "description": "Bill already paid or has no payable amount"
+                        "description": "Invalid charge, bill already paid or has no payable amount"
                     },
                     "500": {
                         "description": "Technology billing payment configuration incomplete or server error"
