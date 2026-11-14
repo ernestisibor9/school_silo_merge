@@ -1106,7 +1106,7 @@ class SchoolBillPaymentController extends Controller
      *         name="reference",
      *         in="path",
      *         required=false,
-     *         description="Paystack payment reference. Use this to retrieve a specific payment receipt. When using school_bill_id instead, provide 0 as the reference placeholder.",
+     *         description="Paystack payment reference.. Use this to retrieve a specific payment receipt. When using school_bill_id instead, provide 0 as the reference placeholder.",
      *         @OA\Schema(
      *             type="string",
      *             example="schoolsilo-billing-52-e71e1782-3165-4aa6-b646-fea499d7b484"
