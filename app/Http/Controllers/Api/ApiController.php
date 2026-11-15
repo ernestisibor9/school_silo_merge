@@ -19489,7 +19489,7 @@ public function paystackConf(Request $request)
         // BILLING: Check if the reference already exists in the database and has been confirmed
 
         // Route technology billing payments to their dedicated webhook handler
-        if (strpos($ref, 'schoolsilo-billing-') === 0) {
+        if (strpos($ref, 'tech-') === 0) {
 
             Log::info('Routing technology billing webhook', [
                 'reference' => $ref,

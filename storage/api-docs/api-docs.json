@@ -36913,7 +36913,7 @@
                                             "properties": {
                                                 "payment_reference": {
                                                     "type": "string",
-                                                    "example": "schoolsilo-billing-52-333fe7d9-8f1a-4beb-8ff4-f6d7"
+                                                    "example": "tech-52333fe7d9-8f1a-4beb-8ff4-f6d7"
                                                 },
                                                 "amount": {
                                                     "type": "number",
@@ -37031,7 +37031,7 @@
                                                 },
                                                 "payment_reference": {
                                                     "type": "string",
-                                                    "example": "schoolsilo-billing-52-e71e1782-3165-4aa6-b646-fea499d7b484"
+                                                    "example": "tech-52e71e1782-3165-4aa6-b646-fea499d7b484"
                                                 },
                                                 "paystack_transaction_id": {
                                                     "type": "integer",

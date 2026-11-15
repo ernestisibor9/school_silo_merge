@@ -155,7 +155,7 @@ class SchoolBillPaymentController extends Controller
                     abort(422, 'This school bill has no payable amount.');
                 }
 
-                $reference = 'schoolsilo-billing-' . $bill->id . '-' . Str::uuid();
+                $reference = 'tech-' . $bill->id . '-' . Str::uuid();
 
                 // Add the transaction charge to the original school bill.
                 $totalPayable = round((float) $bill->total_amount + $charge, 2);
@@ -1026,7 +1026,7 @@ class SchoolBillPaymentController extends Controller
      *             @OA\Property(
      *                 property="pld",
      *                 type="object",
-     *                 @OA\Property(property="payment_reference", type="string", example="schoolsilo-billing-52-333fe7d9-8f1a-4beb-8ff4-f6d7"),
+     *                 @OA\Property(property="payment_reference", type="string", example="tech-52333fe7d9-8f1a-4beb-8ff4-f6d7"),
      *                 @OA\Property(property="amount", type="number", format="float", example=1950.00),
      *                 @OA\Property(property="currency", type="string", example="NGN"),
      *                 @OA\Property(property="payment_status", type="string", example="pending")
@@ -1109,7 +1109,7 @@ class SchoolBillPaymentController extends Controller
      *         description="Paystack payment reference.. Use this to retrieve a specific payment receipt. When using school_bill_id instead, provide 0 as the reference placeholder.",
      *         @OA\Schema(
      *             type="string",
-     *             example="schoolsilo-billing-52-e71e1782-3165-4aa6-b646-fea499d7b484"
+     *             example="tech-52e71e1782-3165-4aa6-b646-fea499d7b484"
      *         )
      *     ),
      *
@@ -1142,7 +1142,7 @@ class SchoolBillPaymentController extends Controller
      *                 @OA\Property(property="fee_per_student", type="number", format="float", example=10.00),
      *                 @OA\Property(property="amount_paid", type="number", format="float", example=2039.00),
      *                 @OA\Property(property="currency", type="string", example="NGN"),
-     *                 @OA\Property(property="payment_reference", type="string", example="schoolsilo-billing-52-e71e1782-3165-4aa6-b646-fea499d7b484"),
+     *                 @OA\Property(property="payment_reference", type="string", example="tech-52e71e1782-3165-4aa6-b646-fea499d7b484"),
      *                 @OA\Property(property="paystack_transaction_id", type="integer", nullable=true, example=123456789),
      *                 @OA\Property(property="payment_date", type="string", format="date-time", example="2026-11-14T14:47:49.000000Z"),
      *                 @OA\Property(property="status", type="string", example="successful")
@@ -1233,7 +1233,7 @@ class SchoolBillPaymentController extends Controller
  *                 @OA\Property(property="fee_per_student", type="number", format="float", example=10.00),
  *                 @OA\Property(property="amount_paid", type="number", format="float", example=2039.00),
  *                 @OA\Property(property="currency", type="string", example="NGN"),
- *                 @OA\Property(property="payment_reference", type="string", example="schoolsilo-billing-52-e71e1782-3165-4aa6-b646-fea499d7b484"),
+ *                 @OA\Property(property="payment_reference", type="string", example="tech-52e71e1782-3165-4aa6-b646-fea499d7b484"),
  *                 @OA\Property(property="paystack_transaction_id", type="integer", nullable=true, example=123456789),
  *                 @OA\Property(property="payment_date", type="string", format="date-time", example="2026-11-14T14:47:49.000000Z"),
  *                 @OA\Property(property="status", type="string", example="successful")
