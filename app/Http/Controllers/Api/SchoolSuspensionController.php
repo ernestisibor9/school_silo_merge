@@ -265,6 +265,7 @@ class SchoolSuspensionController extends Controller
      * )
      */
 
+
     public function schoolStatus(Request $request)
     {
         try {
@@ -404,6 +405,38 @@ class SchoolSuspensionController extends Controller
                     'message' => 'School association not found.',
                     'pld' => [],
                 ], 404);
+            }
+
+            // If both session and term are supplied,
+            // verify that the school has a billing record for that period.
+            if ($session !== null && $term !== null) {
+
+                // Convert session year to academic session format.
+                // Example: 2026 becomes 2026/2027.
+                $academicSession = (int) $session . '/' . ((int) $session + 1);
+
+                // Convert term number to billing term name.
+                $terms = [
+                    1 => 'First Term',
+                    2 => 'Second Term',
+                    3 => 'Third Term',
+                ];
+
+                $termName = $terms[(int) $term];
+
+                $billExists = DB::table('school_bills')
+                    ->where('school_id', $schoolId)
+                    ->where('academic_session', $academicSession)
+                    ->where('term', $termName)
+                    ->exists();
+
+                if (!$billExists) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'No billing record found for the selected academic session and term.',
+                        'pld' => [],
+                    ], 404);
+                }
             }
 
             // Retrieve the school's suspension status using school ID only.
