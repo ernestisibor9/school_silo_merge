@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SchoolBill;
 use App\Models\SchoolBillPayment;
 use App\Models\SchoolSuspensionLog;
+use App\Models\SchoolSuspension;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -155,9 +156,9 @@ class SchoolBillPaymentController extends Controller
                     abort(422, 'This school bill has no payable amount.');
                 }
 
-               // $reference = 'tech-' . $bill->id . '-' . Str::uuid();
+                // $reference = 'tech-' . $bill->id . '-' . Str::uuid();
 
-               $tenant = config('technology.tenant');
+                $tenant = config('technology.tenant');
 
                 if (empty($tenant)) {
                     throw new \RuntimeException('Technology billing tenant is not configured.');
@@ -532,27 +533,17 @@ class SchoolBillPaymentController extends Controller
                     'paid_at' => now(),
                 ]);
 
-                // Automatically reactivate the school if it is suspended.
-                $school = DB::table('school')
-                    ->where('sid', $bill->school_id)
-                    ->where('school_status', 0)
-                    ->lockForUpdate()
-                    ->first();
-
-                if ($school) {
-                    DB::table('school')
-                        ->where('sid', $bill->school_id)
-                        ->update([
-                            'school_status' => 1,
-                        ]);
-
-                    SchoolSuspensionLog::create([
-                        'school_id' => $bill->school_id,
-                        'action' => 'reactivated',
-                        'performed_by' => null,
-                        'reason' => 'Automatically reactivated after successful technology billing payment.',
+                // Automatically reactivate only the suspension covered by this paid bill.
+                SchoolSuspension::where('school_id', (string) $bill->school_id)
+                    ->where('academic_session', $bill->academic_session)
+                    ->where('term', $bill->term)
+                    ->where('status', 'suspended')
+                    ->update([
+                        'status' => 'reactivated',
+                        'reactivated_by' => null,
+                        'reactivated_at' => now(),
+                        'reactivation_reason' => 'Automatically reactivated after successful technology billing payment.',
                     ]);
-                }
 
                 return 'processed';
             });
