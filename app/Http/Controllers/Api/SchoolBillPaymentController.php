@@ -155,7 +155,15 @@ class SchoolBillPaymentController extends Controller
                     abort(422, 'This school bill has no payable amount.');
                 }
 
-                $reference = 'tech-' . $bill->id . '-' . Str::uuid();
+               // $reference = 'tech-' . $bill->id . '-' . Str::uuid();
+
+               $tenant = config('technology.tenant');
+
+                if (empty($tenant)) {
+                    throw new \RuntimeException('Technology billing tenant is not configured.');
+                }
+
+                $reference = 'tech-' . $tenant . '-' . $bill->id . '-' . Str::uuid();
 
                 // Add the transaction charge to the original school bill.
                 $totalPayable = round((float) $bill->total_amount + $charge, 2);
