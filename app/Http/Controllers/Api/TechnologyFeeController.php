@@ -606,7 +606,7 @@ class TechnologyFeeController extends Controller
      *     path="/api/billing/schools",
      *     tags={"Billing"},
      *     summary="Get schools with technology billing records",
-     *     description="Returns school bills across all academic sessions and terms. Supports filtering by payment status and school ID, with offset pagination.",
+     *     description="Returns school bills across all academic sessions and terms. Supports filtering by payment status, school ID, academic session year and term, with offset pagination.",
      *     operationId="getAllSchoolsWithTechnologyBills",
      *     security={{"bearerAuth": {}}},
      *
@@ -623,6 +623,20 @@ class TechnologyFeeController extends Controller
      *         required=false,
      *         description="Filter billing records by school ID (school.sid).",
      *         @OA\Schema(type="string", example="12")
+     *     ),
+     *     @OA\Parameter(
+     *         name="session",
+     *         in="query",
+     *         required=false,
+     *         description="Academic session year. For example, 2026 represents 2026/2027.",
+     *         @OA\Schema(type="integer", example=2026)
+     *     ),
+     *     @OA\Parameter(
+     *         name="term",
+     *         in="query",
+     *         required=false,
+     *         description="Academic term: 1 = First Term, 2 = Second Term, 3 = Third Term.",
+     *         @OA\Schema(type="integer", enum={1, 2, 3}, example=1)
      *     ),
      *     @OA\Parameter(
      *         name="start",
@@ -664,6 +678,8 @@ class TechnologyFeeController extends Controller
         $validator = Validator::make($request->query(), [
             'status'    => ['required', 'in:paid,unpaid'],
             'school_id' => ['sometimes', 'required', 'string', 'exists:school,sid'],
+            'session'   => ['sometimes', 'required', 'integer', 'exists:sesn,year'],
+            'term'      => ['sometimes', 'required', 'integer', 'in:1,2,3'],
             'start'     => ['sometimes', 'required', 'integer', 'min:0'],
             'count'     => ['sometimes', 'required', 'integer', 'min:1', 'max:100'],
         ]);
@@ -684,6 +700,29 @@ class TechnologyFeeController extends Controller
         // Optional filter by school ID.
         if ($request->filled('school_id')) {
             $query->where('school_bills.school_id', $request->query('school_id'));
+        }
+
+        // Optional filter by academic session year.
+        if ($request->filled('session')) {
+            $sessionName = DB::table('sesn')
+                ->where('year', $request->query('session'))
+                ->value('name');
+
+            $query->where('school_bills.academic_session', $sessionName);
+        }
+
+        // Optional filter by academic term.
+        if ($request->filled('term')) {
+            $terms = [
+                1 => 'First Term',
+                2 => 'Second Term',
+                3 => 'Third Term',
+            ];
+
+            $query->where(
+                'school_bills.term',
+                $terms[(int) $request->query('term')]
+            );
         }
 
         // Apply offset pagination.
