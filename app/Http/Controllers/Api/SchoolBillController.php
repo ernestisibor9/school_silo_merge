@@ -14,7 +14,7 @@ class SchoolBillController extends Controller
      *     path="/api/billing/school-bills/{schid}",
      *     tags={"Billing"},
      *     summary="Get school technology bills",
-     *     description="Retrieves technology bills for the specified school with optional academic session, term and offset-based pagination. Only the authenticated School Admin belonging to that school can access its bills.",
+     *     description="Retrieves technology bills for the specified active school with optional academic session, term and offset-based pagination. Only the authenticated School Admin belonging to that school can access its bills.",
      *     operationId="getSchoolTechnologyBills",
      *     security={{"bearerAuth": {}}},
      *
@@ -151,9 +151,7 @@ class SchoolBillController extends Controller
         $start = (int) $request->query('start', 0);
         $count = (int) $request->query('count', 20);
 
-        // Start with all bills belonging to the requested school.
-        // $query = SchoolBill::where('school_id', (string) $schid);
-
+        // Retrieve bills belonging to the requested active school.
         $query = SchoolBill::join(
             'school',
             'school.sid',
@@ -171,7 +169,7 @@ class SchoolBillController extends Controller
                 ->where('year', $request->query('session'))
                 ->value('name');
 
-            $query->where('academic_session', $sessionName);
+            $query->where('school_bills.academic_session', $sessionName);
         }
 
         // Optional academic term filter.
@@ -185,12 +183,12 @@ class SchoolBillController extends Controller
 
             $termName = $terms[(int) $request->query('term')];
 
-            $query->where('term', $termName);
+            $query->where('school_bills.term', $termName);
         }
 
         // Retrieve bills with offset pagination.
         $bills = $query
-            ->orderByDesc('id')
+            ->orderByDesc('school_bills.id')
             ->skip($start)
             ->take($count)
             ->get([
