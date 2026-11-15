@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\SchoolSuspensionLog;
+use App\Models\SchoolSuspension;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -55,12 +56,10 @@ class SchoolSuspensionController extends Controller
      */
     public function suspend(Request $request, string $schoolId)
     {
-        return $this->updateSchoolStatus(
+        return $this->updateSchoolSuspension(
             $request,
             $schoolId,
-            0,
-            'suspended',
-            'School suspended successfully.'
+            'suspend'
         );
     }
 
@@ -108,28 +107,26 @@ class SchoolSuspensionController extends Controller
      */
     public function reactivate(Request $request, string $schoolId)
     {
-        return $this->updateSchoolStatus(
+        return $this->updateSchoolSuspension(
             $request,
             $schoolId,
-            1,
-            'reactivated',
-            'School reactivated successfully.'
+            'reactivate'
         );
     }
 
     /**
      * Update school status and record the action.
      */
-    private function updateSchoolStatus(
+
+
+    private function updateSchoolSuspension(
         Request $request,
         string $schoolId,
-        int $newStatus,
-        string $action,
-        string $successMessage
+        string $action
     ) {
         $user = $request->user();
 
-        // Only Domain Admins can manage school suspension.
+        // Only Domain Admins can manage school suspensions.
         if (!$user || $user->typ !== 'a') {
             return response()->json([
                 'status' => false,
@@ -137,86 +134,197 @@ class SchoolSuspensionController extends Controller
             ], 403);
         }
 
-        $validated = $request->validate([
-            'reason' => 'nullable|string|max:5000',
+        // Validate the academic period.
+        $validator = Validator::make($request->all(), [
+            'session' => [
+                'required',
+                'integer',
+                'digits:4',
+                'exists:sesn,year',
+            ],
+            'term' => [
+                'required',
+                'integer',
+                'in:1,2,3',
+            ],
+            'reason' => [
+                'nullable',
+                'string',
+                'max:5000',
+            ],
         ]);
 
-        $result = DB::transaction(function () use (
-            $schoolId,
-            $newStatus,
-            $action,
-            $successMessage,
-            $user,
-            $validated
-        ) {
-            // Lock the school record to prevent concurrent status changes.
-            $school = DB::table('school')
-                ->where('sid', $schoolId)
-                ->lockForUpdate()
-                ->first();
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validation failed.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
 
-            if (!$school) {
-                return [
-                    'http_code' => 404,
-                    'response' => [
-                        'status' => false,
-                        'message' => 'School not found.',
-                    ],
-                ];
-            }
+        $session = (int) $request->input('session');
+        $term = (int) $request->input('term');
 
-            // Avoid unnecessary updates and duplicate audit logs.
-            if ((int) $school->school_status === $newStatus) {
+        $terms = [
+            1 => 'First Term',
+            2 => 'Second Term',
+            3 => 'Third Term',
+        ];
+
+        $termName = $terms[$term];
+
+        // Use the academic session name from the sesn table.
+        $academicSession = DB::table('sesn')
+            ->where('year', $session)
+            ->value('name');
+
+        if (!$academicSession) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Academic session not found.',
+            ], 404);
+        }
+
+        try {
+            $result = DB::transaction(function () use (
+                $schoolId,
+                $academicSession,
+                $termName,
+                $action,
+                $user,
+                $request
+            ) {
+                // Lock the school record to prevent concurrent changes.
+                $school = DB::table('school')
+                    ->where('sid', $schoolId)
+                    ->lockForUpdate()
+                    ->first(['sid', 'name']);
+
+                if (!$school) {
+                    return [
+                        'http_code' => 404,
+                        'response' => [
+                            'status' => false,
+                            'message' => 'School not found.',
+                        ],
+                    ];
+                }
+
+                // Find the active suspension for this exact academic period.
+                $suspension = SchoolSuspension::where('school_id', (string) $schoolId)
+                    ->where('academic_session', $academicSession)
+                    ->where('term', $termName)
+                    ->where('status', 'suspended')
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($action === 'suspend') {
+
+                    // Do not create duplicate active suspensions.
+                    if ($suspension) {
+                        return [
+                            'http_code' => 200,
+                            'response' => [
+                                'status' => true,
+                                'message' => 'This school is already suspended for the selected academic session and term.',
+                                'pld' => [
+                                    'school_id' => (string) $schoolId,
+                                    'school_name' => $school->name,
+                                    'academic_session' => $academicSession,
+                                    'term' => $termName,
+                                    'school_status' => 0,
+                                    'suspension_id' => $suspension->id,
+                                    'action' => 'suspended',
+                                ],
+                            ],
+                        ];
+                    }
+
+                    // Create a new suspension record.
+                    $suspension = SchoolSuspension::create([
+                        'school_id' => (string) $schoolId,
+                        'academic_session' => $academicSession,
+                        'term' => $termName,
+                        'reason' => $request->input('reason'),
+                        'status' => 'suspended',
+                        'suspended_by' => $user->id,
+                        'suspended_at' => now(),
+                    ]);
+
+                    return [
+                        'http_code' => 200,
+                        'response' => [
+                            'status' => true,
+                            'message' => 'School suspended successfully.',
+                            'pld' => [
+                                'school_id' => (string) $schoolId,
+                                'school_name' => $school->name,
+                                'academic_session' => $academicSession,
+                                'term' => $termName,
+                                'school_status' => 0,
+                                'suspension_id' => $suspension->id,
+                                'action' => 'suspended',
+                            ],
+                        ],
+                    ];
+                }
+
+                // Reactivation must target an existing active suspension.
+                if (!$suspension) {
+                    return [
+                        'http_code' => 404,
+                        'response' => [
+                            'status' => false,
+                            'message' => 'No active suspension found for this school, academic session and term.',
+                        ],
+                    ];
+                }
+
+                // Reactivate the existing record without deleting its history.
+                $suspension->update([
+                    'status' => 'reactivated',
+                    'reactivated_by' => $user->id,
+                    'reactivated_at' => now(),
+                    'reactivation_reason' => $request->input('reason'),
+                ]);
+
                 return [
                     'http_code' => 200,
                     'response' => [
                         'status' => true,
-                        'message' => $newStatus === 0
-                            ? 'This school is already suspended.'
-                            : 'This school is already active.',
+                        'message' => 'School reactivated successfully.',
                         'pld' => [
-                            'school_id' => (string) $school->sid,
-                            'school_status' => (int) $school->school_status,
+                            'school_id' => (string) $schoolId,
+                            'school_name' => $school->name,
+                            'academic_session' => $academicSession,
+                            'term' => $termName,
+                            'school_status' => 1,
+                            'suspension_id' => $suspension->id,
+                            'action' => 'reactivated',
                         ],
                     ],
                 ];
-            }
+            });
 
-            // Update the school's status.
-            DB::table('school')
-                ->where('sid', $schoolId)
-                ->update([
-                    'school_status' => $newStatus,
-                    'updated_at' => now(),
-                ]);
+            return response()->json(
+                $result['response'],
+                $result['http_code']
+            );
+        } catch (\Throwable $e) {
 
-            // Record the suspension/reactivation action.
-            SchoolSuspensionLog::create([
-                'school_id' => (string) $schoolId,
+            Log::error('Unable to update school suspension.', [
+                'school_id' => $schoolId,
                 'action' => $action,
-                'performed_by' => $user->id,
-                'reason' => $validated['reason'] ?? null,
+                'error' => $e->getMessage(),
             ]);
 
-            return [
-                'http_code' => 200,
-                'response' => [
-                    'status' => true,
-                    'message' => $successMessage,
-                    'pld' => [
-                        'school_id' => (string) $schoolId,
-                        'school_status' => $newStatus,
-                        'action' => $action,
-                    ],
-                ],
-            ];
-        });
-
-        return response()->json(
-            $result['response'],
-            $result['http_code']
-        );
+            return response()->json([
+                'status' => false,
+                'message' => 'Unable to update school suspension.',
+            ], 500);
+        }
     }
+
 
 
 
