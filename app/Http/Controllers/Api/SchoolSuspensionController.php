@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Validator;
 
 class SchoolSuspensionController extends Controller
 {
+
+
     /**
      * Suspend a school.
      *
@@ -21,7 +23,7 @@ class SchoolSuspensionController extends Controller
      *     path="/api/billing/schools/{schoolId}/suspend",
      *     tags={"Billing"},
      *     summary="Suspend a school",
-     *     description="Allows only a Domain Admin to suspend a school.",
+     *     description="Allows only a Domain Admin to suspend a school for a specific academic session and term.",
      *     operationId="suspendSchool",
      *     security={{"bearerAuth": {}}},
      *
@@ -34,12 +36,28 @@ class SchoolSuspensionController extends Controller
      *     ),
      *
      *     @OA\RequestBody(
-     *         required=false,
+     *         required=true,
      *         @OA\JsonContent(
+     *             required={"session", "term"},
+     *             @OA\Property(
+     *                 property="session",
+     *                 type="integer",
+     *                 example=2026,
+     *                 description="Academic session year."
+     *             ),
+     *             @OA\Property(
+     *                 property="term",
+     *                 type="integer",
+     *                 enum={1, 2, 3},
+     *                 example=1,
+     *                 description="Academic term: 1 = First Term, 2 = Second Term, 3 = Third Term."
+     *             ),
      *             @OA\Property(
      *                 property="reason",
      *                 type="string",
-     *                 example="Outstanding technology billing payment."
+     *                 nullable=true,
+     *                 example="Outstanding technology billing payment.",
+     *                 description="Optional reason for suspending the school."
      *             )
      *         )
      *     ),
@@ -50,7 +68,7 @@ class SchoolSuspensionController extends Controller
      *     ),
      *     @OA\Response(response=401, description="Unauthenticated"),
      *     @OA\Response(response=403, description="Only Domain Admins can suspend schools"),
-     *     @OA\Response(response=404, description="School not found"),
+     *     @OA\Response(response=404, description="School or academic session not found"),
      *     @OA\Response(response=422, description="Validation error")
      * )
      */

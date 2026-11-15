@@ -37079,7 +37079,7 @@
                     "Billing"
                 ],
                 "summary": "Suspend a school",
-                "description": "Allows only a Domain Admin to suspend a school.",
+                "description": "Allows only a Domain Admin to suspend a school for a specific academic session and term.",
                 "operationId": "suspendSchool",
                 "parameters": [
                     {
@@ -37094,14 +37094,35 @@
                     }
                 ],
                 "requestBody": {
-                    "required": false,
+                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
+                                "required": [
+                                    "session",
+                                    "term"
+                                ],
                                 "properties": {
+                                    "session": {
+                                        "description": "Academic session year.",
+                                        "type": "integer",
+                                        "example": 2026
+                                    },
+                                    "term": {
+                                        "description": "Academic term: 1 = First Term, 2 = Second Term, 3 = Third Term.",
+                                        "type": "integer",
+                                        "enum": [
+                                            1,
+                                            2,
+                                            3
+                                        ],
+                                        "example": 1
+                                    },
                                     "reason": {
+                                        "description": "Optional reason for suspending the school.",
                                         "type": "string",
-                                        "example": "Outstanding technology billing payment."
+                                        "example": "Outstanding technology billing payment.",
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -37120,7 +37141,7 @@
                         "description": "Only Domain Admins can suspend schools"
                     },
                     "404": {
-                        "description": "School not found"
+                        "description": "School or academic session not found"
                     },
                     "422": {
                         "description": "Validation error"
