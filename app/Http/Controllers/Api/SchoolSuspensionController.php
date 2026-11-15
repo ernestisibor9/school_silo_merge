@@ -375,6 +375,7 @@ class SchoolSuspensionController extends Controller
      */
 
 
+
     public function schoolStatus(Request $request)
     {
         try {
@@ -390,7 +391,7 @@ class SchoolSuspensionController extends Controller
             }
 
             // Validate optional academic session and term filters.
-            $validator = \Illuminate\Support\Facades\Validator::make(
+            $validator = Validator::make(
                 $request->query(),
                 [
                     'session' => [
@@ -465,12 +466,10 @@ class SchoolSuspensionController extends Controller
                 $studentQuery = DB::table('old_student')
                     ->where('sid', (string) $user->id);
 
-                // Optional academic session filter.
                 if ($session !== null) {
                     $studentQuery->where('ssn', (int) $session);
                 }
 
-                // Optional academic term filter.
                 if ($term !== null) {
                     $studentQuery->where('trm', (int) $term);
                 }
@@ -485,12 +484,10 @@ class SchoolSuspensionController extends Controller
                 $staffQuery = DB::table('old_staff')
                     ->where('sid', (string) $user->id);
 
-                // Optional academic session filter.
                 if ($session !== null) {
                     $staffQuery->where('ssn', (int) $session);
                 }
 
-                // Optional academic term filter.
                 if ($term !== null) {
                     $staffQuery->where('trm', (int) $term);
                 }
@@ -516,15 +513,19 @@ class SchoolSuspensionController extends Controller
                 ], 404);
             }
 
-            // If both session and term are supplied,
-            // verify that the school has a billing record for that period.
-            if ($session !== null && $term !== null) {
+            // Convert the supplied session year to the stored academic session name.
+            $academicSession = null;
 
-                // Convert session year to academic session format.
-                // Example: 2026 becomes 2026/2027.
-                $academicSession = (int) $session . '/' . ((int) $session + 1);
+            if ($session !== null) {
+                $academicSession = DB::table('sesn')
+                    ->where('year', (int) $session)
+                    ->value('name');
+            }
 
-                // Convert term number to billing term name.
+            // Convert the supplied term number to its stored term name.
+            $termName = null;
+
+            if ($term !== null) {
                 $terms = [
                     1 => 'First Term',
                     2 => 'Second Term',
@@ -532,6 +533,11 @@ class SchoolSuspensionController extends Controller
                 ];
 
                 $termName = $terms[(int) $term];
+            }
+
+            // Preserve the existing billing-period validation
+            // when both session and term are supplied.
+            if ($session !== null && $term !== null) {
 
                 $billExists = DB::table('school_bills')
                     ->where('school_id', $schoolId)
@@ -548,32 +554,46 @@ class SchoolSuspensionController extends Controller
                 }
             }
 
-            // Retrieve the school's suspension status using school ID only.
-            // Do not use school.cssn, school.ctrm, or school.ctrmn here.
-            $school = DB::table('school')
-                ->where('sid', $schoolId)
-                ->first(['sid', 'school_status']);
+            // IMPORTANT:
+            // school_suspensions is the ONLY source of suspension status.
+            $suspensionQuery = SchoolSuspension::where(
+                'school_id',
+                (string) $schoolId
+            )->where('status', 'suspended');
 
-            if (!$school) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'School not found.',
-                    'pld' => [],
-                ], 404);
+            // Apply session filter when supplied.
+            if ($academicSession !== null) {
+                $suspensionQuery->where(
+                    'academic_session',
+                    $academicSession
+                );
             }
 
-            $suspended = (int) $school->school_status === 0;
+            // Apply term filter when supplied.
+            if ($termName !== null) {
+                $suspensionQuery->where(
+                    'term',
+                    $termName
+                );
+            }
+
+            // Check whether an active suspension exists.
+            $activeSuspension = $suspensionQuery
+                ->orderByDesc('suspended_at')
+                ->first();
+
+            $suspended = $activeSuspension !== null;
 
             return response()->json([
                 'status' => true,
                 'message' => 'School status retrieved successfully.',
                 'pld' => [
                     'role' => 'school_user',
-                    'school_id' => (string) $school->sid,
+                    'school_id' => (string) $schoolId,
                     'session' => $session !== null ? (int) $session : null,
                     'term' => $term !== null ? (int) $term : null,
                     'suspended' => $suspended,
-                    'school_status' => (int) $school->school_status,
+                    'school_status' => $suspended ? 0 : 1,
                 ],
             ], 200);
         } catch (\Throwable $e) {
@@ -589,6 +609,7 @@ class SchoolSuspensionController extends Controller
             ], 500);
         }
     }
+
 
 
 
@@ -650,6 +671,7 @@ class SchoolSuspensionController extends Controller
      *     @OA\Response(response=422, description="Validation failed")
      * )
      */
+
     public function suspendedSchools(Request $request)
     {
         // Only Domain Admins can access this endpoint.
@@ -667,14 +689,41 @@ class SchoolSuspensionController extends Controller
         $count = $request->query('count', 20);
 
         // Validate query parameters.
-        $validator = \Illuminate\Support\Facades\Validator::make(
+        $validator = Validator::make(
             $request->query(),
             [
-                'school_id' => ['sometimes', 'required', 'string', 'exists:school,sid'],
-                'session'   => ['sometimes', 'required', 'integer', 'digits:4', 'exists:sesn,year'],
-                'term'      => ['sometimes', 'required', 'integer', 'in:1,2,3'],
-                'start'     => ['sometimes', 'required', 'integer', 'min:0'],
-                'count'     => ['sometimes', 'required', 'integer', 'min:1', 'max:100'],
+                'school_id' => [
+                    'sometimes',
+                    'required',
+                    'string',
+                    'exists:school,sid',
+                ],
+                'session' => [
+                    'sometimes',
+                    'required',
+                    'integer',
+                    'digits:4',
+                    'exists:sesn,year',
+                ],
+                'term' => [
+                    'sometimes',
+                    'required',
+                    'integer',
+                    'in:1,2,3',
+                ],
+                'start' => [
+                    'sometimes',
+                    'required',
+                    'integer',
+                    'min:0',
+                ],
+                'count' => [
+                    'sometimes',
+                    'required',
+                    'integer',
+                    'min:1',
+                    'max:100',
+                ],
             ]
         );
 
@@ -686,16 +735,16 @@ class SchoolSuspensionController extends Controller
             ], 422);
         }
 
-        // Get the academic session name from the sesn table.
+        // Get the academic session name from sesn.
         $sessionName = null;
 
         if ($request->filled('session')) {
             $sessionName = DB::table('sesn')
-                ->where('year', $request->query('session'))
+                ->where('year', (int) $request->query('session'))
                 ->value('name');
         }
 
-        // Map the supplied term number to its billing term name.
+        // Map the supplied term number to its stored term name.
         $termName = null;
 
         if ($request->filled('term')) {
@@ -708,64 +757,69 @@ class SchoolSuspensionController extends Controller
             $termName = $terms[(int) $request->query('term')];
         }
 
-        // Start with suspended schools only.
-        // school_status is retrieved exclusively from the school table.
-        $query = DB::table('school')
-            ->where('school.school_status', 0);
+        // IMPORTANT:
+        // school_suspensions is the ONLY source of suspension status.
+        // The school table is joined only to retrieve the school's name.
+        $query = DB::table('school_suspensions')
+            ->join(
+                'school',
+                'school.sid',
+                '=',
+                'school_suspensions.school_id'
+            )
+            ->where('school_suspensions.status', 'suspended');
 
         // Optional school ID filter.
         if ($request->filled('school_id')) {
             $query->where(
-                'school.sid',
+                'school_suspensions.school_id',
                 $request->query('school_id')
             );
         }
 
-        // Filter using actual school billing records.
-        // A school must have a matching billing record when
-        // a session or term filter is supplied.
-        if ($sessionName !== null || $termName !== null) {
-
-            $query->whereExists(function ($subQuery) use (
-                $sessionName,
-                $termName
-            ) {
-                $subQuery->select(DB::raw(1))
-                    ->from('school_bills')
-                    ->whereColumn(
-                        'school_bills.school_id',
-                        'school.sid'
-                    );
-
-                if ($sessionName !== null) {
-                    $subQuery->where(
-                        'school_bills.academic_session',
-                        $sessionName
-                    );
-                }
-
-                if ($termName !== null) {
-                    $subQuery->where(
-                        'school_bills.term',
-                        $termName
-                    );
-                }
-            });
+        // Optional academic session filter.
+        if ($sessionName !== null) {
+            $query->where(
+                'school_suspensions.academic_session',
+                $sessionName
+            );
         }
 
-        // Retrieve suspended schools with offset pagination.
+        // Optional academic term filter.
+        if ($termName !== null) {
+            $query->where(
+                'school_suspensions.term',
+                $termName
+            );
+        }
+
+        // Retrieve active suspension records with offset pagination.
         $schools = $query
             ->select(
-                'school.sid as school_id',
+                'school_suspensions.id as suspension_id',
+                'school_suspensions.school_id as school_id',
                 'school.name as school_name',
-                'school.school_status',
-                'school.created_at',
-                'school.updated_at'
+                'school_suspensions.academic_session',
+                'school_suspensions.term',
+                'school_suspensions.reason',
+                'school_suspensions.status',
+                'school_suspensions.suspended_by',
+                'school_suspensions.suspended_at',
+                'school_suspensions.created_at',
+                'school_suspensions.updated_at'
             )
-            ->orderBy('school.name', 'asc')
+            ->orderByDesc('school_suspensions.suspended_at')
             ->skip((int) $start)
             ->take((int) $count)
-            ->get();
+            ->get()
+            ->map(function ($suspension) {
+                // Compatibility field for existing API consumers.
+                // This value is derived from the active suspension record,
+                // NOT from school.school_status.
+                $suspension->school_status = 0;
+
+                return $suspension;
+            });
 
         return response()->json([
             'status' => true,
