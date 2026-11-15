@@ -36545,7 +36545,7 @@
                     "Billing"
                 ],
                 "summary": "Get school technology bills",
-                "description": "Retrieves technology bills for the specified active school with optional academic session, term and offset-based pagination. Only the authenticated School Admin belonging to that school can access its bills.",
+                "description": "Retrieves technology bills for the specified school with optional academic session, term and offset-based pagination. Only the authenticated School Admin belonging to that school can access its bills. Schools with an active suspension for the requested academic period cannot access their bills.",
                 "operationId": "getSchoolTechnologyBills",
                 "parameters": [
                     {
@@ -36700,7 +36700,7 @@
                         "description": "Unauthenticated"
                     },
                     "403": {
-                        "description": "Unauthorized or school ID does not belong to authenticated School Admin"
+                        "description": "Unauthorized, school suspended, or school ID does not belong to authenticated School Admin"
                     },
                     "422": {
                         "description": "Invalid query parameters"

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\SchoolBill;
+use App\Models\SchoolSuspension;
 use Illuminate\Http\Request;
 
 class SchoolBillController extends Controller
@@ -14,7 +15,7 @@ class SchoolBillController extends Controller
      *     path="/api/billing/school-bills/{schid}",
      *     tags={"Billing"},
      *     summary="Get school technology bills",
-     *     description="Retrieves technology bills for the specified active school with optional academic session, term and offset-based pagination. Only the authenticated School Admin belonging to that school can access its bills.",
+     *     description="Retrieves technology bills for the specified school with optional academic session, term and offset-based pagination. Only the authenticated School Admin belonging to that school can access its bills. Schools with an active suspension for the requested academic period cannot access their bills.",
      *     operationId="getSchoolTechnologyBills",
      *     security={{"bearerAuth": {}}},
      *
@@ -93,7 +94,7 @@ class SchoolBillController extends Controller
      *     ),
      *
      *     @OA\Response(response=401, description="Unauthenticated"),
-     *     @OA\Response(response=403, description="Unauthorized or school ID does not belong to authenticated School Admin"),
+     *     @OA\Response(response=403, description="Unauthorized, school suspended, or school ID does not belong to authenticated School Admin"),
      *     @OA\Response(response=422, description="Invalid query parameters")
      * )
      */
@@ -151,30 +152,19 @@ class SchoolBillController extends Controller
         $start = (int) $request->query('start', 0);
         $count = (int) $request->query('count', 20);
 
-        // Retrieve bills belonging to the requested active school.
-        $query = SchoolBill::join(
-            'school',
-            'school.sid',
-            '=',
-            'school_bills.school_id'
-        )
-            ->where('school_bills.school_id', (string) $schid)
-            ->where('school.school_status', 1);
+        // Resolve the requested academic session.
+        $sessionName = null;
 
-        // Optional academic session filter.
         if ($request->filled('session')) {
-
-            // Convert session year to its readable academic session.
             $sessionName = \Illuminate\Support\Facades\DB::table('sesn')
                 ->where('year', $request->query('session'))
                 ->value('name');
-
-            $query->where('school_bills.academic_session', $sessionName);
         }
 
-        // Optional academic term filter.
-        if ($request->filled('term')) {
+        // Resolve the requested academic term.
+        $termName = null;
 
+        if ($request->filled('term')) {
             $terms = [
                 1 => 'First Term',
                 2 => 'Second Term',
@@ -182,8 +172,60 @@ class SchoolBillController extends Controller
             ];
 
             $termName = $terms[(int) $request->query('term')];
+        }
 
-            $query->where('school_bills.term', $termName);
+        // Check active suspension records.
+        // school_suspensions is the sole source of suspension status.
+        $suspensionQuery = SchoolSuspension::where(
+            'school_id',
+            (string) $schid
+        )->where('status', 'suspended');
+
+        // Apply academic session filter when supplied.
+        if ($sessionName !== null) {
+            $suspensionQuery->where(
+                'academic_session',
+                $sessionName
+            );
+        }
+
+        // Apply academic term filter when supplied.
+        if ($termName !== null) {
+            $suspensionQuery->where(
+                'term',
+                $termName
+            );
+        }
+
+        // Prevent suspended schools from accessing their bills.
+        if ($suspensionQuery->exists()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Your school is currently suspended and cannot access technology bills.',
+            ], 403);
+        }
+
+        // Retrieve bills belonging to the requested school.
+        // No comparison with school.school_status is required.
+        $query = SchoolBill::where(
+            'school_bills.school_id',
+            (string) $schid
+        );
+
+        // Optional academic session filter.
+        if ($sessionName !== null) {
+            $query->where(
+                'school_bills.academic_session',
+                $sessionName
+            );
+        }
+
+        // Optional academic term filter.
+        if ($termName !== null) {
+            $query->where(
+                'school_bills.term',
+                $termName
+            );
         }
 
         // Retrieve bills with offset pagination.
