@@ -220,6 +220,7 @@ class SchoolSuspensionController extends Controller
 
 
 
+
     /**
      * @OA\Get(
      *     path="/api/billing/school-status",
@@ -405,7 +406,8 @@ class SchoolSuspensionController extends Controller
                 ], 404);
             }
 
-            // Retrieve the school's suspension status.
+            // Retrieve the school's suspension status using school ID only.
+            // Do not use school.cssn, school.ctrm, or school.ctrmn here.
             $school = DB::table('school')
                 ->where('sid', $schoolId)
                 ->first(['sid', 'school_status']);

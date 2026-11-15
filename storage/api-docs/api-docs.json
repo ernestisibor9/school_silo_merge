@@ -36545,7 +36545,7 @@
                     "Billing"
                 ],
                 "summary": "Get school technology bills",
-                "description": "Retrieves technology bills for the specified school with optional academic session, term and offset-based pagination. Only the authenticated School Admin belonging to that school can access its bills.",
+                "description": "Retrieves technology bills for the specified active school with optional academic session, term and offset-based pagination. Only the authenticated School Admin belonging to that school can access its bills.",
                 "operationId": "getSchoolTechnologyBills",
                 "parameters": [
                     {
