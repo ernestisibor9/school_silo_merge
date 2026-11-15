@@ -493,6 +493,7 @@ class SchoolBillPaymentController extends Controller
                     ->firstOrFail();
 
                 // Duplicate delivery of an already completed payment.
+                // Duplicate delivery of an already completed payment.
                 if (
                     $lockedPayment->status === 'successful' &&
                     $bill->status === 'paid'
@@ -503,6 +504,18 @@ class SchoolBillPaymentController extends Controller
                             'receipt_number' => $this->generateReceiptNumber(),
                         ]);
                     }
+
+                    // Ensure only the suspension covered by this paid bill is reactivated.
+                    SchoolSuspension::where('school_id', (string) $bill->school_id)
+                        ->where('academic_session', $bill->academic_session)
+                        ->where('term', $bill->term)
+                        ->where('status', 'suspended')
+                        ->update([
+                            'status' => 'reactivated',
+                            'reactivated_by' => null,
+                            'reactivated_at' => now(),
+                            'reactivation_reason' => 'Automatically reactivated after successful technology billing payment.',
+                        ]);
 
                     return 'already_processed';
                 }
