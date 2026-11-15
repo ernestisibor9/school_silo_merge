@@ -8,6 +8,7 @@ use App\Models\SchoolSuspension;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 class SchoolSuspensionController extends Controller
