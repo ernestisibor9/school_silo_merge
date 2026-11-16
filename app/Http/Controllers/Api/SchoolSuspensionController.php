@@ -133,7 +133,7 @@ class SchoolSuspensionController extends Controller
     }
 
     /**
-     * Update school status and record the action.
+     * Update school status and record the action..
      */
 
 

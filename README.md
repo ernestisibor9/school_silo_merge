@@ -20,6 +20,7 @@ Started: 28/7/24
 > s = school
 > z = Student
 > w = Staff
+> lga = lag admin
 
 ## API Documentation
 
