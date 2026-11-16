@@ -6301,6 +6301,17 @@ public function setStudentAtOnceBulk(Request $request)
 
                 $count = $data['count'] ?? null;
 
+                Log::info('Bulk registration: incoming duplicate-check values', [
+    'row' => $index + 1,
+    'student' => $fname . ' ' . $lname,
+    'schid' => $schoolId,
+    'sch3' => $sch3,
+    'ssn' => $ssn,
+    'term' => $term,
+    'count' => $count,
+    'cuid' => $data['cuid'] ?? null,
+]);
+
                 if ($count !== null && $count !== '') {
 
                     $existing = student::where('sch3', $sch3)
