@@ -19486,7 +19486,7 @@ public function paystackConf(Request $request)
 
         Log::info('Processing reference', ['ref' => $ref]);
 
-        // BILLING: Check if the reference already exists in the database and has been confirmed
+        // BILLING: Check if the reference already exists in the database and has been confirmed.
 
         // Route technology billing payments to their dedicated webhook handler
         if (strpos($ref, 'tech-') === 0) {
