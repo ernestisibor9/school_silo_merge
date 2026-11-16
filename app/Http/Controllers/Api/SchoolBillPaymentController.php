@@ -135,7 +135,7 @@ class SchoolBillPaymentController extends Controller
         }
 
         try {
-            // Find the bill and create a pending payment record.
+            // Find the bill and create a pending payment record..
             $payment = DB::transaction(function () use ($billId, $user, $charge) {
 
                 $bill = SchoolBill::where('id', $billId)
