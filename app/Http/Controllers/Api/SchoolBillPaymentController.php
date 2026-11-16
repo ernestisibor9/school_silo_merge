@@ -267,68 +267,75 @@ class SchoolBillPaymentController extends Controller
     }
 
 
+    /**
+     * Handle Paystack callback for school technology billing.
+     *
+     * Redirects the payer to the correct school's dashboard.
+     * Payment verification remains the responsibility of verify()
+     * and the Paystack webhook.
+     */
+    public function handleBillingCallback(Request $request)
+    {
+        $reference = $request->query('reference');
 
+        // Get the portal URL configured for this tenant.
+        $portalUrl = env('PORTAL_URL');
 
-/**
- * Handle Paystack callback for school technology billing.
- *
- * Redirects the payer to the correct school's dashboard.
- * Payment verification remains the responsibility of verify()
- * and the Paystack webhook.
- */
-public function handleBillingCallback(Request $request)
-{
-    $reference = $request->query('reference');
+        // Fallback to the tenant's main portal.
+        $fallbackUrl = $portalUrl
+            ? rtrim($portalUrl, '/') . '/schoolPortal?status=error'
+            : url('/schoolPortal?status=error');
 
-    // Get the base domain from this tenant's APP_URL.
-    $baseUrl = config('app.url');
+        if (!$reference || !$portalUrl) {
+            return redirect()->away($fallbackUrl);
+        }
 
-    // Fallback to the tenant's main domain.
-    $fallbackUrl = rtrim($baseUrl, '/')
-        . '/schoolPortal?status=error';
+        // Find the school associated with this technology billing payment.
+        $payment = DB::table('school_bill_payments as payments')
+            ->join('school_bills as bills', 'payments.school_bill_id', '=', 'bills.id')
+            ->where('payments.payment_reference', $reference)
+            ->select('bills.school_id')
+            ->first();
 
-    if (!$reference || !$baseUrl) {
-        return redirect()->away($fallbackUrl);
+        if (!$payment) {
+            return redirect()->away($fallbackUrl);
+        }
+
+        // Retrieve the school's subdomain.
+        $school = DB::table('school')
+            ->where('sid', (string) $payment->school_id)
+            ->first();
+
+        if (!$school || empty($school->sbd)) {
+            return redirect()->away($fallbackUrl);
+        }
+
+        // Extract the tenant's base domain from PORTAL_URL.
+        $parsedUrl = parse_url($portalUrl);
+        $portalHost = $parsedUrl['host'] ?? null;
+
+        // Remove the portal subdomain.
+        $baseDomain = $portalHost
+            ? preg_replace('/^portal\./i', '', $portalHost)
+            : null;
+
+        if (!$baseDomain) {
+            return redirect()->away($fallbackUrl);
+        }
+
+        // Preserve the configured URL scheme.
+        $scheme = $parsedUrl['scheme'] ?? 'https';
+
+        // Construct the correct school's dashboard URL.
+        $frontendUrl = $scheme . '://' . $school->sbd . '.' . $baseDomain
+            . '/schoolPortal?'
+            . http_build_query([
+                'status' => 'processing',
+                'ref' => $reference,
+            ]);
+
+        return redirect()->away($frontendUrl);
     }
-
-    // Find the school associated with this technology billing payment.
-    $payment = DB::table('school_bill_payments as payments')
-        ->join('school_bills as bills', 'payments.school_bill_id', '=', 'bills.id')
-        ->where('payments.payment_reference', $reference)
-        ->select('bills.school_id')
-        ->first();
-
-    if (!$payment) {
-        return redirect()->away($fallbackUrl);
-    }
-
-    // Retrieve the school's subdomain.
-    $school = DB::table('school')
-        ->where('sid', (string) $payment->school_id)
-        ->first();
-
-    if (!$school || empty($school->sbd)) {
-        return redirect()->away($fallbackUrl);
-    }
-
-    // Extract the tenant's base domain from APP_URL.
-    $parsedUrl = parse_url($baseUrl);
-    $baseDomain = $parsedUrl['host'] ?? null;
-
-    if (!$baseDomain) {
-        return redirect()->away($fallbackUrl);
-    }
-
-    // Construct the correct school dashboard URL.
-    $frontendUrl = 'https://' . $school->sbd . '.' . $baseDomain
-        . '/schoolPortal?'
-        . http_build_query([
-            'status' => 'processing',
-            'ref' => $reference,
-        ]);
-
-    return redirect()->away($frontendUrl);
-}
 
 
 
