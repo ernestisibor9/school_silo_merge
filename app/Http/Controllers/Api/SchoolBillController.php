@@ -109,7 +109,7 @@ class SchoolBillController extends Controller
             ], 403);
         }
 
-        // Ensure the requested school belongs to the authenticated School Admin.
+        // Ensure the requested school belongs to the authenticated School Admin..
         if ((string) $user->id !== (string) $schid) {
             return response()->json([
                 'status' => false,
