@@ -279,7 +279,7 @@ class SchoolBillPaymentController extends Controller
         $reference = $request->query('reference');
 
         // Get the portal URL configured for this tenant.
-        $portalUrl = env('PORTAL_URL');
+        $portalUrl = config('app.portal_url');
 
         // Fallback to the tenant's main portal.
         $fallbackUrl = $portalUrl
