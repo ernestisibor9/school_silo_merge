@@ -160,6 +160,8 @@ Route::post('setAppFeePaid', [ApiController::class, 'setAppFeePaid']);
 
 
 Route::post('/billing/paystack/webhook',[SchoolBillPaymentController::class, 'webhook']);
+// Technology Billing - Paystack Callback
+Route::get('/billing/school-bill-payments/callback', [SchoolBillPaymentController::class,'handleBillingCallback'])->name('billing.school-bill-payments.callback');
 
 
 Route::group([

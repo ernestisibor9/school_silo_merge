@@ -189,6 +189,7 @@ class SchoolBillPaymentController extends Controller
                     'amount' => $amountInKobo,
                     'currency' => 'NGN',
                     'reference' => $payment->payment_reference,
+                    'callback_url' => url('/api/billing/school-bill-payments/callback'),
                     'metadata' => [
                         'payment_type' => 'school_technology_billing',
                         'school_bill_id' => $payment->school_bill_id,
@@ -222,6 +223,7 @@ class SchoolBillPaymentController extends Controller
                 Log::error('Technology billing Paystack initialization failed.', [
                     'payment_id' => $payment->id,
                     'reference' => $payment->payment_reference,
+                    'callback_url' => url('/api/billing/school-bill-payments/callback'),
                     'response' => $responseData,
                 ]);
 
@@ -263,6 +265,71 @@ class SchoolBillPaymentController extends Controller
             ], 500);
         }
     }
+
+
+
+
+/**
+ * Handle Paystack callback for school technology billing.
+ *
+ * Redirects the payer to the correct school's dashboard.
+ * Payment verification remains the responsibility of verify()
+ * and the Paystack webhook.
+ */
+public function handleBillingCallback(Request $request)
+{
+    $reference = $request->query('reference');
+
+    // Get the base domain from this tenant's APP_URL.
+    $baseUrl = config('app.url');
+
+    // Fallback to the tenant's main domain.
+    $fallbackUrl = rtrim($baseUrl, '/')
+        . '/schoolPortal?status=error';
+
+    if (!$reference || !$baseUrl) {
+        return redirect()->away($fallbackUrl);
+    }
+
+    // Find the school associated with this technology billing payment.
+    $payment = DB::table('school_bill_payments as payments')
+        ->join('school_bills as bills', 'payments.school_bill_id', '=', 'bills.id')
+        ->where('payments.payment_reference', $reference)
+        ->select('bills.school_id')
+        ->first();
+
+    if (!$payment) {
+        return redirect()->away($fallbackUrl);
+    }
+
+    // Retrieve the school's subdomain.
+    $school = DB::table('school')
+        ->where('sid', (string) $payment->school_id)
+        ->first();
+
+    if (!$school || empty($school->sbd)) {
+        return redirect()->away($fallbackUrl);
+    }
+
+    // Extract the tenant's base domain from APP_URL.
+    $parsedUrl = parse_url($baseUrl);
+    $baseDomain = $parsedUrl['host'] ?? null;
+
+    if (!$baseDomain) {
+        return redirect()->away($fallbackUrl);
+    }
+
+    // Construct the correct school dashboard URL.
+    $frontendUrl = 'https://' . $school->sbd . '.' . $baseDomain
+        . '/schoolPortal?'
+        . http_build_query([
+            'status' => 'processing',
+            'ref' => $reference,
+        ]);
+
+    return redirect()->away($frontendUrl);
+}
+
 
 
 
