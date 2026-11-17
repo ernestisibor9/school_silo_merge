@@ -21998,7 +21998,7 @@ public function paystackConf(Request $request)
         // $typ = 'a';
         // $usr = User::where("email", $request->email)->where('typ', $typ)->first();
         $usr = User::where("email", $request->email)
-            ->whereIn('typ', ['a', 'sa'])
+            ->whereIn('typ', ['a', 'sa', 'lga'])
             ->first();
         if ($usr) {
             $token = JWTAuth::attempt([
