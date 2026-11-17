@@ -46,6 +46,7 @@ Route::post('staffLoginByID', [ApiController::class, 'staffLoginByID']);
 Route::post('adminLogin', [ApiController::class, 'adminLogin']);
 Route::post('paystackConf', [ApiController::class, 'paystackConf']);
 Route::post('resolveIDtoEmail', [ApiController::class, 'resolveIDtoEmail']);
+Route::post('/setLgaAdmin', [ApiController::class, 'setLgaAdmin']);
 
 Route::post('setSubject', [ApiController::class, 'setSubj']);
 Route::post('setClass', [ApiController::class, 'setCls']);

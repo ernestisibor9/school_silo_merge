@@ -53391,4 +53391,107 @@ public function getAdmissionInfo($schid)
 }
 
 
+
+/**
+ * @OA\Post(
+ *     path="/api/setLgaAdmin",
+ *     tags={"Unprotected"},
+ *     summary="Create LGA Admin",
+ *     description="Creates an LGA Admin account using the supplied state and LGA. The email address is generated automatically using the deployment domain, and the default password is 123456.",
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             type="object",
+ *             required={"state", "lga"},
+ *             @OA\Property(
+ *                 property="state",
+ *                 type="string",
+ *                 example="Lagos"
+ *             ),
+ *             @OA\Property(
+ *                 property="lga",
+ *                 type="string",
+ *                 example="Ikeja"
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="LGA Admin created successfully",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="LGA Admin created successfully"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="object",
+ *                 @OA\Property(property="id", type="integer", example=15),
+ *                 @OA\Property(property="email", type="string", example="ikeja_lagos_admin@domainname"),
+ *                 @OA\Property(property="typ", type="string", example="lga"),
+ *                 @OA\Property(property="verif", type="string", example="1")
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=400,
+ *         description="Validation failed, domain could not be determined, or LGA Admin already exists"
+ *     )
+ * )
+ */
+
+public function setLgaAdmin(Request $request)
+{
+    $request->validate([
+        'state' => 'required|string|max:255',
+        'lga' => 'required|string|max:255',
+    ]);
+
+    $state = trim($request->state);
+    $lga = trim($request->lga);
+
+    // Get the portal domain dynamically
+    $portalUrl = config('app.portal_url');
+
+    $domain = parse_url($portalUrl, PHP_URL_HOST);
+
+    if (!$domain) {
+        return response()->json([
+            "status" => false,
+            "message" => "Unable to determine domain",
+        ], 400);
+    }
+
+    // Generate LGA Admin email
+    $email = Str::slug($lga, '_') . '_' . Str::slug($state, '_') . '_admin@' . $domain;
+
+    // Check if the email already exists
+    if (User::where('email', $email)->exists()) {
+        return response()->json([
+            "status" => false,
+            "message" => "LGA Admin already exists",
+        ], 400);
+    }
+
+    // Create LGA Admin user
+    $usr = User::create([
+        "email" => $email,
+        "typ" => 'lga',
+        "verif" => '1',
+        "password" => bcrypt('123456'),
+    ]);
+
+    // Save State and LGA association
+    LgaAdmin::create([
+        "user_id" => $usr->id,
+        "state" => $state,
+        "lga" => $lga,
+    ]);
+
+    return response()->json([
+        "status" => true,
+        "message" => "LGA Admin created successfully",
+        "pld" => $usr,
+    ]);
+}
+
+
 }
