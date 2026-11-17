@@ -53397,7 +53397,8 @@ public function getAdmissionInfo($schid)
  *     path="/api/setLgaAdmin",
  *     tags={"Api"},
  *     summary="Create LGA Admin",
- *     description="Creates an LGA Admin account using the supplied state and LGA. The email address is generated automatically using the deployment domain, and the default password is 123456.",
+ *     description="Creates an LGA Admin account. Only an authenticated Domain Admin (typ = 'a') is authorized to perform this action. The email address is generated automatically using the deployment domain, and the default password is 123456.",
+ *     security={{"bearerAuth":{}}},
  *     @OA\RequestBody(
  *         required=true,
  *         @OA\JsonContent(
@@ -53434,12 +53435,29 @@ public function getAdmissionInfo($schid)
  *     @OA\Response(
  *         response=400,
  *         description="Validation failed, domain could not be determined, or LGA Admin already exists"
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthenticated"
+ *     ),
+ *     @OA\Response(
+ *         response=403,
+ *         description="Forbidden. Only Domain Admins can create LGA Admin accounts."
  *     )
  * )
  */
-
 public function setLgaAdmin(Request $request)
 {
+    // Only Domain Admin can create LGA Admin
+    $admin = auth()->user();
+
+    if (!$admin || $admin->typ !== 'a') {
+        return response()->json([
+            "status" => false,
+            "message" => "Unauthorized. Only Domain Admin can create LGA Admin accounts.",
+        ], 403);
+    }
+
     $request->validate([
         'state' => 'required|string|max:255',
         'lga' => 'required|string|max:255',
@@ -53492,6 +53510,5 @@ public function setLgaAdmin(Request $request)
         "pld" => $usr,
     ]);
 }
-
 
 }
