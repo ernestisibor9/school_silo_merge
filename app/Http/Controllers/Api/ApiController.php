@@ -21942,52 +21942,119 @@ class ApiController extends Controller
      *     @OA\Response(response="200", description="Login Successfully"),
      * )
      */
+    // public function adminLogin(Request $request)
+    // {
+    //     //Data validation
+    //     $request->validate([
+    //         "email" => "required|email",
+    //         "password" => "required",
+    //     ]);
+    //     // $typ = 'a';
+    //     // $usr = User::where("email", $request->email)->where('typ', $typ)->first();
+    //     $usr = User::where("email", $request->email)
+    //         ->whereIn('typ', ['a', 'sa', 'lga'])
+    //         ->first();
+    //     if ($usr) {
+    //         $token = JWTAuth::attempt([
+    //             "email" => $request->email,
+    //             "password" => $request->password,
+    //         ]);
+    //         if (!empty($token)) {
+    //             return response()->json([
+    //                 "status" => true,
+    //                 "message" => "User login successfully",
+    //                 "token" => $token,
+    //                 "pld" => $usr
+    //             ]);
+    //         }
+    //     } else {
+    //         $portalUrl = env('PORTAL_URL');
+    //         $adminEml = 'admin@' . substr($portalUrl, 14);
+    //         if ($request->email == $adminEml) {
+    //             $usr = User::create([
+    //                 "email" => $adminEml,
+    //                 "typ" => $typ,
+    //                 "verif" => '1',
+    //                 "password" => bcrypt('123456'),
+    //             ]);
+    //             return response()->json([
+    //                 "status" => false,
+    //                 "message" => "Please try again",
+    //             ], 400);
+    //         }
+    //     }
+    //     return response()->json([
+    //         "status" => false,
+    //         "message" => "Invalid login details",
+    //     ], 400);
+    // }
+
     public function adminLogin(Request $request)
-    {
-        //Data validation
-        $request->validate([
-            "email" => "required|email",
-            "password" => "required",
+{
+    // Data validation
+    $request->validate([
+        "email" => "required|email",
+        "password" => "required",
+    ]);
+
+    $usr = User::where("email", $request->email)
+        ->whereIn('typ', ['a', 'sa', 'lga'])
+        ->first();
+
+    if ($usr) {
+        $token = JWTAuth::attempt([
+            "email" => $request->email,
+            "password" => $request->password,
         ]);
-        // $typ = 'a';
-        // $usr = User::where("email", $request->email)->where('typ', $typ)->first();
-        $usr = User::where("email", $request->email)
-            ->whereIn('typ', ['a', 'sa', 'lga'])
-            ->first();
-        if ($usr) {
-            $token = JWTAuth::attempt([
-                "email" => $request->email,
-                "password" => $request->password,
+
+        if (!empty($token)) {
+
+            // Default login response data
+            $pld = $usr;
+
+            // Add State and LGA only when an LGA Admin logs in
+            if ($usr->typ === 'lga') {
+                $lgaAdmin = LgaAdmin::where('user_id', $usr->id)->first();
+
+                if ($lgaAdmin) {
+                    $pld = array_merge($usr->toArray(), [
+                        "state" => $lgaAdmin->state,
+                        "lga" => $lgaAdmin->lga,
+                    ]);
+                }
+            }
+
+            return response()->json([
+                "status" => true,
+                "message" => "User login successfully",
+                "token" => $token,
+                "pld" => $pld
             ]);
-            if (!empty($token)) {
-                return response()->json([
-                    "status" => true,
-                    "message" => "User login successfully",
-                    "token" => $token,
-                    "pld" => $usr
-                ]);
-            }
-        } else {
-            $portalUrl = env('PORTAL_URL');
-            $adminEml = 'admin@' . substr($portalUrl, 14);
-            if ($request->email == $adminEml) {
-                $usr = User::create([
-                    "email" => $adminEml,
-                    "typ" => $typ,
-                    "verif" => '1',
-                    "password" => bcrypt('123456'),
-                ]);
-                return response()->json([
-                    "status" => false,
-                    "message" => "Please try again",
-                ], 400);
-            }
         }
-        return response()->json([
-            "status" => false,
-            "message" => "Invalid login details",
-        ], 400);
+    } else {
+        $portalUrl = env('PORTAL_URL');
+        $adminEml = 'admin@' . substr($portalUrl, 14);
+
+        if ($request->email == $adminEml) {
+            $usr = User::create([
+                "email" => $adminEml,
+                "typ" => $typ,
+                "verif" => '1',
+                "password" => bcrypt('123456'),
+            ]);
+
+            return response()->json([
+                "status" => false,
+                "message" => "Please try again",
+            ], 400);
+        }
     }
+
+    return response()->json([
+        "status" => false,
+        "message" => "Invalid login details",
+    ], 400);
+}
 
     /**
      * @OA\Post(
