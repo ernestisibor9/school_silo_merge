@@ -27102,12 +27102,12 @@ class ApiController extends Controller
         */
 
             $duplicateHistory = DB::table('old_student')
-                ->select('ssn', 'trm')
-                ->where('schid', $schid)
-                ->where('sid', $stid)
-                ->groupBy('ssn', 'trm')
-                ->havingRaw('COUNT(*) > 1')
-                ->first();
+            ->select('ssn', 'trm', 'clsm', 'clsa')
+            ->where('schid', $schid)
+            ->where('sid', $stid)
+            ->groupBy('ssn', 'trm', 'clsm', 'clsa')
+            ->havingRaw('COUNT(*) > 1')
+            ->first();
 
             if ($duplicateHistory) {
                 DB::rollBack();
