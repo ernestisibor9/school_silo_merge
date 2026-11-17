@@ -75,7 +75,7 @@ use App\Models\student_medical_data;
 use App\Models\student_parent_data;
 use App\Models\student_academic_data;
 use App\Models\staff;
-use App\Models\LgaAdmin
+use App\Models\LgaAdmin;
 use App\Models\SchoolInfo;
 use App\Models\alumni;
 use App\Models\ex_staff;
