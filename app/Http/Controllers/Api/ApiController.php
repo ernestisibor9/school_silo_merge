@@ -27105,6 +27105,8 @@ class ApiController extends Controller
                 ->select('ssn', 'trm')
                 ->where('schid', $schid)
                 ->where('sid', $stid)
+                ->where('clsm', $clsm)
+                ->where('clsa', $clsa)
                 ->groupBy('ssn', 'trm')
                 ->havingRaw('COUNT(*) > 1')
                 ->first();
