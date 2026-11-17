@@ -242,6 +242,7 @@ Route::group([
 
     // LGA Admin
     Route::post('/setLgaAdmin', [ApiController::class, 'setLgaAdmin']);
+    Route::get('/getLgaAdmins', [ApiController::class, 'getLgaAdmins']);
 
     // School Admin
     Route::post('/school/send-message', [ApiController::class, 'schoolSendMessage']);

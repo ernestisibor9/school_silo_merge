@@ -53514,4 +53514,81 @@ public function setLgaAdmin(Request $request)
     ]);
 }
 
+
+
+/**
+ * @OA\Get(
+ *     path="/api/getLgaAdmins",
+ *     summary="Get all LGA Admins",
+ *     description="Fetch all LGA Admin accounts, including their email, state and LGA. Only an authenticated Domain Admin (typ = 'a') is authorized to access this endpoint.",
+ *     operationId="getLgaAdmins",
+ *     tags={"Api"},
+ *     security={{"bearerAuth":{}}},
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="LGA Admins retrieved successfully",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(property="id", type="integer", example=1),
+ *                     @OA\Property(property="user_id", type="integer", example=7750),
+ *                     @OA\Property(property="email", type="string", example="gboko_benue_admin@schoolsilomerge.top"),
+ *                     @OA\Property(property="typ", type="string", example="lga"),
+ *                     @OA\Property(property="verif", type="integer", example=1),
+ *                     @OA\Property(property="state", type="string", example="Benue"),
+ *                     @OA\Property(property="lga", type="string", example="Gboko")
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthenticated"
+ *     ),
+ *     @OA\Response(
+ *         response=403,
+ *         description="Forbidden. Only Domain Admins can view LGA Admin accounts."
+ *     )
+ * )
+ */
+public function getLgaAdmins()
+{
+    // Only Domain Admin can view LGA Admin accounts
+    $admin = auth()->user();
+
+    if (!$admin || $admin->typ !== 'a') {
+        return response()->json([
+            "status" => false,
+            "message" => "Unauthorized. Only Domain Admin can view LGA Admin accounts.",
+        ], 403);
+    }
+
+    $subj = LgaAdmin::with('user:id,email,typ,verif')
+        ->get()
+        ->map(function ($lgaAdmin) {
+            return [
+                "id" => $lgaAdmin->id,
+                "user_id" => $lgaAdmin->user_id,
+                "email" => $lgaAdmin->user->email ?? null,
+                "typ" => $lgaAdmin->user->typ ?? null,
+                "verif" => $lgaAdmin->user->verif ?? null,
+                "state" => $lgaAdmin->state,
+                "lga" => $lgaAdmin->lga,
+            ];
+        });
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "pld" => $subj,
+    ]);
+}
+
 }
