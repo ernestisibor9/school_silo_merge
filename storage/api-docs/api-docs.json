@@ -3958,14 +3958,14 @@
                 }
             }
         },
-        "/api/\n     *\n     *\n     \\\n    * \\Mark": {
+        "/api/\n     *\n     *\n     \\\n     * \\Mark": {
             "post": {
                 "tags": [
                     "Api"
                 ],
                 "summary": "Set a Class Mark. If new, no need for id param. Otherwise, specify",
                 "description": "This endpoint is used to set information about a class mark.",
-                "operationId": "89b5e8df3cd9576d2636b50e6f685492",
+                "operationId": "6700672b509268f04b4d3c61a6d58e11",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -36847,6 +36847,97 @@
                     },
                     "422": {
                         "description": "Validation failed"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/getLgaAdmin/{id}": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get a single LGA Admin",
+                "description": "Retrieves a single LGA Admin account using its ID from the lga_admins table. Only an authenticated Domain Admin (typ = 'a') can access this endpoint.",
+                "operationId": "getLgaAdmin",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "The LGA Admin record ID from the lga_admins table",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "LGA Admin retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "user_id": {
+                                                    "type": "integer",
+                                                    "example": 7750
+                                                },
+                                                "email": {
+                                                    "type": "string",
+                                                    "example": "gboko_benue_admin@schoolsilomerge.top"
+                                                },
+                                                "typ": {
+                                                    "type": "string",
+                                                    "example": "lga"
+                                                },
+                                                "verif": {
+                                                    "type": "string",
+                                                    "example": "1"
+                                                },
+                                                "state": {
+                                                    "type": "string",
+                                                    "example": "Benue"
+                                                },
+                                                "lga": {
+                                                    "type": "string",
+                                                    "example": "Gboko"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Only Domain Admins can view LGA Admin accounts"
+                    },
+                    "404": {
+                        "description": "LGA Admin not found"
                     }
                 },
                 "security": [
