@@ -53591,4 +53591,84 @@ public function getLgaAdmins()
     ]);
 }
 
+
+
+
+/**
+ * @OA\Post(
+ *     path="/api/resetLgaAdminPassword",
+ *     summary="Reset LGA Admin password",
+ *     description="Resets an LGA Admin's password to the default password 123456. Only an authenticated Domain Admin (typ = 'a') can perform this action.",
+ *     operationId="resetLgaAdminPassword",
+ *     tags={"Api"},
+ *     security={{"bearerAuth":{}}},
+ *
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             type="object",
+ *             required={"id"},
+ *             @OA\Property(
+ *                 property="id",
+ *                 type="integer",
+ *                 example=1,
+ *                 description="The LGA Admin record ID from the lga_admins table"
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="LGA Admin password reset successfully",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="LGA Admin password reset successfully.")
+ *         )
+ *     ),
+ *     @OA\Response(response=401, description="Unauthenticated"),
+ *     @OA\Response(response=403, description="Only Domain Admins can reset LGA Admin passwords"),
+ *     @OA\Response(response=404, description="LGA Admin account not found"),
+ *     @OA\Response(response=422, description="Validation failed")
+ * )
+ */
+
+
+public function resetLgaAdminPassword(Request $request)
+{
+    // Only Domain Admin can reset LGA Admin passwords
+    $admin = auth()->user();
+
+    if (!$admin || $admin->typ !== 'a') {
+        return response()->json([
+            "status" => false,
+            "message" => "Unauthorized. Only Domain Admin can reset LGA Admin passwords.",
+        ], 403);
+    }
+
+    $request->validate([
+        'id' => 'required|integer',
+    ]);
+
+    // Find the LGA Admin account
+    $lgaAdmin = LgaAdmin::with('user')->find($request->id);
+
+    if (!$lgaAdmin || !$lgaAdmin->user) {
+        return response()->json([
+            "status" => false,
+            "message" => "LGA Admin account not found.",
+        ], 404);
+    }
+
+    // Reset password to the default password
+    $lgaAdmin->user->password = bcrypt('123456');
+    $lgaAdmin->user->save();
+
+    return response()->json([
+        "status" => true,
+        "message" => "LGA Admin password reset successfully.",
+    ]);
+}
+
+
+
 }

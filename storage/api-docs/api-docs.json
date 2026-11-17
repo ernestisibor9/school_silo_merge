@@ -36709,6 +36709,75 @@
                 ]
             }
         },
+        "/api/resetLgaAdminPassword": {
+            "post": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Reset LGA Admin password",
+                "description": "Resets an LGA Admin's password to the default password 123456. Only an authenticated Domain Admin (typ = 'a') can perform this action.",
+                "operationId": "resetLgaAdminPassword",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "description": "The LGA Admin record ID from the lga_admins table",
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "LGA Admin password reset successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "LGA Admin password reset successfully."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Only Domain Admins can reset LGA Admin passwords"
+                    },
+                    "404": {
+                        "description": "LGA Admin account not found"
+                    },
+                    "422": {
+                        "description": "Validation failed"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/billing/school-bills/{schid}": {
             "get": {
                 "tags": [
