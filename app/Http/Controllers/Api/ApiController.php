@@ -53395,7 +53395,7 @@ public function getAdmissionInfo($schid)
 /**
  * @OA\Post(
  *     path="/api/setLgaAdmin",
- *     tags={"Unprotected"},
+ *     tags={"Api"},
  *     summary="Create LGA Admin",
  *     description="Creates an LGA Admin account using the supplied state and LGA. The email address is generated automatically using the deployment domain, and the default password is 123456.",
  *     @OA\RequestBody(
