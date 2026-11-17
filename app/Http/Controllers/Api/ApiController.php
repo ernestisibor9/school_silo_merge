@@ -53436,49 +53436,65 @@ class ApiController extends Controller
 
 
 
-    /**
-     * @OA\Get(
-     *     path="/api/getLgaAdmins",
-     *     summary="Get all LGA Admins",
-     *     description="Fetch all LGA Admin accounts, including their email, state and LGA. Only an authenticated Domain Admin (typ = 'a') is authorized to access this endpoint.",
-     *     operationId="getLgaAdmins",
-     *     tags={"Api"},
-     *     security={{"bearerAuth":{}}},
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="LGA Admins retrieved successfully",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Success"),
-     *             @OA\Property(
-     *                 property="pld",
-     *                 type="array",
-     *                 @OA\Items(
-     *                     type="object",
-     *                     @OA\Property(property="id", type="integer", example=1),
-     *                     @OA\Property(property="user_id", type="integer", example=7750),
-     *                     @OA\Property(property="email", type="string", example="gboko_benue_admin@schoolsilomerge.top"),
-     *                     @OA\Property(property="typ", type="string", example="lga"),
-     *                     @OA\Property(property="verif", type="integer", example=1),
-     *                     @OA\Property(property="state", type="string", example="Benue"),
-     *                     @OA\Property(property="lga", type="string", example="Gboko")
-     *                 )
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=401,
-     *         description="Unauthenticated"
-     *     ),
-     *     @OA\Response(
-     *         response=403,
-     *         description="Forbidden. Only Domain Admins can view LGA Admin accounts."
-     *     )
-     * )
-     */
-    public function getLgaAdmins()
+/**
+ * @OA\Get(
+ *     path="/api/getLgaAdmins",
+ *     summary="Get all LGA Admins",
+ *     description="Fetches LGA Admin accounts with optional filtering by state and LGA. Only an authenticated Domain Admin (typ = 'a') can access this endpoint.",
+ *     operationId="getLgaAdmins",
+ *     tags={"Api"},
+ *     security={{"bearerAuth":{}}},
+ *
+ *     @OA\Parameter(
+ *         name="state",
+ *         in="query",
+ *         required=false,
+ *         description="Filter LGA Admins by state",
+ *         @OA\Schema(
+ *             type="string",
+ *             example="Benue"
+ *         )
+ *     ),
+ *     @OA\Parameter(
+ *         name="lga",
+ *         in="query",
+ *         required=false,
+ *         description="Filter LGA Admins by Local Government Area",
+ *         @OA\Schema(
+ *             type="string",
+ *             example="Gboko"
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="LGA Admins retrieved successfully",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(property="id", type="integer", example=1),
+ *                     @OA\Property(property="user_id", type="integer", example=7750),
+ *                     @OA\Property(property="email", type="string", example="gboko_benue_admin@schoolsilomerge.top"),
+ *                     @OA\Property(property="typ", type="string", example="lga"),
+ *                     @OA\Property(property="verif", type="string", example="1"),
+ *                     @OA\Property(property="state", type="string", example="Benue"),
+ *                     @OA\Property(property="lga", type="string", example="Gboko")
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(response=401, description="Unauthenticated"),
+ *     @OA\Response(response=403, description="Only Domain Admins can view LGA Admin accounts"),
+ *     @OA\Response(response=422, description="Validation failed")
+ * )
+ */
+    public function getLgaAdmins(Request $request)
     {
         // Only Domain Admin can view LGA Admin accounts
         $admin = auth()->user();
@@ -53490,8 +53506,26 @@ class ApiController extends Controller
             ], 403);
         }
 
-        $subj = LgaAdmin::with('user:id,email,typ,verif')
-            ->get()
+        // Validate optional filters
+        $request->validate([
+            'state' => 'nullable|string|max:255',
+            'lga' => 'nullable|string|max:255',
+        ]);
+
+        // Start query
+        $query = LgaAdmin::with('user:id,email,typ,verif');
+
+        // Filter by state if provided
+        if ($request->filled('state')) {
+            $query->where('state', $request->state);
+        }
+
+        // Filter by LGA if provided
+        if ($request->filled('lga')) {
+            $query->where('lga', $request->lga);
+        }
+
+        $subj = $query->get()
             ->map(function ($lgaAdmin) {
                 return [
                     "id" => $lgaAdmin->id,

@@ -36636,8 +36636,30 @@
                     "Api"
                 ],
                 "summary": "Get all LGA Admins",
-                "description": "Fetch all LGA Admin accounts, including their email, state and LGA. Only an authenticated Domain Admin (typ = 'a') is authorized to access this endpoint.",
+                "description": "Fetches LGA Admin accounts with optional filtering by state and LGA. Only an authenticated Domain Admin (typ = 'a') can access this endpoint.",
                 "operationId": "getLgaAdmins",
+                "parameters": [
+                    {
+                        "name": "state",
+                        "in": "query",
+                        "description": "Filter LGA Admins by state",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "Benue"
+                        }
+                    },
+                    {
+                        "name": "lga",
+                        "in": "query",
+                        "description": "Filter LGA Admins by Local Government Area",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "Gboko"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "LGA Admins retrieved successfully",
@@ -36674,8 +36696,8 @@
                                                         "example": "lga"
                                                     },
                                                     "verif": {
-                                                        "type": "integer",
-                                                        "example": 1
+                                                        "type": "string",
+                                                        "example": "1"
                                                     },
                                                     "state": {
                                                         "type": "string",
@@ -36699,7 +36721,10 @@
                         "description": "Unauthenticated"
                     },
                     "403": {
-                        "description": "Forbidden. Only Domain Admins can view LGA Admin accounts."
+                        "description": "Only Domain Admins can view LGA Admin accounts"
+                    },
+                    "422": {
+                        "description": "Validation failed"
                     }
                 },
                 "security": [
