@@ -46,7 +46,6 @@ Route::post('staffLoginByID', [ApiController::class, 'staffLoginByID']);
 Route::post('adminLogin', [ApiController::class, 'adminLogin']);
 Route::post('paystackConf', [ApiController::class, 'paystackConf']);
 Route::post('resolveIDtoEmail', [ApiController::class, 'resolveIDtoEmail']);
-Route::post('/setLgaAdmin', [ApiController::class, 'setLgaAdmin']);
 
 Route::post('setSubject', [ApiController::class, 'setSubj']);
 Route::post('setClass', [ApiController::class, 'setCls']);
@@ -240,6 +239,9 @@ Route::group([
     Route::post('setRepostStaff', [ApiController::class, 'setRepostStaff']);
     Route::get('getStudentResultsByArm/{schid}/{clsid}/{ssn}/{trm}/{arm}', [ApiController::class, 'getStudentResultsByArm']);
     Route::post('updateLocation/{schid}', [ApiController::class, 'updateLocation']);
+
+    // LGA Admin
+    Route::post('/setLgaAdmin', [ApiController::class, 'setLgaAdmin']);
 
     // School Admin
     Route::post('/school/send-message', [ApiController::class, 'schoolSendMessage']);
