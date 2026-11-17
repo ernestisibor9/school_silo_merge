@@ -53670,5 +53670,86 @@ public function resetLgaAdminPassword(Request $request)
 }
 
 
+/**
+ * @OA\Post(
+ *     path="/api/changeLgaAdminPassword",
+ *     summary="Change LGA Admin password",
+ *     description="Allows an authenticated LGA Admin (typ = 'lga') to change their password by providing their current password and confirming a new password.",
+ *     operationId="changeLgaAdminPassword",
+ *     tags={"Api"},
+ *     security={{"bearerAuth":{}}},
+ *
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(
+ *             type="object",
+ *             required={"current_password", "new_password", "new_password_confirmation"},
+ *             @OA\Property(
+ *                 property="current_password",
+ *                 type="string",
+ *                 example="123456"
+ *             ),
+ *             @OA\Property(
+ *                 property="new_password",
+ *                 type="string",
+ *                 example="MyNewPassword123"
+ *             ),
+ *             @OA\Property(
+ *                 property="new_password_confirmation",
+ *                 type="string",
+ *                 example="MyNewPassword123"
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Password changed successfully",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Password changed successfully.")
+ *         )
+ *     ),
+ *     @OA\Response(response=400, description="Current password is incorrect"),
+ *     @OA\Response(response=401, description="Unauthenticated"),
+ *     @OA\Response(response=403, description="Only LGA Admins can change their passwords"),
+ *     @OA\Response(response=422, description="Validation failed")
+ * )
+ */
+public function changeLgaAdminPassword(Request $request)
+{
+    // Only authenticated LGA Admin can change their password
+    $admin = auth()->user();
+
+    if (!$admin || $admin->typ !== 'lga') {
+        return response()->json([
+            "status" => false,
+            "message" => "Unauthorized. Only LGA Admins can change their passwords.",
+        ], 403);
+    }
+
+    // Validate request
+    $request->validate([
+        'current_password' => 'required|string',
+        'new_password' => 'required|string|min:8|confirmed',
+    ]);
+
+    // Verify current password
+    if (!Hash::check($request->current_password, $admin->password)) {
+        return response()->json([
+            "status" => false,
+            "message" => "Current password is incorrect.",
+        ], 400);
+    }
+
+    // Update password
+    $admin->password = Hash::make($request->new_password);
+    $admin->save();
+
+    return response()->json([
+        "status" => true,
+        "message" => "Password changed successfully.",
+    ]);
+}
 
 }
