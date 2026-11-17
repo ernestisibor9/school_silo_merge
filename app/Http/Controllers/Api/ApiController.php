@@ -53467,10 +53467,12 @@ public function setLgaAdmin(Request $request)
     $state = trim($request->state);
     $lga = trim($request->lga);
 
-    // Get the portal domain dynamically
+    // Get the portal domain dynamically and remove the portal subdomain
     $portalUrl = config('app.portal_url');
 
     $domain = parse_url($portalUrl, PHP_URL_HOST);
+
+    $domain = preg_replace('/^portal\./i', '', $domain);
 
     if (!$domain) {
         return response()->json([
