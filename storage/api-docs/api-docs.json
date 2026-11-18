@@ -37401,6 +37401,150 @@
                 ]
             }
         },
+        "/api/getLgaAdminStaff": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get active staff within the LGA Admin's LGA",
+                "description": "Returns active staff members belonging to schools within the authenticated LGA Admin's assigned state and LGA. Results are paginated. Each record contains staff details (s), basic information (b), and professional information (p).",
+                "operationId": "93b72d6e28ee3d9cee99f829dfc7fe86",
+                "parameters": [
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Starting position for pagination. Defaults to 0.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 0,
+                            "minimum": 0
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "Number of staff records to return. Defaults to 20. Maximum is 100.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 20,
+                            "maximum": 100,
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "total": {
+                                            "type": "integer",
+                                            "example": 10
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "s": {
+                                                        "description": "Staff record from the old_staff table",
+                                                        "properties": {
+                                                            "sid": {
+                                                                "type": "integer",
+                                                                "example": 1932
+                                                            },
+                                                            "schid": {
+                                                                "type": "integer",
+                                                                "example": 31
+                                                            },
+                                                            "fname": {
+                                                                "type": "string",
+                                                                "example": "Onyinyechi"
+                                                            },
+                                                            "mname": {
+                                                                "type": "string",
+                                                                "example": "Bertha"
+                                                            },
+                                                            "lname": {
+                                                                "type": "string",
+                                                                "example": "Ahiabuike"
+                                                            },
+                                                            "status": {
+                                                                "type": "string",
+                                                                "example": "active"
+                                                            },
+                                                            "ssn": {
+                                                                "type": "integer",
+                                                                "example": 2024
+                                                            },
+                                                            "trm": {
+                                                                "type": "integer",
+                                                                "example": 1
+                                                            },
+                                                            "clsm": {
+                                                                "type": "string",
+                                                                "example": "11"
+                                                            },
+                                                            "role": {
+                                                                "type": "string",
+                                                                "example": "13"
+                                                            },
+                                                            "role2": {
+                                                                "type": "string",
+                                                                "example": "14"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    },
+                                                    "b": {
+                                                        "description": "Staff basic information from staff_basic_data",
+                                                        "type": "object"
+                                                    },
+                                                    "p": {
+                                                        "description": "Staff professional information from staff_prof_data",
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Unauthorized. Only LGA Admin can access this endpoint."
+                    },
+                    "404": {
+                        "description": "LGA Admin location not found."
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/billing/school-bills/{schid}": {
             "get": {
                 "tags": [

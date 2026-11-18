@@ -56486,4 +56486,190 @@ class ApiController extends Controller
             'pld' => $pld,
         ]);
     }
+
+
+
+
+
+/**
+ * @OA\Get(
+ *     path="/api/getLgaAdminStaff",
+ *     tags={"Api"},
+ *     security={{"bearerAuth": {}}},
+ *
+ *     summary="Get active staff within the LGA Admin's LGA",
+ *     description="Returns active staff members belonging to schools within the authenticated LGA Admin's assigned state and LGA. Results are paginated. Each record contains staff details (s), basic information (b), and professional information (p).",
+ *
+ *     @OA\Parameter(
+ *         name="start",
+ *         in="query",
+ *         required=false,
+ *         description="Starting position for pagination. Defaults to 0.",
+ *         @OA\Schema(type="integer", minimum=0, default=0)
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="count",
+ *         in="query",
+ *         required=false,
+ *         description="Number of staff records to return. Defaults to 20. Maximum is 100.",
+ *         @OA\Schema(type="integer", minimum=1, maximum=100, default=20)
+ *     ),
+ *
+ *     security={{"bearerAuth": {}}},
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Success",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(property="total", type="integer", example=10),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     @OA\Property(
+ *                         property="s",
+ *                         type="object",
+ *                         description="Staff record from the old_staff table",
+ *                         @OA\Property(property="sid", type="integer", example=1932),
+ *                         @OA\Property(property="schid", type="integer", example=31),
+ *                         @OA\Property(property="fname", type="string", example="Onyinyechi"),
+ *                         @OA\Property(property="mname", type="string", example="Bertha"),
+ *                         @OA\Property(property="lname", type="string", example="Ahiabuike"),
+ *                         @OA\Property(property="status", type="string", example="active"),
+ *                         @OA\Property(property="ssn", type="integer", example=2024),
+ *                         @OA\Property(property="trm", type="integer", example=1),
+ *                         @OA\Property(property="clsm", type="string", example="11"),
+ *                         @OA\Property(property="role", type="string", example="13"),
+ *                         @OA\Property(property="role2", type="string", example="14")
+ *                     ),
+ *                     @OA\Property(
+ *                         property="b",
+ *                         type="object",
+ *                         description="Staff basic information from staff_basic_data"
+ *                     ),
+ *                     @OA\Property(
+ *                         property="p",
+ *                         type="object",
+ *                         description="Staff professional information from staff_prof_data"
+ *                     )
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthenticated"
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=403,
+ *         description="Unauthorized. Only LGA Admin can access this endpoint."
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=404,
+ *         description="LGA Admin location not found."
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation error"
+ *     )
+ * )
+ */
+
+public function getLgaAdminStaff(Request $request)
+{
+    $admin = auth()->user();
+
+    // Only authenticated LGA Admins can access this endpoint.
+    if (!$admin || $admin->typ !== 'lga') {
+        return response()->json([
+            'status' => false,
+            'message' => 'Unauthorized. Only LGA Admin can access this endpoint.',
+        ], 403);
+    }
+
+    // Validate pagination.
+    $request->validate([
+        'start' => 'nullable|integer|min:0',
+        'count' => 'nullable|integer|min:1|max:100',
+    ]);
+
+    $start = (int) $request->input('start', 0);
+    $count = (int) $request->input('count', 20);
+
+    // Get the authenticated LGA Admin's assigned state and LGA.
+    $lgaAdmin = LgaAdmin::where('user_id', $admin->id)->first();
+
+    if (!$lgaAdmin) {
+        return response()->json([
+            'status' => false,
+            'message' => 'LGA Admin location not found.',
+        ], 404);
+    }
+
+    // Get schools belonging to this LGA Admin's LGA.
+    $schoolIds = school_web_data::whereRaw('LOWER(state) = ?', [
+            strtolower(trim($lgaAdmin->state)),
+        ])
+        ->whereRaw('LOWER(lga) = ?', [
+            strtolower(trim($lgaAdmin->lga)),
+        ])
+        ->pluck('user_id');
+
+    // Fetch active staff belonging to those schools.
+    $query = old_staff::join(
+        'staff_basic_data',
+        'old_staff.sid',
+        '=',
+        'staff_basic_data.user_id'
+    )
+        ->whereIn('old_staff.schid', $schoolIds)
+        ->where('old_staff.status', 'active')
+        ->select('old_staff.*')
+        ->distinct();
+
+    // Get unique staff members.
+    $allStaff = $query
+        ->orderBy('old_staff.lname', 'asc')
+        ->orderBy('old_staff.sid', 'asc')
+        ->get()
+        ->unique('sid')
+        ->values();
+
+    $total = $allStaff->count();
+
+    // Apply pagination.
+    $staffMembers = $allStaff
+        ->slice($start, $count)
+        ->values();
+
+    // Fetch staff basic and professional information.
+    $pld = $staffMembers->map(function ($member) {
+
+        // Remove asterisk from role.
+        if (!empty($member->role)) {
+            $member->role = ltrim($member->role, '*');
+        }
+
+        return [
+            's' => $member,
+            'b' => staff_basic_data::where('user_id', $member->sid)->first(),
+            'p' => staff_prof_data::where('user_id', $member->sid)->first(),
+        ];
+    });
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Success',
+        'total' => $total,
+        'pld' => $pld,
+    ]);
+}
+
 }
