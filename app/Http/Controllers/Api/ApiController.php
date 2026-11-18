@@ -149,84 +149,188 @@ class ApiController extends Controller
      *     @OA\Response(response=200, description="School registered successfully")
      * )
      */
-    public function registerSchool(Request $request)
-    {
-        //Data validation
-        $request->validate([
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required',
-            'name' => 'required',
-            'sbd' => 'required',
-            'sch3' => 'required',
-        ]);
-        if (strlen($request->password) < 6) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Password must be at least 6 char',
-            ], 400);
-        }
-        $typ = 's';
-        $usr = User::where('typ', $typ)->where('email', $request->email)->first();
-        if (! $usr) {
-            $usr = User::create([
-                'email' => $request->email,
-                'typ' => $typ,
-                'verif' => '0',
-                'password' => bcrypt($request->password),
-            ]);
-            $count = school::count() + 1;
-            school::create([
-                'sid' => strval($usr->id),
-                'name' => $request->name,
-                'sbd' => $request->sbd,
-                'sch3' => $request->sch3,
-                'count' => strval($count),
-                's_web' => '0',
-                's_info' => '0',
+    // public function registerSchool(Request $request)
+    // {
+    //     //Data validation
+    //     $request->validate([
+    //         'email' => 'required|email|unique:users,email',
+    //         'password' => 'required',
+    //         'name' => 'required',
+    //         'sbd' => 'required',
+    //         'sch3' => 'required',
+    //     ]);
+    //     if (strlen($request->password) < 6) {
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'Password must be at least 6 char',
+    //         ], 400);
+    //     }
+    //     $typ = 's';
+    //     $usr = User::where('typ', $typ)->where('email', $request->email)->first();
+    //     if (! $usr) {
+    //         $usr = User::create([
+    //             'email' => $request->email,
+    //             'typ' => $typ,
+    //             'verif' => '0',
+    //             'password' => bcrypt($request->password),
+    //         ]);
+    //         $count = school::count() + 1;
+    //         school::create([
+    //             'sid' => strval($usr->id),
+    //             'name' => $request->name,
+    //             'sbd' => $request->sbd,
+    //             'sch3' => $request->sch3,
+    //             'count' => strval($count),
+    //             's_web' => '0',
+    //             's_info' => '0',
 
-                'cssn' => '0',
-                'ctrm' => '0',
-                'ctrmn' => '0',
-            ]);
-            $code = Str::random(6);
-            $eml = $request->email;
-            password_reset_tokens::updateOrCreate(
-                ['email' => $eml],
-                ['token' => $code]
-            );
-            $schid = strval($usr->id);
-            $lnk = env('API_URL').'/api/verifyEmail/'.$typ.'/'.$code.'/'.$schid;
-            // Wrap the email sending logic in a try-catch block
-            try {
-                $data = [
-                    'name' => $request->name,
-                    'subject' => 'Verify Your Email',
-                    'body' => 'Please use the link below to verify your email. Welcome to School Silo. If the link isnt clickable, please copy the link to your browser. If this arrived in spam folder, please mark as Not Spam. '.$lnk,
-                    'link' => $lnk,
-                ];
-                Mail::to($eml)->send(new SSSMails($data));
-            } catch (\Exception $e) {
-                // Log the email error, but don't stop the process
-                Log::error('Failed to send email: '.$e->getMessage());
-            }
+    //             'cssn' => '0',
+    //             'ctrm' => '0',
+    //             'ctrmn' => '0',
+    //         ]);
+    //         $code = Str::random(6);
+    //         $eml = $request->email;
+    //         password_reset_tokens::updateOrCreate(
+    //             ['email' => $eml],
+    //             ['token' => $code]
+    //         );
+    //         $schid = strval($usr->id);
+    //         $lnk = env('API_URL').'/api/verifyEmail/'.$typ.'/'.$code.'/'.$schid;
+    //         // Wrap the email sending logic in a try-catch block
+    //         try {
+    //             $data = [
+    //                 'name' => $request->name,
+    //                 'subject' => 'Verify Your Email',
+    //                 'body' => 'Please use the link below to verify your email. Welcome to School Silo. If the link isnt clickable, please copy the link to your browser. If this arrived in spam folder, please mark as Not Spam. '.$lnk,
+    //                 'link' => $lnk,
+    //             ];
+    //             Mail::to($eml)->send(new SSSMails($data));
+    //         } catch (\Exception $e) {
+    //             // Log the email error, but don't stop the process
+    //             Log::error('Failed to send email: '.$e->getMessage());
+    //         }
 
-            $token = JWTAuth::attempt([
-                'email' => $request->email,
-                'password' => $request->password,
-            ]);
+    //         $token = JWTAuth::attempt([
+    //             'email' => $request->email,
+    //             'password' => $request->password,
+    //         ]);
 
-            return response()->json([
-                'status' => true,
-                'message' => 'User created successfully',
-                'token' => $token,
-            ]);
-        }
+    //         return response()->json([
+    //             'status' => true,
+    //             'message' => 'User created successfully',
+    //             'token' => $token,
+    //         ]);
+    //     }
 
+    //     return response()->json([
+    //         'status' => false,
+    //         'message' => 'Account already exists',
+    //     ], 400);
+    // }
+
+
+
+    
+public function registerSchool(Request $request)
+{
+    // Data validation
+    $request->validate([
+        'email' => 'required|email|unique:users,email',
+        'password' => 'required',
+        'name' => 'required',
+        'sbd' => 'required',
+        'sch3' => 'required',
+    ]);
+
+    if (strlen($request->password) < 6) {
         return response()->json([
             'status' => false,
-            'message' => 'Account already exists',
+            'message' => 'Password must be at least 6 char',
         ], 400);
     }
+
+    $typ = 's';
+
+    $usr = User::where('typ', $typ)
+        ->where('email', $request->email)
+        ->first();
+
+    if (! $usr) {
+        $usr = User::create([
+            'email' => $request->email,
+            'typ' => $typ,
+            'verif' => '0',
+            'password' => bcrypt($request->password),
+        ]);
+
+        $count = school::count() + 1;
+
+        school::create([
+            'sid' => strval($usr->id),
+            'name' => $request->name,
+            'sbd' => $request->sbd,
+            'sch3' => $request->sch3,
+            'count' => strval($count),
+            's_web' => '0',
+            's_info' => '0',
+            'cssn' => '0',
+            'ctrm' => '0',
+            'ctrmn' => '0',
+        ]);
+
+        $code = Str::random(6);
+        $eml = $request->email;
+
+        password_reset_tokens::updateOrCreate(
+            ['email' => $eml],
+            ['token' => $code]
+        );
+
+        $schid = strval($usr->id);
+
+        $apiUrl = rtrim(config('app.api_url'), '/');
+
+        $lnk = $apiUrl . '/api/verifyEmail/' . $typ . '/' . $code . '/' . $schid;
+
+        // Send verification email
+        try {
+            $data = [
+                'name' => $request->name,
+                'subject' => 'Verify Your Email',
+
+                'body' => "Please use the link below to verify your email. Welcome to School Silo.\n\n"
+                    . "If the link isn't clickable, please copy the link to your browser.\n\n"
+                    . "If this arrived in spam folder, please mark it as Not Spam.",
+
+                'link' => $lnk,
+            ];
+
+            Mail::to($eml)->send(new SSSMails($data));
+
+        } catch (\Throwable $e) {
+            // Log the email error, but don't stop the process
+            Log::error('Failed to send email: ' . $e->getMessage());
+        }
+
+        $token = JWTAuth::attempt([
+            'email' => $request->email,
+            'password' => $request->password,
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'User created successfully',
+            'token' => $token,
+        ]);
+    }
+
+    return response()->json([
+        'status' => false,
+        'message' => 'Account already exists',
+    ], 400);
+}
+
+
 
     /**
      * @OA\Post(
