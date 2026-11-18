@@ -317,6 +317,10 @@ public function registerSchool(Request $request)
             'password' => $request->password,
         ]);
 
+        Log::info('School verification URL generated', [
+            'verification_url' => $lnk,
+        ]);
+
         return response()->json([
             'status' => true,
             'message' => 'User created successfully',
