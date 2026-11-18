@@ -21990,71 +21990,71 @@ class ApiController extends Controller
     // }
 
     public function adminLogin(Request $request)
-{
-    // Data validation
-    $request->validate([
-        "email" => "required|email",
-        "password" => "required",
-    ]);
-
-    $usr = User::where("email", $request->email)
-        ->whereIn('typ', ['a', 'sa', 'lga'])
-        ->first();
-
-    if ($usr) {
-        $token = JWTAuth::attempt([
-            "email" => $request->email,
-            "password" => $request->password,
+    {
+        // Data validation
+        $request->validate([
+            "email" => "required|email",
+            "password" => "required",
         ]);
 
-        if (!empty($token)) {
+        $usr = User::where("email", $request->email)
+            ->whereIn('typ', ['a', 'sa', 'lga'])
+            ->first();
 
-            // Default login response data
-            $pld = $usr;
+        if ($usr) {
+            $token = JWTAuth::attempt([
+                "email" => $request->email,
+                "password" => $request->password,
+            ]);
 
-            // Add State and LGA only when an LGA Admin logs in
-            if ($usr->typ === 'lga') {
-                $lgaAdmin = LgaAdmin::where('user_id', $usr->id)->first();
+            if (!empty($token)) {
 
-                if ($lgaAdmin) {
-                    $pld = array_merge($usr->toArray(), [
-                        "state" => $lgaAdmin->state,
-                        "lga" => $lgaAdmin->lga,
-                    ]);
+                // Default login response data
+                $pld = $usr;
+
+                // Add State and LGA only when an LGA Admin logs in
+                if ($usr->typ === 'lga') {
+                    $lgaAdmin = LgaAdmin::where('user_id', $usr->id)->first();
+
+                    if ($lgaAdmin) {
+                        $pld = array_merge($usr->toArray(), [
+                            "state" => $lgaAdmin->state,
+                            "lga" => $lgaAdmin->lga,
+                        ]);
+                    }
                 }
+
+                return response()->json([
+                    "status" => true,
+                    "message" => "User login successfully",
+                    "token" => $token,
+                    "pld" => $pld
+                ]);
             }
+        } else {
+            $portalUrl = env('PORTAL_URL');
+            $adminEml = 'admin@' . substr($portalUrl, 14);
 
-            return response()->json([
-                "status" => true,
-                "message" => "User login successfully",
-                "token" => $token,
-                "pld" => $pld
-            ]);
+            if ($request->email == $adminEml) {
+                $usr = User::create([
+                    "email" => $adminEml,
+                    "typ" => $typ,
+                    "verif" => '1',
+                    "password" => bcrypt('123456'),
+                ]);
+
+                return response()->json([
+                    "status" => false,
+                    "message" => "Please try again",
+                ], 400);
+            }
         }
-    } else {
-        $portalUrl = env('PORTAL_URL');
-        $adminEml = 'admin@' . substr($portalUrl, 14);
 
-        if ($request->email == $adminEml) {
-            $usr = User::create([
-                "email" => $adminEml,
-                "typ" => $typ,
-                "verif" => '1',
-                "password" => bcrypt('123456'),
-            ]);
-
-            return response()->json([
-                "status" => false,
-                "message" => "Please try again",
-            ], 400);
-        }
+        return response()->json([
+            "status" => false,
+            "message" => "Invalid login details",
+        ], 400);
     }
-
-    return response()->json([
-        "status" => false,
-        "message" => "Invalid login details",
-    ], 400);
-}
 
     /**
      * @OA\Post(
@@ -27169,12 +27169,12 @@ class ApiController extends Controller
         */
 
             $duplicateHistory = DB::table('old_student')
-            ->select('ssn', 'trm', 'clsm', 'clsa')
-            ->where('schid', $schid)
-            ->where('sid', $stid)
-            ->groupBy('ssn', 'trm', 'clsm', 'clsa')
-            ->havingRaw('COUNT(*) > 1')
-            ->first();
+                ->select('ssn', 'trm', 'clsm', 'clsa')
+                ->where('schid', $schid)
+                ->where('sid', $stid)
+                ->groupBy('ssn', 'trm', 'clsm', 'clsa')
+                ->havingRaw('COUNT(*) > 1')
+                ->first();
 
             if ($duplicateHistory) {
                 DB::rollBack();
@@ -53503,64 +53503,64 @@ class ApiController extends Controller
 
 
 
-/**
- * @OA\Get(
- *     path="/api/getLgaAdmins",
- *     summary="Get all LGA Admins",
- *     description="Fetches LGA Admin accounts with optional filtering by state and LGA. Only an authenticated Domain Admin (typ = 'a') can access this endpoint.",
- *     operationId="getLgaAdmins",
- *     tags={"Api"},
- *     security={{"bearerAuth":{}}},
- *
- *     @OA\Parameter(
- *         name="state",
- *         in="query",
- *         required=false,
- *         description="Filter LGA Admins by state",
- *         @OA\Schema(
- *             type="string",
- *             example="Benue"
- *         )
- *     ),
- *     @OA\Parameter(
- *         name="lga",
- *         in="query",
- *         required=false,
- *         description="Filter LGA Admins by Local Government Area",
- *         @OA\Schema(
- *             type="string",
- *             example="Gboko"
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="LGA Admins retrieved successfully",
- *         @OA\JsonContent(
- *             type="object",
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Success"),
- *             @OA\Property(
- *                 property="pld",
- *                 type="array",
- *                 @OA\Items(
- *                     type="object",
- *                     @OA\Property(property="id", type="integer", example=1),
- *                     @OA\Property(property="user_id", type="integer", example=7750),
- *                     @OA\Property(property="email", type="string", example="gboko_benue_admin@schoolsilomerge.top"),
- *                     @OA\Property(property="typ", type="string", example="lga"),
- *                     @OA\Property(property="verif", type="string", example="1"),
- *                     @OA\Property(property="state", type="string", example="Benue"),
- *                     @OA\Property(property="lga", type="string", example="Gboko")
- *                 )
- *             )
- *         )
- *     ),
- *     @OA\Response(response=401, description="Unauthenticated"),
- *     @OA\Response(response=403, description="Only Domain Admins can view LGA Admin accounts"),
- *     @OA\Response(response=422, description="Validation failed")
- * )
- */
+    /**
+     * @OA\Get(
+     *     path="/api/getLgaAdmins",
+     *     summary="Get all LGA Admins",
+     *     description="Fetches LGA Admin accounts with optional filtering by state and LGA. Only an authenticated Domain Admin (typ = 'a') can access this endpoint.",
+     *     operationId="getLgaAdmins",
+     *     tags={"Api"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="state",
+     *         in="query",
+     *         required=false,
+     *         description="Filter LGA Admins by state",
+     *         @OA\Schema(
+     *             type="string",
+     *             example="Benue"
+     *         )
+     *     ),
+     *     @OA\Parameter(
+     *         name="lga",
+     *         in="query",
+     *         required=false,
+     *         description="Filter LGA Admins by Local Government Area",
+     *         @OA\Schema(
+     *             type="string",
+     *             example="Gboko"
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="LGA Admins retrieved successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="user_id", type="integer", example=7750),
+     *                     @OA\Property(property="email", type="string", example="gboko_benue_admin@schoolsilomerge.top"),
+     *                     @OA\Property(property="typ", type="string", example="lga"),
+     *                     @OA\Property(property="verif", type="string", example="1"),
+     *                     @OA\Property(property="state", type="string", example="Benue"),
+     *                     @OA\Property(property="lga", type="string", example="Gboko")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Only Domain Admins can view LGA Admin accounts"),
+     *     @OA\Response(response=422, description="Validation failed")
+     * )
+     */
     public function getLgaAdmins(Request $request)
     {
         // Only Domain Admin can view LGA Admin accounts
@@ -53691,168 +53691,256 @@ class ApiController extends Controller
     }
 
     /** 
- * @OA\Post(
- *     path="/api/changeLgaAdminPassword",
- *     summary="Change LGA Admin password",
- *     description="Allows an authenticated LGA Admin (typ = 'lga') to change their password by providing their current password and confirming a new password.",
- *     operationId="changeLgaAdminPassword",
- *     tags={"Api"},
- *     security={{"bearerAuth":{}}},
- *
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             type="object",
- *             required={"current_password", "new_password", "new_password_confirmation"},
- *             @OA\Property(
- *                 property="current_password",
- *                 type="string",
- *                 example="123456"
- *             ),
- *             @OA\Property(
- *                 property="new_password",
- *                 type="string",
- *                 example="MyNewPassword123"
- *             ),
- *             @OA\Property(
- *                 property="new_password_confirmation",
- *                 type="string",
- *                 example="MyNewPassword123"
- *             )
- *         )
- *     ),
- *
- *     @OA\Response(
- *         response=200,
- *         description="Password changed successfully",
- *         @OA\JsonContent(
- *             @OA\Property(property="status", type="boolean", example=true),
- *             @OA\Property(property="message", type="string", example="Password changed successfully.")
- *         )
- *     ),
- *     @OA\Response(response=400, description="Current password is incorrect"),
- *     @OA\Response(response=401, description="Unauthenticated"),
- *     @OA\Response(response=403, description="Only LGA Admins can change their passwords"),
- *     @OA\Response(response=422, description="Validation failed")
- * )
- */
-public function changeLgaAdminPassword(Request $request)
-{
-    // Only authenticated LGA Admin can change their password
-    $admin = auth()->user();
+     * @OA\Post(
+     *     path="/api/changeLgaAdminPassword",
+     *     summary="Change LGA Admin password",
+     *     description="Allows an authenticated LGA Admin (typ = 'lga') to change their password by providing their current password and confirming a new password.",
+     *     operationId="changeLgaAdminPassword",
+     *     tags={"Api"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             required={"current_password", "new_password", "new_password_confirmation"},
+     *             @OA\Property(
+     *                 property="current_password",
+     *                 type="string",
+     *                 example="123456"
+     *             ),
+     *             @OA\Property(
+     *                 property="new_password",
+     *                 type="string",
+     *                 example="MyNewPassword123"
+     *             ),
+     *             @OA\Property(
+     *                 property="new_password_confirmation",
+     *                 type="string",
+     *                 example="MyNewPassword123"
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Password changed successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Password changed successfully.")
+     *         )
+     *     ),
+     *     @OA\Response(response=400, description="Current password is incorrect"),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Only LGA Admins can change their passwords"),
+     *     @OA\Response(response=422, description="Validation failed")
+     * )
+     */
+    public function changeLgaAdminPassword(Request $request)
+    {
+        // Only authenticated LGA Admin can change their password
+        $admin = auth()->user();
 
-    if (!$admin || $admin->typ !== 'lga') {
+        if (!$admin || $admin->typ !== 'lga') {
+            return response()->json([
+                "status" => false,
+                "message" => "Unauthorized. Only LGA Admins can change their passwords.",
+            ], 403);
+        }
+
+        // Validate request
+        $request->validate([
+            'current_password' => 'required|string',
+            'new_password' => 'required|string|min:8|confirmed',
+        ]);
+
+        // Verify current password
+        if (!Hash::check($request->current_password, $admin->password)) {
+            return response()->json([
+                "status" => false,
+                "message" => "Current password is incorrect.",
+            ], 400);
+        }
+
+        // Update password
+        $admin->password = Hash::make($request->new_password);
+        $admin->save();
+
         return response()->json([
-            "status" => false,
-            "message" => "Unauthorized. Only LGA Admins can change their passwords.",
-        ], 403);
+            "status" => true,
+            "message" => "Password changed successfully.",
+        ]);
     }
 
-    // Validate request
-    $request->validate([
-        'current_password' => 'required|string',
-        'new_password' => 'required|string|min:8|confirmed',
-    ]);
 
-    // Verify current password
-    if (!Hash::check($request->current_password, $admin->password)) {
+    /**
+     * @OA\Get(
+     *     path="/api/getLgaAdmin/{id}",
+     *     summary="Get a single LGA Admin",
+     *     description="Retrieves a single LGA Admin account using its ID from the lga_admins table. Only an authenticated Domain Admin (typ = 'a') can access this endpoint.",
+     *     operationId="getLgaAdmin",
+     *     tags={"Api"},
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="The LGA Admin record ID from the lga_admins table",
+     *         @OA\Schema(
+     *             type="integer",
+     *             example=1
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="LGA Admin retrieved successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="status", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Success"),
+     *             @OA\Property(
+     *                 property="pld",
+     *                 type="object",
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="user_id", type="integer", example=7750),
+     *                 @OA\Property(property="email", type="string", example="gboko_benue_admin@schoolsilomerge.top"),
+     *                 @OA\Property(property="typ", type="string", example="lga"),
+     *                 @OA\Property(property="verif", type="string", example="1"),
+     *                 @OA\Property(property="state", type="string", example="Benue"),
+     *                 @OA\Property(property="lga", type="string", example="Gboko")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Only Domain Admins can view LGA Admin accounts"),
+     *     @OA\Response(response=404, description="LGA Admin not found")
+     * )
+     */
+    public function getLgaAdmin($id)
+    {
+        // Only Domain Admin can view an LGA Admin account
+        $admin = auth()->user();
+
+        if (!$admin || $admin->typ !== 'a') {
+            return response()->json([
+                "status" => false,
+                "message" => "Unauthorized. Only Domain Admin can view LGA Admin accounts.",
+            ], 403);
+        }
+
+        // Retrieve LGA Admin by lga_admins ID
+        $lgaAdmin = LgaAdmin::with('user:id,email,typ,verif')
+            ->find($id);
+
+        if (!$lgaAdmin) {
+            return response()->json([
+                "status" => false,
+                "message" => "LGA Admin not found.",
+            ], 404);
+        }
+
         return response()->json([
-            "status" => false,
-            "message" => "Current password is incorrect.",
-        ], 400);
+            "status" => true,
+            "message" => "Success",
+            "pld" => [
+                "id" => $lgaAdmin->id,
+                "user_id" => $lgaAdmin->user_id,
+                "email" => $lgaAdmin->user->email ?? null,
+                "typ" => $lgaAdmin->user->typ ?? null,
+                "verif" => $lgaAdmin->user->verif ?? null,
+                "state" => $lgaAdmin->state,
+                "lga" => $lgaAdmin->lga,
+            ],
+        ]);
     }
-
-    // Update password
-    $admin->password = Hash::make($request->new_password);
-    $admin->save();
-
-    return response()->json([
-        "status" => true,
-        "message" => "Password changed successfully.",
-    ]);
-}
 
 
 /**
  * @OA\Get(
- *     path="/api/getLgaAdmin/{id}",
- *     summary="Get a single LGA Admin",
- *     description="Retrieves a single LGA Admin account using its ID from the lga_admins table. Only an authenticated Domain Admin (typ = 'a') can access this endpoint.",
- *     operationId="getLgaAdmin",
+ *     path="/api/getLgaAdminSchools",
+ *     summary="Get schools assigned to the authenticated LGA Admin",
+ *     description="Retrieves all schools within the authenticated LGA Admin's assigned state and LGA. Only authenticated LGA Admins (typ = 'lga') can access this endpoint. The state and LGA are retrieved from the lga_admins table using the authenticated user's ID.",
+ *     operationId="getLgaAdminSchools",
  *     tags={"Api"},
  *     security={{"bearerAuth":{}}},
  *
- *     @OA\Parameter(
- *         name="id",
- *         in="path",
- *         required=true,
- *         description="The LGA Admin record ID from the lga_admins table",
- *         @OA\Schema(
- *             type="integer",
- *             example=1
- *         )
- *     ),
- *
  *     @OA\Response(
  *         response=200,
- *         description="LGA Admin retrieved successfully",
+ *         description="Schools retrieved successfully",
  *         @OA\JsonContent(
  *             type="object",
  *             @OA\Property(property="status", type="boolean", example=true),
  *             @OA\Property(property="message", type="string", example="Success"),
  *             @OA\Property(
  *                 property="pld",
- *                 type="object",
- *                 @OA\Property(property="id", type="integer", example=1),
- *                 @OA\Property(property="user_id", type="integer", example=7750),
- *                 @OA\Property(property="email", type="string", example="gboko_benue_admin@schoolsilomerge.top"),
- *                 @OA\Property(property="typ", type="string", example="lga"),
- *                 @OA\Property(property="verif", type="string", example="1"),
- *                 @OA\Property(property="state", type="string", example="Benue"),
- *                 @OA\Property(property="lga", type="string", example="Gboko")
+ *                 type="array",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(property="user_id", type="integer", example=11869),
+ *                     @OA\Property(property="sname", type="string", example="LEA PRIMARY SCHOOL CHIKAKORE"),
+ *                     @OA\Property(property="addr", type="string", example="Adjacent Primary Health Center Chikakore Kubwa"),
+ *                     @OA\Property(property="country", type="string", example="NG"),
+ *                     @OA\Property(property="state", type="string", example="36"),
+ *                     @OA\Property(property="lga", type="string", example="02")
+ *                 )
  *             )
  *         )
  *     ),
- *     @OA\Response(response=401, description="Unauthenticated"),
- *     @OA\Response(response=403, description="Only Domain Admins can view LGA Admin accounts"),
- *     @OA\Response(response=404, description="LGA Admin not found")
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthenticated"
+ *     ),
+ *     @OA\Response(
+ *         response=403,
+ *         description="Unauthorized. Only LGA Admin can access this endpoint."
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="LGA Admin location not found."
+ *     )
  * )
  */
-public function getLgaAdmin($id)
+public function getLgaAdminSchools()
 {
-    // Only Domain Admin can view an LGA Admin account
     $admin = auth()->user();
 
-    if (!$admin || $admin->typ !== 'a') {
+    // Only LGA Admins can use this endpoint.
+    if (!$admin || $admin->typ !== 'lga') {
         return response()->json([
             "status" => false,
-            "message" => "Unauthorized. Only Domain Admin can view LGA Admin accounts.",
+            "message" => "Unauthorized. Only LGA Admin can access this endpoint.",
         ], 403);
     }
 
-    // Retrieve LGA Admin by lga_admins ID
-    $lgaAdmin = LgaAdmin::with('user:id,email,typ,verif')
-        ->find($id);
+    // Get the authenticated LGA Admin's assigned state and LGA.
+    $lgaAdmin = LgaAdmin::where('user_id', $admin->id)->first();
 
     if (!$lgaAdmin) {
         return response()->json([
             "status" => false,
-            "message" => "LGA Admin not found.",
+            "message" => "LGA Admin location not found.",
         ], 404);
     }
+
+    // Retrieve only schools within the assigned state and LGA.
+    $schools = school_web_data::where('state', $lgaAdmin->state)
+        ->where('lga', $lgaAdmin->lga)
+        ->select([
+            'user_id',
+            'sname',
+            'addr',
+            'country',
+            'state',
+            'lga',
+        ])
+        ->get();
 
     return response()->json([
         "status" => true,
         "message" => "Success",
-        "pld" => [
-            "id" => $lgaAdmin->id,
-            "user_id" => $lgaAdmin->user_id,
-            "email" => $lgaAdmin->user->email ?? null,
-            "typ" => $lgaAdmin->user->typ ?? null,
-            "verif" => $lgaAdmin->user->verif ?? null,
-            "state" => $lgaAdmin->state,
-            "lga" => $lgaAdmin->lga,
-        ],
+        "pld" => $schools,
     ]);
 }
 
