@@ -53925,8 +53925,9 @@ public function getLgaAdminSchools()
     }
 
     // Retrieve only schools within the assigned state and LGA.
-    $schools = school_web_data::where('state', $lgaAdmin->state)
-        ->where('lga', $lgaAdmin->lga)
+    // Comparisons are case-insensitive.
+    $schools = school_web_data::whereRaw('LOWER(state) = ?', [strtolower(trim($lgaAdmin->state))])
+        ->whereRaw('LOWER(lga) = ?', [strtolower(trim($lgaAdmin->lga))])
         ->select([
             'user_id',
             'sname',
