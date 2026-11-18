@@ -3958,14 +3958,12 @@
                 }
             }
         },
-        "/api/\n     *\n     *\n     \\\n     * \\Mark": {
+        "/api/setClassMark": {
             "post": {
                 "tags": [
                     "Api"
                 ],
-                "summary": "Set a Class Mark. If new, no need for id param. Otherwise, specify",
-                "description": "This endpoint is used to set information about a class mark.",
-                "operationId": "6700672b509268f04b4d3c61a6d58e11",
+                "operationId": "c3839dbe3394fcfeed16243a899f9f54",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -37056,7 +37054,7 @@
                     "Api"
                 ],
                 "summary": "Get students within the authenticated LGA Admin's LGA",
-                "description": "Retrieves students from all schools within the authenticated LGA Admin's assigned state and LGA. The state and LGA are retrieved automatically from the lga_admins table using the authenticated user's ID. Supports pagination and optional filtering by student status, latest available class, academic year, and term. Returns student, basic, and academic data. This endpoint is read-only and does not send pending application emails or modify student records.",
+                "description": "Retrieves unique students from all schools within the authenticated LGA Admin's assigned state and LGA. The state and LGA are retrieved automatically from the lga_admins table using the authenticated user's ID. Supports pagination and optional filtering by student application status, academic class, academic year, and academic term. Academic class, year, and term filters use the old_student table (clsm, ssn, and trm respectively). Returns student information, basic information, and the matching academic history record. This endpoint is read-only and does not send pending application emails or modify student records.",
                 "operationId": "getLgaAdminStudents",
                 "parameters": [
                     {
@@ -37087,7 +37085,7 @@
                     {
                         "name": "stat",
                         "in": "query",
-                        "description": "Filter students by application status: 0 = Pending, 1 = Approved, 2 = Declined.",
+                        "description": "Filter students by application status: 0 = Pending, 1 = Approved, 2 = Declined. Uses student.stat.",
                         "required": false,
                         "schema": {
                             "type": "string",
@@ -37102,28 +37100,28 @@
                     {
                         "name": "cls",
                         "in": "query",
-                        "description": "Filter by the student's latest available new_class_main. Use zzz to include all classes. Defaults to zzz.",
+                        "description": "Filter by academic class using old_student.clsm. Use zzz to include all classes. Defaults to zzz.",
                         "required": false,
                         "schema": {
                             "type": "string",
                             "default": "zzz",
-                            "example": "13"
+                            "example": "15"
                         }
                     },
                     {
                         "name": "year",
                         "in": "query",
-                        "description": "Filter by student.year.",
+                        "description": "Filter by academic year using old_student.ssn. This is not student.year.",
                         "required": false,
                         "schema": {
                             "type": "string",
-                            "example": "2026"
+                            "example": "2025"
                         }
                     },
                     {
                         "name": "term",
                         "in": "query",
-                        "description": "Filter by student.term.",
+                        "description": "Filter by academic term using old_student.trm. This is not student.term.",
                         "required": false,
                         "schema": {
                             "type": "string",
@@ -37149,18 +37147,19 @@
                                         "total": {
                                             "description": "Total number of unique students matching the filters before pagination.",
                                             "type": "integer",
-                                            "example": 25
+                                            "example": 30
                                         },
                                         "pld": {
+                                            "description": "List of students with their basic information and matching academic history record.",
                                             "type": "array",
                                             "items": {
                                                 "properties": {
                                                     "s": {
-                                                        "description": "Student record.",
+                                                        "description": "Student record from the student table.",
                                                         "properties": {
                                                             "sid": {
                                                                 "type": "integer",
-                                                                "example": 101
+                                                                "example": 1476
                                                             },
                                                             "schid": {
                                                                 "type": "integer",
@@ -37168,44 +37167,207 @@
                                                             },
                                                             "fname": {
                                                                 "type": "string",
-                                                                "example": "John"
+                                                                "example": "REJOICE"
+                                                            },
+                                                            "mname": {
+                                                                "type": "string",
+                                                                "example": "IHUOMACHI",
+                                                                "nullable": true
                                                             },
                                                             "lname": {
                                                                 "type": "string",
-                                                                "example": "Doe"
+                                                                "example": "AHAMEFULA"
                                                             },
                                                             "stat": {
-                                                                "type": "integer",
-                                                                "enum": [
-                                                                    0,
-                                                                    1,
-                                                                    2
-                                                                ],
-                                                                "example": 1
+                                                                "type": "string",
+                                                                "example": "1"
                                                             },
                                                             "year": {
-                                                                "type": "integer",
-                                                                "example": 2026
+                                                                "description": "Year stored in the student table; not used by the academic year filter.",
+                                                                "type": "string",
+                                                                "example": "2024"
                                                             },
                                                             "term": {
-                                                                "type": "integer",
-                                                                "example": 1
+                                                                "description": "Term stored in the student table; not used by the academic term filter.",
+                                                                "type": "string",
+                                                                "example": "1"
+                                                            },
+                                                            "cuid": {
+                                                                "type": "string",
+                                                                "example": "HGC/2024/1/286",
+                                                                "nullable": true
                                                             },
                                                             "new_class_main": {
+                                                                "description": "Class value copied from the matching old_student.clsm record.",
                                                                 "type": "string",
-                                                                "example": "13",
+                                                                "example": "15",
                                                                 "nullable": true
                                                             }
                                                         },
                                                         "type": "object"
                                                     },
                                                     "b": {
-                                                        "description": "Student basic data record.",
+                                                        "description": "Student basic information record from student_basic_data.",
+                                                        "properties": {
+                                                            "user_id": {
+                                                                "type": "integer",
+                                                                "example": 1476
+                                                            },
+                                                            "dob": {
+                                                                "type": "string",
+                                                                "example": null,
+                                                                "nullable": true
+                                                            },
+                                                            "dob_fixed": {
+                                                                "type": "string",
+                                                                "example": "2010-04-02",
+                                                                "nullable": true
+                                                            },
+                                                            "sex": {
+                                                                "type": "string",
+                                                                "example": "F",
+                                                                "nullable": true
+                                                            },
+                                                            "height": {
+                                                                "type": "string",
+                                                                "example": "NIL",
+                                                                "nullable": true
+                                                            },
+                                                            "country": {
+                                                                "type": "string",
+                                                                "example": "NG",
+                                                                "nullable": true
+                                                            },
+                                                            "state": {
+                                                                "type": "string",
+                                                                "example": "00",
+                                                                "nullable": true
+                                                            },
+                                                            "lga": {
+                                                                "type": "string",
+                                                                "example": "15",
+                                                                "nullable": true
+                                                            },
+                                                            "addr": {
+                                                                "type": "string",
+                                                                "example": "UMUAHIA",
+                                                                "nullable": true
+                                                            }
+                                                        },
                                                         "type": "object",
                                                         "nullable": true
                                                     },
                                                     "a": {
-                                                        "description": "Latest student academic data record.",
+                                                        "description": "Matching academic history record from old_student.",
+                                                        "properties": {
+                                                            "uid": {
+                                                                "type": "string",
+                                                                "example": "2025,1,1476,15"
+                                                            },
+                                                            "sid": {
+                                                                "type": "integer",
+                                                                "example": 1476
+                                                            },
+                                                            "schid": {
+                                                                "type": "integer",
+                                                                "example": 12
+                                                            },
+                                                            "fname": {
+                                                                "type": "string",
+                                                                "example": "REJOICE"
+                                                            },
+                                                            "mname": {
+                                                                "type": "string",
+                                                                "example": "IHUOMACHI",
+                                                                "nullable": true
+                                                            },
+                                                            "lname": {
+                                                                "type": "string",
+                                                                "example": "AHAMEFULA"
+                                                            },
+                                                            "status": {
+                                                                "type": "string",
+                                                                "example": "active"
+                                                            },
+                                                            "suid": {
+                                                                "type": "string",
+                                                                "example": "HGC/2024/1/286",
+                                                                "nullable": true
+                                                            },
+                                                            "ssn": {
+                                                                "description": "Academic year.",
+                                                                "type": "string",
+                                                                "example": "2025"
+                                                            },
+                                                            "trm": {
+                                                                "description": "Academic term.",
+                                                                "type": "string",
+                                                                "example": "1"
+                                                            },
+                                                            "clsm": {
+                                                                "description": "Main class.",
+                                                                "type": "string",
+                                                                "example": "15"
+                                                            },
+                                                            "clsa": {
+                                                                "description": "Class arm.",
+                                                                "type": "string",
+                                                                "example": "10",
+                                                                "nullable": true
+                                                            },
+                                                            "cls_sbj_students": {
+                                                                "type": "string",
+                                                                "example": "2",
+                                                                "nullable": true
+                                                            },
+                                                            "adm_ssn": {
+                                                                "type": "string",
+                                                                "example": null,
+                                                                "nullable": true
+                                                            },
+                                                            "adm_trm": {
+                                                                "type": "string",
+                                                                "example": null,
+                                                                "nullable": true
+                                                            },
+                                                            "cls_of_adm": {
+                                                                "type": "string",
+                                                                "example": null,
+                                                                "nullable": true
+                                                            },
+                                                            "date_of_adm": {
+                                                                "type": "string",
+                                                                "example": null,
+                                                                "nullable": true
+                                                            },
+                                                            "adm_status": {
+                                                                "type": "string",
+                                                                "example": "0",
+                                                                "nullable": true
+                                                            },
+                                                            "more": {
+                                                                "type": "string",
+                                                                "example": null,
+                                                                "nullable": true
+                                                            },
+                                                            "created_at": {
+                                                                "type": "string",
+                                                                "format": "date-time",
+                                                                "example": "2026-02-05 23:22:44",
+                                                                "nullable": true
+                                                            },
+                                                            "updated_at": {
+                                                                "type": "string",
+                                                                "format": "date-time",
+                                                                "example": "2026-02-05 23:22:44",
+                                                                "nullable": true
+                                                            },
+                                                            "exit_student": {
+                                                                "type": "string",
+                                                                "example": null,
+                                                                "nullable": true
+                                                            }
+                                                        },
                                                         "type": "object",
                                                         "nullable": true
                                                     }
@@ -37229,7 +37391,7 @@
                         "description": "LGA Admin location not found."
                     },
                     "422": {
-                        "description": "Invalid request parameters"
+                        "description": "Invalid request parameters."
                     }
                 },
                 "security": [

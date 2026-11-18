@@ -8709,8 +8709,10 @@ class ApiController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/api/
+     *     path="/api/setClassMark",
+     *     tags={"Api"},
      *     security={{"bearerAuth": {}}},
+     *
      *     @OA\RequestBody(
      *         required=true,
      *
@@ -56115,7 +56117,7 @@ class ApiController extends Controller
      * @OA\Get(
      *     path="/api/getLgaAdminStudents",
      *     summary="Get students within the authenticated LGA Admin's LGA",
-     *     description="Retrieves students from all schools within the authenticated LGA Admin's assigned state and LGA. The state and LGA are retrieved automatically from the lga_admins table using the authenticated user's ID. Supports pagination and optional filtering by student status, latest available class, academic year, and term. Returns student, basic, and academic data. This endpoint is read-only and does not send pending application emails or modify student records.",
+     *     description="Retrieves unique students from all schools within the authenticated LGA Admin's assigned state and LGA. The state and LGA are retrieved automatically from the lga_admins table using the authenticated user's ID. Supports pagination and optional filtering by student application status, academic class, academic year, and academic term. Academic class, year, and term filters use the old_student table (clsm, ssn, and trm respectively). Returns student information, basic information, and the matching academic history record. This endpoint is read-only and does not send pending application emails or modify student records.",
      *     operationId="getLgaAdminStudents",
      *     tags={"Api"},
      *     security={{"bearerAuth": {}}},
@@ -56153,7 +56155,7 @@ class ApiController extends Controller
      *         name="stat",
      *         in="query",
      *         required=false,
-     *         description="Filter students by application status: 0 = Pending, 1 = Approved, 2 = Declined.",
+     *         description="Filter students by application status: 0 = Pending, 1 = Approved, 2 = Declined. Uses student.stat.",
      *
      *         @OA\Schema(
      *             type="string",
@@ -56166,12 +56168,12 @@ class ApiController extends Controller
      *         name="cls",
      *         in="query",
      *         required=false,
-     *         description="Filter by the student's latest available new_class_main. Use zzz to include all classes. Defaults to zzz.",
+     *         description="Filter by academic class using old_student.clsm. Use zzz to include all classes. Defaults to zzz.",
      *
      *         @OA\Schema(
      *             type="string",
      *             default="zzz",
-     *             example="13"
+     *             example="15"
      *         )
      *     ),
      *
@@ -56179,11 +56181,11 @@ class ApiController extends Controller
      *         name="year",
      *         in="query",
      *         required=false,
-     *         description="Filter by student.year.",
+     *         description="Filter by academic year using old_student.ssn. This is not student.year.",
      *
      *         @OA\Schema(
      *             type="string",
-     *             example="2026"
+     *             example="2025"
      *         )
      *     ),
      *
@@ -56191,7 +56193,7 @@ class ApiController extends Controller
      *         name="term",
      *         in="query",
      *         required=false,
-     *         description="Filter by student.term.",
+     *         description="Filter by academic term using old_student.trm. This is not student.term.",
      *
      *         @OA\Schema(
      *             type="string",
@@ -56220,11 +56222,12 @@ class ApiController extends Controller
      *                 property="total",
      *                 type="integer",
      *                 description="Total number of unique students matching the filters before pagination.",
-     *                 example=25
+     *                 example=30
      *             ),
      *             @OA\Property(
      *                 property="pld",
      *                 type="array",
+     *                 description="List of students with their basic information and matching academic history record.",
      *
      *                 @OA\Items(
      *                     type="object",
@@ -56232,27 +56235,60 @@ class ApiController extends Controller
      *                     @OA\Property(
      *                         property="s",
      *                         type="object",
-     *                         description="Student record.",
-     *                         @OA\Property(property="sid", type="integer", example=101),
+     *                         description="Student record from the student table.",
+     *                         @OA\Property(property="sid", type="integer", example=1476),
      *                         @OA\Property(property="schid", type="integer", example=12),
-     *                         @OA\Property(property="fname", type="string", example="John"),
-     *                         @OA\Property(property="lname", type="string", example="Doe"),
-     *                         @OA\Property(property="stat", type="integer", enum={0, 1, 2}, example=1),
-     *                         @OA\Property(property="year", type="integer", example=2026),
-     *                         @OA\Property(property="term", type="integer", example=1),
-     *                         @OA\Property(property="new_class_main", type="string", nullable=true, example="13")
+     *                         @OA\Property(property="fname", type="string", example="REJOICE"),
+     *                         @OA\Property(property="mname", type="string", nullable=true, example="IHUOMACHI"),
+     *                         @OA\Property(property="lname", type="string", example="AHAMEFULA"),
+     *                         @OA\Property(property="stat", type="string", example="1"),
+     *                         @OA\Property(property="year", type="string", example="2024", description="Year stored in the student table; not used by the academic year filter."),
+     *                         @OA\Property(property="term", type="string", example="1", description="Term stored in the student table; not used by the academic term filter."),
+     *                         @OA\Property(property="cuid", type="string", nullable=true, example="HGC/2024/1/286"),
+     *                         @OA\Property(property="new_class_main", type="string", nullable=true, example="15", description="Class value copied from the matching old_student.clsm record.")
      *                     ),
      *                     @OA\Property(
      *                         property="b",
      *                         type="object",
      *                         nullable=true,
-     *                         description="Student basic data record."
+     *                         description="Student basic information record from student_basic_data.",
+     *                         @OA\Property(property="user_id", type="integer", example=1476),
+     *                         @OA\Property(property="dob", type="string", nullable=true, example=null),
+     *                         @OA\Property(property="dob_fixed", type="string", nullable=true, example="2010-04-02"),
+     *                         @OA\Property(property="sex", type="string", nullable=true, example="F"),
+     *                         @OA\Property(property="height", type="string", nullable=true, example="NIL"),
+     *                         @OA\Property(property="country", type="string", nullable=true, example="NG"),
+     *                         @OA\Property(property="state", type="string", nullable=true, example="00"),
+     *                         @OA\Property(property="lga", type="string", nullable=true, example="15"),
+     *                         @OA\Property(property="addr", type="string", nullable=true, example="UMUAHIA")
      *                     ),
      *                     @OA\Property(
      *                         property="a",
      *                         type="object",
      *                         nullable=true,
-     *                         description="Latest student academic data record."
+     *                         description="Matching academic history record from old_student.",
+     *                         @OA\Property(property="uid", type="string", example="2025,1,1476,15"),
+     *                         @OA\Property(property="sid", type="integer", example=1476),
+     *                         @OA\Property(property="schid", type="integer", example=12),
+     *                         @OA\Property(property="fname", type="string", example="REJOICE"),
+     *                         @OA\Property(property="mname", type="string", nullable=true, example="IHUOMACHI"),
+     *                         @OA\Property(property="lname", type="string", example="AHAMEFULA"),
+     *                         @OA\Property(property="status", type="string", example="active"),
+     *                         @OA\Property(property="suid", type="string", nullable=true, example="HGC/2024/1/286"),
+     *                         @OA\Property(property="ssn", type="string", example="2025", description="Academic year."),
+     *                         @OA\Property(property="trm", type="string", example="1", description="Academic term."),
+     *                         @OA\Property(property="clsm", type="string", example="15", description="Main class."),
+     *                         @OA\Property(property="clsa", type="string", nullable=true, example="10", description="Class arm."),
+     *                         @OA\Property(property="cls_sbj_students", type="string", nullable=true, example="2"),
+     *                         @OA\Property(property="adm_ssn", type="string", nullable=true, example=null),
+     *                         @OA\Property(property="adm_trm", type="string", nullable=true, example=null),
+     *                         @OA\Property(property="cls_of_adm", type="string", nullable=true, example=null),
+     *                         @OA\Property(property="date_of_adm", type="string", nullable=true, example=null),
+     *                         @OA\Property(property="adm_status", type="string", nullable=true, example="0"),
+     *                         @OA\Property(property="more", type="string", nullable=true, example=null),
+     *                         @OA\Property(property="created_at", type="string", format="date-time", nullable=true, example="2026-02-05 23:22:44"),
+     *                         @OA\Property(property="updated_at", type="string", format="date-time", nullable=true, example="2026-02-05 23:22:44"),
+     *                         @OA\Property(property="exit_student", type="string", nullable=true, example=null)
      *                     )
      *                 )
      *             )
@@ -56273,183 +56309,181 @@ class ApiController extends Controller
      *     ),
      *     @OA\Response(
      *         response=422,
-     *         description="Invalid request parameters"
+     *         description="Invalid request parameters."
      *     )
      * )
      */
-    
-public function getLgaAdminStudents(Request $request)
-{
-    $admin = auth()->user();
+    public function getLgaAdminStudents(Request $request)
+    {
+        $admin = auth()->user();
 
-    // Only authenticated LGA Admins can access this endpoint.
-    if (!$admin || $admin->typ !== 'lga') {
-        return response()->json([
-            "status" => false,
-            "message" => "Unauthorized. Only LGA Admin can access this endpoint.",
-        ], 403);
-    }
+        // Only authenticated LGA Admins can access this endpoint.
+        if (! $admin || $admin->typ !== 'lga') {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized. Only LGA Admin can access this endpoint.',
+            ], 403);
+        }
 
-    // Validate pagination and optional filters.
-    $request->validate([
-        'start' => 'nullable|integer|min:0',
-        'count' => 'nullable|integer|min:1|max:100',
-        'stat' => 'nullable|string',
-        'cls' => 'nullable|string',
-        'year' => 'nullable|string',
-        'term' => 'nullable|string',
-    ]);
+        // Validate pagination and optional filters.
+        $request->validate([
+            'start' => 'nullable|integer|min:0',
+            'count' => 'nullable|integer|min:1|max:100',
+            'stat' => 'nullable|string',
+            'cls' => 'nullable|string',
+            'year' => 'nullable|string',
+            'term' => 'nullable|string',
+        ]);
 
-    $start = (int) $request->input('start', 0);
-    $count = (int) $request->input('count', 20);
-    $stat = $request->input('stat');
-    $cls = $request->input('cls') ?? 'zzz';
-    $year = $request->input('year');
-    $term = $request->input('term');
+        $start = (int) $request->input('start', 0);
+        $count = (int) $request->input('count', 20);
+        $stat = $request->input('stat');
+        $cls = $request->input('cls') ?? 'zzz';
+        $year = $request->input('year');
+        $term = $request->input('term');
 
-    // Get the authenticated LGA Admin's assigned state and LGA.
-    $lgaAdmin = LgaAdmin::where('user_id', $admin->id)->first();
+        // Get the authenticated LGA Admin's assigned state and LGA.
+        $lgaAdmin = LgaAdmin::where('user_id', $admin->id)->first();
 
-    if (!$lgaAdmin) {
-        return response()->json([
-            "status" => false,
-            "message" => "LGA Admin location not found.",
-        ], 404);
-    }
+        if (! $lgaAdmin) {
+            return response()->json([
+                'status' => false,
+                'message' => 'LGA Admin location not found.',
+            ], 404);
+        }
 
-    // Retrieve learners belonging only to schools in this LGA.
-    $query = student::query()
-        ->whereIn('student.schid', function ($subquery) use ($lgaAdmin) {
-            $subquery->select('user_id')
-                ->from('school_web_data')
-                ->whereRaw('LOWER(state) = ?', [
-                    strtolower(trim($lgaAdmin->state))
-                ])
-                ->whereRaw('LOWER(lga) = ?', [
-                    strtolower(trim($lgaAdmin->lga))
-                ]);
+        // Retrieve learners belonging only to schools in this LGA.
+        $query = student::query()
+            ->whereIn('student.schid', function ($subquery) use ($lgaAdmin) {
+                $subquery->select('user_id')
+                    ->from('school_web_data')
+                    ->whereRaw('LOWER(state) = ?', [
+                        strtolower(trim($lgaAdmin->state)),
+                    ])
+                    ->whereRaw('LOWER(lga) = ?', [
+                        strtolower(trim($lgaAdmin->lga)),
+                    ]);
+            });
+
+        // Optional learner status filter.
+        if ($request->filled('stat')) {
+            $query->where('student.stat', $stat);
+        }
+
+        // Filter using the student's academic history in old_student.
+        // whereExists prevents duplicate learners when multiple academic
+        // records exist for the same student.
+        $query->whereExists(function ($subquery) use ($cls, $year, $term) {
+            $subquery->select(\DB::raw(1))
+                ->from('old_student')
+                ->whereColumn('old_student.sid', 'student.sid')
+                ->whereColumn('old_student.schid', 'student.schid');
+
+            // Filter by class using old_student.clsm.
+            if ($cls !== 'zzz') {
+                $subquery->where('old_student.clsm', $cls);
+            }
+
+            // Academic year comes from old_student.ssn.
+            if (! empty($year)) {
+                $subquery->where('old_student.ssn', $year);
+            }
+
+            // Academic term comes from old_student.trm.
+            if (! empty($term)) {
+                $subquery->where('old_student.trm', $term);
+            }
         });
 
-    // Optional learner status filter.
-    if ($request->filled('stat')) {
-        $query->where('student.stat', $stat);
+        $allStudents = $query
+            ->select('student.*')
+            ->orderBy('student.lname', 'asc')
+            ->orderBy('student.sid', 'asc')
+            ->get();
+
+        // Deduplicate by learner ID and CUID.
+        $seenSids = [];
+        $seenCuids = [];
+
+        $uniqueStudents = $allStudents->filter(function ($student) use (
+            &$seenSids,
+            &$seenCuids
+        ) {
+            $sidKey = (string) $student->sid;
+
+            if (isset($seenSids[$sidKey])) {
+                return false;
+            }
+
+            $cuid = trim((string) ($student->cuid ?? ''));
+            $cuidKey = $cuid !== '' ? strtoupper($cuid) : null;
+
+            if ($cuidKey !== null && isset($seenCuids[$cuidKey])) {
+                return false;
+            }
+
+            $seenSids[$sidKey] = true;
+
+            if ($cuidKey !== null) {
+                $seenCuids[$cuidKey] = true;
+            }
+
+            return true;
+        })->values();
+
+        // Calculate total unique learners before pagination.
+        $total = $uniqueStudents->count();
+
+        // Apply pagination.
+        $students = $uniqueStudents
+            ->slice($start, $count)
+            ->values();
+
+        // Retrieve learner basic information and one matching
+        // academic history record from old_student.
+        $pld = $students->map(function ($student) use ($cls, $year, $term) {
+
+            $academicQuery = \DB::table('old_student')
+                ->where('sid', $student->sid)
+                ->where('schid', $student->schid);
+
+            // Return the academic record matching the requested year.
+            if (! empty($year)) {
+                $academicQuery->where('ssn', $year);
+            }
+
+            // Return the academic record matching the requested term.
+            if (! empty($term)) {
+                $academicQuery->where('trm', $term);
+            }
+
+            // Return the academic record matching the requested class.
+            if ($cls !== 'zzz') {
+                $academicQuery->where('clsm', $cls);
+            }
+
+            // Get only the latest matching academic record.
+            $latestAcademic = $academicQuery
+                ->orderByDesc('created_at')
+                ->first();
+
+            // Preserve the existing response field.
+            $student->new_class_main = $latestAcademic->clsm ?? null;
+
+            return [
+                's' => $student,
+                'b' => \DB::table('student_basic_data')
+                    ->where('user_id', $student->sid)
+                    ->first(),
+                'a' => $latestAcademic,
+            ];
+        });
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Success',
+            'total' => $total,
+            'pld' => $pld,
+        ]);
     }
-
-    // Filter using the student's academic history in old_student.
-    // whereExists prevents duplicate learners when multiple academic
-    // records exist for the same student.
-    $query->whereExists(function ($subquery) use ($cls, $year, $term) {
-        $subquery->select(\DB::raw(1))
-            ->from('old_student')
-            ->whereColumn('old_student.sid', 'student.sid')
-            ->whereColumn('old_student.schid', 'student.schid');
-
-        // Filter by class using old_student.clsm.
-        if ($cls !== 'zzz') {
-            $subquery->where('old_student.clsm', $cls);
-        }
-
-        // Academic year comes from old_student.ssn.
-        if (!empty($year)) {
-            $subquery->where('old_student.ssn', $year);
-        }
-
-        // Academic term comes from old_student.trm.
-        if (!empty($term)) {
-            $subquery->where('old_student.trm', $term);
-        }
-    });
-
-    $allStudents = $query
-        ->select('student.*')
-        ->orderBy('student.lname', 'asc')
-        ->orderBy('student.sid', 'asc')
-        ->get();
-
-    // Deduplicate by learner ID and CUID.
-    $seenSids = [];
-    $seenCuids = [];
-
-    $uniqueStudents = $allStudents->filter(function ($student) use (
-        &$seenSids,
-        &$seenCuids
-    ) {
-        $sidKey = (string) $student->sid;
-
-        if (isset($seenSids[$sidKey])) {
-            return false;
-        }
-
-        $cuid = trim((string) ($student->cuid ?? ''));
-        $cuidKey = $cuid !== '' ? strtoupper($cuid) : null;
-
-        if ($cuidKey !== null && isset($seenCuids[$cuidKey])) {
-            return false;
-        }
-
-        $seenSids[$sidKey] = true;
-
-        if ($cuidKey !== null) {
-            $seenCuids[$cuidKey] = true;
-        }
-
-        return true;
-    })->values();
-
-    // Calculate total unique learners before pagination.
-    $total = $uniqueStudents->count();
-
-    // Apply pagination.
-    $students = $uniqueStudents
-        ->slice($start, $count)
-        ->values();
-
-    // Retrieve learner basic information and one matching
-    // academic history record from old_student.
-    $pld = $students->map(function ($student) use ($cls, $year, $term) {
-
-        $academicQuery = \DB::table('old_student')
-            ->where('sid', $student->sid)
-            ->where('schid', $student->schid);
-
-        // Return the academic record matching the requested year.
-        if (!empty($year)) {
-            $academicQuery->where('ssn', $year);
-        }
-
-        // Return the academic record matching the requested term.
-        if (!empty($term)) {
-            $academicQuery->where('trm', $term);
-        }
-
-        // Return the academic record matching the requested class.
-        if ($cls !== 'zzz') {
-            $academicQuery->where('clsm', $cls);
-        }
-
-        // Get only the latest matching academic record.
-        $latestAcademic = $academicQuery
-            ->orderByDesc('created_at')
-            ->first();
-
-        // Preserve the existing response field.
-        $student->new_class_main = $latestAcademic->clsm ?? null;
-
-        return [
-            's' => $student,
-            'b' => \DB::table('student_basic_data')
-                ->where('user_id', $student->sid)
-                ->first(),
-            'a' => $latestAcademic,
-        ];
-    });
-
-    return response()->json([
-        "status" => true,
-        "message" => "Success",
-        "total" => $total,
-        "pld" => $pld,
-    ]);
-}
-
 }
