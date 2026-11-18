@@ -16304,10 +16304,28 @@ class ApiController extends Controller
      *     @OA\Response(response="404", description="File not found"),
      * )
      */
+    // public function getFile($folder, $filename)
+    // {
+    //     if (Storage::disk('public')->exists($folder.'/'.$filename)) {
+    //         return response()->file(Storage::disk('public')->path($folder.'/'.$filename));
+    //     } else {
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'File not found',
+    //         ], 404);
+    //     }
+    // }
+
     public function getFile($folder, $filename)
     {
         if (Storage::disk('public')->exists($folder.'/'.$filename)) {
-            return response()->file(Storage::disk('public')->path($folder.'/'.$filename));
+            // Get the full path to the file
+            $path = Storage::disk('public')->path($folder.'/'.$filename);
+            
+            // Return the file with the Cross-Origin-Resource-Policy header
+            return response()->file($path, [
+                'Cross-Origin-Resource-Policy' => 'cross-origin'
+            ]);
         } else {
             return response()->json([
                 'status' => false,
@@ -56313,179 +56331,179 @@ class ApiController extends Controller
      *     )
      * )
      */
-    public function getLgaAdminStudents(Request $request)
-    {
-        $admin = auth()->user();
+    
+public function getLgaAdminStudents(Request $request)
+{
+    $admin = auth()->user();
 
-        // Only authenticated LGA Admins can access this endpoint.
-        if (! $admin || $admin->typ !== 'lga') {
-            return response()->json([
-                'status' => false,
-                'message' => 'Unauthorized. Only LGA Admin can access this endpoint.',
-            ], 403);
-        }
-
-        // Validate pagination and optional filters.
-        $request->validate([
-            'start' => 'nullable|integer|min:0',
-            'count' => 'nullable|integer|min:1|max:100',
-            'stat' => 'nullable|string',
-            'cls' => 'nullable|string',
-            'year' => 'nullable|string',
-            'term' => 'nullable|string',
-        ]);
-
-        $start = (int) $request->input('start', 0);
-        $count = (int) $request->input('count', 20);
-        $stat = $request->input('stat');
-        $cls = $request->input('cls') ?? 'zzz';
-        $year = $request->input('year');
-        $term = $request->input('term');
-
-        // Get the authenticated LGA Admin's assigned state and LGA.
-        $lgaAdmin = LgaAdmin::where('user_id', $admin->id)->first();
-
-        if (! $lgaAdmin) {
-            return response()->json([
-                'status' => false,
-                'message' => 'LGA Admin location not found.',
-            ], 404);
-        }
-
-        // Retrieve learners belonging only to schools in this LGA.
-        $query = student::query()
-            ->whereIn('student.schid', function ($subquery) use ($lgaAdmin) {
-                $subquery->select('user_id')
-                    ->from('school_web_data')
-                    ->whereRaw('LOWER(state) = ?', [
-                        strtolower(trim($lgaAdmin->state)),
-                    ])
-                    ->whereRaw('LOWER(lga) = ?', [
-                        strtolower(trim($lgaAdmin->lga)),
-                    ]);
-            });
-
-        // Optional learner status filter.
-        if ($request->filled('stat')) {
-            $query->where('student.stat', $stat);
-        }
-
-        // Filter using the student's academic history in old_student.
-        // whereExists prevents duplicate learners when multiple academic
-        // records exist for the same student.
-        $query->whereExists(function ($subquery) use ($cls, $year, $term) {
-            $subquery->select(\DB::raw(1))
-                ->from('old_student')
-                ->whereColumn('old_student.sid', 'student.sid')
-                ->whereColumn('old_student.schid', 'student.schid');
-
-            // Filter by class using old_student.clsm.
-            if ($cls !== 'zzz') {
-                $subquery->where('old_student.clsm', $cls);
-            }
-
-            // Academic year comes from old_student.ssn.
-            if (! empty($year)) {
-                $subquery->where('old_student.ssn', $year);
-            }
-
-            // Academic term comes from old_student.trm.
-            if (! empty($term)) {
-                $subquery->where('old_student.trm', $term);
-            }
-        });
-
-        $allStudents = $query
-            ->select('student.*')
-            ->orderBy('student.lname', 'asc')
-            ->orderBy('student.sid', 'asc')
-            ->get();
-
-        // Deduplicate by learner ID and CUID.
-        $seenSids = [];
-        $seenCuids = [];
-
-        $uniqueStudents = $allStudents->filter(function ($student) use (
-            &$seenSids,
-            &$seenCuids
-        ) {
-            $sidKey = (string) $student->sid;
-
-            if (isset($seenSids[$sidKey])) {
-                return false;
-            }
-
-            $cuid = trim((string) ($student->cuid ?? ''));
-            $cuidKey = $cuid !== '' ? strtoupper($cuid) : null;
-
-            if ($cuidKey !== null && isset($seenCuids[$cuidKey])) {
-                return false;
-            }
-
-            $seenSids[$sidKey] = true;
-
-            if ($cuidKey !== null) {
-                $seenCuids[$cuidKey] = true;
-            }
-
-            return true;
-        })->values();
-
-        // Calculate total unique learners before pagination.
-        $total = $uniqueStudents->count();
-
-        // Apply pagination.
-        $students = $uniqueStudents
-            ->slice($start, $count)
-            ->values();
-
-        // Retrieve learner basic information and one matching
-        // academic history record from old_student.
-        $pld = $students->map(function ($student) use ($cls, $year, $term) {
-
-            $academicQuery = \DB::table('old_student')
-                ->where('sid', $student->sid)
-                ->where('schid', $student->schid);
-
-            // Return the academic record matching the requested year.
-            if (! empty($year)) {
-                $academicQuery->where('ssn', $year);
-            }
-
-            // Return the academic record matching the requested term.
-            if (! empty($term)) {
-                $academicQuery->where('trm', $term);
-            }
-
-            // Return the academic record matching the requested class.
-            if ($cls !== 'zzz') {
-                $academicQuery->where('clsm', $cls);
-            }
-
-            // Get only the latest matching academic record.
-            $latestAcademic = $academicQuery
-                ->orderByDesc('created_at')
-                ->first();
-
-            // Preserve the existing response field.
-            $student->new_class_main = $latestAcademic->clsm ?? null;
-
-            return [
-                's' => $student,
-                'b' => \DB::table('student_basic_data')
-                    ->where('user_id', $student->sid)
-                    ->first(),
-                'a' => $latestAcademic,
-            ];
-        });
-
+    // Only authenticated LGA Admins can access this endpoint.
+    if (!$admin || $admin->typ !== 'lga') {
         return response()->json([
-            'status' => true,
-            'message' => 'Success',
-            'total' => $total,
-            'pld' => $pld,
-        ]);
+            'status' => false,
+            'message' => 'Unauthorized. Only LGA Admin can access this endpoint.',
+        ], 403);
     }
+
+    // Validate pagination and optional filters.
+    $request->validate([
+        'start' => 'nullable|integer|min:0',
+        'count' => 'nullable|integer|min:1|max:100',
+        'stat' => 'nullable|string',
+        'cls' => 'nullable|string',
+        'year' => 'nullable|string',
+        'term' => 'nullable|string',
+    ]);
+
+    $start = (int) $request->input('start', 0);
+    $count = (int) $request->input('count', 20);
+    $stat = $request->input('stat');
+    $cls = $request->input('cls') ?? 'zzz';
+    $year = $request->input('year');
+    $term = $request->input('term');
+
+    // Get the authenticated LGA Admin's assigned state and LGA.
+    $lgaAdmin = LgaAdmin::where('user_id', $admin->id)->first();
+
+    if (!$lgaAdmin) {
+        return response()->json([
+            'status' => false,
+            'message' => 'LGA Admin location not found.',
+        ], 404);
+    }
+
+    // Retrieve schools belonging to this LGA Admin's LGA.
+    $schoolIds = school_web_data::whereRaw('LOWER(state) = ?', [
+            strtolower(trim($lgaAdmin->state)),
+        ])
+        ->whereRaw('LOWER(lga) = ?', [
+            strtolower(trim($lgaAdmin->lga)),
+        ])
+        ->pluck('user_id');
+
+    // Fetch active learners using old_student and student_basic_data.
+    $query = old_student::join(
+        'student_basic_data',
+        'old_student.sid',
+        '=',
+        'student_basic_data.user_id'
+    )
+        ->join('student', function ($join) {
+            $join->on('old_student.sid', '=', 'student.sid')
+                ->on('old_student.schid', '=', 'student.schid');
+        })
+        ->whereIn('old_student.schid', $schoolIds)
+        ->where('old_student.status', 'active');
+
+    // Optional learner status filter from the student table.
+    if ($request->filled('stat')) {
+        $query->where('student.stat', $stat);
+    }
+
+    // Filter by academic class.
+    if ($cls !== 'zzz') {
+        $query->where('old_student.clsm', $cls);
+    }
+
+    // Filter by academic year.
+    if (!empty($year)) {
+        $query->where('old_student.ssn', $year);
+    }
+
+    // Filter by academic term.
+    if (!empty($term)) {
+        $query->where('old_student.trm', $term);
+    }
+
+    // Select unique learner records.
+    $allStudents = $query
+        ->select('student.*')
+        ->distinct()
+        ->orderBy('student.lname', 'asc')
+        ->orderBy('student.sid', 'asc')
+        ->get();
+
+    // Deduplicate by learner ID and CUID.
+    $seenSids = [];
+    $seenCuids = [];
+
+    $uniqueStudents = $allStudents->filter(function ($student) use (
+        &$seenSids,
+        &$seenCuids
+    ) {
+        $sidKey = (string) $student->sid;
+
+        if (isset($seenSids[$sidKey])) {
+            return false;
+        }
+
+        $cuid = trim((string) ($student->cuid ?? ''));
+        $cuidKey = $cuid !== '' ? strtoupper($cuid) : null;
+
+        if ($cuidKey !== null && isset($seenCuids[$cuidKey])) {
+            return false;
+        }
+
+        $seenSids[$sidKey] = true;
+
+        if ($cuidKey !== null) {
+            $seenCuids[$cuidKey] = true;
+        }
+
+        return true;
+    })->values();
+
+    // Calculate total unique learners before pagination.
+    $total = $uniqueStudents->count();
+
+    // Apply pagination.
+    $students = $uniqueStudents
+        ->slice($start, $count)
+        ->values();
+
+    // Retrieve learner basic information and matching academic history.
+    $pld = $students->map(function ($student) use ($cls, $year, $term) {
+
+        $academicQuery = \DB::table('old_student')
+            ->where('sid', $student->sid)
+            ->where('schid', $student->schid)
+            ->where('status', 'active');
+
+        if (!empty($year)) {
+            $academicQuery->where('ssn', $year);
+        }
+
+        if (!empty($term)) {
+            $academicQuery->where('trm', $term);
+        }
+
+        if ($cls !== 'zzz') {
+            $academicQuery->where('clsm', $cls);
+        }
+
+        // Get the latest matching active academic record.
+        $latestAcademic = $academicQuery
+            ->orderByDesc('created_at')
+            ->first();
+
+        // Preserve the existing response field.
+        $student->new_class_main = $latestAcademic->clsm ?? null;
+
+        return [
+            's' => $student,
+            'b' => \DB::table('student_basic_data')
+                ->where('user_id', $student->sid)
+                ->first(),
+            'a' => $latestAcademic,
+        ];
+    });
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Success',
+        'total' => $total,
+        'pld' => $pld,
+    ]);
+}
 
 
 
