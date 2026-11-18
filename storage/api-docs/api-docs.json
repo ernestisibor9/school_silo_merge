@@ -37050,6 +37050,195 @@
                 ]
             }
         },
+        "/api/getLgaAdminStudents": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get students within the authenticated LGA Admin's LGA",
+                "description": "Retrieves students from all schools within the authenticated LGA Admin's assigned state and LGA. The state and LGA are retrieved automatically from the lga_admins table using the authenticated user's ID. Supports pagination and optional filtering by student status, latest available class, academic year, and term. Returns student, basic, and academic data. This endpoint is read-only and does not send pending application emails or modify student records.",
+                "operationId": "getLgaAdminStudents",
+                "parameters": [
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Pagination offset. Defaults to 0.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 0,
+                            "minimum": 0,
+                            "example": 0
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "Maximum number of students to return. Defaults to 20. Maximum allowed is 100.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 20,
+                            "maximum": 100,
+                            "minimum": 1,
+                            "example": 20
+                        }
+                    },
+                    {
+                        "name": "stat",
+                        "in": "query",
+                        "description": "Filter students by application status: 0 = Pending, 1 = Approved, 2 = Declined.",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "0",
+                                "1",
+                                "2"
+                            ],
+                            "example": "1"
+                        }
+                    },
+                    {
+                        "name": "cls",
+                        "in": "query",
+                        "description": "Filter by the student's latest available new_class_main. Use zzz to include all classes. Defaults to zzz.",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "zzz",
+                            "example": "13"
+                        }
+                    },
+                    {
+                        "name": "year",
+                        "in": "query",
+                        "description": "Filter by student.year.",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "2026"
+                        }
+                    },
+                    {
+                        "name": "term",
+                        "in": "query",
+                        "description": "Filter by student.term.",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "1"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Students retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "total": {
+                                            "description": "Total number of unique students matching the filters before pagination.",
+                                            "type": "integer",
+                                            "example": 25
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "s": {
+                                                        "description": "Student record.",
+                                                        "properties": {
+                                                            "sid": {
+                                                                "type": "integer",
+                                                                "example": 101
+                                                            },
+                                                            "schid": {
+                                                                "type": "integer",
+                                                                "example": 12
+                                                            },
+                                                            "fname": {
+                                                                "type": "string",
+                                                                "example": "John"
+                                                            },
+                                                            "lname": {
+                                                                "type": "string",
+                                                                "example": "Doe"
+                                                            },
+                                                            "stat": {
+                                                                "type": "integer",
+                                                                "enum": [
+                                                                    0,
+                                                                    1,
+                                                                    2
+                                                                ],
+                                                                "example": 1
+                                                            },
+                                                            "year": {
+                                                                "type": "integer",
+                                                                "example": 2026
+                                                            },
+                                                            "term": {
+                                                                "type": "integer",
+                                                                "example": 1
+                                                            },
+                                                            "new_class_main": {
+                                                                "type": "string",
+                                                                "example": "13",
+                                                                "nullable": true
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    },
+                                                    "b": {
+                                                        "description": "Student basic data record.",
+                                                        "type": "object",
+                                                        "nullable": true
+                                                    },
+                                                    "a": {
+                                                        "description": "Latest student academic data record.",
+                                                        "type": "object",
+                                                        "nullable": true
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Unauthorized. Only LGA Admin can access this endpoint."
+                    },
+                    "404": {
+                        "description": "LGA Admin location not found."
+                    },
+                    "422": {
+                        "description": "Invalid request parameters"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/billing/school-bills/{schid}": {
             "get": {
                 "tags": [

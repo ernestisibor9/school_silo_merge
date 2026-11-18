@@ -53945,4 +53945,313 @@ public function getLgaAdminSchools()
     ]);
 }
 
+
+
+
+/**
+ * @OA\Get(
+ *     path="/api/getLgaAdminStudents",
+ *     summary="Get students within the authenticated LGA Admin's LGA",
+ *     description="Retrieves students from all schools within the authenticated LGA Admin's assigned state and LGA. The state and LGA are retrieved automatically from the lga_admins table using the authenticated user's ID. Supports pagination and optional filtering by student status, latest available class, academic year, and term. Returns student, basic, and academic data. This endpoint is read-only and does not send pending application emails or modify student records.",
+ *     operationId="getLgaAdminStudents",
+ *     tags={"Api"},
+ *     security={{"bearerAuth": {}}},
+ *
+ *     @OA\Parameter(
+ *         name="start",
+ *         in="query",
+ *         required=false,
+ *         description="Pagination offset. Defaults to 0.",
+ *         @OA\Schema(
+ *             type="integer",
+ *             default=0,
+ *             example=0,
+ *             minimum=0
+ *         )
+ *     ),
+ *     @OA\Parameter(
+ *         name="count",
+ *         in="query",
+ *         required=false,
+ *         description="Maximum number of students to return. Defaults to 20. Maximum allowed is 100.",
+ *         @OA\Schema(
+ *             type="integer",
+ *             default=20,
+ *             example=20,
+ *             minimum=1,
+ *             maximum=100
+ *         )
+ *     ),
+ *     @OA\Parameter(
+ *         name="stat",
+ *         in="query",
+ *         required=false,
+ *         description="Filter students by application status: 0 = Pending, 1 = Approved, 2 = Declined.",
+ *         @OA\Schema(
+ *             type="string",
+ *             enum={"0", "1", "2"},
+ *             example="1"
+ *         )
+ *     ),
+ *     @OA\Parameter(
+ *         name="cls",
+ *         in="query",
+ *         required=false,
+ *         description="Filter by the student's latest available new_class_main. Use zzz to include all classes. Defaults to zzz.",
+ *         @OA\Schema(
+ *             type="string",
+ *             default="zzz",
+ *             example="13"
+ *         )
+ *     ),
+ *     @OA\Parameter(
+ *         name="year",
+ *         in="query",
+ *         required=false,
+ *         description="Filter by student.year.",
+ *         @OA\Schema(
+ *             type="string",
+ *             example="2026"
+ *         )
+ *     ),
+ *     @OA\Parameter(
+ *         name="term",
+ *         in="query",
+ *         required=false,
+ *         description="Filter by student.term.",
+ *         @OA\Schema(
+ *             type="string",
+ *             example="1"
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Students retrieved successfully",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(
+ *                 property="status",
+ *                 type="boolean",
+ *                 example=true
+ *             ),
+ *             @OA\Property(
+ *                 property="message",
+ *                 type="string",
+ *                 example="Success"
+ *             ),
+ *             @OA\Property(
+ *                 property="total",
+ *                 type="integer",
+ *                 description="Total number of unique students matching the filters before pagination.",
+ *                 example=25
+ *             ),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(
+ *                         property="s",
+ *                         type="object",
+ *                         description="Student record.",
+ *                         @OA\Property(property="sid", type="integer", example=101),
+ *                         @OA\Property(property="schid", type="integer", example=12),
+ *                         @OA\Property(property="fname", type="string", example="John"),
+ *                         @OA\Property(property="lname", type="string", example="Doe"),
+ *                         @OA\Property(property="stat", type="integer", enum={0, 1, 2}, example=1),
+ *                         @OA\Property(property="year", type="integer", example=2026),
+ *                         @OA\Property(property="term", type="integer", example=1),
+ *                         @OA\Property(property="new_class_main", type="string", nullable=true, example="13")
+ *                     ),
+ *                     @OA\Property(
+ *                         property="b",
+ *                         type="object",
+ *                         nullable=true,
+ *                         description="Student basic data record."
+ *                     ),
+ *                     @OA\Property(
+ *                         property="a",
+ *                         type="object",
+ *                         nullable=true,
+ *                         description="Latest student academic data record."
+ *                     )
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthenticated"
+ *     ),
+ *     @OA\Response(
+ *         response=403,
+ *         description="Unauthorized. Only LGA Admin can access this endpoint."
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="LGA Admin location not found."
+ *     ),
+ *     @OA\Response(
+ *         response=422,
+ *         description="Invalid request parameters"
+ *     )
+ * )
+ */
+
+public function getLgaAdminStudents(Request $request)
+{
+    $admin = auth()->user();
+
+    // Only authenticated LGA Admins can access this endpoint.
+    if (!$admin || $admin->typ !== 'lga') {
+        return response()->json([
+            "status" => false,
+            "message" => "Unauthorized. Only LGA Admin can access this endpoint.",
+        ], 403);
+    }
+
+    // Validate pagination and optional filters.
+    $request->validate([
+        'start' => 'nullable|integer|min:0',
+        'count' => 'nullable|integer|min:1|max:100',
+        'stat' => 'nullable|string',
+        'cls' => 'nullable|string',
+        'year' => 'nullable|string',
+        'term' => 'nullable|string',
+    ]);
+
+    $start = (int) $request->input('start', 0);
+    $count = (int) $request->input('count', 20);
+    $stat = $request->input('stat');
+    $cls = $request->input('cls', 'zzz');
+    $year = $request->input('year');
+    $term = $request->input('term');
+
+    // Get the authenticated LGA Admin's assigned state and LGA.
+    $lgaAdmin = LgaAdmin::where('user_id', $admin->id)->first();
+
+    if (!$lgaAdmin) {
+        return response()->json([
+            "status" => false,
+            "message" => "LGA Admin location not found.",
+        ], 404);
+    }
+
+    // Retrieve learners belonging only to schools in this LGA.
+    $query = student::query()
+        ->whereIn('student.schid', function ($subquery) use ($lgaAdmin) {
+            $subquery->select('user_id')
+                ->from('school_web_data')
+                ->whereRaw('LOWER(state) = ?', [
+                    strtolower(trim($lgaAdmin->state))
+                ])
+                ->whereRaw('LOWER(lga) = ?', [
+                    strtolower(trim($lgaAdmin->lga))
+                ]);
+        });
+
+    // Optional learner status filter.
+    if ($request->filled('stat')) {
+        $query->where('student.stat', $stat);
+    }
+
+    // Optional class filter using the learner's latest academic record.
+    if ($cls !== 'zzz') {
+        $query->whereIn('student.sid', function ($subquery) use ($cls) {
+            $subquery->select('sad1.user_id')
+                ->from('student_academic_data as sad1')
+                ->where('sad1.new_class_main', $cls)
+                ->whereRaw('sad1.created_at = (
+                    SELECT MAX(sad2.created_at)
+                    FROM student_academic_data as sad2
+                    WHERE sad2.user_id = sad1.user_id
+                )');
+        });
+    }
+
+    // Optional academic year filter.
+    if ($year) {
+        $query->where('student.year', $year);
+    }
+
+    // Optional term filter.
+    if ($term) {
+        $query->where('student.term', $term);
+    }
+
+    $allStudents = $query
+        ->select('student.*')
+        ->orderBy('student.lname', 'asc')
+        ->orderBy('student.sid', 'asc')
+        ->get();
+
+    // Deduplicate by learner ID and CUID.
+    $seenSids = [];
+    $seenCuids = [];
+
+    $uniqueStudents = $allStudents->filter(function ($student) use (
+        &$seenSids,
+        &$seenCuids
+    ) {
+        $sidKey = (string) $student->sid;
+
+        if (isset($seenSids[$sidKey])) {
+            return false;
+        }
+
+        $cuid = trim((string) ($student->cuid ?? ''));
+        $cuidKey = $cuid !== '' ? strtoupper($cuid) : null;
+
+        if ($cuidKey !== null && isset($seenCuids[$cuidKey])) {
+            return false;
+        }
+
+        $seenSids[$sidKey] = true;
+
+        if ($cuidKey !== null) {
+            $seenCuids[$cuidKey] = true;
+        }
+
+        return true;
+    })->values();
+
+    // Calculate total before pagination.
+    $total = $uniqueStudents->count();
+
+    // Apply pagination.
+    $students = $uniqueStudents
+        ->slice($start, $count)
+        ->values();
+
+    // Retrieve learner basic and academic information.
+    $pld = $students->map(function ($student) {
+        $latestAcademic = student_academic_data::where(
+            'user_id',
+            $student->sid
+        )
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        $student->new_class_main = $latestAcademic->new_class_main ?? null;
+
+        return [
+            's' => $student,
+            'b' => student_basic_data::where(
+                'user_id',
+                $student->sid
+            )->first(),
+            'a' => $latestAcademic,
+        ];
+    });
+
+    return response()->json([
+        "status" => true,
+        "message" => "Success",
+        "total" => $total,
+        "pld" => $pld,
+    ]);
+}
+
+
 }

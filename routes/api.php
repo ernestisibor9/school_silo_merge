@@ -247,6 +247,7 @@ Route::group([
     Route::post('/changeLgaAdminPassword', [ApiController::class, 'changeLgaAdminPassword']);
     Route::get('/getLgaAdmin/{id}', [ApiController::class, 'getLgaAdmin']);
     Route::get('/getLgaAdminSchools', [ApiController::class, 'getLgaAdminSchools']);
+    Route::get('/getLgaAdminStudents', [ApiController::class, 'getLgaAdminStudents']);
 
     // School Admin
     Route::post('/school/send-message', [ApiController::class, 'schoolSendMessage']);
