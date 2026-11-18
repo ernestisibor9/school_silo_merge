@@ -16317,24 +16317,56 @@ class ApiController extends Controller
     // }
 
 
-    public function getFile($folder, $filename)
+   public function getFile($folder, $filename)
 {
-    $filePath = $folder . '/' . $filename;
+    // Validate folder and filename to prevent path traversal
+    if (
+        !preg_match('/^[A-Za-z0-9_-]+$/D', $folder) ||
+        !preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]*$/D', $filename)
+    ) {
+        return response()->json([
+            'status' => false,
+            'message' => 'File not found',
+        ], 404);
+    }
 
-    // Check the current uploads directory first
+    $relativePath = $folder . '/' . $filename;
+
+    // 1. Check the current public uploads directory
     $publicDisk = Storage::disk('public');
 
-    if ($publicDisk->exists($filePath)) {
-        return response()->file($publicDisk->path($filePath));
+    if ($publicDisk->exists($relativePath)) {
+        return response()->file(
+            $publicDisk->path($relativePath)
+        );
     }
 
-    // Check the legacy uploads_test directory
-    $legacyPath = '/home/abjce/uploads_test/' . $filePath;
+    // 2. Check the legacy uploads_test directory
+    // This automatically resolves the correct home directory
+    // for each domain.
+    $legacyRoot = realpath(
+        dirname(base_path()) . DIRECTORY_SEPARATOR . 'uploads_test'
+    );
 
-    if (file_exists($legacyPath)) {
-        return response()->file($legacyPath);
+    if ($legacyRoot !== false) {
+
+        $legacyFile = realpath(
+            $legacyRoot . DIRECTORY_SEPARATOR . $folder . DIRECTORY_SEPARATOR . $filename
+        );
+
+        if (
+            $legacyFile !== false &&
+            is_file($legacyFile) &&
+            str_starts_with(
+                $legacyFile,
+                $legacyRoot . DIRECTORY_SEPARATOR
+            )
+        ) {
+            return response()->file($legacyFile);
+        }
     }
 
+    // 3. File does not exist in either location
     return response()->json([
         'status' => false,
         'message' => 'File not found',
