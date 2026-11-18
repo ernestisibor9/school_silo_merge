@@ -36972,6 +36972,84 @@
                 ]
             }
         },
+        "/api/getLgaAdminSchools": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get schools assigned to the authenticated LGA Admin",
+                "description": "Retrieves all schools within the authenticated LGA Admin's assigned state and LGA. Only authenticated LGA Admins (typ = 'lga') can access this endpoint. The state and LGA are retrieved from the lga_admins table using the authenticated user's ID.",
+                "operationId": "getLgaAdminSchools",
+                "responses": {
+                    "200": {
+                        "description": "Schools retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "user_id": {
+                                                        "type": "integer",
+                                                        "example": 11869
+                                                    },
+                                                    "sname": {
+                                                        "type": "string",
+                                                        "example": "LEA PRIMARY SCHOOL CHIKAKORE"
+                                                    },
+                                                    "addr": {
+                                                        "type": "string",
+                                                        "example": "Adjacent Primary Health Center Chikakore Kubwa"
+                                                    },
+                                                    "country": {
+                                                        "type": "string",
+                                                        "example": "NG"
+                                                    },
+                                                    "state": {
+                                                        "type": "string",
+                                                        "example": "36"
+                                                    },
+                                                    "lga": {
+                                                        "type": "string",
+                                                        "example": "02"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Unauthorized. Only LGA Admin can access this endpoint."
+                    },
+                    "404": {
+                        "description": "LGA Admin location not found."
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/billing/school-bills/{schid}": {
             "get": {
                 "tags": [
