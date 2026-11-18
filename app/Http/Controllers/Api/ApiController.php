@@ -16304,17 +16304,42 @@ class ApiController extends Controller
      *     @OA\Response(response="404", description="File not found"),
      * )
      */
+    // public function getFile($folder, $filename)
+    // {
+    //     if (Storage::disk('public')->exists($folder.'/'.$filename)) {
+    //         return response()->file(Storage::disk('public')->path($folder.'/'.$filename));
+    //     } else {
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'File not found',
+    //         ], 404);
+    //     }
+    // }
+
+
     public function getFile($folder, $filename)
-    {
-        if (Storage::disk('public')->exists($folder.'/'.$filename)) {
-            return response()->file(Storage::disk('public')->path($folder.'/'.$filename));
-        } else {
-            return response()->json([
-                'status' => false,
-                'message' => 'File not found',
-            ], 404);
-        }
+{
+    $filePath = $folder . '/' . $filename;
+
+    // Check the current uploads directory first
+    $publicDisk = Storage::disk('public');
+
+    if ($publicDisk->exists($filePath)) {
+        return response()->file($publicDisk->path($filePath));
     }
+
+    // Check the legacy uploads_test directory
+    $legacyPath = '/home/abjce/uploads_test/' . $filePath;
+
+    if (file_exists($legacyPath)) {
+        return response()->file($legacyPath);
+    }
+
+    return response()->json([
+        'status' => false,
+        'message' => 'File not found',
+    ], 404);
+}
 
 
 
