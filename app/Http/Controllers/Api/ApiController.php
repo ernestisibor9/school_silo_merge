@@ -16304,43 +16304,19 @@ class ApiController extends Controller
      *     @OA\Response(response="404", description="File not found"),
      * )
      */
-    // public function getFile($folder, $filename)
-    // {
-    //     if (Storage::disk('public')->exists($folder.'/'.$filename)) {
-    //         return response()->file(Storage::disk('public')->path($folder.'/'.$filename));
-    //     } else {
-    //         return response()->json([
-    //             'status' => false,
-    //             'message' => 'File not found',
-    //         ], 404);
-    //     }
-    // }
-
     public function getFile($folder, $filename)
-{
-    $path = Storage::disk('public')->path($folder.'/'.$filename);
-    
-    if (!file_exists($path)) {
-        abort(404);
+    {
+        if (Storage::disk('public')->exists($folder.'/'.$filename)) {
+            return response()->file(Storage::disk('public')->path($folder.'/'.$filename));
+        } else {
+            return response()->json([
+                'status' => false,
+                'message' => 'File not found',
+            ], 404);
+        }
     }
 
-    // Detect the real MIME type
-    $finfo = finfo_open(FILEINFO_MIME_TYPE);
-    $mime = finfo_file($finfo, $path);
-    finfo_close($finfo);
 
-    // If the MIME type is not recognized as an image, force it to image/jpeg
-    // because we know the file is a JPEG based on your screenshot.
-    if (!in_array($mime, ['image/jpeg', 'image/png', 'image/gif', 'image/webp'])) {
-        $mime = 'image/jpeg'; 
-    }
-
-    return response(file_get_contents($path), 200, [
-        'Content-Type' => $mime,
-        'Cross-Origin-Resource-Policy' => 'cross-origin',
-        'Access-Control-Allow-Origin' => '*',
-    ]);
-}
 
     /**
      * @OA\Get(
