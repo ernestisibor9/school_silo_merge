@@ -36634,7 +36634,7 @@
                     "Api"
                 ],
                 "summary": "Get all LGA Admins",
-                "description": "Fetches LGA Admin accounts with optional filtering by state and LGA. Only an authenticated Domain Admin (typ = 'a') can access this endpoint.",
+                "description": "Fetches LGA Admin accounts with optional filtering by state and LGA, including pagination. Only an authenticated Domain Admin (typ = 'a') can access this endpoint.",
                 "operationId": "getLgaAdmins",
                 "parameters": [
                     {
@@ -36656,6 +36656,31 @@
                             "type": "string",
                             "example": "Gboko"
                         }
+                    },
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Number of records to skip. Defaults to 0.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 0,
+                            "minimum": 0,
+                            "example": 0
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "Number of LGA Admins to retrieve per request. Defaults to 20. Maximum is 100.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 20,
+                            "maximum": 100,
+                            "minimum": 1,
+                            "example": 20
+                        }
                     }
                 ],
                 "responses": {
@@ -36673,6 +36698,11 @@
                                             "type": "string",
                                             "example": "Success"
                                         },
+                                        "total_records": {
+                                            "description": "Total number of matching LGA Admins before pagination.",
+                                            "type": "integer",
+                                            "example": 50
+                                        },
                                         "pld": {
                                             "type": "array",
                                             "items": {
@@ -36687,15 +36717,18 @@
                                                     },
                                                     "email": {
                                                         "type": "string",
-                                                        "example": "gboko_benue_admin@schoolsilomerge.top"
+                                                        "example": "gboko_benue_admin@schoolsilomerge.top",
+                                                        "nullable": true
                                                     },
                                                     "typ": {
                                                         "type": "string",
-                                                        "example": "lga"
+                                                        "example": "lga",
+                                                        "nullable": true
                                                     },
                                                     "verif": {
                                                         "type": "string",
-                                                        "example": "1"
+                                                        "example": "1",
+                                                        "nullable": true
                                                     },
                                                     "state": {
                                                         "type": "string",
@@ -36722,7 +36755,7 @@
                         "description": "Only Domain Admins can view LGA Admin accounts"
                     },
                     "422": {
-                        "description": "Validation failed"
+                        "description": "Validation failed. Invalid state, LGA, or pagination parameters."
                     }
                 },
                 "security": [
@@ -36976,8 +37009,35 @@
                     "Api"
                 ],
                 "summary": "Get schools assigned to the authenticated LGA Admin",
-                "description": "Retrieves all schools within the authenticated LGA Admin's assigned state and LGA. Only authenticated LGA Admins (typ = 'lga') can access this endpoint. The state and LGA are retrieved from the lga_admins table using the authenticated user's ID.",
+                "description": "Retrieves schools within the authenticated LGA Admin's assigned state and LGA, with pagination. Only authenticated LGA Admins (typ = 'lga') can access this endpoint. The state and LGA are retrieved from the lga_admins table using the authenticated user's ID.",
                 "operationId": "getLgaAdminSchools",
+                "parameters": [
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Number of records to skip. Defaults to 0.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 0,
+                            "minimum": 0,
+                            "example": 0
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "Number of schools to retrieve per request. Defaults to 20. Maximum is 100.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 20,
+                            "maximum": 100,
+                            "minimum": 1,
+                            "example": 20
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Schools retrieved successfully",
@@ -36992,6 +37052,11 @@
                                         "message": {
                                             "type": "string",
                                             "example": "Success"
+                                        },
+                                        "total_records": {
+                                            "description": "Total number of matching schools before pagination.",
+                                            "type": "integer",
+                                            "example": 150
                                         },
                                         "pld": {
                                             "type": "array",
@@ -37039,6 +37104,9 @@
                     },
                     "404": {
                         "description": "LGA Admin location not found."
+                    },
+                    "422": {
+                        "description": "Validation error. Invalid pagination parameters."
                     }
                 },
                 "security": [

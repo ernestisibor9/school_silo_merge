@@ -230,7 +230,7 @@ class ApiController extends Controller
 
 
 
-    
+
 public function registerSchool(Request $request)
 {
     // Data validation
@@ -55818,122 +55818,176 @@ public function registerSchool(Request $request)
         ]);
     }
 
-    /**
-     * @OA\Get(
-     *     path="/api/getLgaAdmins",
-     *     summary="Get all LGA Admins",
-     *     description="Fetches LGA Admin accounts with optional filtering by state and LGA. Only an authenticated Domain Admin (typ = 'a') can access this endpoint.",
-     *     operationId="getLgaAdmins",
-     *     tags={"Api"},
-     *     security={{"bearerAuth":{}}},
-     *
-     *     @OA\Parameter(
-     *         name="state",
-     *         in="query",
-     *         required=false,
-     *         description="Filter LGA Admins by state",
-     *
-     *         @OA\Schema(
-     *             type="string",
-     *             example="Benue"
-     *         )
-     *     ),
-     *
-     *     @OA\Parameter(
-     *         name="lga",
-     *         in="query",
-     *         required=false,
-     *         description="Filter LGA Admins by Local Government Area",
-     *
-     *         @OA\Schema(
-     *             type="string",
-     *             example="Gboko"
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="LGA Admins retrieved successfully",
-     *
-     *         @OA\JsonContent(
-     *             type="object",
-     *
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Success"),
-     *             @OA\Property(
-     *                 property="pld",
-     *                 type="array",
-     *
-     *                 @OA\Items(
-     *                     type="object",
-     *
-     *                     @OA\Property(property="id", type="integer", example=1),
-     *                     @OA\Property(property="user_id", type="integer", example=7750),
-     *                     @OA\Property(property="email", type="string", example="gboko_benue_admin@schoolsilomerge.top"),
-     *                     @OA\Property(property="typ", type="string", example="lga"),
-     *                     @OA\Property(property="verif", type="string", example="1"),
-     *                     @OA\Property(property="state", type="string", example="Benue"),
-     *                     @OA\Property(property="lga", type="string", example="Gboko")
-     *                 )
-     *             )
-     *         )
-     *     ),
-     *
-     *     @OA\Response(response=401, description="Unauthenticated"),
-     *     @OA\Response(response=403, description="Only Domain Admins can view LGA Admin accounts"),
-     *     @OA\Response(response=422, description="Validation failed")
-     * )
-     */
-    public function getLgaAdmins(Request $request)
-    {
-        // Only Domain Admin can view LGA Admin accounts
-        $admin = auth()->user();
 
-        if (! $admin || $admin->typ !== 'a') {
-            return response()->json([
-                'status' => false,
-                'message' => 'Unauthorized. Only Domain Admin can view LGA Admin accounts.',
-            ], 403);
-        }
+/**
+ * @OA\Get(
+ *     path="/api/getLgaAdmins",
+ *     summary="Get all LGA Admins",
+ *     description="Fetches LGA Admin accounts with optional filtering by state and LGA, including pagination. Only an authenticated Domain Admin (typ = 'a') can access this endpoint.",
+ *     operationId="getLgaAdmins",
+ *     tags={"Api"},
+ *     security={{"bearerAuth":{}}},
+ *
+ *     @OA\Parameter(
+ *         name="state",
+ *         in="query",
+ *         required=false,
+ *         description="Filter LGA Admins by state",
+ *         @OA\Schema(
+ *             type="string",
+ *             example="Benue"
+ *         )
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="lga",
+ *         in="query",
+ *         required=false,
+ *         description="Filter LGA Admins by Local Government Area",
+ *         @OA\Schema(
+ *             type="string",
+ *             example="Gboko"
+ *         )
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="start",
+ *         in="query",
+ *         required=false,
+ *         description="Number of records to skip. Defaults to 0.",
+ *         @OA\Schema(
+ *             type="integer",
+ *             minimum=0,
+ *             default=0,
+ *             example=0
+ *         )
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="count",
+ *         in="query",
+ *         required=false,
+ *         description="Number of LGA Admins to retrieve per request. Defaults to 20. Maximum is 100.",
+ *         @OA\Schema(
+ *             type="integer",
+ *             minimum=1,
+ *             maximum=100,
+ *             default=20,
+ *             example=20
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="LGA Admins retrieved successfully",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(
+ *                 property="total_records",
+ *                 type="integer",
+ *                 description="Total number of matching LGA Admins before pagination.",
+ *                 example=50
+ *             ),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(property="id", type="integer", example=1),
+ *                     @OA\Property(property="user_id", type="integer", example=7750),
+ *                     @OA\Property(property="email", type="string", nullable=true, example="gboko_benue_admin@schoolsilomerge.top"),
+ *                     @OA\Property(property="typ", type="string", nullable=true, example="lga"),
+ *                     @OA\Property(property="verif", type="string", nullable=true, example="1"),
+ *                     @OA\Property(property="state", type="string", example="Benue"),
+ *                     @OA\Property(property="lga", type="string", example="Gboko")
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthenticated"
+ *     ),
+ *     @OA\Response(
+ *         response=403,
+ *         description="Only Domain Admins can view LGA Admin accounts"
+ *     ),
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation failed. Invalid state, LGA, or pagination parameters."
+ *     )
+ * )
+ */
 
-        // Validate optional filters
-        $request->validate([
-            'state' => 'nullable|string|max:255',
-            'lga' => 'nullable|string|max:255',
-        ]);
 
-        // Start query
-        $query = LgaAdmin::with('user:id,email,typ,verif');
+public function getLgaAdmins(Request $request)
+{
+    // Only Domain Admin can view LGA Admin accounts
+    $admin = auth()->user();
 
-        // Filter by state if provided
-        if ($request->filled('state')) {
-            $query->where('state', $request->state);
-        }
-
-        // Filter by LGA if provided
-        if ($request->filled('lga')) {
-            $query->where('lga', $request->lga);
-        }
-
-        $subj = $query->get()
-            ->map(function ($lgaAdmin) {
-                return [
-                    'id' => $lgaAdmin->id,
-                    'user_id' => $lgaAdmin->user_id,
-                    'email' => $lgaAdmin->user->email ?? null,
-                    'typ' => $lgaAdmin->user->typ ?? null,
-                    'verif' => $lgaAdmin->user->verif ?? null,
-                    'state' => $lgaAdmin->state,
-                    'lga' => $lgaAdmin->lga,
-                ];
-            });
-
+    if (! $admin || $admin->typ !== 'a') {
         return response()->json([
-            'status' => true,
-            'message' => 'Success',
-            'pld' => $subj,
-        ]);
+            'status' => false,
+            'message' => 'Unauthorized. Only Domain Admin can view LGA Admin accounts.',
+        ], 403);
     }
+
+    // Validate optional filters and pagination.
+    $request->validate([
+        'state' => 'nullable|string|max:255',
+        'lga' => 'nullable|string|max:255',
+        'start' => 'nullable|integer|min:0',
+        'count' => 'nullable|integer|min:1|max:100',
+    ]);
+
+    $start = (int) $request->input('start', 0);
+    $count = (int) $request->input('count', 20);
+
+    // Start query
+    $query = LgaAdmin::with('user:id,email,typ,verif');
+
+    // Filter by state if provided
+    if ($request->filled('state')) {
+        $query->where('state', $request->state);
+    }
+
+    // Filter by LGA if provided
+    if ($request->filled('lga')) {
+        $query->where('lga', $request->lga);
+    }
+
+    // Get total number of matching LGA Admins before pagination.
+    $totalRecords = $query->count();
+
+    // Apply pagination.
+    $subj = $query
+        ->orderBy('id', 'desc')
+        ->skip($start)
+        ->take($count)
+        ->get()
+        ->map(function ($lgaAdmin) {
+            return [
+                'id' => $lgaAdmin->id,
+                'user_id' => $lgaAdmin->user_id,
+                'email' => $lgaAdmin->user->email ?? null,
+                'typ' => $lgaAdmin->user->typ ?? null,
+                'verif' => $lgaAdmin->user->verif ?? null,
+                'state' => $lgaAdmin->state,
+                'lga' => $lgaAdmin->lga,
+            ];
+        });
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Success',
+        'total_records' => $totalRecords,
+        'pld' => $subj,
+    ]);
+}
+
 
     /**
      * @OA\Post(
@@ -56187,98 +56241,151 @@ public function registerSchool(Request $request)
         ]);
     }
 
-    /**
-     * @OA\Get(
-     *     path="/api/getLgaAdminSchools",
-     *     summary="Get schools assigned to the authenticated LGA Admin",
-     *     description="Retrieves all schools within the authenticated LGA Admin's assigned state and LGA. Only authenticated LGA Admins (typ = 'lga') can access this endpoint. The state and LGA are retrieved from the lga_admins table using the authenticated user's ID.",
-     *     operationId="getLgaAdminSchools",
-     *     tags={"Api"},
-     *     security={{"bearerAuth":{}}},
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="Schools retrieved successfully",
-     *
-     *         @OA\JsonContent(
-     *             type="object",
-     *
-     *             @OA\Property(property="status", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Success"),
-     *             @OA\Property(
-     *                 property="pld",
-     *                 type="array",
-     *
-     *                 @OA\Items(
-     *                     type="object",
-     *
-     *                     @OA\Property(property="user_id", type="integer", example=11869),
-     *                     @OA\Property(property="sname", type="string", example="LEA PRIMARY SCHOOL CHIKAKORE"),
-     *                     @OA\Property(property="addr", type="string", example="Adjacent Primary Health Center Chikakore Kubwa"),
-     *                     @OA\Property(property="country", type="string", example="NG"),
-     *                     @OA\Property(property="state", type="string", example="36"),
-     *                     @OA\Property(property="lga", type="string", example="02")
-     *                 )
-     *             )
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=401,
-     *         description="Unauthenticated"
-     *     ),
-     *     @OA\Response(
-     *         response=403,
-     *         description="Unauthorized. Only LGA Admin can access this endpoint."
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="LGA Admin location not found."
-     *     )
-     * )
-     */
-    public function getLgaAdminSchools()
-    {
-        $admin = auth()->user();
 
-        // Only LGA Admins can use this endpoint.
-        if (! $admin || $admin->typ !== 'lga') {
-            return response()->json([
-                'status' => false,
-                'message' => 'Unauthorized. Only LGA Admin can access this endpoint.',
-            ], 403);
-        }
+/**
+ * @OA\Get(
+ *     path="/api/getLgaAdminSchools",
+ *     summary="Get schools assigned to the authenticated LGA Admin",
+ *     description="Retrieves schools within the authenticated LGA Admin's assigned state and LGA, with pagination. Only authenticated LGA Admins (typ = 'lga') can access this endpoint. The state and LGA are retrieved from the lga_admins table using the authenticated user's ID.",
+ *     operationId="getLgaAdminSchools",
+ *     tags={"Api"},
+ *     security={{"bearerAuth":{}}},
+ *
+ *     @OA\Parameter(
+ *         name="start",
+ *         in="query",
+ *         required=false,
+ *         description="Number of records to skip. Defaults to 0.",
+ *         @OA\Schema(
+ *             type="integer",
+ *             minimum=0,
+ *             default=0,
+ *             example=0
+ *         )
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="count",
+ *         in="query",
+ *         required=false,
+ *         description="Number of schools to retrieve per request. Defaults to 20. Maximum is 100.",
+ *         @OA\Schema(
+ *             type="integer",
+ *             minimum=1,
+ *             maximum=100,
+ *             default=20,
+ *             example=20
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Schools retrieved successfully",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(property="total_records", type="integer", example=150, description="Total number of matching schools before pagination."),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(property="user_id", type="integer", example=11869),
+ *                     @OA\Property(property="sname", type="string", example="LEA PRIMARY SCHOOL CHIKAKORE"),
+ *                     @OA\Property(property="addr", type="string", example="Adjacent Primary Health Center Chikakore Kubwa"),
+ *                     @OA\Property(property="country", type="string", example="NG"),
+ *                     @OA\Property(property="state", type="string", example="36"),
+ *                     @OA\Property(property="lga", type="string", example="02")
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthenticated"
+ *     ),
+ *     @OA\Response(
+ *         response=403,
+ *         description="Unauthorized. Only LGA Admin can access this endpoint."
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="LGA Admin location not found."
+ *     ),
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation error. Invalid pagination parameters."
+ *     )
+ * )
+ */
 
-        // Get the authenticated LGA Admin's assigned state and LGA.
-        $lgaAdmin = LgaAdmin::where('user_id', $admin->id)->first();
+    public function getLgaAdminSchools(Request $request)
+{
+    $admin = auth()->user();
 
-        if (! $lgaAdmin) {
-            return response()->json([
-                'status' => false,
-                'message' => 'LGA Admin location not found.',
-            ], 404);
-        }
-
-        // Retrieve only schools within the assigned state and LGA.
-        // Comparisons are case-insensitive.
-        $schools = school_web_data::whereRaw('LOWER(state) = ?', [strtolower(trim($lgaAdmin->state))])
-            ->whereRaw('LOWER(lga) = ?', [strtolower(trim($lgaAdmin->lga))])
-            ->select([
-                'user_id',
-                'sname',
-                'addr',
-                'country',
-                'state',
-                'lga',
-            ])
-            ->get();
-
+    // Only LGA Admins can use this endpoint.
+    if (! $admin || $admin->typ !== 'lga') {
         return response()->json([
-            'status' => true,
-            'message' => 'Success',
-            'pld' => $schools,
-        ]);
+            'status' => false,
+            'message' => 'Unauthorized. Only LGA Admin can access this endpoint.',
+        ], 403);
     }
+
+    // Validate pagination.
+    $request->validate([
+        'start' => 'nullable|integer|min:0',
+        'count' => 'nullable|integer|min:1|max:100',
+    ]);
+
+    $start = (int) $request->input('start', 0);
+    $count = (int) $request->input('count', 20);
+
+    // Get the authenticated LGA Admin's assigned state and LGA.
+    $lgaAdmin = LgaAdmin::where('user_id', $admin->id)->first();
+
+    if (! $lgaAdmin) {
+        return response()->json([
+            'status' => false,
+            'message' => 'LGA Admin location not found.',
+        ], 404);
+    }
+
+    // Retrieve only schools within the assigned state and LGA.
+    // Comparisons are case-insensitive.
+    $query = school_web_data::whereRaw('LOWER(state) = ?', [
+            strtolower(trim($lgaAdmin->state)),
+        ])
+        ->whereRaw('LOWER(lga) = ?', [
+            strtolower(trim($lgaAdmin->lga)),
+        ])
+        ->select([
+            'user_id',
+            'sname',
+            'addr',
+            'country',
+            'state',
+            'lga',
+        ]);
+
+    // Get total number of matching schools before pagination.
+    $totalRecords = $query->count();
+
+    // Apply pagination.
+    $schools = $query
+        ->orderBy('sname', 'asc')
+        ->skip($start)
+        ->take($count)
+        ->get();
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Success',
+        'total_records' => $totalRecords,
+        'pld' => $schools,
+    ]);
+}
 
     /**
      * @OA\Get(
@@ -56480,7 +56587,7 @@ public function registerSchool(Request $request)
      *     )
      * )
      */
-    
+
 public function getLgaAdminStudents(Request $request)
 {
     $admin = auth()->user();
