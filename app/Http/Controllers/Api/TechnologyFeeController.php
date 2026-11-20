@@ -59,13 +59,13 @@ class TechnologyFeeController extends Controller
      */
     public function index(Request $request)
     {
-        // Only the Domain Admin can access this endpoint.
+        // Only Domain Admins, Support Admins and LGA Admins can access this endpoint.
         $admin = $request->user();
 
-        if (!$admin || $admin->typ !== 'a') {
+        if (!$admin || !in_array($admin->typ, ['a', 'sa', 'lga'], true)) {
             return response()->json([
                 'status' => false,
-                'message' => 'Unauthorized. Only the Domain Admin can access this endpoint.',
+                'message' => 'Unauthorized. Only Domain Admins, Support Admins and LGA Admins can access this endpoint.',
             ], 403);
         }
 

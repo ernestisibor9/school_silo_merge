@@ -145,10 +145,20 @@ class SchoolSuspensionController extends Controller
         $user = $request->user();
 
         // Only Domain Admins can manage school suspensions.
-        if (!$user || $user->typ !== 'a') {
+        // if (!$user || $user->typ !== 'a') {
+        //     return response()->json([
+        //         'status' => false,
+        //         'message' => 'Unauthorized. Only Domain Admins can manage school suspension.',
+        //     ], 403);
+        // }
+
+        // Only Domain Admins, Support Admins and LGA Admins can access this endpoint.
+        $admin = $request->user();
+
+        if (!$admin || !in_array($admin->typ, ['a', 'sa', 'lga'], true)) {
             return response()->json([
                 'status' => false,
-                'message' => 'Unauthorized. Only Domain Admins can manage school suspension.',
+                'message' => 'Unauthorized. Only Domain Admins, Support Admins and LGA Admins can access this endpoint.',
             ], 403);
         }
 
@@ -691,13 +701,13 @@ class SchoolSuspensionController extends Controller
 
     public function suspendedSchools(Request $request)
     {
-        // Only Domain Admins can access this endpoint.
+        // Only Domain Admins, Support Admins and LGA Admins can access this endpoint.
         $admin = $request->user();
 
-        if (!$admin || $admin->typ !== 'a') {
+        if (!$admin || !in_array($admin->typ, ['a', 'sa', 'lga'], true)) {
             return response()->json([
                 'status' => false,
-                'message' => 'Unauthorized. Only Domain Admins can access this endpoint.',
+                'message' => 'Unauthorized. Only Domain Admins, Support Admins and LGA Admins can access this endpoint.',
             ], 403);
         }
 
