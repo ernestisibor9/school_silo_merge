@@ -661,7 +661,7 @@ class TechnologyFeeController extends Controller
     public function allSchools(Request $request)
     {
         // Only the Domain Admin can access this endpoint.
-        $admin = $request->user();
+                $admin = $request->user();
 
         if (!$admin || $admin->typ !== 'a') {
             return response()->json([
@@ -669,6 +669,7 @@ class TechnologyFeeController extends Controller
                 'message' => 'Unauthorized. Only the Domain Admin can access this endpoint.',
             ], 403);
         }
+
 
         // Pagination defaults
         $start = request()->query('start', 0);
