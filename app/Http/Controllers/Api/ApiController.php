@@ -56946,4 +56946,268 @@ public function getLgaAdminStaff(Request $request)
     ]);
 }
 
+
+
+
+
+/**
+ * Get suspended schools within the authenticated LGA Admin's assigned LGA.
+ *
+ * Only LGA Admins can access this endpoint.
+ *
+ * @OA\Get(
+ *     path="/api/billing/suspended-schools-lga",
+ *     tags={"School Suspension"},
+ *     summary="Get suspended schools for an LGA Admin",
+ *     description="Returns suspended schools belonging only to the authenticated LGA Admin's assigned state and LGA. Supports optional filtering by school ID, academic session and term, with offset pagination.",
+ *     operationId="getSuspendedSchoolsLga",
+ *     security={{"bearerAuth": {}}},
+ *
+ *     @OA\Parameter(
+ *         name="school_id",
+ *         in="query",
+ *         required=false,
+ *         description="Filter by school ID. The school must belong to the authenticated LGA Admin's assigned LGA.",
+ *         @OA\Schema(type="string", example="13")
+ *     ),
+ *     @OA\Parameter(
+ *         name="session",
+ *         in="query",
+ *         required=false,
+ *         description="Filter by academic session year.",
+ *         @OA\Schema(type="integer", example=2026)
+ *     ),
+ *     @OA\Parameter(
+ *         name="term",
+ *         in="query",
+ *         required=false,
+ *         description="Filter by academic term: 1 = First Term, 2 = Second Term, 3 = Third Term.",
+ *         @OA\Schema(type="integer", enum={1, 2, 3}, example=2)
+ *     ),
+ *     @OA\Parameter(
+ *         name="start",
+ *         in="query",
+ *         required=false,
+ *         description="Number of records to skip. Defaults to 0.",
+ *         @OA\Schema(type="integer", minimum=0, example=0)
+ *     ),
+ *     @OA\Parameter(
+ *         name="count",
+ *         in="query",
+ *         required=false,
+ *         description="Maximum number of records to return. Defaults to 20; maximum is 100.",
+ *         @OA\Schema(type="integer", minimum=1, maximum=100, example=20)
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Suspended schools retrieved successfully"
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthenticated"
+ *     ),
+ *     @OA\Response(
+ *         response=403,
+ *         description="Only LGA Admins can access this endpoint"
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="LGA Admin location not found"
+ *     ),
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation failed"
+ *     )
+ * )
+ */
+
+
+public function suspendedSchoolsLga(Request $request)
+{
+    // Only the Domain Admin can publish technology fees.
+    $admin = auth()->user();
+
+    if (!$admin || $admin->typ !== 'lga') {
+        return response()->json([
+            'status' => false,
+            'message' => 'Unauthorized. Only the Lga Admin can manage technology fees.',
+        ], 403);
+    }
+
+    // Pagination defaults.
+    $start = $request->query('start', 0);
+    $count = $request->query('count', 20);
+
+    // Validate query parameters.
+    $validator = Validator::make(
+        $request->query(),
+        [
+            'school_id' => [
+                'sometimes',
+                'required',
+                'string',
+                'exists:school,sid',
+            ],
+            'session' => [
+                'sometimes',
+                'required',
+                'integer',
+                'digits:4',
+                'exists:sesn,year',
+            ],
+            'term' => [
+                'sometimes',
+                'required',
+                'integer',
+                'in:1,2,3',
+            ],
+            'start' => [
+                'sometimes',
+                'required',
+                'integer',
+                'min:0',
+            ],
+            'count' => [
+                'sometimes',
+                'required',
+                'integer',
+                'min:1',
+                'max:100',
+            ],
+        ]
+    );
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Validation failed.',
+            'errors' => $validator->errors(),
+        ], 422);
+    }
+
+    // Get the academic session name from sesn.
+    $sessionName = null;
+
+    if ($request->filled('session')) {
+        $sessionName = DB::table('sesn')
+            ->where('year', (int) $request->query('session'))
+            ->value('name');
+    }
+
+    // Map the supplied term number to its stored term name.
+    $termName = null;
+
+    if ($request->filled('term')) {
+        $terms = [
+            1 => 'First Term',
+            2 => 'Second Term',
+            3 => 'Third Term',
+        ];
+
+        $termName = $terms[(int) $request->query('term')];
+    }
+
+    // IMPORTANT:
+    // school_suspensions is the ONLY source of suspension status.
+    // The school table is joined only to retrieve the school's name.
+    $query = DB::table('school_suspensions')
+        ->join(
+            'school',
+            'school.sid',
+            '=',
+            'school_suspensions.school_id'
+        )
+        ->where('school_suspensions.status', 'suspended');
+
+    // Restrict LGA Admins to their assigned state and LGA.
+    if ($admin->typ === 'lga') {
+
+        $lgaAdmin = LgaAdmin::where('user_id', $admin->id)->first();
+
+        if (!$lgaAdmin) {
+            return response()->json([
+                'status' => false,
+                'message' => 'LGA Admin location not found.',
+            ], 404);
+        }
+
+        $query->whereIn('school_suspensions.school_id', function ($subQuery) use ($lgaAdmin) {
+            $subQuery->select('user_id')
+                ->from('school_web_data')
+                ->whereRaw('LOWER(TRIM(state)) = ?', [
+                    strtolower(trim($lgaAdmin->state)),
+                ])
+                ->whereRaw('LOWER(TRIM(lga)) = ?', [
+                    strtolower(trim($lgaAdmin->lga)),
+                ]);
+        });
+    }
+
+    // Optional school ID filter.
+    if ($request->filled('school_id')) {
+        $query->where(
+            'school_suspensions.school_id',
+            $request->query('school_id')
+        );
+    }
+
+    // Optional academic session filter.
+    if ($sessionName !== null) {
+        $query->where(
+            'school_suspensions.academic_session',
+            $sessionName
+        );
+    }
+
+    // Optional academic term filter.
+    if ($termName !== null) {
+        $query->where(
+            'school_suspensions.term',
+            $termName
+        );
+    }
+
+    // Retrieve active suspension records with offset pagination.
+    $schools = $query
+        ->select(
+            'school_suspensions.id as suspension_id',
+            'school_suspensions.school_id as school_id',
+            'school.name as school_name',
+            'school_suspensions.academic_session',
+            'school_suspensions.term',
+            'school_suspensions.reason',
+            'school_suspensions.status',
+            'school_suspensions.suspended_by',
+            'school_suspensions.suspended_at',
+            'school_suspensions.created_at',
+            'school_suspensions.updated_at'
+        )
+        ->orderByDesc('school_suspensions.suspended_at')
+        ->skip((int) $start)
+        ->take((int) $count)
+        ->get()
+        ->map(function ($suspension) {
+            // Compatibility field for existing API consumers.
+            // This value is derived from the active suspension record,
+            // NOT from school.school_status.
+            $suspension->school_status = 0;
+
+            return $suspension;
+        });
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Suspended schools retrieved successfully.',
+        'pld' => [
+            'school_id' => $request->query('school_id'),
+            'session' => $request->query('session'),
+            'term' => $request->query('term'),
+            'start' => (int) $start,
+            'count' => $schools->count(),
+            'schools' => $schools,
+        ],
+    ], 200);
+}
+
+
 }

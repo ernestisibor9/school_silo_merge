@@ -37613,6 +37613,98 @@
                 ]
             }
         },
+        "/api/billing/suspended-schools-lga": {
+            "get": {
+                "tags": [
+                    "School Suspension"
+                ],
+                "summary": "Get suspended schools for an LGA Admin",
+                "description": "Returns suspended schools belonging only to the authenticated LGA Admin's assigned state and LGA. Supports optional filtering by school ID, academic session and term, with offset pagination.",
+                "operationId": "getSuspendedSchoolsLga",
+                "parameters": [
+                    {
+                        "name": "school_id",
+                        "in": "query",
+                        "description": "Filter by school ID. The school must belong to the authenticated LGA Admin's assigned LGA.",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "13"
+                        }
+                    },
+                    {
+                        "name": "session",
+                        "in": "query",
+                        "description": "Filter by academic session year.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 2026
+                        }
+                    },
+                    {
+                        "name": "term",
+                        "in": "query",
+                        "description": "Filter by academic term: 1 = First Term, 2 = Second Term, 3 = Third Term.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "enum": [
+                                1,
+                                2,
+                                3
+                            ],
+                            "example": 2
+                        }
+                    },
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Number of records to skip. Defaults to 0.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "example": 0
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "Maximum number of records to return. Defaults to 20; maximum is 100.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 100,
+                            "minimum": 1,
+                            "example": 20
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Suspended schools retrieved successfully"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Only LGA Admins can access this endpoint"
+                    },
+                    "404": {
+                        "description": "LGA Admin location not found"
+                    },
+                    "422": {
+                        "description": "Validation failed"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/billing/school-bills/{schid}": {
             "get": {
                 "tags": [

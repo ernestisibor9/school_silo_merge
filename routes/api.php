@@ -249,6 +249,7 @@ Route::group([
     Route::get('/getLgaAdminSchools', [ApiController::class, 'getLgaAdminSchools']);
     Route::get('/getLgaAdminStudents', [ApiController::class, 'getLgaAdminStudents']);
     Route::get('/getLgaAdminStaff', [ApiController::class, 'getLgaAdminStaff']);
+    Route::get('/billing/suspended-schools-lga',[ApiController::class, 'suspendedSchoolsLga']);
 
     // School Admin
     Route::post('/school/send-message', [ApiController::class, 'schoolSendMessage']);
