@@ -250,7 +250,7 @@ Route::group([
     Route::get('/getLgaAdminStudents', [ApiController::class, 'getLgaAdminStudents']);
     Route::get('/getLgaAdminStaff', [ApiController::class, 'getLgaAdminStaff']);
     Route::get('/billing/suspended-schools-lga',[ApiController::class, 'suspendedSchoolsLga']);
-    Route::get('/billing/schools-lga',[TechnologyFeeController::class, 'allSchoolsLga']);
+    Route::get('/billing/schools-lga',[ApiController::class, 'allSchoolsLga']);
 
     // School Admin
     Route::post('/school/send-message', [ApiController::class, 'schoolSendMessage']);
