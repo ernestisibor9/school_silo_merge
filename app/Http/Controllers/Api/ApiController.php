@@ -57211,4 +57211,211 @@ public function suspendedSchoolsLga(Request $request)
 }
 
 
+
+
+
+
+
+/**
+ * Get schools with technology billing records within the authenticated LGA Admin's assigned LGA.
+ *
+ * Only LGA Admins can access this endpoint.
+ *
+ * @OA\Get(
+ *     path="/api/billing/schools-lga",
+ *     tags={"Billing"},
+ *     summary="Get schools with technology billing records for an LGA Admin",
+ *     description="Returns school billing records only for schools within the authenticated LGA Admin's assigned state and LGA. Supports filtering by payment status, school ID, academic session year and term, with offset pagination.",
+ *     operationId="getAllSchoolsWithTechnologyBillsLga",
+ *     security={{"bearerAuth": {}}},
+ *
+ *     @OA\Parameter(
+ *         name="status",
+ *         in="query",
+ *         required=true,
+ *         description="Filter school bills by payment status.",
+ *         @OA\Schema(type="string", enum={"paid", "unpaid"}, example="unpaid")
+ *     ),
+ *     @OA\Parameter(
+ *         name="school_id",
+ *         in="query",
+ *         required=false,
+ *         description="Filter billing records by school ID (school.sid). The school must belong to the authenticated LGA Admin's assigned LGA.",
+ *         @OA\Schema(type="string", example="12")
+ *     ),
+ *     @OA\Parameter(
+ *         name="session",
+ *         in="query",
+ *         required=false,
+ *         description="Academic session year. For example, 2026 represents 2026/2027.",
+ *         @OA\Schema(type="integer", example=2026)
+ *     ),
+ *     @OA\Parameter(
+ *         name="term",
+ *         in="query",
+ *         required=false,
+ *         description="Academic term: 1 = First Term, 2 = Second Term, 3 = Third Term.",
+ *         @OA\Schema(type="integer", enum={1, 2, 3}, example=1)
+ *     ),
+ *     @OA\Parameter(
+ *         name="start",
+ *         in="query",
+ *         required=false,
+ *         description="Number of records to skip. Defaults to 0.",
+ *         @OA\Schema(type="integer", minimum=0, example=0)
+ *     ),
+ *     @OA\Parameter(
+ *         name="count",
+ *         in="query",
+ *         required=false,
+ *         description="Maximum number of records to return. Defaults to 20; maximum is 100.",
+ *         @OA\Schema(type="integer", minimum=1, maximum=100, example=20)
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Schools with technology billing records retrieved successfully"
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthenticated"
+ *     ),
+ *     @OA\Response(
+ *         response=403,
+ *         description="Only LGA Admins can access this endpoint"
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="LGA Admin location not found"
+ *     ),
+ *     @OA\Response(
+ *         response=422,
+ *         description="Invalid query parameters"
+ *     )
+ * )
+ */
+
+public function allSchoolsLga(Request $request)
+{
+    // Only LGA Admins can access this endpoint.
+    $admin = $request->user();
+
+    if (!$admin || $admin->typ !== 'lga') {
+        return response()->json([
+            'status' => false,
+            'message' => 'Unauthorized. Only LGA Admins can access this endpoint.',
+        ], 403);
+    }
+
+    // Get the authenticated LGA Admin's assigned state and LGA.
+    $lgaAdmin = LgaAdmin::where('user_id', $admin->id)->first();
+
+    if (!$lgaAdmin) {
+        return response()->json([
+            'status' => false,
+            'message' => 'LGA Admin location not found.',
+        ], 404);
+    }
+
+    // Pagination defaults.
+    $start = $request->query('start', 0);
+    $count = $request->query('count', 20);
+
+    // Validate query parameters.
+    $validator = Validator::make($request->query(), [
+        'status'    => ['required', 'in:paid,unpaid'],
+        'school_id' => ['sometimes', 'required', 'string', 'exists:school,sid'],
+        'session'   => ['sometimes', 'required', 'integer', 'exists:sesn,year'],
+        'term'      => ['sometimes', 'required', 'integer', 'in:1,2,3'],
+        'start'     => ['sometimes', 'required', 'integer', 'min:0'],
+        'count'     => ['sometimes', 'required', 'integer', 'min:1', 'max:100'],
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Validation failed.',
+            'errors' => $validator->errors(),
+        ], 422);
+    }
+
+    // Retrieve school bills only for schools within the LGA Admin's assigned state and LGA.
+    $query = DB::table('school_bills')
+        ->join('school', 'school.sid', '=', 'school_bills.school_id')
+        ->where('school_bills.status', $request->query('status'))
+        ->whereIn('school_bills.school_id', function ($subQuery) use ($lgaAdmin) {
+            $subQuery->select('user_id')
+                ->from('school_web_data')
+                ->whereRaw('LOWER(TRIM(state)) = ?', [
+                    strtolower(trim($lgaAdmin->state)),
+                ])
+                ->whereRaw('LOWER(TRIM(lga)) = ?', [
+                    strtolower(trim($lgaAdmin->lga)),
+                ]);
+        });
+
+    // Optional filter by school ID.
+    if ($request->filled('school_id')) {
+        $query->where('school_bills.school_id', $request->query('school_id'));
+    }
+
+    // Optional filter by academic session year.
+    if ($request->filled('session')) {
+        $sessionName = DB::table('sesn')
+            ->where('year', $request->query('session'))
+            ->value('name');
+
+        $query->where('school_bills.academic_session', $sessionName);
+    }
+
+    // Optional filter by academic term.
+    if ($request->filled('term')) {
+        $terms = [
+            1 => 'First Term',
+            2 => 'Second Term',
+            3 => 'Third Term',
+        ];
+
+        $query->where(
+            'school_bills.term',
+            $terms[(int) $request->query('term')]
+        );
+    }
+
+    // Apply offset pagination.
+    $schools = $query
+        ->select(
+            'school.sid as school_id',
+            'school.name as school_name',
+            'school_bills.id as bill_id',
+            'school_bills.technology_fee_id',
+            'school_bills.academic_session',
+            'school_bills.term',
+            'school_bills.student_count',
+            'school_bills.fee_per_student',
+            'school_bills.total_amount',
+            'school_bills.status as payment_status',
+            'school_bills.paid_at',
+            'school_bills.created_at as bill_created_at'
+        )
+        ->orderBy('school.name', 'asc')
+        ->orderBy('school_bills.academic_session', 'desc')
+        ->orderBy('school_bills.term', 'asc')
+        ->skip((int) $start)
+        ->take((int) $count)
+        ->get();
+
+    return response()->json([
+        'status' => true,
+        'message' => 'All schools with technology billing records retrieved successfully.',
+        'pld' => [
+            'school_id' => $request->query('school_id'),
+            'start' => (int) $start,
+            'count' => $schools->count(),
+            'schools' => $schools,
+        ],
+    ], 200);
+}
+
+
+
 }
