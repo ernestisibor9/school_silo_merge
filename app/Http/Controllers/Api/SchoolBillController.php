@@ -101,7 +101,7 @@ class SchoolBillController extends Controller
     {
         $user = $request->user();
 
-        // Only authenticated School Admins can access school bills..
+        // Only authenticated School Admins can access school bills...
         if (!$user || $user->typ !== 's') {
             return response()->json([
                 'status' => false,
