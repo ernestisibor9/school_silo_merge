@@ -37074,6 +37074,7 @@ public function registerSchool(Request $request)
 
                 $uid = $request->sesn
                     .$request->trm
+                    .$request->schid
                     .$request->sid
                     .$request->clsm;
 
@@ -37663,6 +37664,7 @@ public function registerSchool(Request $request)
                 $uid = (string) (
                     $request->sesn
                     .$request->trm
+                    .$request->schid
                     .$sid
                     .$request->clsm
                 );
