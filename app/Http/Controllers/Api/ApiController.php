@@ -57419,4 +57419,84 @@ public function allSchoolsLga(Request $request)
 
 
 
+/**
+ * @OA\Post(
+ *     path="/api/resetSupportAdminPassword",
+ *     summary="Reset Support Admin password",
+ *     description="Resets a Support Admin's password to the default password 123456. Only an authenticated Domain Admin (typ = 'a') can perform this action.",
+ *     operationId="resetSupportAdminPassword",
+ *     tags={"Api"},
+ *     security={{"bearerAuth":{}}},
+ *
+ *     @OA\RequestBody(
+ *         required=true,
+ *
+ *         @OA\JsonContent(
+ *             type="object",
+ *             required={"id"},
+ *
+ *             @OA\Property(
+ *                 property="id",
+ *                 type="integer",
+ *                 example=123,
+ *                 description="The Support Admin user ID from the users table (typ = 'sa')."
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Support Admin password reset successfully",
+ *
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Support Admin password reset successfully.")
+ *         )
+ *     ),
+ *
+ *     @OA\Response(response=401, description="Unauthenticated"),
+ *     @OA\Response(response=403, description="Only Domain Admins can reset Support Admin passwords"),
+ *     @OA\Response(response=404, description="Support Admin account not found"),
+ *     @OA\Response(response=422, description="Validation failed")
+ * )
+ */
+public function resetSupportAdminPassword(Request $request)
+{
+    // Only Domain Admin can reset Support Admin passwords.
+    $admin = auth()->user();
+
+    if (! $admin || $admin->typ !== 'a') {
+        return response()->json([
+            'status' => false,
+            'message' => 'Unauthorized. Only Domain Admin can reset Support Admin passwords.',
+        ], 403);
+    }
+
+    $request->validate([
+        'id' => 'required|integer',
+    ]);
+
+    // Find the Support Admin account.
+    $supportAdmin = User::where('id', $request->id)
+        ->where('typ', 'sa')
+        ->first();
+
+    if (! $supportAdmin) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Support Admin account not found.',
+        ], 404);
+    }
+
+    // Reset password to the default password.
+    $supportAdmin->password = bcrypt('123456');
+    $supportAdmin->save();
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Support Admin password reset successfully.',
+    ]);
+}
+
+
 }
