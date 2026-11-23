@@ -172,6 +172,7 @@ Route::group([
     Route::get('/getDomainSupportAdmin', [ApiController::class, 'getDomainSupportAdmin']);
     Route::post('setAdmissionInfo', [ApiController::class, 'setAdmissionInfo']);
     Route::post('/resetSupportAdminPassword', [ApiController::class, 'resetSupportAdminPassword']);
+    Route::get('/getSupportAdmins', [ApiController::class, 'getSupportAdmins']);
 
     // Technology Billing - Domain Admin
     Route::post('/billing/technology-fees', [TechnologyFeeController::class, 'store']);

@@ -37880,6 +37880,108 @@
                 ]
             }
         },
+        "/api/getSupportAdmins": {
+            "get": {
+                "tags": [
+                    "Api"
+                ],
+                "summary": "Get all Support Admins",
+                "description": "Fetches all Support Admin accounts (typ = 'sa') with offset pagination. Only an authenticated Domain Admin (typ = 'a') can access this endpoint.",
+                "operationId": "getSupportAdmins",
+                "parameters": [
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "description": "Number of records to skip. Defaults to 0.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 0,
+                            "minimum": 0,
+                            "example": 0
+                        }
+                    },
+                    {
+                        "name": "count",
+                        "in": "query",
+                        "description": "Number of Support Admins to retrieve per request. Defaults to 20. Maximum is 100.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 20,
+                            "maximum": 100,
+                            "minimum": 1,
+                            "example": 20
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Support Admins retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Success"
+                                        },
+                                        "total_records": {
+                                            "description": "Total number of Support Admins before pagination.",
+                                            "type": "integer",
+                                            "example": 8
+                                        },
+                                        "pld": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 123
+                                                    },
+                                                    "email": {
+                                                        "type": "string",
+                                                        "example": "support@example.com"
+                                                    },
+                                                    "typ": {
+                                                        "type": "string",
+                                                        "example": "sa"
+                                                    },
+                                                    "verif": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Only Domain Admins can view Support Admin accounts"
+                    },
+                    "422": {
+                        "description": "Validation failed. Invalid pagination parameters."
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/billing/school-bills/{schid}": {
             "get": {
                 "tags": [

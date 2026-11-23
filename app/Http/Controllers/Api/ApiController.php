@@ -57499,4 +57499,128 @@ public function resetSupportAdminPassword(Request $request)
 }
 
 
+
+
+/**
+ * @OA\Get(
+ *     path="/api/getSupportAdmins",
+ *     summary="Get all Support Admins",
+ *     description="Fetches all Support Admin accounts (typ = 'sa') with offset pagination. Only an authenticated Domain Admin (typ = 'a') can access this endpoint.",
+ *     operationId="getSupportAdmins",
+ *     tags={"Api"},
+ *     security={{"bearerAuth":{}}},
+ *
+ *     @OA\Parameter(
+ *         name="start",
+ *         in="query",
+ *         required=false,
+ *         description="Number of records to skip. Defaults to 0.",
+ *         @OA\Schema(
+ *             type="integer",
+ *             minimum=0,
+ *             default=0,
+ *             example=0
+ *         )
+ *     ),
+ *
+ *     @OA\Parameter(
+ *         name="count",
+ *         in="query",
+ *         required=false,
+ *         description="Number of Support Admins to retrieve per request. Defaults to 20. Maximum is 100.",
+ *         @OA\Schema(
+ *             type="integer",
+ *             minimum=1,
+ *             maximum=100,
+ *             default=20,
+ *             example=20
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Support Admins retrieved successfully",
+ *         @OA\JsonContent(
+ *             type="object",
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(
+ *                 property="total_records",
+ *                 type="integer",
+ *                 description="Total number of Support Admins before pagination.",
+ *                 example=8
+ *             ),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(property="id", type="integer", example=123),
+ *                     @OA\Property(property="email", type="string", example="support@example.com"),
+ *                     @OA\Property(property="typ", type="string", example="sa"),
+ *                     @OA\Property(property="verif", type="integer", example=1)
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthenticated"
+ *     ),
+ *     @OA\Response(
+ *         response=403,
+ *         description="Only Domain Admins can view Support Admin accounts"
+ *     ),
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation failed. Invalid pagination parameters."
+ *     )
+ * )
+ */
+
+public function getSupportAdmins(Request $request)
+{
+    // Only Domain Admin can view Support Admin accounts.
+    $admin = auth()->user();
+
+    if (! $admin || $admin->typ !== 'a') {
+        return response()->json([
+            'status' => false,
+            'message' => 'Unauthorized. Only Domain Admin can view Support Admin accounts.',
+        ], 403);
+    }
+
+    // Validate pagination.
+    $request->validate([
+        'start' => 'nullable|integer|min:0',
+        'count' => 'nullable|integer|min:1|max:100',
+    ]);
+
+    $start = (int) $request->input('start', 0);
+    $count = (int) $request->input('count', 20);
+
+    // Retrieve Support Admin accounts.
+    $query = User::where('typ', 'sa')
+        ->select('id', 'email', 'typ', 'verif');
+
+    // Get total number of Support Admins before pagination.
+    $totalRecords = $query->count();
+
+    // Apply pagination.
+    $supportAdmins = $query
+        ->orderBy('id', 'desc')
+        ->skip($start)
+        ->take($count)
+        ->get();
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Success',
+        'total_records' => $totalRecords,
+        'pld' => $supportAdmins,
+    ]);
+}
+
+
 }
