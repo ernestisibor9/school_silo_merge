@@ -57753,7 +57753,7 @@ public function submitVisitorRequest(Request $request)
 
         return response()->json([
             'status' => true,
-            'pld' => 'Visitor request submitted successfully.'
+            'pld' => 'Our school admin will review your requests and enquiries and get back to you as soon as possible.'
         ], 201);
 
     } catch (\Exception $e) {
@@ -57964,7 +57964,7 @@ public function getVisitorRequests(Request $request)
             'status' => true,
             'message' => 'Success',
             'total_records' => $totalRecords,
-            'pld' => $visitors->first(),
+            'pld' => $visitors,
         ]);
 
     } catch (\Exception $e) {
