@@ -57753,7 +57753,7 @@ public function submitVisitorRequest(Request $request)
 
         return response()->json([
             'status' => true,
-            'message' => 'Visitor request submitted successfully.'
+            'pld' => 'Visitor request submitted successfully.'
         ], 201);
 
     } catch (\Exception $e) {
