@@ -57625,4 +57625,145 @@ public function getSupportAdmins(Request $request)
 }
 
 
+
+/**
+ * @OA\Post(
+ *     path="/api/submitVisitorRequest",
+ *     summary="Submit Visitor Request",
+ *     description="Allows a visitor to submit an enquiry or request to a school. All fields are required. The visitor_request field must not exceed 100 characters.",
+ *     operationId="submitVisitorRequest",
+ *     tags={"Unprotected"},
+ *
+ *     @OA\RequestBody(
+ *         required=true,
+ *
+ *         @OA\JsonContent(
+ *             type="object",
+ *             required={"schid", "fullname", "email", "phone", "visitor_request"},
+ *
+ *             @OA\Property(
+ *                 property="schid",
+ *                 type="string",
+ *                 maxLength=255,
+ *                 example="3942",
+ *                 description="The school ID."
+ *             ),
+ *             @OA\Property(
+ *                 property="fullname",
+ *                 type="string",
+ *                 maxLength=255,
+ *                 example="John Doe",
+ *                 description="Full name of the visitor."
+ *             ),
+ *             @OA\Property(
+ *                 property="email",
+ *                 type="string",
+ *                 format="email",
+ *                 maxLength=255,
+ *                 example="johndoe@gmail.com",
+ *                 description="Visitor's email address."
+ *             ),
+ *             @OA\Property(
+ *                 property="phone",
+ *                 type="string",
+ *                 maxLength=255,
+ *                 example="08012345678",
+ *                 description="Visitor's phone number."
+ *             ),
+ *             @OA\Property(
+ *                 property="visitor_request",
+ *                 type="string",
+ *                 maxLength=100,
+ *                 example="I would like to enquire about student admission.",
+ *                 description="Visitor's request or enquiry. Maximum 100 characters."
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=201,
+ *         description="Visitor request submitted successfully",
+ *
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Visitor request submitted successfully.")
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation failed",
+ *
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="Validation failed."),
+ *             @OA\Property(
+ *                 property="errors",
+ *                 type="object",
+ *                 example={
+ *                     "fullname": {"The fullname field is required."},
+ *                     "email": {"The email field must be a valid email address."},
+ *                     "visitor_request": {"The visitor request field must not be greater than 100 characters."}
+ *                 }
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=500,
+ *         description="Unable to submit visitor request",
+ *
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="Unable to submit visitor request.")
+ *         )
+ *     )
+ * )
+ */
+public function submitVisitorRequest(Request $request)
+{
+    // Validate request fields
+    $validator = Validator::make($request->all(), [
+        'schid' => 'required|string|max:255',
+        'fullname' => 'required|string|max:255',
+        'email' => 'required|email|max:255',
+        'phone' => 'required|string|max:255',
+        'visitor_request' => 'required|string|max:100',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Validation failed.',
+            'errors' => $validator->errors()
+        ], 422);
+    }
+
+    try {
+
+        DB::table('visitor_requests')->insert([
+            'schid' => $request->schid,
+            'fullname' => $request->fullname,
+            'email' => $request->email,
+            'phone' => $request->phone,
+            'visitor_request' => $request->visitor_request,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Visitor request submitted successfully.'
+        ], 201);
+
+    } catch (\Exception $e) {
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Unable to submit visitor request.',
+        ], 500);
+    }
+}
+
+
 }

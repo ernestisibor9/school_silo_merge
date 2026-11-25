@@ -37982,6 +37982,142 @@
                 ]
             }
         },
+        "/api/submitVisitorRequest": {
+            "post": {
+                "tags": [
+                    "Unprotected"
+                ],
+                "summary": "Submit Visitor Request",
+                "description": "Allows a visitor to submit an enquiry or request to a school. All fields are required. The visitor_request field must not exceed 100 characters.",
+                "operationId": "submitVisitorRequest",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "schid",
+                                    "fullname",
+                                    "email",
+                                    "phone",
+                                    "visitor_request"
+                                ],
+                                "properties": {
+                                    "schid": {
+                                        "description": "The school ID.",
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "example": "3942"
+                                    },
+                                    "fullname": {
+                                        "description": "Full name of the visitor.",
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "example": "John Doe"
+                                    },
+                                    "email": {
+                                        "description": "Visitor's email address.",
+                                        "type": "string",
+                                        "format": "email",
+                                        "maxLength": 255,
+                                        "example": "johndoe@gmail.com"
+                                    },
+                                    "phone": {
+                                        "description": "Visitor's phone number.",
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "example": "08012345678"
+                                    },
+                                    "visitor_request": {
+                                        "description": "Visitor's request or enquiry. Maximum 100 characters.",
+                                        "type": "string",
+                                        "maxLength": 100,
+                                        "example": "I would like to enquire about student admission."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Visitor request submitted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Visitor request submitted successfully."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation failed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation failed."
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "example": {
+                                                "fullname": [
+                                                    "The fullname field is required."
+                                                ],
+                                                "email": [
+                                                    "The email field must be a valid email address."
+                                                ],
+                                                "visitor_request": [
+                                                    "The visitor request field must not be greater than 100 characters."
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Unable to submit visitor request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unable to submit visitor request."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/billing/school-bills/{schid}": {
             "get": {
                 "tags": [

@@ -157,6 +157,7 @@ Route::post('uploadFile', [ApiController::class, 'uploadFile']);
 Route::get('getSchoolClasses/{schid}', [ApiController::class, 'getSchoolClasses']);
 Route::get('getRegFeePayments/{schid}/{rfee}', [ApiController::class, 'getRegFeePayments']);
 Route::post('setAppFeePaid', [ApiController::class, 'setAppFeePaid']);
+Route::post('/submitVisitorRequest', [ApiController::class, 'submitVisitorRequest']);
 
 
 Route::post('/billing/paystack/webhook',[SchoolBillPaymentController::class, 'webhook']);
