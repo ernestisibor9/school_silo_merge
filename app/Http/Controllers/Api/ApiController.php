@@ -57964,7 +57964,7 @@ public function getVisitorRequests(Request $request)
             'status' => true,
             'message' => 'Success',
             'total_records' => $totalRecords,
-            'pld' => $visitors,
+            'pld' => $visitors->first(),
         ]);
 
     } catch (\Exception $e) {
