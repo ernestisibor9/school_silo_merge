@@ -57766,4 +57766,194 @@ public function submitVisitorRequest(Request $request)
 }
 
 
+
+
+/**
+ * @OA\Get(
+ *     path="/api/getVisitorRequests",
+ *     summary="Get Visitor Requests",
+ *     description="Retrieves visitor enquiries and contact requests submitted through a school's website. Supports searching by full name, email, phone number or visitor request, date filtering, and pagination. Results are filtered by school ID (schid) and ordered by newest records first.",
+ *     operationId="getVisitorRequests",
+ *     tags={"Unprotected"},
+ *
+ *     @OA\Parameter(
+ *         name="schid",
+ *         in="query",
+ *         required=true,
+ *         description="The school ID used to retrieve visitor requests belonging to a particular school.",
+ *         @OA\Schema(type="string", example="3942")
+ *     ),
+ *     @OA\Parameter(
+ *         name="search",
+ *         in="query",
+ *         required=false,
+ *         description="Search by visitor's full name, email, phone number or request/enquiry.",
+ *         @OA\Schema(type="string", example="John")
+ *     ),
+ *     @OA\Parameter(
+ *         name="from_date",
+ *         in="query",
+ *         required=false,
+ *         description="Filter visitor requests from this date (YYYY-MM-DD).",
+ *         @OA\Schema(type="string", format="date", example="2026-11-01")
+ *     ),
+ *     @OA\Parameter(
+ *         name="to_date",
+ *         in="query",
+ *         required=false,
+ *         description="Filter visitor requests up to this date (YYYY-MM-DD). Must be greater than or equal to from_date.",
+ *         @OA\Schema(type="string", format="date", example="2026-11-25")
+ *     ),
+ *     @OA\Parameter(
+ *         name="start",
+ *         in="query",
+ *         required=false,
+ *         description="Starting record offset for pagination. Defaults to 0.",
+ *         @OA\Schema(type="integer", minimum=0, example=0)
+ *     ),
+ *     @OA\Parameter(
+ *         name="count",
+ *         in="query",
+ *         required=false,
+ *         description="Number of records to retrieve. Defaults to 20. Maximum is 100.",
+ *         @OA\Schema(type="integer", minimum=1, maximum=100, example=20)
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=200,
+ *         description="Visitor requests retrieved successfully.",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=true),
+ *             @OA\Property(property="message", type="string", example="Success"),
+ *             @OA\Property(property="total_records", type="integer", example=25),
+ *             @OA\Property(
+ *                 property="pld",
+ *                 type="array",
+ *                 @OA\Items(
+ *                     type="object",
+ *                     @OA\Property(property="id", type="integer", example=1),
+ *                     @OA\Property(property="fullname", type="string", example="John Doe"),
+ *                     @OA\Property(property="email", type="string", format="email", example="johndoe@gmail.com"),
+ *                     @OA\Property(property="phone", type="string", example="08012345678"),
+ *                     @OA\Property(property="visitor_request", type="string", example="I would like to enquire about student admission."),
+ *                     @OA\Property(property="created_at", type="string", format="date-time", example="2026-11-25 11:41:29")
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation failed.",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="Validation failed."),
+ *             @OA\Property(
+ *                 property="errors",
+ *                 type="object",
+ *                 example={
+ *                     "schid": {"The schid field is required."},
+ *                     "to_date": {"The to date must be a date after or equal to from date."}
+ *                 }
+ *             )
+ *         )
+ *     ),
+ *
+ *     @OA\Response(
+ *         response=500,
+ *         description="Unable to retrieve visitor requests.",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="status", type="boolean", example=false),
+ *             @OA\Property(property="message", type="string", example="Unable to retrieve visitor requests.")
+ *         )
+ *     )
+ * )
+ */
+public function getVisitorRequests(Request $request)
+{
+    // Validate request parameters.
+    $validator = Validator::make($request->all(), [
+        'schid' => 'required|string|max:255',
+        'search' => 'nullable|string|max:255',
+        'from_date' => 'nullable|date',
+        'to_date' => 'nullable|date|after_or_equal:from_date',
+        'start' => 'nullable|integer|min:0',
+        'count' => 'nullable|integer|min:1|max:100',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Validation failed.',
+            'errors' => $validator->errors()
+        ], 422);
+    }
+
+    try {
+
+        $start = (int) $request->input('start', 0);
+        $count = (int) $request->input('count', 20);
+
+        // Retrieve visitor requests belonging to the school.
+        $query = DB::table('visitor_requests')
+            ->where('schid', $request->schid)
+            ->select(
+                'id',
+                'fullname',
+                'email',
+                'phone',
+                'visitor_request',
+                'created_at'
+            );
+
+        // Search by name, email, phone or visitor request.
+        if ($request->filled('search')) {
+
+            $search = $request->search;
+
+            $query->where(function ($q) use ($search) {
+                $q->where('fullname', 'LIKE', "%{$search}%")
+                    ->orWhere('email', 'LIKE', "%{$search}%")
+                    ->orWhere('phone', 'LIKE', "%{$search}%")
+                    ->orWhere('visitor_request', 'LIKE', "%{$search}%");
+            });
+        }
+
+        // Filter by start date.
+        if ($request->filled('from_date')) {
+            $query->whereDate('created_at', '>=', $request->from_date);
+        }
+
+        // Filter by end date.
+        if ($request->filled('to_date')) {
+            $query->whereDate('created_at', '<=', $request->to_date);
+        }
+
+        // Get total records before pagination.
+        $totalRecords = (clone $query)->count();
+
+        // Apply pagination.
+        $visitors = $query
+            ->orderBy('id', 'desc')
+            ->skip($start)
+            ->take($count)
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Success',
+            'total_records' => $totalRecords,
+            'pld' => $visitors,
+        ]);
+
+    } catch (\Exception $e) {
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Unable to retrieve visitor requests.',
+        ], 500);
+    }
+}
+
+
 }
