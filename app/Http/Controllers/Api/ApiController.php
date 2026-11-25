@@ -57872,6 +57872,16 @@ public function submitVisitorRequest(Request $request)
  */
 public function getVisitorRequests(Request $request)
 {
+    // Only authenticated School Admins can view visitor requests.
+    $user = $request->user();
+
+    if (!$user || $user->typ !== 's') {
+        return response()->json([
+            'status' => false,
+            'message' => 'Unauthorized. Only School Admins can view visitor requests.',
+        ], 403);
+    }
+
     // Validate request parameters.
     $validator = Validator::make($request->all(), [
         'schid' => 'required|string|max:255',
@@ -57890,14 +57900,22 @@ public function getVisitorRequests(Request $request)
         ], 422);
     }
 
+    // Verify that the authenticated school matches the requested school.
+    if ((string) $user->id !== (string) $request->schid) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Unauthorized. You cannot access another school\'s visitor requests.',
+        ], 403);
+    }
+
     try {
 
         $start = (int) $request->input('start', 0);
         $count = (int) $request->input('count', 20);
 
-        // Retrieve visitor requests belonging to the school.
+        // Retrieve visitor requests belonging to the authenticated school.
         $query = DB::table('visitor_requests')
-            ->where('schid', $request->schid)
+            ->where('schid', (string) $user->id)
             ->select(
                 'id',
                 'fullname',
@@ -57905,7 +57923,9 @@ public function getVisitorRequests(Request $request)
                 'phone',
                 'visitor_request',
                 'created_at'
-            );
+            )
+            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m-%d') as request_date")
+            ->selectRaw("DATE_FORMAT(created_at, '%h:%i %p') as request_time");
 
         // Search by name, email, phone or visitor request.
         if ($request->filled('search')) {
@@ -57955,6 +57975,5 @@ public function getVisitorRequests(Request $request)
         ], 500);
     }
 }
-
 
 }
