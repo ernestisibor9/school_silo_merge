@@ -57774,7 +57774,7 @@ public function submitVisitorRequest(Request $request)
  *     summary="Get Visitor Requests",
  *     description="Retrieves visitor enquiries and contact requests submitted through a school's website. Supports searching by full name, email, phone number or visitor request, date filtering, and pagination. Results are filtered by school ID (schid) and ordered by newest records first.",
  *     operationId="getVisitorRequests",
- *     tags={"Unprotected"},
+ *     tags={"Api"},
  *
  *     @OA\Parameter(
  *         name="schid",
